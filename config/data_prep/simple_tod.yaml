@@ -1,0 +1,2 @@
+data_root: /localdisk0/adibm/data/dstc8-schema-guided-dialogue/
+out_root: processed_out/simple_tod
