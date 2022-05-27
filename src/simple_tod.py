@@ -21,31 +21,39 @@ class SimpleTODDataPrep:
         return file_paths
 
     def _prepare_context(
+        self, user_turn: DstcTurn, system_turn: DstcTurn, prev_tod_turn: TodTurn
+    ):
+        a = 1
+        context = (
+            TodContext() if not prev_tod_turn else copy.deepcopy(prev_tod_turn.context)
+        )
+        if user_turn:
+            context.user_utterances.append(user_turn.utterance)
+        if system_turn:
+            context.system_utterances.append(system_turn.utterance)
+        return context
+
+    def _prepare_target(
         self,
         dstc_turn: DstcTurn,
         prev_tod_turn: TodTurn,
     ):
-        context = (
-            TodContext() if not prev_tod_turn else copy.deepcopy(prev_tod_turn.context)
-        )
-        if dstc_turn.speaker == Speaker.USER:
-            context.user_utterances.append(dstc_turn.utterance)
-        elif dstc_turn.speaker == Speaker.SYSTEM:
-            context.system_utterances.append(dstc_turn.utterance)
-        return context
+        a = 1
 
-    def _prepare_turn(self, dstc_turn: DstcTurn, prev_tod_turn: TodTurn) -> TodTurn:
+    def _prepare_turn(
+        self, user_turn: DstcTurn, system_turn: DstcTurn, prev_tod_turn: TodTurn
+    ) -> TodTurn:
         target = None
-        context = self._prepare_context(dstc_turn, prev_tod_turn)
-        # for dstc_frame in dstc_turn.frames:
+        context = self._prepare_context(user_turn, system_turn, prev_tod_turn)
+        # target = self._prepare_target(dstc_turn, prev_tod_turn)
 
         return TodTurn(context, target)
 
     def _prepare_dialog(self, dstc_dialog: DstcDialog):
         tod_turns = []
         tod_turn = None
-        for dstc_turn in dstc_dialog.turns:
-            tod_turn = self._prepare_turn(dstc_turn, tod_turn)
+        for system_turn, user_turn in utils.grouper(dstc_dialog.turns, 2):
+            tod_turn = self._prepare_turn(user_turn, system_turn, tod_turn)
             tod_turns.append(tod_turn)
         return tod_turns
 

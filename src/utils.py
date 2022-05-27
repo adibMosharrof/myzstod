@@ -3,6 +3,8 @@ import json
 from pathlib import Path
 
 import dirtyjson
+from collections import deque
+from itertools import zip_longest
 
 # from dataclass_csv import DataclassReader
 
@@ -36,10 +38,10 @@ def read_csv(path: str):
     return rows
 
 
-def read_csv_dataclass(path: str, d_class):
-    with open(path) as f:
-        reader = DataclassReader(f, d_class)
-        return [r for r in reader]
+# def read_csv_dataclass(path: str, d_class):
+#     with open(path) as f:
+#         reader = DataclassReader(f, d_class)
+#         return [r for r in reader]
 
 
 def get_num_items(num, max_value):
@@ -52,3 +54,12 @@ def read_lines_in_file(path: Path) -> list[any]:
     with open(path) as file:
         lines = [line.rstrip() for line in file]
     return lines
+
+
+def grouper(iterable, n=2, fillvalue=None):
+    # "Collect data into fixed-length chunks or blocks"
+    # grouper('ABCDEFG', 3, 'x') --> ABC DEF Gxx
+    data = deque(iterable)
+    data.appendleft(None)
+    args = [iter(data)] * n
+    return zip_longest(fillvalue=fillvalue, *args)
