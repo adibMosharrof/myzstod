@@ -4,10 +4,21 @@ from omegaconf import DictConfig, OmegaConf
 import glob
 from tqdm import tqdm
 import utils
-from my_dataclasses import DstcFrame, Speaker, TodTurn, TodContext, DstcDialog, DstcTurn
+from my_dataclasses import (
+    DstcFrame,
+    Speaker,
+    TodAction,
+    TodBelief,
+    TodTarget,
+    TodTurn,
+    TodContext,
+    DstcDialog,
+    DstcTurn,
+)
 import copy
 import json
 import numpy as np
+from typing import List
 
 
 class SimpleTODDataPrep:
@@ -24,36 +35,88 @@ class SimpleTODDataPrep:
         self, user_turn: DstcTurn, system_turn: DstcTurn, prev_tod_turn: TodTurn
     ):
         a = 1
-        context = (
-            TodContext() if not prev_tod_turn else copy.deepcopy(prev_tod_turn.context)
-        )
+        if not prev_tod_turn:
+            context = TodContext()
+        else:
+            context = copy.deepcopy(prev_tod_turn.context)
+            context.system_utterances.append(
+                prev_tod_turn.context.next_system_utterance
+            )
+
         if user_turn:
             context.user_utterances.append(user_turn.utterance)
         if system_turn:
-            context.system_utterances.append(system_turn.utterance)
+            # context.system_utterances.append(system_turn.utterance)
+            context.next_system_utterance = system_turn.utterance
         return context
+
+    def _prepare_belief(self, user_turn: DstcTurn) -> List[TodBelief]:
+        beliefs = []
+        for frame in user_turn.frames:
+            if not frame.state:
+                continue
+            for slot_name, value in frame.state.slot_values.items():
+                beliefs.append(TodBelief(frame.service, slot_name, " ".join(value)))
+        return beliefs
+
+    def _create_user_action(self, actions, frames: List[DstcFrame]):
+        for frame in frames:
+            for action in frame.actions:
+                actions.append(
+                    TodAction(frame.service, action.act, " ".join(action.values))
+                )
+
+    def _create_system_action(self, actions, frames: List[DstcFrame]):
+        for frame in frames:
+            for action in frame.actions:
+                actions.append(TodAction(frame.service, action.act, action.slot))
+
+    def _prepare_action(
+        self, user_turn: DstcTurn, system_turn: DstcTurn
+    ) -> List[TodAction]:
+        actions = []
+        # if (
+        #     user_turn
+        #     and system_turn
+        #     and len(user_turn.frames) * len(system_turn.frames) > 1
+        # ):
+        #     raise ValueError("length of frames is greater than 1")
+        if user_turn:
+            self._create_user_action(actions, user_turn.frames)
+        if system_turn:
+            self._create_system_action(actions, system_turn.frames)
+        return actions
+
+    def _prepare_response(self, system_turn: DstcTurn) -> str:
+        if not system_turn:
+            return None
+        return system_turn.utterance
 
     def _prepare_target(
         self,
-        dstc_turn: DstcTurn,
-        prev_tod_turn: TodTurn,
+        user_turn: DstcTurn,
+        system_turn: DstcTurn,
     ):
-        a = 1
+        beliefs = self._prepare_belief(user_turn)
+        actions = self._prepare_action(user_turn, system_turn)
+        response = self._prepare_response(system_turn)
+        return TodTarget(beliefs, actions, response)
 
     def _prepare_turn(
         self, user_turn: DstcTurn, system_turn: DstcTurn, prev_tod_turn: TodTurn
     ) -> TodTurn:
         target = None
         context = self._prepare_context(user_turn, system_turn, prev_tod_turn)
-        # target = self._prepare_target(dstc_turn, prev_tod_turn)
-
+        target = self._prepare_target(user_turn, system_turn)
+        out = str(target)
         return TodTurn(context, target)
 
     def _prepare_dialog(self, dstc_dialog: DstcDialog):
         tod_turns = []
         tod_turn = None
-        for system_turn, user_turn in utils.grouper(dstc_dialog.turns, 2):
+        for user_turn, system_turn in utils.grouper(dstc_dialog.turns, 2):
             tod_turn = self._prepare_turn(user_turn, system_turn, tod_turn)
+            tod_turn.dialog_id = dstc_dialog.dialogue_id
             tod_turns.append(tod_turn)
         return tod_turns
 

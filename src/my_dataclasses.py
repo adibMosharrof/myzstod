@@ -15,6 +15,12 @@ class TodBelief:
     slot_name: str
     value: any
 
+    def __repr__(self) -> str:
+        return self.__str__()
+
+    def __str__(self) -> str:
+        return " ".join([self.domain, self.slot_name, self.value])
+
 
 @dataclass
 class TodAction:
@@ -22,11 +28,18 @@ class TodAction:
     action_type: str
     slot_name: str
 
+    def __repr__(self) -> str:
+        return self.__str__()
+
+    def __str__(self) -> str:
+        return " ".join([self.domain, self.action_type, self.slot_name])
+
 
 @dataclass
 class TodContext:
     user_utterances: List[str] = field(default_factory=list)
     system_utterances: List[str] = field(default_factory=list)
+    next_system_utterance: str = None
 
     def __repr__(self) -> str:
         return self.__str__()
@@ -36,9 +49,10 @@ class TodContext:
         for user, system in zip_longest(
             self.user_utterances, self.system_utterances, fillvalue=""
         ):
-            u = SpecialTokens.user + user
-            s = SpecialTokens.system + system
-            out += u + s
+            if user:
+                out += SpecialTokens.user + user
+            if system:
+                out += SpecialTokens.system + system
         out += SpecialTokens.end_context
         return out
 
@@ -49,11 +63,30 @@ class TodTarget:
     actions: List[TodAction]
     response: str
 
+    def __repr__(self) -> str:
+        return self.__str__()
+
+    def __str__(self) -> str:
+        out = SpecialTokens.begin_belief
+        out += ", ".join(map(str, self.beliefs))
+        out += SpecialTokens.end_belief
+
+        out += SpecialTokens.begin_action
+        out += ", ".join(map(str, self.actions))
+        out += SpecialTokens.end_action
+
+        out += SpecialTokens.begin_response
+        out += self.response
+        out += SpecialTokens.end_response
+
+        return out
+
 
 @dataclass
 class TodTurn:
     context: TodContext
     target: TodTarget
+    dialog_id: str
 
 
 """

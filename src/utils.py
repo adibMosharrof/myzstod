@@ -59,7 +59,7 @@ def read_lines_in_file(path: Path) -> list[any]:
 def grouper(iterable, n=2, fillvalue=None):
     # "Collect data into fixed-length chunks or blocks"
     # grouper('ABCDEFG', 3, 'x') --> ABC DEF Gxx
-    data = deque(iterable)
-    data.appendleft(None)
-    args = [iter(data)] * n
+    # data = deque(iterable)
+    # iterable.appendleft(None)
+    args = [iter(iterable)] * n
     return zip_longest(fillvalue=fillvalue, *args)
