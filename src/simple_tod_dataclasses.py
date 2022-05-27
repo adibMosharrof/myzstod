@@ -1,8 +1,8 @@
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional
-from dataclasses_json import dataclass_json
 from enum import Enum
 from itertools import zip_longest
+
 
 """
     Simple Tod data prep classes
@@ -86,56 +86,15 @@ class TodTarget:
 class TodTurn:
     context: TodContext
     target: TodTarget
-    dialog_id: str
+    dialog_id: Optional[str] = None
+    turn_id: Optional[int] = None
 
+    def to_csv_row(self) -> List[any]:
+        return [self.dialog_id, self.turn_id, str(self.context), str(self.target)]
 
 """
     End of Simple Tod data prep classes
 """
-
-"""
-    DSTC Dialog Dataclass
-"""
-
-
-@dataclass
-class DstcState:
-    active_intent: str
-    slot_values: Dict[str, any]
-    requested_slot: Optional[List[any]] = None
-
-
-@dataclass
-class DstcAction:
-    act: str
-    canonical_values: List[str]
-    slot: str
-    values: List[str]
-    service_call: Optional[any] = None
-    service_results: Optional[any] = None
-
-
-@dataclass
-class DstcFrame:
-    actions: List[DstcAction]
-    service: str
-    slots: List[any]
-    state: Optional[DstcState] = None
-
-
-@dataclass
-class DstcTurn:
-    frames: List[DstcFrame]
-    speaker: str
-    utterance: str
-
-
-@dataclass_json
-@dataclass
-class DstcDialog:
-    dialogue_id: str
-    services: List[str]
-    turns: List[DstcTurn]
 
 
 class Speaker(str, Enum):

@@ -3,18 +3,10 @@ import hydra
 from omegaconf import DictConfig, OmegaConf
 import glob
 from tqdm import tqdm
+from dstc_dataclasses import DstcDialog, DstcFrame, DstcTurn
+from simple_tod_dataclasses import TodAction, TodBelief, TodContext, TodTarget, TodTurn
 import utils
-from my_dataclasses import (
-    DstcFrame,
-    Speaker,
-    TodAction,
-    TodBelief,
-    TodTarget,
-    TodTurn,
-    TodContext,
-    DstcDialog,
-    DstcTurn,
-)
+
 import copy
 import json
 import numpy as np
@@ -22,10 +14,11 @@ from typing import List
 
 
 class SimpleTODDataPrep:
-    def __init__(self, data_root: str, out_root: str):
+    def __init__(self, data_root: str, out_root: str, num_dialogs: int):
         self.data_root = Path(data_root)
         self.out_root = self.data_root / out_root
         self.out_root.mkdir(parents=True, exist_ok=True)
+        self.num_dialogs = num_dialogs
 
     def _get_dialog_file_paths(self, step):
         file_paths = glob.glob(str(self.data_root / step / "dialogues_*"))
@@ -108,16 +101,18 @@ class SimpleTODDataPrep:
         target = None
         context = self._prepare_context(user_turn, system_turn, prev_tod_turn)
         target = self._prepare_target(user_turn, system_turn)
-        out = str(target)
         return TodTurn(context, target)
 
     def _prepare_dialog(self, dstc_dialog: DstcDialog):
         tod_turns = []
         tod_turn = None
-        for user_turn, system_turn in utils.grouper(dstc_dialog.turns, 2):
+        for i, (user_turn, system_turn) in enumerate(
+            utils.grouper(dstc_dialog.turns, 2)
+        ):
             tod_turn = self._prepare_turn(user_turn, system_turn, tod_turn)
             tod_turn.dialog_id = dstc_dialog.dialogue_id
-            tod_turns.append(tod_turn)
+            tod_turn.turn_id = i + 1
+            tod_turns.append(tod_turn.to_csv_row())
         return tod_turns
 
     def _prepare_dialog_file(self, path):
@@ -126,8 +121,8 @@ class SimpleTODDataPrep:
         for d in dialog_json_data:
             dialog = DstcDialog.from_json(json.dumps(d))
             prepped_dialog = self._prepare_dialog(dialog)
-            data = np.concatenate([data, prepped_dialog])
-        return data
+            data.append(prepped_dialog)
+        return np.concatenate(data, axis=0)
 
     def run(self):
         steps = ["train", "dev", "test"]
@@ -136,10 +131,17 @@ class SimpleTODDataPrep:
             step_dir.mkdir(parents=True, exist_ok=True)
             dialog_paths = self._get_dialog_file_paths(step)
             out_data = []
-            for dp in dialog_paths:
+            if self.num_dialogs is None:
+                self.num_dialogs = len(dialog_paths)
+            for dp in dialog_paths[: self.num_dialogs]:
                 dialog_data = self._prepare_dialog_file(dp)
-                out_data = np.concatenate([out_data, dialog_data])
-        a = 1
+                out_data.append(dialog_data)
+            headers = ["dialog_id", "turn_id", "context", "target"]
+            csv_file_path = (
+                self.out_root / step / f"simple_tod_dstc_{self.num_dialogs}.csv"
+            )
+            csv_data = np.concatenate(out_data, axis=0)
+            utils.write_csv(headers, csv_data, csv_file_path)
 
 
 @hydra.main(config_path="../config/data_prep/", config_name="simple_tod")
@@ -147,9 +149,7 @@ def hydra_start(cfg: DictConfig) -> None:
     stdp = SimpleTODDataPrep(
         cfg.data_root,
         cfg.out_root,
-        # cfg.metrics,
-        # log_dir=cfg.log_dir,
-        # title=cfg.plot_title,
+        cfg.num_dialogs,
     )
     stdp.run()
 
