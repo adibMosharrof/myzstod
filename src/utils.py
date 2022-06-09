@@ -1,12 +1,11 @@
 import csv
 import json
+from collections import deque
+from itertools import zip_longest
 from pathlib import Path
 
 import dirtyjson
-from collections import deque
-from itertools import zip_longest
-
-# from dataclass_csv import DataclassReader
+from dataclass_csv import DataclassReader
 
 
 def write_csv(headers: list[str], data, file_name: Path):
@@ -38,10 +37,10 @@ def read_csv(path: str):
     return rows
 
 
-# def read_csv_dataclass(path: str, d_class):
-#     with open(path) as f:
-#         reader = DataclassReader(f, d_class)
-#         return [r for r in reader]
+def read_csv_dataclass(path: str, d_class):
+    with open(path) as f:
+        reader = DataclassReader(f, d_class)
+        return [r for r in reader]
 
 
 def get_num_items(num, max_value):

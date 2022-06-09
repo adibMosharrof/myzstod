@@ -1,16 +1,11 @@
 from dataclasses import dataclass, field
-from typing import List, Dict, Optional
 from enum import Enum
 from itertools import zip_longest
-
-
-"""
-    Simple Tod data prep classes
-"""
+from typing import Dict, List, Optional
 
 
 @dataclass
-class TodBelief:
+class SimpleTodBelief:
     domain: str
     slot_name: str
     value: any
@@ -23,7 +18,7 @@ class TodBelief:
 
 
 @dataclass
-class TodAction:
+class SimpleTodAction:
     domain: str
     action_type: str
     slot_name: str
@@ -36,7 +31,7 @@ class TodAction:
 
 
 @dataclass
-class TodContext:
+class SimpleTodContext:
     user_utterances: List[str] = field(default_factory=list)
     system_utterances: List[str] = field(default_factory=list)
     next_system_utterance: str = None
@@ -58,9 +53,9 @@ class TodContext:
 
 
 @dataclass
-class TodTarget:
-    beliefs: List[TodBelief]
-    actions: List[TodAction]
+class SimpleTodTarget:
+    beliefs: List[SimpleTodBelief]
+    actions: List[SimpleTodAction]
     response: str
 
     def __repr__(self) -> str:
@@ -83,18 +78,22 @@ class TodTarget:
 
 
 @dataclass
-class TodTurn:
-    context: TodContext
-    target: TodTarget
+class SimpleTodTurn:
+    context: SimpleTodContext
+    target: SimpleTodTarget
     dialog_id: Optional[str] = None
     turn_id: Optional[int] = None
 
     def to_csv_row(self) -> List[any]:
         return [self.dialog_id, self.turn_id, str(self.context), str(self.target)]
 
-"""
-    End of Simple Tod data prep classes
-"""
+
+@dataclass
+class SimpleTodTurnCsvRow:
+    dialog_id: str
+    turn_id: str
+    context: str
+    target: str
 
 
 class Speaker(str, Enum):
@@ -116,3 +115,8 @@ class SpecialTokens(str, Enum):
 
     begin_action = "<|beginaction|>"
     end_action = "<|endaction|>"
+
+    @classmethod
+    def list(cls):
+        return [c.value for c in cls]
+        # return list(map(lambda c: c.value, cls))

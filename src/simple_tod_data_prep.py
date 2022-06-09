@@ -1,16 +1,23 @@
-from pathlib import Path
-import hydra
-from omegaconf import DictConfig, OmegaConf
-import glob
-from tqdm import tqdm
-from dstc_dataclasses import DstcDialog, DstcFrame, DstcTurn
-from simple_tod_dataclasses import TodAction, TodBelief, TodContext, TodTarget, TodTurn
-import utils
-
 import copy
+import glob
 import json
-import numpy as np
+from pathlib import Path
 from typing import List
+
+import hydra
+import numpy as np
+from omegaconf import DictConfig, OmegaConf
+from tqdm import tqdm
+
+import utils
+from dstc_dataclasses import DstcDialog, DstcFrame, DstcTurn
+from simple_tod_dataclasses import (
+    SimpleTodAction,
+    SimpleTodBelief,
+    SimpleTodContext,
+    SimpleTodTarget,
+    SimpleTodTurn,
+)
 
 
 class SimpleTODDataPrep:
@@ -25,11 +32,11 @@ class SimpleTODDataPrep:
         return file_paths
 
     def _prepare_context(
-        self, user_turn: DstcTurn, system_turn: DstcTurn, prev_tod_turn: TodTurn
+        self, user_turn: DstcTurn, system_turn: DstcTurn, prev_tod_turn: SimpleTodTurn
     ):
         a = 1
         if not prev_tod_turn:
-            context = TodContext()
+            context = SimpleTodContext()
         else:
             context = copy.deepcopy(prev_tod_turn.context)
             context.system_utterances.append(
@@ -43,30 +50,32 @@ class SimpleTODDataPrep:
             context.next_system_utterance = system_turn.utterance
         return context
 
-    def _prepare_belief(self, user_turn: DstcTurn) -> List[TodBelief]:
+    def _prepare_belief(self, user_turn: DstcTurn) -> List[SimpleTodBelief]:
         beliefs = []
         for frame in user_turn.frames:
             if not frame.state:
                 continue
             for slot_name, value in frame.state.slot_values.items():
-                beliefs.append(TodBelief(frame.service, slot_name, " ".join(value)))
+                beliefs.append(
+                    SimpleTodBelief(frame.service, slot_name, " ".join(value))
+                )
         return beliefs
 
     def _create_user_action(self, actions, frames: List[DstcFrame]):
         for frame in frames:
             for action in frame.actions:
                 actions.append(
-                    TodAction(frame.service, action.act, " ".join(action.values))
+                    SimpleTodAction(frame.service, action.act, " ".join(action.values))
                 )
 
     def _create_system_action(self, actions, frames: List[DstcFrame]):
         for frame in frames:
             for action in frame.actions:
-                actions.append(TodAction(frame.service, action.act, action.slot))
+                actions.append(SimpleTodAction(frame.service, action.act, action.slot))
 
     def _prepare_action(
         self, user_turn: DstcTurn, system_turn: DstcTurn
-    ) -> List[TodAction]:
+    ) -> List[SimpleTodAction]:
         actions = []
         # if (
         #     user_turn
@@ -93,15 +102,15 @@ class SimpleTODDataPrep:
         beliefs = self._prepare_belief(user_turn)
         actions = self._prepare_action(user_turn, system_turn)
         response = self._prepare_response(system_turn)
-        return TodTarget(beliefs, actions, response)
+        return SimpleTodTarget(beliefs, actions, response)
 
     def _prepare_turn(
-        self, user_turn: DstcTurn, system_turn: DstcTurn, prev_tod_turn: TodTurn
-    ) -> TodTurn:
+        self, user_turn: DstcTurn, system_turn: DstcTurn, prev_tod_turn: SimpleTodTurn
+    ) -> SimpleTodTurn:
         target = None
         context = self._prepare_context(user_turn, system_turn, prev_tod_turn)
         target = self._prepare_target(user_turn, system_turn)
-        return TodTurn(context, target)
+        return SimpleTodTurn(context, target)
 
     def _prepare_dialog(self, dstc_dialog: DstcDialog):
         tod_turns = []
@@ -131,7 +140,7 @@ class SimpleTODDataPrep:
             step_dir.mkdir(parents=True, exist_ok=True)
             dialog_paths = self._get_dialog_file_paths(step)
             out_data = []
-            if self.num_dialogs is None:
+            if self.num_dialogs == "None":
                 self.num_dialogs = len(dialog_paths)
             for dp in dialog_paths[: self.num_dialogs]:
                 dialog_data = self._prepare_dialog_file(dp)
