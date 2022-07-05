@@ -49,4 +49,68 @@ class DstcDialog:
     turns: List[DstcTurn]
 
 
+@dataclass
+class DstcSchemaIntent:
+    name: str
+    description: str
+    is_transactional: bool
+    required_slots: List[str]
+    optional_slots: any
+    result_slots: List[str]
 
+    def __init__(
+        self,
+        name: str,
+        description: str,
+        is_transactional: bool,
+        required_slots: List[str],
+        optional_slots: any,
+        result_slots: List[str],
+    ) -> None:
+        self.name = name
+        self.description = description
+        self.is_transactional = is_transactional
+        self.required_slots = required_slots
+        self.optional_slots = optional_slots
+        self.result_slots = result_slots
+
+
+@dataclass
+class DstcSchemaSlot:
+    name: str
+    description: str
+    is_categorical: bool
+    possible_values: List[str]
+
+    def __init__(
+        self,
+        name: str,
+        description: str,
+        is_categorical: bool,
+        possible_values: List[str],
+    ) -> None:
+        self.name = name
+        self.description = description
+        self.is_categorical = is_categorical
+        self.possible_values = possible_values
+
+
+@dataclass_json
+@dataclass
+class DstcSchema:
+    service_name: str
+    description: str
+    slots: List[DstcSchemaSlot]
+    intents: List[DstcSchemaIntent]
+
+    def __init__(
+        self,
+        service_name: str,
+        description: str,
+        slots: List[DstcSchemaSlot],
+        intents: List[DstcSchemaIntent],
+    ) -> None:
+        self.service_name = service_name
+        self.description = description
+        self.slots = slots
+        self.intents = intents

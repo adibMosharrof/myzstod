@@ -2,6 +2,7 @@
     "exclude": [
         "**/envs/",
         "**/.git/",
-        "**/outputs/"
+        "**/outputs/",
+        "**/data/"
     ]
 }

@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader, Dataset, default_collate
 from transformers import AutoTokenizer, PreTrainedTokenizerFast
 
 import utils
-from simple_tod_data_prep import SimpleTODDataPrep
+from simple_tod_dstc_data_prep import SimpleTODDSTCDataPrep
 from simple_tod_dataclasses import SimpleTodTurnCsvRow
 
 
@@ -50,7 +50,7 @@ class SimpleTodDataModule(pl.LightningDataModule):
             )
             # csv_file_paths.append(csv_file)
             if not csv_file.exists():
-                stdp = SimpleTODDataPrep(
+                stdp = SimpleTODDSTCDataPrep(
                     self.data_root,
                     self.data_root / self.preprocessing_model_name,
                     self.num_dialogs,
@@ -95,7 +95,7 @@ class SimpleTodDataModule(pl.LightningDataModule):
             batch_size=self.batch_size,
             shuffle=False,
             num_workers=self.num_workers,
-            collate_fn=self.my_collate,
+            collate_fn=self.my_test_collate,
             pin_memory=True,
         )
 
@@ -109,6 +109,19 @@ class SimpleTodDataModule(pl.LightningDataModule):
         )
 
     def my_collate(self, batch):
+        texts = [x[0] + x[1] for x in batch]
+        targets = [x[1] for x in batch]
+        texts_tokens = self.tokenize(texts)
+        targets_tokens = self.tokenize(targets)
+        input_ids = torch.stack([*texts_tokens["input_ids"]])
+        labels = torch.stack([*targets_tokens["input_ids"]])
+        return {
+            "input_ids": input_ids,
+            "attention_mask": torch.stack([*texts_tokens["attention_mask"]]),
+            "labels": input_ids,
+        }
+
+    def my_test_collate(self, batch):
         contexts = [x[0] for x in batch]
         targets = [x[1] for x in batch]
         contexts_tokens, targets_tokens = self.tokenize(contexts), self.tokenize(
@@ -119,6 +132,8 @@ class SimpleTodDataModule(pl.LightningDataModule):
             "input_ids": torch.stack([*contexts_tokens["input_ids"]]),
             "attention_mask": torch.stack([*contexts_tokens["attention_mask"]]),
             "labels": torch.stack([*targets_tokens["input_ids"]]),
+            "contexts_text": contexts,
+            "targets_text": targets,
         }
         # return {
         #     "context_input_ids": torch.stack([*contexts_tokens["input_ids"]]),

@@ -2,15 +2,14 @@ import copy
 import glob
 import json
 from pathlib import Path
-from typing import List
-
+from typing import List, Optional
 import hydra
 import numpy as np
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import DictConfig, ListConfig, OmegaConf
 from tqdm import tqdm
 
 import utils
-from dstc_dataclasses import DstcDialog, DstcFrame, DstcTurn
+from dstc_dataclasses import DstcDialog, DstcFrame, DstcSchema, DstcTurn
 from simple_tod_dataclasses import (
     SimpleTodAction,
     SimpleTodBelief,
@@ -20,12 +19,34 @@ from simple_tod_dataclasses import (
 )
 
 
-class SimpleTODDataPrep:
-    def __init__(self, data_root: str, out_root: str, num_dialogs: int):
-        self.data_root = Path(data_root)
+class SimpleTODDSTCDataPrep:
+    def __init__(
+        self,
+        project_root: str,
+        data_root: str,
+        out_root: str,
+        num_dialogs: int,
+        seen_services: any,
+    ):
+        self.project_root = Path(project_root)
+        self.data_root = self.project_root / data_root
         self.out_root = self.data_root / out_root
         self.out_root.mkdir(parents=True, exist_ok=True)
         self.num_dialogs = num_dialogs
+        self.seen_services = self._get_seen_services(seen_services, self.data_root)
+
+    def _get_seen_services(self, input, data_root):
+        if type(input) is ListConfig:
+            return input
+        elif type(input) is str:
+            path = data_root / input
+            schema_json = utils.read_json(path)
+            return self._get_services_from_schema(schema_json)
+
+    def _get_services_from_schema(self, schema_json):
+        schemas = [DstcSchema.from_json(json.dumps(s)) for s in schema_json]
+        services = {s.service_name for s in schemas}
+        return services
 
     def _get_dialog_file_paths(self, step):
         file_paths = glob.glob(str(self.data_root / step / "dialogues_*"))
@@ -34,7 +55,6 @@ class SimpleTODDataPrep:
     def _prepare_context(
         self, user_turn: DstcTurn, system_turn: DstcTurn, prev_tod_turn: SimpleTodTurn
     ):
-        a = 1
         if not prev_tod_turn:
             context = SimpleTodContext()
         else:
@@ -46,7 +66,6 @@ class SimpleTODDataPrep:
         if user_turn:
             context.user_utterances.append(user_turn.utterance)
         if system_turn:
-            # context.system_utterances.append(system_turn.utterance)
             context.next_system_utterance = system_turn.utterance
         return context
 
@@ -77,12 +96,6 @@ class SimpleTODDataPrep:
         self, user_turn: DstcTurn, system_turn: DstcTurn
     ) -> List[SimpleTodAction]:
         actions = []
-        # if (
-        #     user_turn
-        #     and system_turn
-        #     and len(user_turn.frames) * len(system_turn.frames) > 1
-        # ):
-        #     raise ValueError("length of frames is greater than 1")
         if user_turn:
             self._create_user_action(actions, user_turn.frames)
         if system_turn:
@@ -112,9 +125,15 @@ class SimpleTODDataPrep:
         target = self._prepare_target(user_turn, system_turn)
         return SimpleTodTurn(context, target)
 
-    def _prepare_dialog(self, dstc_dialog: DstcDialog):
+    def _is_dialogue_in_seen_services(self, dialogue_services: List[str]) -> bool:
+        return any(ds in self.seen_services for ds in dialogue_services)
+
+    def _prepare_dialog(self, dstc_dialog: DstcDialog) -> Optional[List[SimpleTodTurn]]:
         tod_turns = []
         tod_turn = None
+        if not self._is_dialogue_in_seen_services(dstc_dialog.services):
+            return None
+
         for i, (user_turn, system_turn) in enumerate(
             utils.grouper(dstc_dialog.turns, 2)
         ):
@@ -124,13 +143,17 @@ class SimpleTODDataPrep:
             tod_turns.append(tod_turn.to_csv_row())
         return tod_turns
 
-    def _prepare_dialog_file(self, path):
+    def _prepare_dialog_file(self, path: Path) -> Optional[np.ndarray]:
         data = []
         dialog_json_data = utils.read_json(path)
         for d in dialog_json_data:
             dialog = DstcDialog.from_json(json.dumps(d))
             prepped_dialog = self._prepare_dialog(dialog)
+            if prepped_dialog is None:
+                continue
             data.append(prepped_dialog)
+        if not len(data):
+            return None
         return np.concatenate(data, axis=0)
 
     def run(self):
@@ -144,6 +167,8 @@ class SimpleTODDataPrep:
                 self.num_dialogs = len(dialog_paths)
             for dp in dialog_paths[: self.num_dialogs]:
                 dialog_data = self._prepare_dialog_file(dp)
+                if not dialog_data:
+                    continue
                 out_data.append(dialog_data)
             headers = ["dialog_id", "turn_id", "context", "target"]
             csv_file_path = (
@@ -155,10 +180,12 @@ class SimpleTODDataPrep:
 
 @hydra.main(config_path="../config/data_prep/", config_name="simple_tod")
 def hydra_start(cfg: DictConfig) -> None:
-    stdp = SimpleTODDataPrep(
+    stdp = SimpleTODDSTCDataPrep(
+        cfg.project_root,
         cfg.data_root,
         cfg.out_root,
         cfg.num_dialogs,
+        cfg.seen_services,
     )
     stdp.run()
 
