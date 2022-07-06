@@ -1,0 +1,11 @@
+# hydra:
+#   run:
+#     dir: outputs/trainer
+
+model_name: gpt
+epochs: 2
+train_batch_size: 38
+eval_batch_size: 38
+output_dir: results
+logging_dir: logs
+logging_steps: 10
