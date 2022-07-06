@@ -4,7 +4,6 @@ from collections import deque
 from itertools import zip_longest
 from pathlib import Path
 
-import dirtyjson
 from dataclass_csv import DataclassReader
 
 

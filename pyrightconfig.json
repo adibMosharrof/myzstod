@@ -3,6 +3,7 @@
         "**/envs/",
         "**/.git/",
         "**/outputs/",
-        "**/data/"
+        "**/data/",
+        "**/processed_data/"
     ]
 }

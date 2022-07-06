@@ -82,17 +82,8 @@ class DstcSchemaSlot:
     is_categorical: bool
     possible_values: List[str]
 
-    def __init__(
-        self,
-        name: str,
-        description: str,
-        is_categorical: bool,
-        possible_values: List[str],
-    ) -> None:
-        self.name = name
-        self.description = description
-        self.is_categorical = is_categorical
-        self.possible_values = possible_values
+    def __eq__(self, slot_name: str) -> bool:
+        return self.name == slot_name
 
 
 @dataclass_json
@@ -102,15 +93,4 @@ class DstcSchema:
     description: str
     slots: List[DstcSchemaSlot]
     intents: List[DstcSchemaIntent]
-
-    def __init__(
-        self,
-        service_name: str,
-        description: str,
-        slots: List[DstcSchemaSlot],
-        intents: List[DstcSchemaIntent],
-    ) -> None:
-        self.service_name = service_name
-        self.description = description
-        self.slots = slots
-        self.intents = intents
+    step: Optional[str] = None
