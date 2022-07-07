@@ -3,6 +3,9 @@ from typing import List, Dict, Optional
 from dataclasses_json import dataclass_json
 from enum import Enum
 from itertools import zip_longest
+import humps
+
+from simple_tod_dataclasses import Speaker
 
 """
     DSTC Dialog Dataclass
@@ -13,7 +16,7 @@ from itertools import zip_longest
 class DstcState:
     active_intent: str
     slot_values: Dict[str, any]
-    requested_slot: Optional[List[any]] = None
+    requested_slots: Optional[List[str]] = None
 
 
 @dataclass
@@ -39,6 +42,24 @@ class DstcTurn:
     frames: List[DstcFrame]
     speaker: str
     utterance: str
+
+    def get_active_intent(self) -> Optional[str]:
+        if self.speaker == Speaker.SYSTEM:
+            return None
+        for frame in self.frames:
+            if frame.state is not None:
+                return frame.state.active_intent
+        return None
+
+    def get_requested_slots(self) -> Optional[List[str]]:
+        if self.speaker == Speaker.SYSTEM:
+            return None
+        for frame in self.frames:
+            if frame.state is None or frame.state.requested_slots is None:
+                continue
+            if len(frame.state.requested_slots):
+                return [humps.camelize(s) for s in frame.state.requested_slots]
+        return None
 
 
 @dataclass_json

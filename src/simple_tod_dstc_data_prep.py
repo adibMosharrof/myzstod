@@ -144,7 +144,9 @@ class SimpleTODDSTCDataPrep:
         beliefs = self._prepare_belief(user_turn)
         actions = self._prepare_action(system_turn)
         response = self._prepare_response(system_turn, schemas)
-        return SimpleTodTarget(beliefs, actions, response)
+        active_intent = user_turn.get_active_intent()
+        requested_slots = user_turn.get_requested_slots()
+        return SimpleTodTarget(beliefs, actions, response, active_intent, requested_slots)
 
     def _prepare_turn(
         self,

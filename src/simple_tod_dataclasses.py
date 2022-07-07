@@ -57,14 +57,22 @@ class SimpleTodTarget:
     beliefs: List[SimpleTodBelief]
     actions: List[SimpleTodAction]
     response: str
+    active_intent: Optional[str] = None
+    requested_slots: Optional[List[str]] = None
 
     def __repr__(self) -> str:
         return self.__str__()
 
     def __str__(self) -> str:
-        out = SpecialTokens.begin_belief
-        out += ", ".join(map(str, self.beliefs))
-        out += SpecialTokens.end_belief + "\n\n"
+        if self.active_intent:
+            out = SpecialTokens.begin_intent
+            out += self.active_intent
+            out += SpecialTokens.end_intent + "\n\n"
+
+        if self.requested_slots:
+            out = SpecialTokens.begin_requested_slots
+            out += ", ".join(map(str, self.requested_slots))
+            out += SpecialTokens.end_requested_slots + "\n\n"
 
         out += SpecialTokens.begin_action
         out += ", ".join(map(str, self.actions))
@@ -115,6 +123,12 @@ class SpecialTokens(str, Enum):
 
     begin_action = "<|beginaction|>"
     end_action = "<|endaction|>"
+
+    begin_intent = "<|beginintent|>"
+    end_intent = "<|endintent|>"
+
+    begin_requested_slots = "<|beginrequestedslots|>"
+    end_requested_slots = "<|endrequestedslots|>"
 
     @classmethod
     def list(cls):
