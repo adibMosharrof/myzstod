@@ -7,9 +7,14 @@ import hydra
 import numpy as np
 from omegaconf import DictConfig, ListConfig, OmegaConf
 from tqdm import tqdm
+import humps
 
 import utils
+
 from dstc_dataclasses import DstcDialog, DstcFrame, DstcSchema, DstcTurn
+from dstc_utils import get_dstc_service_name
+
+
 from simple_tod_dataclasses import (
     SimpleTodAction,
     SimpleTodBelief,
@@ -26,7 +31,6 @@ class SimpleTODDSTCDataPrep:
         data_root: str,
         out_root: str,
         num_dialogs: int = 2,
-        services: any = None,
         delexicalize: bool = True,
     ):
         self.project_root = Path(project_root)
@@ -78,7 +82,7 @@ class SimpleTODDSTCDataPrep:
                 continue
             for slot_name, value in frame.state.slot_values.items():
                 beliefs.append(
-                    SimpleTodBelief(frame.service, slot_name, " ".join(value))
+                    SimpleTodBelief(get_dstc_service_name(frame.service), humps.camelize(slot_name), " ".join(value))
                 )
         return beliefs
 
@@ -92,7 +96,7 @@ class SimpleTODDSTCDataPrep:
     def _create_system_action(self, actions, frames: List[DstcFrame]):
         for frame in frames:
             for action in frame.actions:
-                actions.append(SimpleTodAction(frame.service, action.act, action.slot))
+                actions.append(SimpleTodAction(get_dstc_service_name(frame.service), action.act, humps.camelize(action.slot)))
 
     def _prepare_action(self, system_turn: DstcTurn) -> List[SimpleTodAction]:
         actions = []
@@ -108,16 +112,15 @@ class SimpleTODDSTCDataPrep:
             schema = schemas[frame.service]
             for action in frame.actions:
                 for value in action.values:
-                    # slot = action.slot if action.slot in schema.slots else None
                     slot = next(
                         (slot for slot in schema.slots if slot.name == action.slot),
                         None,
                     )
                     if not slot:
                         continue
-                    # is_categorical = slot.is_categorical
-                    # replacement = value if is_categorical else f"<{action.slot}>"
-                    replacement = f"<{frame.service}_{action.slot}>"
+                    replacement = (
+                        f"<{get_dstc_service_name(frame.service)}_{action.slot}>"
+                    )
                     delexicalized_utterance = delexicalized_utterance.replace(
                         value, replacement
                     )

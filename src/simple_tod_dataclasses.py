@@ -14,7 +14,7 @@ class SimpleTodBelief:
         return self.__str__()
 
     def __str__(self) -> str:
-        return " ".join([self.domain, self.slot_name, self.value])
+        return f"{self.domain}_{self.slot_name}: {self.value}"
 
 
 @dataclass
@@ -27,7 +27,7 @@ class SimpleTodAction:
         return self.__str__()
 
     def __str__(self) -> str:
-        return " ".join([self.domain, self.action_type, self.slot_name])
+        return f"{self.action_type} {self.domain}_{self.slot_name}"
 
 
 @dataclass
@@ -48,7 +48,7 @@ class SimpleTodContext:
                 out += SpecialTokens.user + user
             if system:
                 out += SpecialTokens.system + system
-        out += SpecialTokens.end_context
+        out += SpecialTokens.end_context + "\n\n"
         return out
 
 
@@ -64,15 +64,15 @@ class SimpleTodTarget:
     def __str__(self) -> str:
         out = SpecialTokens.begin_belief
         out += ", ".join(map(str, self.beliefs))
-        out += SpecialTokens.end_belief
+        out += SpecialTokens.end_belief + "\n\n"
 
         out += SpecialTokens.begin_action
         out += ", ".join(map(str, self.actions))
-        out += SpecialTokens.end_action
+        out += SpecialTokens.end_action + "\n\n"
 
         out += SpecialTokens.begin_response
         out += self.response
-        out += SpecialTokens.end_response
+        out += SpecialTokens.end_response + "\n\n"
 
         return out
 
