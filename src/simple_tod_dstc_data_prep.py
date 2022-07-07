@@ -94,12 +94,8 @@ class SimpleTODDSTCDataPrep:
             for action in frame.actions:
                 actions.append(SimpleTodAction(frame.service, action.act, action.slot))
 
-    def _prepare_action(
-        self, user_turn: DstcTurn, system_turn: DstcTurn
-    ) -> List[SimpleTodAction]:
+    def _prepare_action(self, system_turn: DstcTurn) -> List[SimpleTodAction]:
         actions = []
-        if user_turn:
-            self._create_user_action(actions, user_turn.frames)
         if system_turn:
             self._create_system_action(actions, system_turn.frames)
         return actions
@@ -143,7 +139,7 @@ class SimpleTODDSTCDataPrep:
         schemas: Dict[str, DstcSchema],
     ):
         beliefs = self._prepare_belief(user_turn)
-        actions = self._prepare_action(user_turn, system_turn)
+        actions = self._prepare_action(system_turn)
         response = self._prepare_response(system_turn, schemas)
         return SimpleTodTarget(beliefs, actions, response)
 
