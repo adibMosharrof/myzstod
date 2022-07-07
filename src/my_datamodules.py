@@ -20,8 +20,13 @@ class SimpleTodDataModule(pl.LightningDataModule):
         self,
         num_workers=0,
         batch_size=32,
-        data_root=None,
-        max_token_len=256,
+        eval_batch_size=32,
+        data_split_percent: List[float] = None,
+        project_root: str = None,
+        out_root: str = None,
+        raw_data_root: str = None,
+        data_root: str = None,
+        max_token_len=128,
         num_dialogs=2,
         preprocessing_model_name="simple_tod",
         dataset_name="dstc",
@@ -31,14 +36,18 @@ class SimpleTodDataModule(pl.LightningDataModule):
         super().__init__()
         self.num_workers = num_workers
         self.preprocessing_model_name = preprocessing_model_name
-        self.data_root = Path(data_root) / self.preprocessing_model_name
+        self.project_root = Path(project_root)
+        self.data_root = self.project_root / data_root
+        self.raw_data_root = raw_data_root
+        self.out_root = out_root
         self.batch_size = batch_size
+        self.eval_batch_size = eval_batch_size
+        self.data_split_percent = data_split_percent
         self.max_token_len = max_token_len
         self.num_dialogs = num_dialogs
         self.dataset_name = dataset_name
 
         self.datasets: Dict[str, Dataset] = {}
-        # self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         self.tokenizer = tokenizer
 
     def prepare_data(self):
@@ -51,20 +60,25 @@ class SimpleTodDataModule(pl.LightningDataModule):
             # csv_file_paths.append(csv_file)
             if not csv_file.exists():
                 stdp = SimpleTODDSTCDataPrep(
-                    self.data_root,
-                    self.data_root / self.preprocessing_model_name,
-                    self.num_dialogs,
+                    project_root=self.project_root,
+                    data_root=self.raw_data_root,
+                    out_root=self.out_root,
+                    num_dialogs=self.num_dialogs,
                 )
                 stdp.run()
 
     def setup(self, stage: str = None):
-        for step in self.steps:
+        self.prepare_data()
+        for step, split_percent in zip(self.steps, self.data_split_percent):
+            # for step  in zip(self.steps ):
             step_dir = self.data_root / step
             csv_path = (
                 step_dir
                 / f"{self.preprocessing_model_name}_{self.dataset_name}_{self.num_dialogs}.csv"
             )
+
             data = utils.read_csv_dataclass(csv_path, SimpleTodTurnCsvRow)
+            data = data[: int(len(data) * split_percent)]
             self.datasets[step] = SimpleTodDataSet(
                 data, tokenizer=self.tokenizer, max_token_len=self.max_token_len
             )
@@ -82,7 +96,7 @@ class SimpleTodDataModule(pl.LightningDataModule):
     def val_dataloader(self):
         return DataLoader(
             self.datasets["dev"],
-            batch_size=self.batch_size,
+            batch_size=self.eval_batch_size,
             shuffle=False,
             num_workers=self.num_workers,
             collate_fn=self.my_collate,
@@ -92,7 +106,7 @@ class SimpleTodDataModule(pl.LightningDataModule):
     def test_dataloader(self):
         return DataLoader(
             self.datasets["test"],
-            batch_size=self.batch_size,
+            batch_size=self.eval_batch_size,
             shuffle=False,
             num_workers=self.num_workers,
             collate_fn=self.my_test_collate,
@@ -148,7 +162,7 @@ class SimpleTodDataSet(Dataset):
         self,
         data: List[SimpleTodTurnCsvRow],
         tokenizer: PreTrainedTokenizerFast = None,
-        max_token_len: int = 256,
+        max_token_len: int = 128,
     ):
         self.data = data
         self.tokenizer = tokenizer
