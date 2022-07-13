@@ -5,17 +5,26 @@
 model_name: gpt2
 epochs: 4
 num_workers: 8
-train_batch_size: 38
+train_batch_size: 2
 data_split_percent:
   - 1
   - 1
   - 1
-eval_batch_size: 5
+eval_batch_size: 2
 eval_accumulation_step: 15
 output_dir: results
 logging_dir: logs
 logging_steps: 10
-max_token_len: 256
-data_root: data/dstc8-schema-guided-dialogue/
+max_token_len: 1024
+raw_data_root: data/dstc8-schema-guided-dialogue/
 project_root: /mounts/u-amo-d0/grad/adibm/projects/generative_tod/
 data_prep_out_root: processed_data/simple_tod
+delexicalize: true
+num_dialogs: 
+  - 2
+  - 2
+  - 1
+model_checkpoint_path: outputs/2022-07-08/16-57-51/results/checkpoint-580
+should_train: false
+should_test: true
+generate_max_len: 200

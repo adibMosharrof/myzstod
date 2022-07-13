@@ -4,8 +4,11 @@
 project_root: /mounts/u-amo-d0/grad/adibm/projects/generative_tod/
 data_root: data/dstc8-schema-guided-dialogue/
 out_root: processed_data/simple_tod
-num_dialogs: 1
-delexicalize: true
+num_dialogs: 
+  - 1
+  - 20
+  - 34
+delexicalize: false
 services: None
 # seen_services:
 #   - Restaurants_1,

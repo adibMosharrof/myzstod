@@ -3,19 +3,29 @@
 #     dir: outputs/trainer
 
 model_name: gpt2
-epochs: 4
+epochs: 20
 num_workers: 8
-train_batch_size: 37
+train_batch_size: 6
 data_split_percent:
   - 1
   - 1
   - 1
-eval_batch_size: 5
+eval_batch_size: 6
 eval_accumulation_step: 15
+# output_dir: localdisk0/adibm/generative_tod/results
 output_dir: results
 logging_dir: logs
 logging_steps: 10
-max_token_len: 256
-data_root: data/dstc8-schema-guided-dialogue/
+max_token_len: 1024
+raw_data_root: data/dstc8-schema-guided-dialogue/
 project_root: /mounts/u-amo-d0/grad/adibm/projects/generative_tod/
 data_prep_out_root: processed_data/simple_tod
+num_dialogs: 
+  - 40
+  - 20
+  - 34
+should_train: true
+should_test: false
+delexicalize: true
+model_checkpoint_path: None
+generate_max_len: 200
