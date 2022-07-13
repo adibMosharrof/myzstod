@@ -1,4 +1,6 @@
 # import pandas as pd
+from pathlib import Path
+from typing import List
 import hydra
 from omegaconf import DictConfig
 import torch
@@ -6,16 +8,22 @@ import numpy as np
 from torch.utils.data import Dataset
 from tqdm import tqdm
 from transformers import (
+    AutoModel,
     AutoTokenizer,
     EvalPrediction,
     GPT2LMHeadModel,
     GPT2Tokenizer,
     Trainer,
     TrainingArguments,
+    pipeline,
 )
 import evaluate
+from dstc_dataclasses import Steps
+from inference import Inference
 from my_datamodules import SimpleTodDataModule
 from simple_tod_dataclasses import SpecialTokens
+import os
+import dstc_utils
 
 
 class SimpleTODTrainer:
@@ -27,7 +35,7 @@ class SimpleTODTrainer:
         eval_batch_size: int = 30,
         eval_accumulation_steps: int = 10,
         data_split_percent: list[float] = None,
-        data_root: str = None,
+        raw_data_root: str = None,
         output_dir: str = "results",
         logging_dir: str = "logs",
         logging_steps: int = 10,
@@ -35,6 +43,12 @@ class SimpleTODTrainer:
         data_prep_out_root: str = None,
         project_root: str = None,
         num_workers: int = 0,
+        delexicalize: bool = True,
+        num_dialogs: List[int] = None,
+        model_checkpoint_path: str = None,
+        should_train: bool = True,
+        should_test: bool = False,
+        generate_max_len: int = 200,
     ) -> None:
         self.model_name = model_name
         self.epochs = epochs
@@ -46,42 +60,57 @@ class SimpleTODTrainer:
         self.logging_dir = logging_dir
         self.logging_steps = logging_steps
         self.max_token_len = max_token_len
-        self.data_root = data_root
+        self.raw_data_root = raw_data_root
         self.data_prep_out_root = data_prep_out_root
-        self.project_root = project_root
+        self.project_root = Path(project_root)
         self.num_workers = num_workers
+        self.delexicalize = delexicalize
+        self.num_dialogs = num_dialogs
+        self.model_checkpoint_path = model_checkpoint_path
+        self.should_train = should_train
+        self.should_test = should_test
+        self.generate_max_len = generate_max_len
 
     def run(self):
 
-        self.tokenizer = AutoTokenizer.from_pretrained(
-            self.model_name,
-            bos_token="<|startoftext|>",
-            eos_token="<|endoftext|>",
-            pad_token="<|pad|>",
-        )
-        # special_tokens = torch.tensor(SpecialTokens.list(), device=torch.device("cuda"))
-        special_tokens = SpecialTokens.list()
-        self.tokenizer.add_tokens(special_tokens, special_tokens=True)
+        self.tokenizer = dstc_utils.get_tokenizer(self.model_name)
         model = GPT2LMHeadModel.from_pretrained(self.model_name)
         model.resize_token_embeddings(len(self.tokenizer))
         model = model.cuda()
 
         dm = SimpleTodDataModule(
             tokenizer=self.tokenizer,
-            data_root=self.data_prep_out_root,
-            raw_data_root=self.data_root,
+            data_prep_out_root=self.data_prep_out_root,
+            raw_data_root=self.raw_data_root,
             project_root=self.project_root,
             out_root=self.data_prep_out_root,
             batch_size=self.train_batch_size,
-            # train_data_percent=self.train_data_percent,
             eval_batch_size=self.eval_batch_size,
             data_split_percent=self.data_split_percent,
             max_token_len=self.max_token_len,
             num_workers=self.num_workers,
+            delexicalize=self.delexicalize,
+            num_dialogs=self.num_dialogs,
         )
         dm.setup()
         self.train(model, dm)
-        # return self.test(dm, tokenizer)
+        if self.should_test:
+            inf = Inference(
+                model=model,
+                project_root=self.project_root,
+                dataloader=dm.test_dataloader(),
+                num_workers=self.num_workers,
+                data_prep_out_root=self.data_prep_out_root,
+                data_split_percent=self.data_split_percent,
+                eval_batch_size=self.eval_batch_size,
+                max_token_len=self.max_token_len,
+                raw_data_root=self.raw_data_root,
+                data_prep_out_root=self.data_prep_out_root,
+                delexicalize=self.delexicalize,
+                num_test_dialogs=self.num_dialogs[2],
+                generate_max_len=self.generate_max_len,
+            )
+            inf.test()
 
     def compute_metrics(self, preds: EvalPrediction):
         logits, labels = preds
@@ -114,46 +143,11 @@ class SimpleTODTrainer:
             args=training_args,
             train_dataset=dm.datasets["train"],
             eval_dataset=dm.datasets["dev"],
-            compute_metrics=self.compute_metrics,
+            # compute_metrics=self.compute_metrics,
             data_collator=dm.my_collate,
-            # data_collator=lambda data: {
-            #     "input_ids": torch.stack([f[0]["input_ids"] for f in data]),
-            #     "attention_mask": torch.stack([f[0]["attention_mask"] for f in data]),
-            #     "labels": torch.stack([f[1]["input_ids"] for f in data]),
-            # },
         )
         trainer.train()
-
-    def test(self, dm, tokenizer):
-        model = GPT2LMHeadModel.from_pretrained("results/checkpoint-178")
-
-        # for contexts_batch, targets_batch in tqdm(dm.test_dataloader()):
-        for row in tqdm(dm.test_dataloader()):
-            # (_,c_id), (_,c_am), (_,t_id), (_,t_am) = row.items()
-            (_, c_id), (_, c_am), (_, l_id), (_, c_texts), (_, t_texts) = row.items()
-            # for a in zip(c_id, c_am, t_id, t_am):
-            for a in zip(c_id, c_am, l_id, c_texts, t_texts):
-                t_text = a[4]
-                c_text = a[3]
-                c_text_tokens = tokenizer(c_text, return_tensors="pt").input_ids
-
-                sample_outputs = model.generate(
-                    c_text_tokens,
-                    # attention_mask=a[1],
-                    do_sample=False,
-                    top_k=50,
-                    max_length=512,
-                    top_p=0.70,
-                    temperature=1,
-                    num_return_sequences=0,
-                )
-
-                # decode the predicted tokens into texts
-                # context = tokenizer.decode(context, skip_special_tokens=True)
-                pred_text = tokenizer.decode(
-                    sample_outputs[0], skip_special_tokens=False
-                )
-                a = 1
+        trainer.save_model()
 
 
 @hydra.main(config_path="../config/trainer/", config_name="simple_tod_trainer")
@@ -167,11 +161,16 @@ def hydra_start(cfg: DictConfig) -> None:
         logging_dir=cfg.logging_dir,
         logging_steps=cfg.logging_steps,
         max_token_len=cfg.max_token_len,
-        data_root=cfg.data_root,
+        raw_data_root=cfg.raw_data_root,
         data_prep_out_root=cfg.data_prep_out_root,
         project_root=cfg.project_root,
         num_workers=cfg.num_workers,
         data_split_percent=cfg.data_split_percent,
+        delexicalize=cfg.delexicalize,
+        num_dialogs=cfg.num_dialogs,
+        model_checkpoint_path=cfg.model_checkpoint_path,
+        should_train=cfg.should_train,
+        should_test=cfg.should_test,
     )
     stt.run()
 

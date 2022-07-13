@@ -12,12 +12,13 @@ import humps
 import utils
 
 from dstc_dataclasses import DstcDialog, DstcFrame, DstcSchema, DstcTurn
-from dstc_utils import get_dstc_service_name
+from dstc_utils import get_dialog_file_paths, get_dstc_service_name
 
 
 from simple_tod_dataclasses import (
     SimpleTodAction,
     SimpleTodBelief,
+    SimpleTodConstants,
     SimpleTodContext,
     SimpleTodTarget,
     SimpleTodTurn,
@@ -30,7 +31,7 @@ class SimpleTODDSTCDataPrep:
         project_root: str,
         data_root: str,
         out_root: str,
-        num_dialogs: int = 2,
+        num_dialogs: List[int] = None,
         delexicalize: bool = True,
     ):
         self.project_root = Path(project_root)
@@ -54,12 +55,12 @@ class SimpleTODDSTCDataPrep:
     #     services = {s.service_name for s in schemas}
     #     return services
 
-    def _get_dialog_file_paths(self, step):
-        file_paths = glob.glob(str(self.data_root / step / "dialogues_*"))
-        return file_paths
-
     def _prepare_context(
-        self, user_turn: DstcTurn, system_turn: DstcTurn, prev_tod_turn: SimpleTodTurn
+        self,
+        user_turn: DstcTurn,
+        system_turn: DstcTurn,
+        prev_tod_turn: SimpleTodTurn,
+        schemas: Dict[str, DstcSchema],
     ):
         if not prev_tod_turn:
             context = SimpleTodContext()
@@ -70,9 +71,15 @@ class SimpleTODDSTCDataPrep:
             )
 
         if user_turn:
-            context.user_utterances.append(user_turn.utterance)
+            utterance = user_turn.utterance
+            if self.delexicalize:
+                utterance = self._delexicalize_utterance(user_turn, schemas)
+            context.user_utterances.append(utterance)
         if system_turn:
-            context.next_system_utterance = system_turn.utterance
+            utterance = system_turn.utterance
+            if self.delexicalize:
+                utterance = self._delexicalize_utterance(system_turn, schemas)
+            context.next_system_utterance = utterance
         return context
 
     def _prepare_belief(self, user_turn: DstcTurn) -> List[SimpleTodBelief]:
@@ -82,7 +89,11 @@ class SimpleTODDSTCDataPrep:
                 continue
             for slot_name, value in frame.state.slot_values.items():
                 beliefs.append(
-                    SimpleTodBelief(get_dstc_service_name(frame.service), humps.camelize(slot_name), " ".join(value))
+                    SimpleTodBelief(
+                        get_dstc_service_name(frame.service),
+                        humps.camelize(slot_name),
+                        " ".join(value),
+                    )
                 )
         return beliefs
 
@@ -96,7 +107,13 @@ class SimpleTODDSTCDataPrep:
     def _create_system_action(self, actions, frames: List[DstcFrame]):
         for frame in frames:
             for action in frame.actions:
-                actions.append(SimpleTodAction(get_dstc_service_name(frame.service), action.act, humps.camelize(action.slot)))
+                actions.append(
+                    SimpleTodAction(
+                        get_dstc_service_name(frame.service),
+                        action.act,
+                        humps.camelize(action.slot),
+                    )
+                )
 
     def _prepare_action(self, system_turn: DstcTurn) -> List[SimpleTodAction]:
         actions = []
@@ -118,9 +135,7 @@ class SimpleTODDSTCDataPrep:
                     )
                     if not slot:
                         continue
-                    replacement = (
-                        f"<{get_dstc_service_name(frame.service)}_{action.slot}>"
-                    )
+                    replacement = f"<{get_dstc_service_name(frame.service)}_{humps.camelize(action.slot)}>"
                     delexicalized_utterance = delexicalized_utterance.replace(
                         value, replacement
                     )
@@ -146,7 +161,9 @@ class SimpleTODDSTCDataPrep:
         response = self._prepare_response(system_turn, schemas)
         active_intent = user_turn.get_active_intent()
         requested_slots = user_turn.get_requested_slots()
-        return SimpleTodTarget(beliefs, actions, response, active_intent, requested_slots)
+        return SimpleTodTarget(
+            beliefs, actions, response, active_intent, requested_slots
+        )
 
     def _prepare_turn(
         self,
@@ -156,7 +173,7 @@ class SimpleTODDSTCDataPrep:
         schemas: Dict[str, DstcSchema],
     ) -> SimpleTodTurn:
         target = None
-        context = self._prepare_context(user_turn, system_turn, prev_tod_turn)
+        context = self._prepare_context(user_turn, system_turn, prev_tod_turn, schemas)
         target = self._prepare_target(user_turn, system_turn, schemas)
         return SimpleTodTurn(context, target)
 
@@ -207,22 +224,24 @@ class SimpleTODDSTCDataPrep:
 
     def run(self):
         steps = ["train", "dev", "test"]
-        for step in tqdm(steps):
+        for step, num_dialog in tqdm(zip(steps, self.num_dialogs)):
             step_dir = Path(self.out_root / step)
             step_dir.mkdir(parents=True, exist_ok=True)
-            dialog_paths = self._get_dialog_file_paths(step)
+            dialog_paths = get_dialog_file_paths(self.data_root, step)
             schemas = self._get_schemas(step)
             out_data = []
-            if self.num_dialogs == "None":
-                self.num_dialogs = len(dialog_paths)
-            for dp in dialog_paths[: self.num_dialogs]:
+            if num_dialog == "None":
+                num_dialog = len(dialog_paths)
+            for dp in tqdm(dialog_paths[:num_dialog]):
                 dialog_data = self._prepare_dialog_file(dp, schemas)
                 if not len(dialog_data):
                     continue
                 out_data.append(dialog_data)
             headers = ["dialog_id", "turn_id", "context", "target"]
             csv_file_path = (
-                self.out_root / step / f"simple_tod_dstc_{self.num_dialogs}.csv"
+                self.out_root
+                / step
+                / f"simple_tod_dstc_{num_dialog}{SimpleTodConstants.DELEXICALIZED if self.delexicalize else ''}.csv"
             )
             csv_data = np.concatenate(out_data, axis=0)
             utils.write_csv(headers, csv_data, csv_file_path)

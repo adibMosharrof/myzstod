@@ -7,14 +7,16 @@ import pytorch_lightning as pl
 import torch
 from torch.utils.data import DataLoader, Dataset, default_collate
 from transformers import AutoTokenizer, PreTrainedTokenizerFast
+from dstc_dataclasses import Steps
 
 import utils
 from simple_tod_dstc_data_prep import SimpleTODDSTCDataPrep
-from simple_tod_dataclasses import SimpleTodTurnCsvRow
+from simple_tod_dataclasses import SimpleTodConstants, SimpleTodTurnCsvRow
+import dstc_utils
 
 
 class SimpleTodDataModule(pl.LightningDataModule):
-    steps = ["train", "dev", "test"]
+    steps = Steps.list()
 
     def __init__(
         self,
@@ -25,19 +27,20 @@ class SimpleTodDataModule(pl.LightningDataModule):
         project_root: str = None,
         out_root: str = None,
         raw_data_root: str = None,
-        data_root: str = None,
-        max_token_len=128,
-        num_dialogs=2,
+        data_prep_out_root: str = None,
+        max_token_len: int = 128,
+        num_dialogs: List[int] = None,
         preprocessing_model_name="simple_tod",
         dataset_name="dstc",
         model_name="gpt2",
         tokenizer=None,
+        delexicalize=True,
     ):
         super().__init__()
         self.num_workers = num_workers
         self.preprocessing_model_name = preprocessing_model_name
         self.project_root = Path(project_root)
-        self.data_root = self.project_root / data_root
+        self.data_prep_out_root = self.project_root / data_prep_out_root
         self.raw_data_root = raw_data_root
         self.out_root = out_root
         self.batch_size = batch_size
@@ -49,16 +52,14 @@ class SimpleTodDataModule(pl.LightningDataModule):
 
         self.datasets: Dict[str, Dataset] = {}
         self.tokenizer = tokenizer
+        self.delexicalize = delexicalize
 
     def prepare_data(self):
-        for step in self.steps:
-            step_dir = self.data_root / step
-            csv_file = (
-                step_dir
-                / f"{self.preprocessing_model_name}_{self.dataset_name}_{self.num_dialogs}.csv"
+        for step, num_dialog in zip(self.steps, self.num_dialogs):
+            csv_file_path = dstc_utils.get_csv_data_path(
+                step, num_dialog, self.delexicalize, self.data_prep_out_root
             )
-            # csv_file_paths.append(csv_file)
-            if not csv_file.exists():
+            if not csv_file_path.exists():
                 stdp = SimpleTODDSTCDataPrep(
                     project_root=self.project_root,
                     data_root=self.raw_data_root,
@@ -69,14 +70,13 @@ class SimpleTodDataModule(pl.LightningDataModule):
 
     def setup(self, stage: str = None):
         self.prepare_data()
-        for step, split_percent in zip(self.steps, self.data_split_percent):
-            # for step  in zip(self.steps ):
-            step_dir = self.data_root / step
-            csv_path = (
-                step_dir
-                / f"{self.preprocessing_model_name}_{self.dataset_name}_{self.num_dialogs}.csv"
-            )
+        for step, split_percent, num_dialog in zip(
+            self.steps, self.data_split_percent, self.num_dialogs
+        ):
 
+            csv_path = dstc_utils.get_csv_data_path(
+                step, num_dialog, self.delexicalize, self.data_prep_out_root
+            )
             data = utils.read_csv_dataclass(csv_path, SimpleTodTurnCsvRow)
             data = data[: int(len(data) * split_percent)]
             self.datasets[step] = SimpleTodDataSet(
@@ -85,7 +85,7 @@ class SimpleTodDataModule(pl.LightningDataModule):
 
     def train_dataloader(self):
         return DataLoader(
-            self.datasets["train"],
+            self.datasets[Steps.TRAIN],
             batch_size=self.batch_size,
             shuffle=True,
             num_workers=self.num_workers,
@@ -95,7 +95,7 @@ class SimpleTodDataModule(pl.LightningDataModule):
 
     def val_dataloader(self):
         return DataLoader(
-            self.datasets["dev"],
+            self.datasets[Steps.DEV],
             batch_size=self.eval_batch_size,
             shuffle=False,
             num_workers=self.num_workers,
@@ -105,7 +105,7 @@ class SimpleTodDataModule(pl.LightningDataModule):
 
     def test_dataloader(self):
         return DataLoader(
-            self.datasets["test"],
+            self.datasets[Steps.TEST],
             batch_size=self.eval_batch_size,
             shuffle=False,
             num_workers=self.num_workers,
@@ -142,19 +142,24 @@ class SimpleTodDataModule(pl.LightningDataModule):
             targets
         )
 
+        return SimpleTodTestDataBatch(
+            torch.stack([*contexts_tokens["input_ids"]]),
+            torch.stack([*contexts_tokens["attention_mask"]]),
+            torch.stack([*targets_tokens["input_ids"]]),
+            torch.stack([*targets_tokens["attention_mask"]]),
+            contexts,
+            targets,
+        )
         return {
-            "input_ids": torch.stack([*contexts_tokens["input_ids"]]),
-            "attention_mask": torch.stack([*contexts_tokens["attention_mask"]]),
-            "labels": torch.stack([*targets_tokens["input_ids"]]),
+            "context_tokens": torch.stack([*contexts_tokens["input_ids"]]),
+            "context_attention_masks": torch.stack(
+                [*contexts_tokens["attention_mask"]]
+            ),
+            "label_tokens": torch.stack([*targets_tokens["input_ids"]]),
+            "label_attention_masks": torch.stack([*targets_tokens["attention_mask"]]),
             "contexts_text": contexts,
             "targets_text": targets,
         }
-        # return {
-        #     "context_input_ids": torch.stack([*contexts_tokens["input_ids"]]),
-        #     "context_attention_mask": torch.stack([*contexts_tokens["attention_mask"]]),
-        #     "target_input_ids": torch.stack([*targets_tokens["input_ids"]]),
-        #     "target_attention_mask": torch.stack([*targets_tokens["attention_mask"]]),
-        # }
 
 
 class SimpleTodDataSet(Dataset):
@@ -169,18 +174,24 @@ class SimpleTodDataSet(Dataset):
         self.max_token_len = max_token_len
 
     def tokenize(self, text: str):
-        tokens = self.tokenizer.encode_plus(
-            text,
-            add_special_tokens=True,
-            return_tensors="pt",
-            truncation=True,
-            padding="max_length",
-            max_length=self.max_token_len,
-            return_attention_mask=True,
+        # tokens = self.tokenizer.encode_plus(
+        # tokens = self.tokenizer.encode_plus(
+        #     text,
+        #     add_special_tokens=True,
+        #     return_tensors="pt",
+        #     truncation=True,
+        #     padding="max_length",
+        #     max_length=self.max_token_len,
+        #     return_attention_mask=True,
+        # )
+        tokens = self.tokenizer(
+            text, truncation=True, max_length=self.max_token_len, padding="max_length"
         )
         return {
-            "input_ids": tokens.input_ids.flatten(),
-            "attention_mask": tokens.attention_mask.flatten(),
+            # "input_ids": tokens.input_ids.flatten(),
+            # "attention_mask": tokens.attention_mask.flatten(),
+            "input_ids": tokens["input_ids"],
+            "attention_mask": tokens["attention_mask"],
         }
 
     def __len__(self):
@@ -190,3 +201,34 @@ class SimpleTodDataSet(Dataset):
         row: SimpleTodTurnCsvRow = self.data[idx]
         # return self.tokenize(row.context), self.tokenize(row.target)
         return row.context, row.target
+
+
+@dataclass
+class SimpleTodTestDataRow:
+    context_tokens: torch.Tensor
+    context_attention_masks: torch.Tensor
+    label_tokens: torch.Tensor
+    label_attention_masks: torch.Tensor
+    contexts_text: str
+    targets_text: str
+
+
+@dataclass
+class SimpleTodTestDataBatch:
+    context_tokens: torch.Tensor
+    context_attention_masks: torch.Tensor
+    label_tokens: torch.Tensor
+    label_attention_masks: torch.Tensor
+    contexts_text: List[str]
+    targets_text: List[str]
+
+    def __iter__(self):
+        for item in zip(
+            self.context_tokens,
+            self.context_attention_masks,
+            self.label_tokens,
+            self.label_attention_masks,
+            self.contexts_text,
+            self.targets_text,
+        ):
+            yield SimpleTodTestDataRow(*item)

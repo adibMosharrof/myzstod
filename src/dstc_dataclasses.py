@@ -115,3 +115,13 @@ class DstcSchema:
     slots: List[DstcSchemaSlot]
     intents: List[DstcSchemaIntent]
     step: Optional[str] = None
+
+
+class Steps(str, Enum):
+    TRAIN = "train"
+    DEV = "dev"
+    TEST = "test"
+
+    @classmethod
+    def list(cls):
+        return [c.value for c in cls]

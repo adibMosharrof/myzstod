@@ -133,4 +133,7 @@ class SpecialTokens(str, Enum):
     @classmethod
     def list(cls):
         return [c.value for c in cls]
-        # return list(map(lambda c: c.value, cls))
+
+
+class SimpleTodConstants(str, Enum):
+    DELEXICALIZED = "_delexicalized"
