@@ -33,6 +33,7 @@ class SimpleTODDSTCDataPrep:
         out_root: str,
         num_dialogs: List[int] = None,
         delexicalize: bool = True,
+        overwrite: List[bool] = None,
     ):
         self.project_root = Path(project_root)
         self.data_root = self.project_root / data_root
@@ -41,6 +42,7 @@ class SimpleTODDSTCDataPrep:
         self.num_dialogs = num_dialogs
         # self.services = self._get_seen_services(services, self.data_root)
         self.delexicalize = delexicalize
+        self.overwrite = overwrite or [False, False, False]
 
     # def _get_seen_services(self, input, data_root):
     #     if type(input) is ListConfig:
@@ -224,7 +226,9 @@ class SimpleTODDSTCDataPrep:
 
     def run(self):
         steps = ["train", "dev", "test"]
-        for step, num_dialog in tqdm(zip(steps, self.num_dialogs)):
+        for step, num_dialog, should_overwrite in tqdm(
+            zip(steps, self.num_dialogs, self.overwrite)
+        ):
             step_dir = Path(self.out_root / step)
             step_dir.mkdir(parents=True, exist_ok=True)
             dialog_paths = get_dialog_file_paths(self.data_root, step)
@@ -232,6 +236,14 @@ class SimpleTODDSTCDataPrep:
             out_data = []
             if num_dialog == "None":
                 num_dialog = len(dialog_paths)
+            csv_file_path = (
+                self.out_root
+                / step
+                / f"simple_tod_dstc_{num_dialog}{SimpleTodConstants.DELEXICALIZED if self.delexicalize else ''}.csv"
+            )
+            if csv_file_path.exists() and not should_overwrite:
+                print(f'{step} csv file already exists, so skipping')
+                continue
             for dp in tqdm(dialog_paths[:num_dialog]):
                 dialog_data = self._prepare_dialog_file(dp, schemas)
                 if not len(dialog_data):
@@ -256,6 +268,7 @@ def hydra_start(cfg: DictConfig) -> None:
         num_dialogs=cfg.num_dialogs,
         # serives=cfg.services,
         delexicalize=cfg.delexicalize,
+        overwrite=cfg.overwrite,
     )
     stdp.run()
 
