@@ -78,17 +78,38 @@ class Inference:
 
         # for context, target in self.dataloader:
         for batch in self.dataloader:
-            ans = self.model.generate(
-                inputs=batch.context_tokens.to(self.device),
-                attention_mask=batch.context_attention_masks.to(self.device),
-                do_sample=False,
-                top_k=50,
-                top_p=0.90,
-                max_length=self.generate_max_len,
-                temperature=0.0,
-                num_return_sequences=0,
-            )
-            pred_text = self.tokenizer.batch_decode(ans, skip_special_tokens=False)
+            for row in batch:
+                row.context_tokens = row.context_tokens.cuda()
+                row.context_attention_masks = row.context_attention_masks.cuda()
+                inp = row.context_tokens[
+                    torch.nonzero(row.context_attention_masks)
+                ].reshape(1, -1)
+
+                ans = self.model.generate(
+                    inputs=inp,
+                    do_sample=True,
+                    top_k=50,
+                    top_p=0.90,
+                    max_length=self.generate_max_len,
+                    temperature=1.5,
+                )
+                pred_text = self.tokenizer.decode(ans[0], skip_special_tokens=False)
+                print(pred_text)
+                print(row.targets_text)
+                print(row.contexts_text)
+                a = 1
+
+            # ans = self.model.generate(
+            #     inputs=batch.context_tokens.to(self.device),
+            #     attention_mask=batch.context_attention_masks.to(self.device),
+            #     do_sample=True,
+            #     top_k=50,
+            #     top_p=0.90,
+            #     max_length=self.generate_max_len,
+            #     temperature=1.5,
+            # )
+            # pred_text = self.tokenizer.batch_decode(ans, skip_special_tokens=False)
+            # print(pred_text[0])
             a = 1
 
     def run(self):

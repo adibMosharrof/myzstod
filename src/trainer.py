@@ -148,6 +148,7 @@ class SimpleTODTrainer:
         )
         trainer.train()
         trainer.save_model()
+        print(f'output dir {self.output_dir}')
 
 
 @hydra.main(config_path="../config/trainer/", config_name="simple_tod_trainer")
