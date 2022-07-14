@@ -34,6 +34,8 @@ class SimpleTODDSTCDataPrep:
         num_dialogs: List[int] = None,
         delexicalize: bool = True,
         overwrite: List[bool] = None,
+        domains: List[str] = None,
+        num_turns: int = 55,
     ):
         self.project_root = Path(project_root)
         self.data_root = self.project_root / data_root
@@ -43,19 +45,8 @@ class SimpleTODDSTCDataPrep:
         # self.services = self._get_seen_services(services, self.data_root)
         self.delexicalize = delexicalize
         self.overwrite = overwrite or [False, False, False]
-
-    # def _get_seen_services(self, input, data_root):
-    #     if type(input) is ListConfig:
-    #         return input
-    #     elif type(input) is str:
-    #         path = data_root / input
-    #         schema_json = utils.read_json(path)
-    #         return self._get_services_from_schema(schema_json)
-
-    # def _get_services_from_schema(self, schema_json):
-    #     schemas = [DstcSchema.from_json(json.dumps(s)) for s in schema_json]
-    #     services = {s.service_name for s in schemas}
-    #     return services
+        self.domains = domains or ["Buses", "Hotels", "Events"]
+        self.num_turns = num_turns
 
     def _prepare_context(
         self,
@@ -68,6 +59,8 @@ class SimpleTODDSTCDataPrep:
             context = SimpleTodContext()
         else:
             context = copy.deepcopy(prev_tod_turn.context)
+            if len(context.system_utterances) == self.num_turns:
+                context.system_utterances.popleft()
             context.system_utterances.append(
                 prev_tod_turn.context.next_system_utterance
             )
@@ -76,6 +69,8 @@ class SimpleTODDSTCDataPrep:
             utterance = user_turn.utterance
             if self.delexicalize:
                 utterance = self._delexicalize_utterance(user_turn, schemas)
+            if len(context.user_utterances) == self.num_turns:
+                context.user_utterances.popleft()
             context.user_utterances.append(utterance)
         if system_turn:
             utterance = system_turn.utterance
@@ -179,16 +174,18 @@ class SimpleTODDSTCDataPrep:
         target = self._prepare_target(user_turn, system_turn, schemas)
         return SimpleTodTurn(context, target)
 
-    def _is_dialogue_in_seen_services(self, dialogue_services: List[str]) -> bool:
-        return any(ds in self.services for ds in dialogue_services)
+    def _is_dialogue_in_domain(self, dialogue_services: List[str]) -> bool:
+        return all(
+            get_dstc_service_name(ds) in self.domains for ds in dialogue_services
+        )
 
     def _prepare_dialog(
         self, dstc_dialog: DstcDialog, schemas: Dict[str, DstcSchema]
     ) -> Optional[List[SimpleTodTurn]]:
         tod_turns = []
         tod_turn = None
-        # if not self._is_dialogue_in_seen_services(dstc_dialog.services):
-        #     return None
+        if not self._is_dialogue_in_domain(dstc_dialog.services):
+            return None
 
         for i, (user_turn, system_turn) in enumerate(
             utils.grouper(dstc_dialog.turns, 2)
@@ -239,10 +236,10 @@ class SimpleTODDSTCDataPrep:
             csv_file_path = (
                 self.out_root
                 / step
-                / f"simple_tod_dstc_{num_dialog}{SimpleTodConstants.DELEXICALIZED if self.delexicalize else ''}.csv"
+                / f"simple_tod_dstc_turns_{self.num_turns}_dialogs_{num_dialog}{SimpleTodConstants.DELEXICALIZED if self.delexicalize else ''}_{'_'.join(self.domains)}.csv"
             )
             if csv_file_path.exists() and not should_overwrite:
-                print(f'{step} csv file already exists, so skipping')
+                print(f"{step} csv file already exists, so skipping")
                 continue
             for dp in tqdm(dialog_paths[:num_dialog]):
                 dialog_data = self._prepare_dialog_file(dp, schemas)
@@ -250,11 +247,6 @@ class SimpleTODDSTCDataPrep:
                     continue
                 out_data.append(dialog_data)
             headers = ["dialog_id", "turn_id", "context", "target"]
-            csv_file_path = (
-                self.out_root
-                / step
-                / f"simple_tod_dstc_{num_dialog}{SimpleTodConstants.DELEXICALIZED if self.delexicalize else ''}.csv"
-            )
             csv_data = np.concatenate(out_data, axis=0)
             utils.write_csv(headers, csv_data, csv_file_path)
 
@@ -269,6 +261,8 @@ def hydra_start(cfg: DictConfig) -> None:
         # serives=cfg.services,
         delexicalize=cfg.delexicalize,
         overwrite=cfg.overwrite,
+        domains=cfg.domains,
+        num_turns=cfg.num_turns,
     )
     stdp.run()
 

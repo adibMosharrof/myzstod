@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from itertools import zip_longest
 from typing import Dict, List, Optional
+from collections import deque
 
 
 @dataclass
@@ -32,8 +33,8 @@ class SimpleTodAction:
 
 @dataclass
 class SimpleTodContext:
-    user_utterances: List[str] = field(default_factory=list)
-    system_utterances: List[str] = field(default_factory=list)
+    user_utterances: deque[str] = field(default_factory=deque)
+    system_utterances: deque[str] = field(default_factory=deque)
     next_system_utterance: str = None
 
     def __repr__(self) -> str:
@@ -64,6 +65,8 @@ class SimpleTodTarget:
         return self.__str__()
 
     def __str__(self) -> str:
+        # out = SpecialTokens.start_of_text
+
         if self.active_intent:
             out = SpecialTokens.begin_intent
             out += self.active_intent
@@ -86,6 +89,7 @@ class SimpleTodTarget:
         out += self.response
         out += SpecialTokens.end_response + "\n\n"
 
+        # out += SpecialTokens.end_of_text
         return out
 
 

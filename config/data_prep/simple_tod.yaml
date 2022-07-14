@@ -5,15 +5,28 @@ project_root: /mounts/u-amo-d0/grad/adibm/projects/generative_tod/
 data_root: data/dstc8-schema-guided-dialogue/
 out_root: processed_data/simple_tod
 num_dialogs: 
-  - 1
-  - 1
-  - 1
+  - None
+  - None
+  - None
 delexicalize: true
 services: None
 overwrite:
   - true
   - true
   - true
-# seen_services:
-#   - Restaurants_1,
-#   - Media_1
+domains:
+  - Buses
+  - Events
+  - Flights
+  - Homes
+  - Hotels
+  - Media
+  - Movies
+  - Music
+  - RentalCars
+  - Restaurants
+  - RideSharing
+  - Services
+  - Travel
+  - Weather
+num_turns: 55
