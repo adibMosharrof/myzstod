@@ -74,6 +74,10 @@ class SimpleTodTarget:
             out += ", ".join(map(str, self.requested_slots))
             out += SpecialTokens.end_requested_slots + "\n\n"
 
+        out += SpecialTokens.begin_belief
+        out += ", ".join(map(str, self.beliefs))
+        out += SpecialTokens.end_belief + "\n\n"
+
         out += SpecialTokens.begin_action
         out += ", ".join(map(str, self.actions))
         out += SpecialTokens.end_action + "\n\n"
