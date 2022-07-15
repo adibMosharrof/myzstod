@@ -11,7 +11,7 @@ import humps
 
 import utils
 
-from dstc_dataclasses import DstcDialog, DstcFrame, DstcSchema, DstcTurn
+from dstc_dataclasses import DstcDialog, DstcFrame, DstcSchema, DstcTurn, Steps
 from dstc_utils import get_dialog_file_paths, get_dstc_service_name
 
 
@@ -222,7 +222,7 @@ class SimpleTODDSTCDataPrep:
         return schemas
 
     def run(self):
-        steps = ["train", "dev", "test"]
+        steps = Steps.list()
         for step, num_dialog, should_overwrite in tqdm(
             zip(steps, self.num_dialogs, self.overwrite)
         ):
@@ -258,7 +258,6 @@ def hydra_start(cfg: DictConfig) -> None:
         cfg.data_root,
         cfg.out_root,
         num_dialogs=cfg.num_dialogs,
-        # serives=cfg.services,
         delexicalize=cfg.delexicalize,
         overwrite=cfg.overwrite,
         domains=cfg.domains,

@@ -1,6 +1,0 @@
-project_root: /mounts/u-amo-d0/grad/adibm/projects/generative_tod/
-data_root: processed_data/simple_tod
-out_root: out/model_size_calc
-num_dialogs: 127
-delexicalize: false
-model_name: gpt2
