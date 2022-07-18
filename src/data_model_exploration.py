@@ -1,25 +1,24 @@
-from cProfile import label
 from pathlib import Path
+from statistics import mean
 from typing import List
+
 import hydra
+import matplotlib.pyplot as plt
+import numpy as np
 from omegaconf import DictConfig
 from tqdm import tqdm
-from transformers import AutoTokenizer
-from dstc_dataclasses import Steps
 
+import dstc_utils
+from dstc_dataclasses import Steps
 from simple_tod_dataclasses import (
     SimpleTodConstants,
     SimpleTodTurnCsvRow,
     SpecialTokens,
 )
 from utils import read_csv_dataclass
-import numpy as np
-import dstc_utils
-import matplotlib.pyplot as plt
-from statistics import mean
 
 
-class ModelSizeCalc:
+class DataModelExploration:
     def __init__(
         self,
         data_root: str = None,
@@ -38,7 +37,6 @@ class ModelSizeCalc:
         self.num_dialogs = num_dialogs
         self.delexicalize = delexicalize
         self.tokenizer = dstc_utils.get_tokenizer(model_name)
-        # special_tokens = torch.tensor(SpecialTokens.list(), device=torch.device("cuda"))
         special_tokens = SpecialTokens.list()
         self.tokenizer.add_tokens(special_tokens, special_tokens=True)
         self.num_turns = num_turns
@@ -58,32 +56,39 @@ class ModelSizeCalc:
 
     def plot_model_size(self):
         rows = self._get_simple_tod_rows()
-        turn_max_len = {}
-        turn_avg_len = {}
-        token_freq = []
+        x_axis = np.arange(1, self.num_turns)
+        turns = {
+            "token_freq": [],
+            "turn_max_len": {i: 0 for i in range(1, self.num_turns)},
+            "turn_avg_len": {i: [] for i in range(1, self.num_turns)},
+            "turn_context_max_len": {i: 0 for i in range(1, self.num_turns)},
+            "turn_context_avg_len": {i: [] for i in range(1, self.num_turns)},
+            "turn_target_max_len": {i: 0 for i in range(1, self.num_turns)},
+            "turn_target_avg_len": {i: [] for i in range(1, self.num_turns)},
+        }
         for row in tqdm(rows):
             c = self.tokenizer(row.context, return_tensors="pt")
             t = self.tokenizer(row.target, return_tensors="pt")
-            c_size = c.data["input_ids"].shape[1]
-            t_size = t.data["input_ids"].shape[1]
-            # contexts.append(c_size)
-            # targets.append(t_size)
-            text_len = c_size + t_size
-            token_freq.append(text_len)
+            context_len = c.data["input_ids"].shape[1]
+            target_len = t.data["input_ids"].shape[1]
+            text_len = context_len + target_len
+
+            turns["token_freq"].append(text_len)
             turn_id = int(row.turn_id)
-            cur_max = turn_max_len.get(turn_id, None)
-            turn_avg = turn_avg_len.get(turn_id, None)
-            if turn_avg is None:
-                turn_avg = []
-                turn_avg_len[turn_id] = turn_avg
-            turn_avg.append(text_len)
-            if cur_max is None:
-                turn_max_len[turn_id] = text_len
-            elif cur_max < text_len:
-                turn_max_len[turn_id] = text_len
+            turns["turn_avg_len"][turn_id].append(text_len)
+            if turns["turn_max_len"][turn_id] < text_len:
+                turns["turn_max_len"][turn_id] = text_len
 
-        fig1 = plt.hist(token_freq)
+            turns["turn_context_avg_len"][turn_id].append(context_len)
+            turns["turn_target_avg_len"][turn_id].append(target_len)
+            if turns["turn_context_max_len"][turn_id] < context_len:
+                turns["turn_context_max_len"][turn_id] = context_len
+            if turns["turn_target_max_len"][turn_id] < target_len:
+                turns["turn_target_max_len"][turn_id] = target_len
 
+        plt.style.use("ggplot")
+
+        fig1 = plt.hist(turns["token_freq"], bins=20)
         plt.xlabel("Number of tokens")
         plt.ylabel("Frequency")
         plt.grid(True)
@@ -96,27 +101,65 @@ class ModelSizeCalc:
             / f"model_size_calc_turns_{self.num_turns}_dialogs_{'_'.join(map(str, self.num_dialogs))}{name}.png"
         )
 
-        fig2 = plt.figure()
-        avg_turn_len = [mean(vals) for vals in turn_avg_len.values()]
-        plt.bar(turn_max_len.keys(), turn_max_len.values(), label="Max")
-        plt.bar(turn_max_len.keys(), avg_turn_len, label="Avg")
-
-        plt.xlabel("Number of turns")
-        plt.ylabel("Max number of tokens")
-        plt.grid(True)
-        plt.legend()
-        name = " Delexicalized" if self.delexicalize else ""
-        plt.title(f"{name} Max number of tokens per turn")
-        plt.savefig(
-            self.project_root
-            / self.out_root
-            / f"max_avg_tokens_per_turn_{self.num_turns}_dialogs_{'_'.join(map(str, self.num_dialogs))}{name}.png"
+        self._plot_max_avg_graph(
+            turns["turn_max_len"],
+            [mean(vals) for vals in turns["turn_avg_len"].values()],
+            x_axis,
+            label_name="Turn",
+            title="Turn Max, Avg Length",
         )
+        self._plot_max_avg_graph(
+            turns["turn_context_max_len"],
+            [mean(vals) for vals in turns["turn_context_avg_len"].values()],
+            x_axis,
+            label_name="Context",
+            title="Context Max, Avg Length",
+        )
+        self._plot_max_avg_graph(
+            turns["turn_target_max_len"],
+            [mean(vals) for vals in turns["turn_target_avg_len"].values()],
+            x_axis,
+            label_name="Target",
+            title="Target Max, Avg Length",
+        )
+
+    def _plot_max_avg_graph(
+        self,
+        data_max,
+        data_avg,
+        x_axis,
+        label_name: str = "Plot Label",
+        title: str = "Plot Title",
+        width=0.8,
+    ):
+        fig, ax = plt.subplots()
+        ax.bar(
+            x_axis,
+            data_max.values(),
+            label=f"{label_name} Max",
+            width=width,
+        )
+        ax.bar(x_axis + width / 2, data_avg, width=width, label=f"{label_name} Avg")
+
+        ax.autoscale(tight=True)
+        ax.set_title(title)
+        plt.xlabel("Number of turns")
+        plt.ylabel("Number of tokens")
+        plt.legend()
+
+        name = " Delexicalized" if self.delexicalize else ""
+        fig_dir = self.project_root / self.out_root / "max_avg"
+        fig_dir.mkdir(parents=True, exist_ok=True)
+        plt.savefig(
+            fig_dir
+            / f"{label_name}_max_avg_tokens_{self.num_turns}_dialogs_{'_'.join(map(str, self.num_dialogs))}{name}.png"
+        )
+        plt.close()
 
 
 @hydra.main(config_path="../config/", config_name="data_model_exploration")
 def hydra_start(cfg: DictConfig) -> None:
-    msc = ModelSizeCalc(
+    msc = DataModelExploration(
         project_root=cfg.project_root,
         data_root=cfg.data_root,
         delexicalize=cfg.delexicalize,
