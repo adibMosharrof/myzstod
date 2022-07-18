@@ -12,7 +12,7 @@ import humps
 import utils
 
 from dstc_dataclasses import DstcDialog, DstcFrame, DstcSchema, DstcTurn, Steps
-from dstc_utils import get_dialog_file_paths, get_dstc_service_name
+from dstc_utils import get_csv_data_path, get_dialog_file_paths, get_dstc_service_name
 
 
 from simple_tod_dataclasses import (
@@ -233,10 +233,13 @@ class SimpleTODDSTCDataPrep:
             out_data = []
             if num_dialog == "None":
                 num_dialog = len(dialog_paths)
-            csv_file_path = (
-                self.out_root
-                / step
-                / f"simple_tod_dstc_turns_{self.num_turns}_dialogs_{num_dialog}{SimpleTodConstants.DELEXICALIZED if self.delexicalize else ''}_{'_'.join(self.domains)}.csv"
+            csv_file_path = get_csv_data_path(
+                step=step,
+                num_dialogs=num_dialog,
+                delexicalized=self.delexicalize,
+                domains=self.domains,
+                processed_data_root=self.out_root,
+                num_turns=self.num_turns,
             )
             if csv_file_path.exists() and not should_overwrite:
                 print(f"{step} csv file already exists, so skipping")
@@ -247,6 +250,9 @@ class SimpleTODDSTCDataPrep:
                     continue
                 out_data.append(dialog_data)
             headers = ["dialog_id", "turn_id", "context", "target"]
+            if len(out_data) == 0:
+                print(f"No data for {step}")
+                continue
             csv_data = np.concatenate(out_data, axis=0)
             utils.write_csv(headers, csv_data, csv_file_path)
 

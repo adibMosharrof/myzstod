@@ -1,6 +1,10 @@
 project_root: /mounts/u-amo-d0/grad/adibm/projects/generative_tod/
 data_root: data/dstc8-schema-guided-dialogue/
 out_root: processed_data/simple_tod
+# num_dialogs: 
+  # - 2
+  # - 2
+  # - 1
 num_dialogs: 
   - None
   - None
@@ -25,4 +29,4 @@ domains:
   - Services
   - Travel
   - Weather
-num_turns: 55
+num_turns: 26

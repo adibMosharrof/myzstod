@@ -33,6 +33,7 @@ class SimpleTODTrainer:
         epochs: int = 2,
         train_batch_size: int = 30,
         eval_batch_size: int = 30,
+        test_batch_size: int = 30,
         eval_accumulation_steps: int = 10,
         data_split_percent: list[float] = None,
         raw_data_root: str = None,
@@ -46,14 +47,17 @@ class SimpleTODTrainer:
         delexicalize: bool = True,
         num_dialogs: List[int] = None,
         model_checkpoint_path: str = None,
-        should_train: bool = True,
         should_test: bool = False,
         generate_max_len: int = 200,
+        domains: List[str] = None,
+        num_turns: int = 26,
+        overwrite: List[bool] = None,
     ) -> None:
         self.model_name = model_name
         self.epochs = epochs
         self.train_batch_size = train_batch_size
         self.eval_batch_size = eval_batch_size
+        self.test_batch_size = test_batch_size
         self.data_split_percent = data_split_percent
         self.eval_accumulation_steps = eval_accumulation_steps
         self.output_dir = output_dir
@@ -67,9 +71,11 @@ class SimpleTODTrainer:
         self.delexicalize = delexicalize
         self.num_dialogs = num_dialogs
         self.model_checkpoint_path = model_checkpoint_path
-        self.should_train = should_train
         self.should_test = should_test
         self.generate_max_len = generate_max_len
+        self.overwrite = overwrite or [False, False, False]
+        self.domains = domains or ["restaurant", "hotel", "attraction"]
+        self.num_turns = num_turns
 
     def run(self):
 
@@ -86,14 +92,20 @@ class SimpleTODTrainer:
             out_root=self.data_prep_out_root,
             batch_size=self.train_batch_size,
             eval_batch_size=self.eval_batch_size,
+            test_batch_size=self.test_batch_size,
             data_split_percent=self.data_split_percent,
             max_token_len=self.max_token_len,
             num_workers=self.num_workers,
             delexicalize=self.delexicalize,
             num_dialogs=self.num_dialogs,
+            domains=self.domains,
+            num_turns=self.num_turns,
+            overwrite=self.overwrite,
         )
         dm.setup()
         self.train(model, dm)
+        print("Training done")
+        print("-" * 80)
         if self.should_test:
             inf = Inference(
                 model=model,
@@ -103,12 +115,15 @@ class SimpleTODTrainer:
                 data_prep_out_root=self.data_prep_out_root,
                 data_split_percent=self.data_split_percent,
                 eval_batch_size=self.eval_batch_size,
+                test_batch_size=self.test_batch_size,
                 max_token_len=self.max_token_len,
                 raw_data_root=self.raw_data_root,
-                data_prep_out_root=self.data_prep_out_root,
                 delexicalize=self.delexicalize,
                 num_test_dialogs=self.num_dialogs[2],
                 generate_max_len=self.generate_max_len,
+                domains=self.domains,
+                num_turns=self.num_turns,
+                tokenizer=self.tokenizer,
             )
             inf.test()
 
@@ -121,6 +136,7 @@ class SimpleTODTrainer:
         bleu_score = bleu.compute(predictions=predictions_txt, references=labels_txt)
         return {"bleu": bleu_score["bleu"]}
 
+    # made changes here, check next time to see if it works
     def train(self, model, dm):
         training_args = TrainingArguments(
             output_dir=self.output_dir,
@@ -128,6 +144,7 @@ class SimpleTODTrainer:
             logging_steps=self.logging_steps,
             load_best_model_at_end=True,
             save_strategy="epoch",
+            save_total_limit=2,
             evaluation_strategy="epoch",
             eval_accumulation_steps=self.eval_accumulation_steps,
             per_device_train_batch_size=self.train_batch_size,
@@ -135,6 +152,8 @@ class SimpleTODTrainer:
             warmup_steps=100,
             weight_decay=0.01,
             logging_dir=self.logging_dir,
+            dataloader_num_workers=self.num_workers,
+            dataloader_pin_memory=True,
         )
 
         # start training
@@ -148,7 +167,8 @@ class SimpleTODTrainer:
         )
         trainer.train()
         trainer.save_model()
-        print(f'output dir {self.output_dir}')
+        a=self.tokenizer.save_pretrained(self.output_dir)
+        print("output_dir: ", os.getcwd())
 
 
 @hydra.main(config_path="../config/trainer/", config_name="simple_tod_trainer")
@@ -158,6 +178,7 @@ def hydra_start(cfg: DictConfig) -> None:
         model_name=cfg.model_name,
         train_batch_size=cfg.train_batch_size,
         eval_batch_size=cfg.eval_batch_size,
+        test_batch_size=cfg.test_batch_size,
         output_dir=cfg.output_dir,
         logging_dir=cfg.logging_dir,
         logging_steps=cfg.logging_steps,
@@ -169,9 +190,11 @@ def hydra_start(cfg: DictConfig) -> None:
         data_split_percent=cfg.data_split_percent,
         delexicalize=cfg.delexicalize,
         num_dialogs=cfg.num_dialogs,
-        model_checkpoint_path=cfg.model_checkpoint_path,
-        should_train=cfg.should_train,
         should_test=cfg.should_test,
+        domains=cfg.domains,
+        num_turns=cfg.num_turns,
+        overwrite=cfg.overwrite,
+        generate_max_len=cfg.generate_max_len,
     )
     stt.run()
 

@@ -2,7 +2,6 @@ from dataclasses import dataclass, field
 from typing import List, Dict, Optional
 from dataclasses_json import dataclass_json
 from enum import Enum
-from itertools import zip_longest
 import humps
 
 from simple_tod_dataclasses import Speaker

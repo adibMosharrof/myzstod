@@ -143,5 +143,16 @@ class SpecialTokens(str, Enum):
         return [c.value for c in cls]
 
 
+class TokenizerTokens(str, Enum):
+    pad_token = "<|pad|>"
+    eos_token = "<|endoftext|>"
+    bos_token = "<|startoftext|>"
+
+    def __str__(self) -> str:
+        return self.value
+
+    def __repr__(self) -> str:
+        return self.__str__()
+
 class SimpleTodConstants(str, Enum):
     DELEXICALIZED = "_delexicalized"

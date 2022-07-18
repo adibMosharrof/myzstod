@@ -23,6 +23,7 @@ class SimpleTodDataModule(pl.LightningDataModule):
         num_workers=0,
         batch_size=32,
         eval_batch_size=32,
+        test_batch_size=32,
         data_split_percent: List[float] = None,
         project_root: str = None,
         out_root: str = None,
@@ -34,17 +35,21 @@ class SimpleTodDataModule(pl.LightningDataModule):
         dataset_name="dstc",
         model_name="gpt2",
         tokenizer=None,
-        delexicalize=True,
+        delexicalize: bool = True,
+        overwrite: List[bool] = False,
+        num_turns: int = 26,
+        domains: List[str] = None,
     ):
         super().__init__()
         self.num_workers = num_workers
         self.preprocessing_model_name = preprocessing_model_name
         self.project_root = Path(project_root)
-        self.data_prep_out_root = self.project_root / data_prep_out_root
+        self.processed_data_root = self.project_root / data_prep_out_root
         self.raw_data_root = raw_data_root
         self.out_root = out_root
         self.batch_size = batch_size
         self.eval_batch_size = eval_batch_size
+        self.test_batch_size = test_batch_size
         self.data_split_percent = data_split_percent
         self.max_token_len = max_token_len
         self.num_dialogs = num_dialogs
@@ -53,11 +58,19 @@ class SimpleTodDataModule(pl.LightningDataModule):
         self.datasets: Dict[str, Dataset] = {}
         self.tokenizer = tokenizer
         self.delexicalize = delexicalize
+        self.overwrite = overwrite or [False] * len(self.steps)
+        self.num_turns = num_turns
+        self.domains = domains or ["restaurant", "hotel", "attraction", "train"]
 
     def prepare_data(self):
         for step, num_dialog in zip(self.steps, self.num_dialogs):
             csv_file_path = dstc_utils.get_csv_data_path(
-                step, num_dialog, self.delexicalize, self.data_prep_out_root
+                step,
+                num_dialog,
+                self.delexicalize,
+                self.processed_data_root,
+                num_turns=self.num_turns,
+                domains=self.domains,
             )
             if not csv_file_path.exists():
                 stdp = SimpleTODDSTCDataPrep(
@@ -65,6 +78,10 @@ class SimpleTodDataModule(pl.LightningDataModule):
                     data_root=self.raw_data_root,
                     out_root=self.out_root,
                     num_dialogs=self.num_dialogs,
+                    domains=self.domains,
+                    num_turns=self.num_turns,
+                    overwrite=self.overwrite,
+                    delexicalize=self.delexicalize,
                 )
                 stdp.run()
 
@@ -75,7 +92,12 @@ class SimpleTodDataModule(pl.LightningDataModule):
         ):
 
             csv_path = dstc_utils.get_csv_data_path(
-                step, num_dialog, self.delexicalize, self.data_prep_out_root
+                step,
+                num_dialog,
+                self.delexicalize,
+                self.processed_data_root,
+                num_turns=self.num_turns,
+                domains=self.domains,
             )
             data = utils.read_csv_dataclass(csv_path, SimpleTodTurnCsvRow)
             data = data[: int(len(data) * split_percent)]
@@ -106,7 +128,7 @@ class SimpleTodDataModule(pl.LightningDataModule):
     def test_dataloader(self):
         return DataLoader(
             self.datasets[Steps.TEST],
-            batch_size=self.eval_batch_size,
+            batch_size=self.test_batch_size,
             shuffle=False,
             num_workers=self.num_workers,
             collate_fn=self.my_test_collate,
@@ -150,16 +172,6 @@ class SimpleTodDataModule(pl.LightningDataModule):
             contexts,
             targets,
         )
-        return {
-            "context_tokens": torch.stack([*contexts_tokens["input_ids"]]),
-            "context_attention_masks": torch.stack(
-                [*contexts_tokens["attention_mask"]]
-            ),
-            "label_tokens": torch.stack([*targets_tokens["input_ids"]]),
-            "label_attention_masks": torch.stack([*targets_tokens["attention_mask"]]),
-            "contexts_text": contexts,
-            "targets_text": targets,
-        }
 
 
 class SimpleTodDataSet(Dataset):

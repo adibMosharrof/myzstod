@@ -2,15 +2,32 @@ num_workers: 8
 data_split_percent:
   - 1
   - 1
-  - 1
-eval_batch_size: 3
-max_token_len: 1024
+  - .2
+eval_batch_size: 6
+test_batch_size: 100
+max_token_len: 512
 raw_data_root: data/dstc8-schema-guided-dialogue/
 project_root: /mounts/u-amo-d0/grad/adibm/projects/generative_tod/
 data_prep_out_root: processed_data/simple_tod
-num_test_dialogs: 34
-delexicalize: true
+num_test_dialogs: 1
+delexicalize: false
 model: outputs/2022-07-12/13-18-03/results/checkpoint-8947
 model_name: gpt2
 device: cuda
 generate_max_len: 1024
+domains:
+  - Buses
+  - Events
+  - Flights
+  - Homes
+  - Hotels
+  - Media
+  - Movies
+  - Music
+  - RentalCars
+  - Restaurants
+  - RideSharing
+  - Services
+  - Travel
+  - Weather
+num_turns: 10
