@@ -1,18 +1,18 @@
 model_name: gpt2
 epochs: 2
 num_workers: 8
-train_batch_size: 14
+train_batch_size: 10
 data_split_percent:
-  - .1
-  - .1
-  - .1
-eval_batch_size: 16
-test_batch_size: 100
-eval_accumulation_step: 20
+  - .05
+  - .05
+  - .05
+eval_batch_size: 10
+test_batch_size: 80
+eval_accumulation_step: 25
 output_dir: results
 logging_dir: logs
-logging_steps: 10
-max_token_len: 512
+logging_steps: 50
+max_token_len: 700
 raw_data_root: data/dstc8-schema-guided-dialogue/
 project_root: /mounts/u-amo-d0/grad/adibm/projects/generative_tod/
 data_prep_out_root: processed_data/simple_tod
@@ -22,10 +22,10 @@ num_dialogs:
   - 1
   - 1
 overwrite:
-  - true
-  - true
-  - true
-should_test: true
+  - false
+  - false
+  - false
+should_test: false
 generate_max_len: 1024
 domains:
   - Buses
@@ -42,4 +42,4 @@ domains:
   - Services
   - Travel
   - Weather
-num_turns: 10
+num_turns: 26
