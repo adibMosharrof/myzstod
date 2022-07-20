@@ -14,7 +14,7 @@ logging_dir: logs
 logging_steps: 50
 max_token_len: 700
 raw_data_root: data/dstc8-schema-guided-dialogue/
-project_root: /project/msi290_uksr/generative_tod
+project_root: $PROJECT/msi290_uksr/generative_tod
 data_prep_out_root: processed_data/simple_tod
 delexicalize: false
 num_dialogs: 
