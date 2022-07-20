@@ -1,0 +1,45 @@
+model_name: gpt2
+epochs: 20
+num_workers: 8
+train_batch_size: 10
+data_split_percent:
+  - 1
+  - 1
+  - 1
+eval_batch_size: 10
+test_batch_size: 80
+eval_accumulation_step: 25
+output_dir: results
+logging_dir: logs
+logging_steps: 50
+max_token_len: 700
+raw_data_root: data/dstc8-schema-guided-dialogue/
+project_root: /project/msi290_uksr/generative_tod
+data_prep_out_root: processed_data/simple_tod
+delexicalize: false
+num_dialogs: 
+  - 127
+  - 20
+  - 34
+overwrite:
+  - true
+  - true
+  - true
+should_test: true
+generate_max_len: 1024
+domains:
+  - Buses
+  - Events
+  - Flights
+  - Homes
+  - Hotels
+  - Media
+  - Movies
+  - Music
+  - RentalCars
+  - Restaurants
+  - RideSharing
+  - Services
+  - Travel
+  - Weather
+num_turns: 26
