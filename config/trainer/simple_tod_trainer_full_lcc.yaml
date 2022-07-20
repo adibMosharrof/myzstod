@@ -3,9 +3,9 @@ epochs: 20
 num_workers: 8
 train_batch_size: 10
 data_split_percent:
-  - 1
-  - 1
-  - 1
+  - 0.001
+  - 0.001
+  - 0.001
 eval_batch_size: 10
 test_batch_size: 80
 eval_accumulation_step: 25

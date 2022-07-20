@@ -8,6 +8,6 @@
 #SBATCH -o slurm-%j.out # Output file for this job.
 #SBATCH -A gol_msi290_uksr # Project allocation account name (REQUIRED)
 #SBATCH --gres=gpu:1
-
+module load ccs/Miniconda3
 source activate ./envs
 time python src/trainer.py --config-name simple_tod_trainer_full_lcc
