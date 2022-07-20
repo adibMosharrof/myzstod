@@ -21,9 +21,10 @@ import evaluate
 from dstc_dataclasses import Steps
 from inference import Inference
 from my_datamodules import SimpleTodDataModule
-from simple_tod_dataclasses import SpecialTokens
+from simple_tod_dataclasses import SpecialTokens, TokenizerTokens
 import os
 import dstc_utils
+from torch.nn import CrossEntropyLoss
 
 
 class SimpleTODTrainer:
@@ -157,7 +158,8 @@ class SimpleTODTrainer:
         )
 
         # start training
-        trainer = Trainer(
+        # trainer = Trainer(
+        trainer = TodTrainer(
             model=model,
             args=training_args,
             train_dataset=dm.datasets["train"],
@@ -165,10 +167,29 @@ class SimpleTODTrainer:
             # compute_metrics=self.compute_metrics,
             data_collator=dm.my_collate,
         )
+        trainer.pad_token_id = self.tokenizer.pad_token_id
         trainer.train()
         trainer.save_model()
-        a=self.tokenizer.save_pretrained(self.output_dir)
+        a = self.tokenizer.save_pretrained(self.output_dir)
         print("output_dir: ", os.getcwd())
+
+
+class TodTrainer(Trainer):
+    pad_token_id: int = 0
+
+    def compute_loss(self, model, inputs, return_outputs=False):
+        # Shift so that tokens < n predict n
+        input_ids = inputs["input_ids"]
+        logits = model(input_ids, attention_mask=inputs["attention_mask"]).logits
+        shift_labels = input_ids[..., 1:].contiguous()
+        shift_logits = logits[..., :-1, :].contiguous()
+
+        # Calculate per-token loss
+        loss_fct = CrossEntropyLoss()
+        loss = loss_fct(
+            shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1)
+        )
+        return (loss, logits) if return_outputs else loss
 
 
 @hydra.main(config_path="../config/trainer/", config_name="simple_tod_trainer")
