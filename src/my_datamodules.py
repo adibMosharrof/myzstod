@@ -118,7 +118,7 @@ class SimpleTodDataModule(pl.LightningDataModule):
             batch_size=self.batch_size,
             shuffle=False,
             num_workers=self.num_workers,
-            collate_fn=self.my_collate,
+            collate_fn=self.training_collator,
             pin_memory=True,
         )
 
@@ -128,7 +128,7 @@ class SimpleTodDataModule(pl.LightningDataModule):
             batch_size=self.eval_batch_size,
             shuffle=False,
             num_workers=self.num_workers,
-            collate_fn=self.my_collate,
+            collate_fn=self.training_collator,
             pin_memory=True,
         )
 
@@ -159,17 +159,18 @@ class SimpleTodDataModule(pl.LightningDataModule):
             max_length=self.max_token_len,
         )
 
-    def my_collate(self, batch: SimpleTodDatasetItem):
+    def training_collator(self, batch: SimpleTodDatasetItem):
         input_ids = []
         attention_masks = []
         labels = []
+
         for item in batch:
             context_tokens = self.train_eval_tokenize(item.context)[0]
             target_tokens = self.train_eval_tokenize(item.target)[0]
             context_len = len(context_tokens)
             target_len = len(target_tokens)
             unused_len = self.max_token_len - context_len - target_len
-            
+
             pad = torch.full([unused_len], self.tokenizer.pad_token_id)
             input_tokens = torch.cat([context_tokens, target_tokens, pad])
             label = torch.cat(
@@ -192,13 +193,11 @@ class SimpleTodDataModule(pl.LightningDataModule):
             "labels": torch.stack(labels),
         }
 
-    # def my_collate(self, batch):
-    def train_eval_collate(self, batch):
-        contexts = [x[0] for x in batch]
-        targets = [x[1] for x in batch]
+    def pretraining_collator(self, batch):
+        texts = [x.context + x.target for x in batch]
+        targets = [x.target for x in batch]
         texts_tokens = self.tokenizer(
-            contexts,
-            targets,
+            texts,
             return_tensors="pt",
             truncation=True,
             padding="max_length",
@@ -214,8 +213,8 @@ class SimpleTodDataModule(pl.LightningDataModule):
         }
 
     def my_test_collate(self, batch):
-        contexts = [x[0] for x in batch]
-        targets = [x[1] for x in batch]
+        contexts = [x.context for x in batch]
+        targets = [x.target for x in batch]
         contexts_tokens, targets_tokens = self.tokenize(contexts), self.tokenize(
             targets
         )

@@ -34,7 +34,8 @@ class SimpleTODTrainer:
     def __init__(
         self,
         model_name: str = None,
-        epochs: int = 2,
+        pretrain_epochs: int = 2,
+        train_epochs: int = 2,
         train_batch_size: int = 30,
         eval_batch_size: int = 30,
         test_batch_size: int = 30,
@@ -58,13 +59,14 @@ class SimpleTODTrainer:
         overwrite: List[bool] = None,
     ) -> None:
         self.model_name = model_name
-        self.epochs = epochs
+        self.pretrain_epochs = pretrain_epochs
+        self.train_epochs = train_epochs
         self.train_batch_size = train_batch_size
         self.eval_batch_size = eval_batch_size
         self.test_batch_size = test_batch_size
         self.data_split_percent = data_split_percent
         self.eval_accumulation_steps = eval_accumulation_steps
-        self.output_dir = output_dir
+        self.output_dir = Path(output_dir)
         self.logging_dir = logging_dir
         self.logging_steps = logging_steps
         self.max_token_len = max_token_len
@@ -140,11 +142,11 @@ class SimpleTODTrainer:
         bleu_score = bleu.compute(predictions=predictions_txt, references=labels_txt)
         return {"bleu": bleu_score["bleu"]}
 
-    # made changes here, check next time to see if it works
-    def train(self, model, dm):
+    def train(self, model: GPT2LMHeadModel, dm: SimpleTodDataModule):
+        pretrain_out = str(self.output_dir / "pretrain")
         training_args = TrainingArguments(
-            output_dir=self.output_dir,
-            num_train_epochs=self.epochs,
+            output_dir=pretrain_out,
+            num_train_epochs=self.pretrain_epochs,
             logging_steps=self.logging_steps,
             load_best_model_at_end=True,
             save_strategy="epoch",
@@ -162,17 +164,24 @@ class SimpleTODTrainer:
 
         # start training
         trainer = Trainer(
-        # trainer = TodTrainer(
+            # trainer = TodTrainer(
             model=model,
             args=training_args,
             train_dataset=dm.datasets["train"],
             eval_dataset=dm.datasets["dev"],
             # compute_metrics=self.compute_metrics,
-            data_collator=dm.my_collate,
+            data_collator=dm.pretraining_collator,
         )
         trainer.pad_token_id = self.tokenizer.pad_token_id
         trainer.train()
         trainer.save_model()
+
+        training_args.output_dir = str(self.output_dir / "train")
+        training_args.num_train_epochs = self.train_epochs
+        trainer.data_collator = dm.training_collator
+        trainer.train()
+        trainer.save_model()
+
         a = self.tokenizer.save_pretrained(self.output_dir)
         print("output_dir: ", os.getcwd())
 
@@ -198,7 +207,8 @@ class TodTrainer(Trainer):
 @hydra.main(config_path="../config/trainer/", config_name="simple_tod_trainer")
 def hydra_start(cfg: DictConfig) -> None:
     stt = SimpleTODTrainer(
-        epochs=cfg.epochs,
+        pretrain_epochs=cfg.pretrain_epochs,
+        train_epochs=cfg.train_epochs,
         model_name=cfg.model_name,
         train_batch_size=cfg.train_batch_size,
         eval_batch_size=cfg.eval_batch_size,
