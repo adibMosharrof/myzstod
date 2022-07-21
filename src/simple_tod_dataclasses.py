@@ -3,6 +3,7 @@ from enum import Enum
 from itertools import zip_longest
 from typing import Dict, List, Optional
 from collections import deque
+import torch
 
 
 @dataclass
@@ -154,5 +155,46 @@ class TokenizerTokens(str, Enum):
     def __repr__(self) -> str:
         return self.__str__()
 
+
 class SimpleTodConstants(str, Enum):
     DELEXICALIZED = "_delexicalized"
+
+
+# Datamodule classes
+
+
+@dataclass
+class SimpleTodDatasetItem:
+    context: str
+    target: str
+
+
+@dataclass
+class SimpleTodTestDataRow:
+    context_tokens: torch.Tensor
+    context_attention_masks: torch.Tensor
+    label_tokens: torch.Tensor
+    label_attention_masks: torch.Tensor
+    contexts_text: str
+    targets_text: str
+
+
+@dataclass
+class SimpleTodTestDataBatch:
+    context_tokens: torch.Tensor
+    context_attention_masks: torch.Tensor
+    label_tokens: torch.Tensor
+    label_attention_masks: torch.Tensor
+    contexts_text: List[str]
+    targets_text: List[str]
+
+    def __iter__(self):
+        for item in zip(
+            self.context_tokens,
+            self.context_attention_masks,
+            self.label_tokens,
+            self.label_attention_masks,
+            self.contexts_text,
+            self.targets_text,
+        ):
+            yield SimpleTodTestDataRow(*item)

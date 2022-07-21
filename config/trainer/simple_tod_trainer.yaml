@@ -1,7 +1,7 @@
 model_name: gpt2
 epochs: 2
 num_workers: 8
-train_batch_size: 10
+train_batch_size: 8
 data_split_percent:
   - .05
   - .05

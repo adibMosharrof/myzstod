@@ -4,6 +4,7 @@ from typing import Dict, List
 
 import numpy as np
 import pytorch_lightning as pl
+from responses import target
 import torch
 from torch.utils.data import DataLoader, Dataset, default_collate
 from transformers import AutoTokenizer, PreTrainedTokenizerFast
@@ -11,12 +12,18 @@ from dstc_dataclasses import Steps
 
 import utils
 from simple_tod_dstc_data_prep import SimpleTODDSTCDataPrep
-from simple_tod_dataclasses import SimpleTodConstants, SimpleTodTurnCsvRow
+from simple_tod_dataclasses import (
+    SimpleTodConstants,
+    SimpleTodDatasetItem,
+    SimpleTodTestDataBatch,
+    SimpleTodTurnCsvRow,
+)
 import dstc_utils
 
 
 class SimpleTodDataModule(pl.LightningDataModule):
     steps = Steps.list()
+    _huggingface_ignore_label_id = -100
 
     def __init__(
         self,
@@ -109,7 +116,7 @@ class SimpleTodDataModule(pl.LightningDataModule):
         return DataLoader(
             self.datasets[Steps.TRAIN],
             batch_size=self.batch_size,
-            shuffle=True,
+            shuffle=False,
             num_workers=self.num_workers,
             collate_fn=self.my_collate,
             pin_memory=True,
@@ -144,10 +151,59 @@ class SimpleTodDataModule(pl.LightningDataModule):
             max_length=self.max_token_len,
         )
 
-    def my_collate(self, batch):
-        texts = [x[0] + x[1] for x in batch]
+    def train_eval_tokenize(self, item):
+        return self.tokenizer.encode(
+            item,
+            return_tensors="pt",
+            truncation=True,
+            max_length=self.max_token_len,
+        )
+
+    def my_collate(self, batch: SimpleTodDatasetItem):
+        input_ids = []
+        attention_masks = []
+        labels = []
+        for item in batch:
+            context_tokens = self.train_eval_tokenize(item.context)[0]
+            target_tokens = self.train_eval_tokenize(item.target)[0]
+            context_len = len(context_tokens)
+            target_len = len(target_tokens)
+            unused_len = self.max_token_len - context_len - target_len
+            
+            pad = torch.full([unused_len], self.tokenizer.pad_token_id)
+            input_tokens = torch.cat([context_tokens, target_tokens, pad])
+            label = torch.cat(
+                [
+                    torch.full([context_len], self._huggingface_ignore_label_id),
+                    target_tokens,
+                    torch.full([unused_len], self._huggingface_ignore_label_id),
+                ]
+            )
+            attention_mask = torch.cat(
+                [torch.full([context_len + target_len], 1), torch.full([unused_len], 0)]
+            )
+            input_ids.append(input_tokens)
+            attention_masks.append(torch.tensor(attention_mask))
+            labels.append(label)
+
+        return {
+            "input_ids": torch.stack(input_ids),
+            "attention_mask": torch.stack(attention_masks),
+            "labels": torch.stack(labels),
+        }
+
+    # def my_collate(self, batch):
+    def train_eval_collate(self, batch):
+        contexts = [x[0] for x in batch]
         targets = [x[1] for x in batch]
-        texts_tokens = self.tokenize(texts)
+        texts_tokens = self.tokenizer(
+            contexts,
+            targets,
+            return_tensors="pt",
+            truncation=True,
+            padding="max_length",
+            max_length=self.max_token_len,
+        )
         targets_tokens = self.tokenize(targets)
         input_ids = torch.stack([*texts_tokens["input_ids"]])
         labels = torch.stack([*targets_tokens["input_ids"]])
@@ -212,35 +268,4 @@ class SimpleTodDataSet(Dataset):
     def __getitem__(self, idx):
         row: SimpleTodTurnCsvRow = self.data[idx]
         # return self.tokenize(row.context), self.tokenize(row.target)
-        return row.context, row.target
-
-
-@dataclass
-class SimpleTodTestDataRow:
-    context_tokens: torch.Tensor
-    context_attention_masks: torch.Tensor
-    label_tokens: torch.Tensor
-    label_attention_masks: torch.Tensor
-    contexts_text: str
-    targets_text: str
-
-
-@dataclass
-class SimpleTodTestDataBatch:
-    context_tokens: torch.Tensor
-    context_attention_masks: torch.Tensor
-    label_tokens: torch.Tensor
-    label_attention_masks: torch.Tensor
-    contexts_text: List[str]
-    targets_text: List[str]
-
-    def __iter__(self):
-        for item in zip(
-            self.context_tokens,
-            self.context_attention_masks,
-            self.label_tokens,
-            self.label_attention_masks,
-            self.contexts_text,
-            self.targets_text,
-        ):
-            yield SimpleTodTestDataRow(*item)
+        return SimpleTodDatasetItem(row.context, row.target)

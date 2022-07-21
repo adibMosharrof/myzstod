@@ -25,6 +25,9 @@ from simple_tod_dataclasses import SpecialTokens, TokenizerTokens
 import os
 import dstc_utils
 from torch.nn import CrossEntropyLoss
+import warnings
+
+warnings.filterwarnings("ignore")
 
 
 class SimpleTODTrainer:
@@ -158,8 +161,8 @@ class SimpleTODTrainer:
         )
 
         # start training
-        # trainer = Trainer(
-        trainer = TodTrainer(
+        trainer = Trainer(
+        # trainer = TodTrainer(
             model=model,
             args=training_args,
             train_dataset=dm.datasets["train"],
