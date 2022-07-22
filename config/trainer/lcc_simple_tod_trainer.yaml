@@ -1,5 +1,6 @@
 model_name: gpt2
-epochs: 20
+pretrain_epochs: 5
+train_epochs: 20
 num_workers: 8
 train_batch_size: 6
 data_split_percent:
