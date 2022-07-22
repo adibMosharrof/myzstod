@@ -21,6 +21,8 @@ import evaluate
 import datasets
 import logging
 
+from simpletod_metrics import SimpleTodMetrics
+
 
 class Inference:
     def __init__(
@@ -107,9 +109,14 @@ class Inference:
     def _remove_padding(self, text):
         return re.sub(self.padding_regexp, "", text)
 
-    def test(self):
+    def test(self, stm: SimpleTodMetrics):
+
         bleu = evaluate.load("bleu")
-        # bleu = datasets.load_metric("bleu")
+        acc = evaluate.load("accuracy")
+        all_tp, all_fp, all_fn = 0, 0, 0
+        slot_appear_num = {}
+        slot_correct_num = {}
+        false_slots = []
         for batch in tqdm(self.dataloader):
             gen = self.model.generate(
                 inputs=batch.context_tokens.to(self.device),
@@ -129,17 +136,52 @@ class Inference:
             pred_text_no_pad = [self._remove_padding(text) for text in pred_text]
             bleu.add_batch(
                 predictions=pred_text_no_pad,
-                # references=[t for t in batch.targets_text],
                 references=batch.targets_text,
             )
+            pred_intents, target_intents = stm.get_intent_pred_ref(
+                batch.targets_text,
+                batch.targets_text,
+            )
+            acc.add_batch(references=target_intents, predictions=pred_intents)
+
+            (
+                tp,
+                fp,
+                fn,
+                slot_appear_num,
+                slot_correct_num,
+                false_slots,
+            ) = stm.get_requested_slots_metric_values(
+                batch.targets_text,
+                batch.targets_text,
+                all_tp,
+                all_fp,
+                all_fn,
+                slot_appear_num,
+                slot_correct_num,
+                false_slots,
+            )
+            all_tp += tp
+            all_fp += fp
+            all_fn += fn
+
+            # f1.add_batch(references=target_req_slots, predictions=pred_req_slots)
+
         result = bleu.compute()
         bleu_score_text = f'Bleu Score {result["bleu"]}'
         self.logger.info(bleu_score_text)
+        acc_score = acc.compute()
+        acc_score_text = f'Intent Accuracy {acc_score["accuracy"]}'
+        self.logger.info(acc_score_text)
+        f1_score = stm.get_f1_requested_slots_f1_score(all_tp, all_fp, all_fn)
+        f1_score_text = f"Requested Slots Macro F1 {f1_score}"
+        self.logger.info(f1_score_text)
         a = 1
 
     def run(self):
         print("begin inference")
-        self.test()
+        stm = SimpleTodMetrics()
+        self.test(stm)
         print("end inference")
         print("-" * 80)
 

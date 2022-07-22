@@ -11,7 +11,7 @@ project_root: /mounts/u-amo-d0/grad/adibm/projects/generative_tod/
 data_prep_out_root: processed_data/simple_tod
 num_test_dialogs: 1
 delexicalize: false
-model: outputs/2022-07-22/12-45-29/results/train/checkpoint-45
+model: outputs/2022-07-22/12-58-37/results/train/checkpoint-51
 model_name: gpt2
 device: cuda
 generate_max_len: 1024
