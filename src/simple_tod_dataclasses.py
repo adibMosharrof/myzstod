@@ -66,10 +66,10 @@ class SimpleTodTarget:
         return self.__str__()
 
     def __str__(self) -> str:
-        # out = SpecialTokens.start_of_text
+        out = SpecialTokens.begin_target
 
         if self.active_intent:
-            out = SpecialTokens.begin_intent
+            out += SpecialTokens.begin_intent
             out += self.active_intent
             out += SpecialTokens.end_intent + "\n\n"
 
@@ -119,6 +119,8 @@ class Speaker(str, Enum):
 
 
 class SpecialTokens(str, Enum):
+    begin_target = "<|begintarget|>"
+
     begin_context = "<|begincontext|>"
     end_context = "<|endcontext|>"
     system = "<|system|>"
