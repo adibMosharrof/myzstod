@@ -13,6 +13,8 @@
 
 "
 """
+from abc import ABC
+import abc
 from collections import defaultdict
 from itertools import zip_longest
 import random
@@ -20,6 +22,27 @@ import re
 from typing import Optional, Tuple
 
 from simple_tod_dataclasses import SpecialTokens
+
+
+class SimpleTodMetricsBase(ABC):
+    def is_value_same(self, a: str, b: str) -> int:
+        return int(a == b)
+
+    def _extract_section_from_text(
+        self, text: str, start_token: str, end_token: str
+    ) -> str:
+        idx1 = text.index(start_token)
+        idx2 = text.index(end_token)
+        res = text[idx1 + len(start_token) : idx2]
+        return res
+
+    @abc.abstractmethod
+    def add_batch(self, predictions: list[str], references: list[str]) -> None:
+        pass
+
+    @abc.abstractmethod
+    def compute(self, metric=None) -> float:
+        pass
 
 
 class SimpleTodMetrics:
@@ -53,6 +76,7 @@ class SimpleTodMetrics:
         slot_appear_num: dict,
         slot_correct_num: dict,
         false_slots: list[str],
+        # requested_slots_misclassification: dict,
     ):
         for target, prediction in zip(batch_targets_text, batch_preds_text):
             try:

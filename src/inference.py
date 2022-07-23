@@ -16,7 +16,8 @@ from transformers import (
 from dstc_dataclasses import Steps
 import dstc_utils
 from my_datamodules import SimpleTodDataModule, SimpleTodDataSet
-from simple_tod_dataclasses import SpecialTokens, TokenizerTokens
+from requested_slots_metric import RequestedSlotsMetric
+from simple_tod_dataclasses import SimpleTodTestDataRow, SpecialTokens, TokenizerTokens
 import evaluate
 import datasets
 import logging
@@ -113,11 +114,9 @@ class Inference:
 
         bleu = evaluate.load("bleu")
         acc = evaluate.load("accuracy")
-        all_tp, all_fp, all_fn = 0, 0, 0
-        slot_appear_num = {}
-        slot_correct_num = {}
-        false_slots = []
+        rsm = RequestedSlotsMetric()
         for batch in tqdm(self.dataloader):
+            batch:SimpleTodTestDataRow
             gen = self.model.generate(
                 inputs=batch.context_tokens.to(self.device),
                 attention_mask=batch.context_attention_masks.to(self.device),
@@ -143,27 +142,7 @@ class Inference:
                 batch.targets_text,
             )
             acc.add_batch(references=target_intents, predictions=pred_intents)
-
-            (
-                tp,
-                fp,
-                fn,
-                slot_appear_num,
-                slot_correct_num,
-                false_slots,
-            ) = stm.get_requested_slots_metric_values(
-                batch.targets_text,
-                batch.targets_text,
-                all_tp,
-                all_fp,
-                all_fn,
-                slot_appear_num,
-                slot_correct_num,
-                false_slots,
-            )
-            all_tp += tp
-            all_fp += fp
-            all_fn += fn
+            rsm.add_batch(references=batch.targets_text, predictions=batch.targets_text)
 
             # f1.add_batch(references=target_req_slots, predictions=pred_req_slots)
 
@@ -173,7 +152,7 @@ class Inference:
         acc_score = acc.compute()
         acc_score_text = f'Intent Accuracy {acc_score["accuracy"]}'
         self.logger.info(acc_score_text)
-        f1_score = stm.get_f1_requested_slots_f1_score(all_tp, all_fp, all_fn)
+        f1_score = rsm.compute()
         f1_score_text = f"Requested Slots Macro F1 {f1_score}"
         self.logger.info(f1_score_text)
         a = 1

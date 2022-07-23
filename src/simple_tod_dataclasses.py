@@ -16,7 +16,7 @@ class SimpleTodBelief:
         return self.__str__()
 
     def __str__(self) -> str:
-        return f"{self.domain}_{self.slot_name}: {self.value}"
+        return f"{self.domain}_{self.slot_name}:{self.value}"
 
 
 @dataclass
