@@ -2,7 +2,6 @@ import re
 from typing import Union
 import hydra
 from omegaconf import DictConfig
-import torch
 from pathlib import Path
 from tqdm import tqdm
 
@@ -13,18 +12,23 @@ from transformers import (
     GPT2Tokenizer,
     PreTrainedTokenizerFast,
 )
-from dstc_dataclasses import Steps
 import dstc_utils
 from my_datamodules import SimpleTodDataModule, SimpleTodDataSet
-from simple_tod_dataclasses import SimpleTodTestDataRow, SpecialTokens, TokenizerTokens
-import evaluate
-import datasets
+from simple_tod_dataclasses import (
+    SimpleTodAction,
+    SimpleTodBelief,
+    SimpleTodTestDataRow,
+    SpecialTokens,
+    TokenizerTokens,
+)
 import logging
 
-from simpletod_metrics import (
+from tod_metrics import (
+    BleuMetric,
+    GoalMetric,
     IntentAccuracyMetric,
+    MetricCollection,
     RequestedSlotsMetric,
-    SimpleTodMetrics,
 )
 
 
@@ -49,6 +53,7 @@ class Inference:
         generate_max_len: int = 1024,
         domains: list[str] = None,
         num_turns: int = 26,
+        overwrite: list[bool] = None,
     ):
         self.device = device
         self.project_root = Path(project_root)
@@ -68,9 +73,24 @@ class Inference:
         self.generate_max_len = generate_max_len
         self.domains = domains or ["restaurant", "hotel", "attraction"]
         self.num_turns = num_turns
+        self.overwrite = overwrite
         self.dataloader = dataloader if dataloader else self._get_dataloader()
         self.padding_regexp = re.compile(re.escape(TokenizerTokens.pad_token))
         self.logger = logging.getLogger(__name__)
+        self.tod_metrics = MetricCollection(
+            {
+                "goal_accuracy": GoalMetric(SimpleTodBelief),
+                "action_accuracy": GoalMetric(SimpleTodAction),
+                "intent_accuracy": IntentAccuracyMetric(),
+                "requested_slots": RequestedSlotsMetric(),
+            }
+        )
+        self.bleu_metrics = MetricCollection(
+            {
+                "overall_bleu": BleuMetric(),
+                # "response_bleu": BleuMetric(),
+            }
+        )
 
     def _get_dataloader(self):
         dm = SimpleTodDataModule(
@@ -88,6 +108,7 @@ class Inference:
             num_dialogs=self.num_dialogs,
             domains=self.domains,
             num_turns=self.num_turns,
+            overwrite=self.overwrite,
         )
         dm.setup()
         return dm.test_dataloader()
@@ -113,11 +134,8 @@ class Inference:
     def _remove_padding(self, text):
         return re.sub(self.padding_regexp, "", text)
 
-    def test(self, stm: SimpleTodMetrics):
+    def test(self):
 
-        bleu = evaluate.load("bleu")
-        acc = IntentAccuracyMetric()
-        rsm = RequestedSlotsMetric()
         for batch in tqdm(self.dataloader):
             batch: SimpleTodTestDataRow
             gen = self.model.generate(
@@ -136,23 +154,19 @@ class Inference:
                 gen_without_context, skip_special_tokens=False
             )
             pred_text_no_pad = [self._remove_padding(text) for text in pred_text]
-            bleu.add_batch(
-                predictions=pred_text_no_pad,
-                references=batch.targets_text,
+            self.tod_metrics.add_batch(
+                references=batch.targets_text, predictions=batch.targets_text
             )
-            acc.add_batch(references=batch.targets_text, predictions=batch.targets_text)
-            rsm.add_batch(references=batch.targets_text, predictions=batch.targets_text)
+            self.bleu_metrics.add_batch(
+                references=batch.targets_text, predictions=pred_text_no_pad
+            )
 
-        result = bleu.compute()
-        bleu_score_text = f'Bleu Score {result["bleu"]}'
-        self.logger.info(bleu_score_text)
-        self.logger.info(str(acc))
-        self.logger.info(str(rsm))
+        self.logger.info(str(self.tod_metrics))
+        self.logger.info(str(self.bleu_metrics))
 
     def run(self):
         print("begin inference")
-        stm = SimpleTodMetrics()
-        self.test(stm)
+        self.test()
         print("end inference")
         print("-" * 80)
 
@@ -175,6 +189,7 @@ def hydra_start(cfg: DictConfig) -> None:
         generate_max_len=cfg.generate_max_len,
         num_turns=cfg.num_turns,
         domains=cfg.domains,
+        overwrite=cfg.overwrite,
     )
     inf.run()
 

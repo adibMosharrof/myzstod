@@ -12,11 +12,25 @@ class SimpleTodBelief:
     slot_name: str
     value: any
 
+    @classmethod
+    def from_string(self, text: str):
+        dom_slot, value = text.split(SimpleTodConstants.SLOT_VALUE_SEPARATOR)
+        domain, slot_name = dom_slot.split(SimpleTodConstants.DOMAIN_SLOT_SEPARATOR)
+        return self(domain, slot_name, value)
+
     def __repr__(self) -> str:
         return self.__str__()
 
     def __str__(self) -> str:
-        return f"{self.domain}_{self.slot_name}:{self.value}"
+        return "".join(
+            [
+                self.domain,
+                SimpleTodConstants.DOMAIN_SLOT_SEPARATOR,
+                self.slot_name,
+                SimpleTodConstants.SLOT_VALUE_SEPARATOR,
+                self.value,
+            ]
+        )
 
 
 @dataclass
@@ -25,11 +39,17 @@ class SimpleTodAction:
     action_type: str
     slot_name: str
 
+    @classmethod
+    def from_string(self, text: str):
+        action_type, dom_slot = text.split(SimpleTodConstants.SLOT_VALUE_SEPARATOR)
+        domain, slot_name = dom_slot.split(SimpleTodConstants.DOMAIN_SLOT_SEPARATOR)
+        return self(domain, slot_name, action_type)
+
     def __repr__(self) -> str:
         return self.__str__()
 
     def __str__(self) -> str:
-        return f"{self.action_type} {self.domain}_{self.slot_name}"
+        return "".join([self.action_type, SimpleTodConstants.SLOT_VALUE_SEPARATOR, self.domain, SimpleTodConstants.DOMAIN_SLOT_SEPARATOR, self.slot_name])
 
 
 @dataclass
@@ -50,7 +70,7 @@ class SimpleTodContext:
                 out += SpecialTokens.user + user
             if system:
                 out += SpecialTokens.system + system
-        out += SpecialTokens.end_context + "\n\n"
+        out += SpecialTokens.end_context + SimpleTodConstants.NEW_LINES
         return out
 
 
@@ -71,24 +91,24 @@ class SimpleTodTarget:
         if self.active_intent:
             out += SpecialTokens.begin_intent
             out += self.active_intent
-            out += SpecialTokens.end_intent + "\n\n"
+            out += SpecialTokens.end_intent + SimpleTodConstants.NEW_LINES
 
         if self.requested_slots:
             out = SpecialTokens.begin_requested_slots
-            out += ", ".join(map(str, self.requested_slots))
-            out += SpecialTokens.end_requested_slots + "\n\n"
+            out += SimpleTodConstants.ITEM_SEPARATOR.join(map(str, self.requested_slots))
+            out += SpecialTokens.end_requested_slots + SimpleTodConstants.NEW_LINES
 
         out += SpecialTokens.begin_belief
-        out += ", ".join(map(str, self.beliefs))
-        out += SpecialTokens.end_belief + "\n\n"
+        out += SimpleTodConstants.ITEM_SEPARATOR.join(map(str, self.beliefs))
+        out += SpecialTokens.end_belief + SimpleTodConstants.NEW_LINES
 
         out += SpecialTokens.begin_action
-        out += ", ".join(map(str, self.actions))
-        out += SpecialTokens.end_action + "\n\n"
+        out += SimpleTodConstants.ITEM_SEPARATOR.join(map(str, self.actions))
+        out += SpecialTokens.end_action + SimpleTodConstants.NEW_LINES
 
         out += SpecialTokens.begin_response
         out += self.response
-        out += SpecialTokens.end_response + "\n\n"
+        out += SpecialTokens.end_response + SimpleTodConstants.NEW_LINES
 
         # out += SpecialTokens.end_of_text
         return out
@@ -160,11 +180,13 @@ class TokenizerTokens(str, Enum):
 
 class SimpleTodConstants(str, Enum):
     DELEXICALIZED = "_delexicalized"
+    SLOT_VALUE_SEPARATOR = "->"
+    DOMAIN_SLOT_SEPARATOR = "_"
+    ITEM_SEPARATOR = "|"
+    NEW_LINES = "\n\n"
 
 
 # Datamodule classes
-
-
 @dataclass
 class SimpleTodDatasetItem:
     context: str
@@ -200,3 +222,5 @@ class SimpleTodTestDataBatch:
             self.targets_text,
         ):
             yield SimpleTodTestDataRow(*item)
+
+    

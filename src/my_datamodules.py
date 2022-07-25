@@ -70,27 +70,17 @@ class SimpleTodDataModule(pl.LightningDataModule):
         self.domains = domains or ["restaurant", "hotel", "attraction", "train"]
 
     def prepare_data(self):
-        for step, num_dialog in zip(self.steps, self.num_dialogs):
-            csv_file_path = dstc_utils.get_csv_data_path(
-                step,
-                num_dialog,
-                self.delexicalize,
-                self.processed_data_root,
-                num_turns=self.num_turns,
-                domains=self.domains,
-            )
-            if not csv_file_path.exists():
-                stdp = SimpleTODDSTCDataPrep(
-                    project_root=self.project_root,
-                    data_root=self.raw_data_root,
-                    out_root=self.out_root,
-                    num_dialogs=self.num_dialogs,
-                    domains=self.domains,
-                    num_turns=self.num_turns,
-                    overwrite=self.overwrite,
-                    delexicalize=self.delexicalize,
-                )
-                stdp.run()
+        stdp = SimpleTODDSTCDataPrep(
+            project_root=self.project_root,
+            data_root=self.raw_data_root,
+            out_root=self.out_root,
+            num_dialogs=self.num_dialogs,
+            domains=self.domains,
+            num_turns=self.num_turns,
+            overwrite=self.overwrite,
+            delexicalize=self.delexicalize,
+        )
+        stdp.run()
 
     def setup(self, stage: str = None):
         self.prepare_data()

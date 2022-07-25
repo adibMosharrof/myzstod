@@ -242,7 +242,9 @@ class SimpleTODDSTCDataPrep:
                 num_turns=self.num_turns,
             )
             if csv_file_path.exists() and not should_overwrite:
-                print(f"{step} csv file already exists, so skipping")
+                print(
+                    f"{step} csv file already exists and overwrite is false, so skipping"
+                )
                 continue
             for dp in tqdm(dialog_paths[:num_dialog]):
                 dialog_data = self._prepare_dialog_file(dp, schemas)
