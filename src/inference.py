@@ -16,13 +16,16 @@ from transformers import (
 from dstc_dataclasses import Steps
 import dstc_utils
 from my_datamodules import SimpleTodDataModule, SimpleTodDataSet
-from requested_slots_metric import RequestedSlotsMetric
 from simple_tod_dataclasses import SimpleTodTestDataRow, SpecialTokens, TokenizerTokens
 import evaluate
 import datasets
 import logging
 
-from simpletod_metrics import SimpleTodMetrics
+from simpletod_metrics import (
+    IntentAccuracyMetric,
+    RequestedSlotsMetric,
+    SimpleTodMetrics,
+)
 
 
 class Inference:
@@ -113,10 +116,10 @@ class Inference:
     def test(self, stm: SimpleTodMetrics):
 
         bleu = evaluate.load("bleu")
-        acc = evaluate.load("accuracy")
+        acc = IntentAccuracyMetric()
         rsm = RequestedSlotsMetric()
         for batch in tqdm(self.dataloader):
-            batch:SimpleTodTestDataRow
+            batch: SimpleTodTestDataRow
             gen = self.model.generate(
                 inputs=batch.context_tokens.to(self.device),
                 attention_mask=batch.context_attention_masks.to(self.device),
@@ -137,25 +140,14 @@ class Inference:
                 predictions=pred_text_no_pad,
                 references=batch.targets_text,
             )
-            pred_intents, target_intents = stm.get_intent_pred_ref(
-                batch.targets_text,
-                batch.targets_text,
-            )
-            acc.add_batch(references=target_intents, predictions=pred_intents)
+            acc.add_batch(references=batch.targets_text, predictions=batch.targets_text)
             rsm.add_batch(references=batch.targets_text, predictions=batch.targets_text)
-
-            # f1.add_batch(references=target_req_slots, predictions=pred_req_slots)
 
         result = bleu.compute()
         bleu_score_text = f'Bleu Score {result["bleu"]}'
         self.logger.info(bleu_score_text)
-        acc_score = acc.compute()
-        acc_score_text = f'Intent Accuracy {acc_score["accuracy"]}'
-        self.logger.info(acc_score_text)
-        f1_score = rsm.compute()
-        f1_score_text = f"Requested Slots Macro F1 {f1_score}"
-        self.logger.info(f1_score_text)
-        a = 1
+        self.logger.info(str(acc))
+        self.logger.info(str(rsm))
 
     def run(self):
         print("begin inference")
