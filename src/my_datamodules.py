@@ -162,7 +162,7 @@ class SimpleTodDataModule(pl.LightningDataModule):
             unused_len = self.max_token_len - context_len - target_len
             # handling case when input is greater than tokenizer length
             if unused_len < 0:
-                context_tokens = context_tokens[unused_len:]
+                context_tokens = context_tokens[unused_len * -1 :]
                 context_len = len(context_tokens)
                 unused_len = 0
 
