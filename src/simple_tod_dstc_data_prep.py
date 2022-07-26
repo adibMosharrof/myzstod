@@ -1,5 +1,4 @@
 import copy
-import glob
 import json
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -10,10 +9,11 @@ from tqdm import tqdm
 import humps
 
 import utils
+from pathos.multiprocessing import ProcessingPool as Pool
 
 from dstc_dataclasses import DstcDialog, DstcFrame, DstcSchema, DstcTurn, Steps
 from dstc_utils import get_csv_data_path, get_dialog_file_paths, get_dstc_service_name
-
+import itertools
 
 from simple_tod_dataclasses import (
     SimpleTodAction,
@@ -180,7 +180,8 @@ class SimpleTODDSTCDataPrep:
     def _is_dialogue_in_domain(self, dialogue_services: List[str]) -> bool:
         return all(
             # get_dstc_service_name(ds) in self.domains for ds in dialogue_services
-            ds in self.domains for ds in dialogue_services
+            ds in self.domains
+            for ds in dialogue_services
         )
 
     def _prepare_dialog(
@@ -225,6 +226,19 @@ class SimpleTODDSTCDataPrep:
             schemas[schema.service_name] = schema
         return schemas
 
+    def test(self, path, schemas):
+        data = []
+        dialog_json_data = utils.read_json(path)
+        for d in dialog_json_data:
+            dialog = DstcDialog.from_json(json.dumps(d))
+            prepped_dialog = self._prepare_dialog(dialog, schemas)
+            if prepped_dialog is None:
+                continue
+            data.append(prepped_dialog)
+        if not len(data):
+            return np.array(data)
+        return np.concatenate(data, axis=0)
+
     def run(self):
         steps = Steps.list()
         for step, num_dialog, should_overwrite in tqdm(
@@ -250,11 +264,18 @@ class SimpleTODDSTCDataPrep:
                     f"{step} csv file already exists and overwrite is false, so skipping"
                 )
                 continue
-            for dp in tqdm(dialog_paths[:num_dialog]):
-                dialog_data = self._prepare_dialog_file(dp, schemas)
-                if not len(dialog_data):
-                    continue
-                out_data.append(dialog_data)
+
+            res = list(
+                tqdm(
+                    Pool().imap(
+                        self._prepare_dialog_file,
+                        dialog_paths[:num_dialog],
+                        itertools.repeat(schemas),
+                    ),
+                    total=num_dialog,
+                )
+            )
+            out_data = [d for d in list(res) if len(d)]
             headers = ["dialog_id", "turn_id", "context", "target"]
             if len(out_data) == 0:
                 print(f"No data for {step}")
