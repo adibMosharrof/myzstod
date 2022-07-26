@@ -3,7 +3,7 @@ from typing import List, Dict, Optional
 from dataclasses_json import dataclass_json
 from enum import Enum
 import humps
-
+import dstc_utils
 from simple_tod_dataclasses import SimpleTodConstants, Speaker
 
 """
@@ -32,16 +32,20 @@ class DstcAction:
 class DstcFrame:
     actions: List[DstcAction]
     slots: List[any]
+    service: str
     state: Optional[DstcState] = None
-    _service: Optional[str] = None
 
-    @property
-    def service(self) -> str:
-        return self._service
-
-    @service.setter
-    def service(self, value: str):
-        self._service = value[: value.find("_")]
+    def __init__(
+        self,
+        actions: List[DstcAction],
+        slots: List[any],
+        service: str,
+        state: Optional[DstcState] = None,
+    ):
+        self.actions = actions
+        self.slots = slots
+        self.state = state
+        self.service = dstc_utils.get_dstc_service_name(service)
 
 
 @dataclass
@@ -82,8 +86,21 @@ class DstcTurn:
 @dataclass
 class DstcDialog:
     dialogue_id: str
-    services: List[str]
     turns: List[DstcTurn]
+    services: List[str]
+
+    def __init__(self, dialogue_id: str, turns: List[DstcTurn], services: List[str]):
+        self.dialogue_id = dialogue_id
+        self.turns = turns
+        self.services = [dstc_utils.get_dstc_service_name(s) for s in services]
+
+    # @property
+    # def services(self) -> List[str]:
+    #     return self._services
+
+    # @services.setter
+    # def services(self, values: List[str]):
+    #     self._services = [dstc_utils.get_dstc_service_name(value) for value in values]
 
 
 @dataclass
