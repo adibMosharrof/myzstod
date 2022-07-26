@@ -87,7 +87,8 @@ class SimpleTODDSTCDataPrep:
             for slot_name, value in frame.state.slot_values.items():
                 beliefs.append(
                     SimpleTodBelief(
-                        get_dstc_service_name(frame.service),
+                        # get_dstc_service_name(frame.service),
+                        frame.service,
                         humps.camelize(slot_name),
                         " ".join(value),
                     )
@@ -106,7 +107,8 @@ class SimpleTODDSTCDataPrep:
             for action in frame.actions:
                 actions.append(
                     SimpleTodAction(
-                        get_dstc_service_name(frame.service),
+                        # get_dstc_service_name(frame.service),
+                        frame.service,
                         action.act,
                         humps.camelize(action.slot),
                     )
@@ -132,7 +134,8 @@ class SimpleTODDSTCDataPrep:
                     )
                     if not slot:
                         continue
-                    replacement = f"<{get_dstc_service_name(frame.service)}_{humps.camelize(action.slot)}>"
+                    # replacement = f"<{get_dstc_service_name(frame.service)}_{humps.camelize(action.slot)}>"
+                    replacement = f"<{frame.service}_{humps.camelize(action.slot)}>"
                     delexicalized_utterance = delexicalized_utterance.replace(
                         value, replacement
                     )
@@ -176,7 +179,8 @@ class SimpleTODDSTCDataPrep:
 
     def _is_dialogue_in_domain(self, dialogue_services: List[str]) -> bool:
         return all(
-            get_dstc_service_name(ds) in self.domains for ds in dialogue_services
+            # get_dstc_service_name(ds) in self.domains for ds in dialogue_services
+            ds in self.domains for ds in dialogue_services
         )
 
     def _prepare_dialog(
