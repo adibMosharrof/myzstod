@@ -1,6 +1,6 @@
 model_name: gpt2
-pretrain_epochs: 5
-train_epochs: 20
+pretrain_epochs: 1
+train_epochs: 1
 num_workers: 8
 train_batch_size: 10
 data_split_percent:
@@ -26,7 +26,7 @@ overwrite:
   - true
   - true
   - true
-should_test: true
+should_test: false
 generate_max_len: 1024
 domains:
   - Buses

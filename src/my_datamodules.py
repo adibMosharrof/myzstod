@@ -106,7 +106,7 @@ class SimpleTodDataModule(pl.LightningDataModule):
         return DataLoader(
             self.datasets[Steps.TRAIN],
             batch_size=self.batch_size,
-            shuffle=False,
+            shuffle=True,
             num_workers=self.num_workers,
             collate_fn=self.training_collator,
             pin_memory=True,
@@ -116,7 +116,7 @@ class SimpleTodDataModule(pl.LightningDataModule):
         return DataLoader(
             self.datasets[Steps.DEV],
             batch_size=self.eval_batch_size,
-            shuffle=False,
+            shuffle=True,
             num_workers=self.num_workers,
             collate_fn=self.training_collator,
             pin_memory=True,
@@ -160,6 +160,11 @@ class SimpleTodDataModule(pl.LightningDataModule):
             context_len = len(context_tokens)
             target_len = len(target_tokens)
             unused_len = self.max_token_len - context_len - target_len
+            # handling case when input is greater than tokenizer length
+            if unused_len < 0:
+                context_tokens = context_tokens[unused_len:]
+                context_len = len(context_tokens)
+                unused_len = 0
 
             pad = torch.full([unused_len], self.tokenizer.pad_token_id)
             input_tokens = torch.cat([context_tokens, target_tokens, pad])
