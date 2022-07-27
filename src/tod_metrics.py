@@ -36,10 +36,12 @@ class TodMetricsBase(ABC):
         self.wrong_preds = {}
 
     def _add_wrong_pred(self, key: any):
+        if type(key) not in [int, str]:
+            key = str(key)
         self.wrong_preds[key] = self.wrong_preds.get(key, 0) + 1
 
     def _extract_section_from_text(
-        self, text: str, start_token: str, end_token: str, default_value: any = ""
+        self, text: str, start_token: str, end_token: str, default_value: any = None
     ) -> Optional[str]:
         try:
             idx1 = text.index(start_token)
@@ -48,6 +50,21 @@ class TodMetricsBase(ABC):
             return res
         except ValueError:
             return default_value
+
+    def _extract_section_and_split_items_from_text(
+        self,
+        text: str,
+        start_token: str,
+        end_token: str,
+        separator: str = SimpleTodConstants.ITEM_SEPARATOR,
+        default_value: any = None,
+    ) -> list[str]:
+        section_txt = self._extract_section_from_text(
+            text, start_token, end_token, default_value
+        )
+        if not section_txt:
+            return []
+        return section_txt.split(separator)
 
     def add_batch(self, predictions: list[str], references: list[str]) -> None:
         if not len(predictions):
@@ -119,7 +136,7 @@ class IntentAccuracyMetric(TodMetricsBase):
         for target, prediction in zip(references, predictions):
 
             t = self._extract_section_from_text(
-                target, SpecialTokens.begin_intent, SpecialTokens.end_intent, None
+                target, SpecialTokens.begin_intent, SpecialTokens.end_intent
             )
             if not t:
                 continue
@@ -154,22 +171,18 @@ class RequestedSlotsMetric(TodMetricsBase):
     def _add_batch(self, predictions: list[str], references: list[str]) -> any:
         for ref, pred in zip(references, predictions):
 
-            target_slots_text = self._extract_section_from_text(
+            target_slots = self._extract_section_and_split_items_from_text(
                 ref,
                 SpecialTokens.begin_requested_slots,
                 SpecialTokens.end_requested_slots,
-                None,
             )
-            if not target_slots_text:
+            if not len(target_slots):
                 continue
-            target_slots = target_slots_text.split(SimpleTodConstants.ITEM_SEPARATOR)
-            pred_slots_text = self._extract_section_from_text(
+            pred_slots = self._extract_section_and_split_items_from_text(
                 pred,
                 SpecialTokens.begin_requested_slots,
                 SpecialTokens.end_requested_slots,
-                [],
             )
-            pred_slots = pred_slots_text.split(SimpleTodConstants.ITEM_SEPARATOR)
             for slot in pred_slots:
                 if slot in target_slots:
                     val = self.slot_correct_num.get(slot, 0)
@@ -244,22 +257,20 @@ class GoalMetric(TodMetricsBase):
 
     def _add_batch(self, turn_predictions: list[str], references: list[str]) -> None:
         for ref, pred in zip(references, turn_predictions):
-            target_txt = self._extract_section_from_text(
-                ref, self.start_token, self.end_token, None
+            target_txt_items = self._extract_section_and_split_items_from_text(
+                ref, self.start_token, self.end_token
             )
-            if not target_txt:
+            if not len(target_txt_items):
                 continue
             target_items = [
-                self.target_step_class.from_string(t)
-                for t in target_txt.split(SimpleTodConstants.ITEM_SEPARATOR)
+                self.target_step_class.from_string(t) for t in target_txt_items
             ]
 
-            pred_belief_txt = self._extract_section_from_text(
+            pred_belief_txt_items = self._extract_section_and_split_items_from_text(
                 pred, self.start_token, self.end_token
             )
             pred_beliefs = [
-                self.target_step_class.from_string(t)
-                for t in pred_belief_txt.split(SimpleTodConstants.ITEM_SEPARATOR)
+                self.target_step_class.from_string(t) for t in pred_belief_txt_items
             ]
 
             turn_predictions = []
@@ -290,22 +301,18 @@ class SuccessMetric(TodMetricsBase):
 
     def _add_batch(self, turn_predictions: list[str], references: list[str]) -> None:
         for ref, pred in zip(references, turn_predictions):
-            target_txt = self._extract_section_from_text(
+            target_items = self._extract_section_and_split_items_from_text(
                 ref,
                 SpecialTokens.begin_requested_slots,
                 SpecialTokens.end_requested_slots,
-                None,
             )
-            if not target_txt:
+            if not len(target_items):
                 continue
-            target_items = target_txt.split(SimpleTodConstants.ITEM_SEPARATOR)
-            pred_txt = self._extract_section_from_text(
+            pred_items = self._extract_section_and_split_items_from_text(
                 pred,
                 SpecialTokens.begin_requested_slots,
                 SpecialTokens.end_requested_slots,
-                [],
             )
-            pred_items = pred_txt.split(SimpleTodConstants.ITEM_SEPARATOR)
             batch_success = []
             for t in target_items:
                 if t in pred_items:
@@ -332,20 +339,16 @@ class InformMetric(TodMetricsBase):
 
     def _add_batch(self, turn_predictions: list[str], references: list[str]) -> None:
         for ref, pred in zip(references, turn_predictions):
-            target_txt = self._extract_section_from_text(
+            target_items = self._extract_section_and_split_items_from_text(
                 ref,
                 SpecialTokens.begin_action,
                 SpecialTokens.end_action,
-                None,
             )
-            pred_txt = self._extract_section_from_text(
+            pred_items = self._extract_section_and_split_items_from_text(
                 pred,
                 SpecialTokens.begin_action,
                 SpecialTokens.end_action,
-                [],
             )
-            pred_items = pred_txt.split(SimpleTodConstants.ITEM_SEPARATOR)
-            target_items = target_txt.split(SimpleTodConstants.ITEM_SEPARATOR)
             target_actions = [SimpleTodAction.from_string(t) for t in target_items]
             pred_actions = [SimpleTodAction.from_string(p) for p in pred_items]
             batch_inform = []
@@ -382,7 +385,6 @@ class ResponseBleuMetric(TodMetricsBase):
                 ref,
                 SpecialTokens.begin_response,
                 SpecialTokens.end_response,
-                None,
             )
             pred_response = self._extract_section_from_text(
                 pred,
