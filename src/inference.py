@@ -17,6 +17,7 @@ from my_datamodules import SimpleTodDataModule, SimpleTodDataSet
 from simple_tod_dataclasses import (
     SimpleTodAction,
     SimpleTodBelief,
+    SimpleTodConstants,
     SimpleTodTestDataRow,
     SpecialTokens,
     TokenizerTokens,
@@ -34,6 +35,8 @@ from tod_metrics import (
     ResponseBleuMetric,
     SuccessMetric,
 )
+import utils
+import numpy as np
 
 
 class Inference:
@@ -146,7 +149,9 @@ class Inference:
         return re.sub(self.padding_regexp, "", text)
 
     def test(self):
-
+        test_csv_out_data = []
+        headers = ["target", "prediction"]
+        text_csv_out_path = f"simple_tod_dstc_predictions_{self.num_turns}_dialogs_{self.num_dialogs}{SimpleTodConstants.DELEXICALIZED if self.delexicalize else ''}_{'_'.join(self.domains)}.csv"
         for batch in tqdm(self.dataloader):
             batch: SimpleTodTestDataRow
             gen = self.model.generate(
@@ -166,12 +171,13 @@ class Inference:
             )
             pred_text_no_pad = [self._remove_padding(text) for text in pred_text]
             self.tod_metrics.add_batch(
-                references=batch.targets_text, predictions=batch.targets_text
+                references=batch.targets_text, predictions=pred_text_no_pad
             )
             self.bleu_metrics.add_batch(
                 references=batch.targets_text, predictions=pred_text_no_pad
             )
-
+            test_csv_out_data.append(np.stack([batch.targets_text, pred_text_no_pad]))
+        utils.write_csv(headers, test_csv_out_data, text_csv_out_path)
         self.logger.info(str(self.tod_metrics))
         self.logger.info(str(self.bleu_metrics))
 
