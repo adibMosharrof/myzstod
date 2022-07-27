@@ -11,11 +11,16 @@ class SimpleTodBelief:
     domain: str
     slot_name: str
     value: any
+    prediction: Optional[str] = ""
 
     @classmethod
     def from_string(self, text: str):
-        dom_slot, value = text.split(SimpleTodConstants.SLOT_VALUE_SEPARATOR)
+        try:
+            dom_slot, value = text.split(SimpleTodConstants.SLOT_VALUE_SEPARATOR)
+        except ValueError:
+            return self("", "","", text)
         domain, slot_name = dom_slot.split(SimpleTodConstants.DOMAIN_SLOT_SEPARATOR)
+        
         return self(domain, slot_name, value)
 
     def __repr__(self) -> str:
@@ -37,11 +42,15 @@ class SimpleTodBelief:
 class SimpleTodAction:
     domain: str
     action_type: str
-    slot_name: str
-
+    slot_name: Optional[str] = ""
+    value: Optional[str] = ""
+    prediction: Optional[str] = ""
     @classmethod
     def from_string(self, text: str):
-        action_type, dom_slot = text.split(SimpleTodConstants.SLOT_VALUE_SEPARATOR)
+        try:
+            action_type, dom_slot = text.split(SimpleTodConstants.SLOT_VALUE_SEPARATOR)
+        except ValueError:
+            return self("","", text)
         domain, slot_name = dom_slot.split(SimpleTodConstants.DOMAIN_SLOT_SEPARATOR)
         return self(domain, action_type, slot_name)
 
@@ -97,7 +106,7 @@ class SimpleTodTarget:
             out += SpecialTokens.end_intent + SimpleTodConstants.NEW_LINES
 
         if self.requested_slots:
-            out = SpecialTokens.begin_requested_slots
+            out += SpecialTokens.begin_requested_slots
             out += SimpleTodConstants.ITEM_SEPARATOR.join(map(str, self.requested_slots))
             out += SpecialTokens.end_requested_slots + SimpleTodConstants.NEW_LINES
 
