@@ -25,10 +25,14 @@ import logging
 
 from tod_metrics import (
     BleuMetric,
+    CombinedMetric,
     GoalMetric,
+    InformMetric,
     IntentAccuracyMetric,
     MetricCollection,
     RequestedSlotsMetric,
+    ResponseBleuMetric,
+    SuccessMetric,
 )
 
 
@@ -83,12 +87,19 @@ class Inference:
                 "action_accuracy": GoalMetric(SimpleTodAction),
                 "intent_accuracy": IntentAccuracyMetric(),
                 "requested_slots": RequestedSlotsMetric(),
+                "inform": InformMetric(),
+                "success": SuccessMetric(),
+                "response_bleu": ResponseBleuMetric(),
             }
         )
         self.bleu_metrics = MetricCollection(
             {
                 "overall_bleu": BleuMetric(),
-                # "response_bleu": BleuMetric(),
+                "combined": CombinedMetric(
+                    self.tod_metrics.metrics["inform"],
+                    self.tod_metrics.metrics["success"],
+                    self.tod_metrics.metrics["response_bleu"],
+                ),
             }
         )
 

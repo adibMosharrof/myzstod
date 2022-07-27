@@ -43,7 +43,10 @@ class SimpleTodAction:
     def from_string(self, text: str):
         action_type, dom_slot = text.split(SimpleTodConstants.SLOT_VALUE_SEPARATOR)
         domain, slot_name = dom_slot.split(SimpleTodConstants.DOMAIN_SLOT_SEPARATOR)
-        return self(domain, slot_name, action_type)
+        return self(domain, action_type, slot_name)
+
+    def is_inform(self) -> bool:
+        return self.action_type == SimpleTodConstants.ACTION_TYPE_INFORM or self.action_type == SimpleTodConstants.ACTION_TYPE_INFORM_COUNT 
 
     def __repr__(self) -> str:
         return self.__str__()
@@ -184,6 +187,8 @@ class SimpleTodConstants(str, Enum):
     DOMAIN_SLOT_SEPARATOR = "_"
     ITEM_SEPARATOR = "|"
     NEW_LINES = "\n\n"
+    ACTION_TYPE_INFORM = "INFORM"
+    ACTION_TYPE_INFORM_COUNT = "INFORM_COUNT"
 
 
 # Datamodule classes

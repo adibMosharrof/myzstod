@@ -42,7 +42,6 @@ class SimpleTODDSTCDataPrep:
         self.out_root = self.project_root / out_root
         self.out_root.mkdir(parents=True, exist_ok=True)
         self.num_dialogs = num_dialogs
-        # self.services = self._get_seen_services(services, self.data_root)
         self.delexicalize = delexicalize
         self.overwrite = overwrite or [False, False, False]
         self.domains = domains or ["Buses", "Hotels", "Events"]
