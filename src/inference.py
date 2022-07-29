@@ -12,7 +12,9 @@ from transformers import (
     GPT2Tokenizer,
     PreTrainedTokenizerFast,
 )
+from dstc_dataclasses import DstcDomains, TestSettings
 import dstc_utils
+from hydra_configs import InferenceConfig
 from my_datamodules import SimpleTodDataModule, SimpleTodDataSet
 from simple_tod_dataclasses import (
     SimpleTodAction,
@@ -61,6 +63,7 @@ class Inference:
         domains: list[str] = None,
         num_turns: int = 26,
         overwrite: list[bool] = None,
+        test_settings: list[str] = None,
     ):
         self.device = device
         self.project_root = Path(project_root)
@@ -81,7 +84,7 @@ class Inference:
         self.domains = domains or ["restaurant", "hotel", "attraction"]
         self.num_turns = num_turns
         self.overwrite = overwrite
-        self.dataloader = dataloader if dataloader else self._get_dataloader()
+        # self.dataloader = dataloader if dataloader else self._get_dataloader()
         self.padding_regexp = re.compile(re.escape(TokenizerTokens.pad_token))
         self.logger = logging.getLogger(__name__)
         self.tod_metrics = MetricCollection(
@@ -97,7 +100,7 @@ class Inference:
         )
         self.bleu_metrics = MetricCollection(
             {
-                "overall_bleu": BleuMetric(),
+                # "overall_bleu": BleuMetric(),
                 "combined": CombinedMetric(
                     self.tod_metrics.metrics["inform"],
                     self.tod_metrics.metrics["success"],
@@ -105,8 +108,9 @@ class Inference:
                 ),
             }
         )
+        self.test_settings = test_settings or ["seen"]
 
-    def _get_dataloader(self):
+    def _get_dataloader(self, domains: list[str] = None):
         dm = SimpleTodDataModule(
             tokenizer=self.tokenizer,
             data_prep_out_root=self.data_prep_out_root,
@@ -120,7 +124,8 @@ class Inference:
             num_workers=self.num_workers,
             delexicalize=self.delexicalize,
             num_dialogs=self.num_dialogs,
-            domains=self.domains,
+            # domains=self.domains,
+            domains=domains,
             num_turns=self.num_turns,
             overwrite=self.overwrite,
         )
@@ -148,38 +153,64 @@ class Inference:
     def _remove_padding(self, text):
         return re.sub(self.padding_regexp, "", text)
 
+    def _get_domains_from_test_settings(self, test_setting: str) -> list[str]:
+        if test_setting == TestSettings.ALL:
+            return DstcDomains.ALL.value
+        if test_setting == TestSettings.SEEN:
+            return DstcDomains.SEEN.value
+        if test_setting == TestSettings.UNSEEN:
+            return DstcDomains.UNSEEN.value
+        if test_setting == TestSettings.CUSTOM:
+            return self.domains
+        raise ValueError(f"Unknown test setting {test_setting}")
+
     def test(self):
-        test_csv_out_data = []
-        headers = ["target", "prediction"]
-        text_csv_out_path = f"simple_tod_dstc_predictions_{self.num_turns}_dialogs_{self.num_dialogs}{SimpleTodConstants.DELEXICALIZED if self.delexicalize else ''}_{'_'.join(self.domains)}.csv"
-        for batch in tqdm(self.dataloader):
-            batch: SimpleTodTestDataRow
-            gen = self.model.generate(
-                inputs=batch.context_tokens.to(self.device),
-                attention_mask=batch.context_attention_masks.to(self.device),
-                do_sample=True,
-                top_k=50,
-                top_p=0.90,
-                max_length=self.generate_max_len,
-                temperature=1.5,
-                eos_token_id=self._get_token_id(SpecialTokens.end_response),
-                pad_token_id=self._get_token_id(TokenizerTokens.pad_token),
-            )
-            gen_without_context = gen[:, self.max_token_len :]
-            pred_text = self.tokenizer.batch_decode(
-                gen_without_context, skip_special_tokens=False
-            )
-            pred_text_no_pad = [self._remove_padding(text) for text in pred_text]
-            self.tod_metrics.add_batch(
-                references=batch.targets_text, predictions=pred_text_no_pad
-            )
-            self.bleu_metrics.add_batch(
-                references=batch.targets_text, predictions=pred_text_no_pad
-            )
-            test_csv_out_data.append(np.stack([batch.targets_text, pred_text_no_pad]))
-        utils.write_csv(headers, test_csv_out_data, text_csv_out_path)
-        self.logger.info(str(self.tod_metrics))
-        self.logger.info(str(self.bleu_metrics))
+        for setting in self.test_settings:
+            self.logger.info(f"Testing {setting}")
+            domains = self._get_domains_from_test_settings(setting)
+            test_csv_out_data = []
+            headers = ["target", "prediction"]
+            text_csv_out_path = f"simple_tod_dstc_predictions_{setting}_{self.num_turns}_dialogs_{self.num_dialogs}{SimpleTodConstants.DELEXICALIZED if self.delexicalize else ''}_{'_'.join(domains)}.csv"
+            test_dataloader = self._get_dataloader(domains)
+            all_targets = []
+            all_predictions = []
+            for batch in tqdm(test_dataloader):
+                batch: SimpleTodTestDataRow
+                gen = self.model.generate(
+                    inputs=batch.context_tokens.to(self.device),
+                    attention_mask=batch.context_attention_masks.to(self.device),
+                    do_sample=True,
+                    top_k=50,
+                    top_p=0.94,
+                    max_length=self.generate_max_len,
+                    temperature=0.5,
+                    eos_token_id=self._get_token_id(SpecialTokens.end_response),
+                    pad_token_id=self._get_token_id(TokenizerTokens.pad_token),
+                )
+                gen_without_context = gen[:, self.max_token_len :]
+                # gen_without_context = gen[:, self.max_token_len - 1 :]
+                pred_text = self.tokenizer.batch_decode(
+                    gen_without_context, skip_special_tokens=False
+                )
+                pred_text_no_pad = [self._remove_padding(text) for text in pred_text]
+                self.tod_metrics.add_batch(
+                    references=batch.targets_text, predictions=pred_text_no_pad
+                )
+                self.bleu_metrics.add_batch(
+                    references=batch.targets_text, predictions=pred_text_no_pad
+                )
+                # test_csv_out_data.append(
+                #     np.column_stack([batch.targets_text, pred_text_no_pad])
+                # )
+                all_targets.append(batch.targets_text)
+                all_predictions.append(pred_text_no_pad)
+            all_predictions = np.concatenate(all_predictions, axis=0)
+            all_targets = np.concatenate(all_targets, axis=0)
+            # test_csv_out_data = [[t, p] for p, t in zip(all_predictions, all_targets)]
+            test_csv_out_data = np.column_stack([all_targets, all_predictions])
+            utils.write_csv(headers, test_csv_out_data, text_csv_out_path)
+            self.logger.info(str(self.tod_metrics))
+            self.logger.info(str(self.bleu_metrics))
 
     def run(self):
         print("begin inference")
@@ -190,23 +221,25 @@ class Inference:
 
 @hydra.main(config_path="../config/inference/", config_name="simple_tod_inference")
 def hydra_start(cfg: DictConfig) -> None:
+    inf_cfg = InferenceConfig(**cfg)
     inf = Inference(
-        model_name=cfg.model_name,
-        project_root=cfg.project_root,
-        num_workers=cfg.num_workers,
-        data_split_percent=cfg.data_split_percent,
-        eval_batch_size=cfg.eval_batch_size,
-        test_batch_size=cfg.test_batch_size,
-        max_token_len=cfg.max_token_len,
-        raw_data_root=cfg.raw_data_root,
-        data_prep_out_root=cfg.data_prep_out_root,
-        delexicalize=cfg.delexicalize,
-        model=cfg.model,
-        num_test_dialogs=cfg.num_test_dialogs,
-        generate_max_len=cfg.generate_max_len,
-        num_turns=cfg.num_turns,
-        domains=cfg.domains,
-        overwrite=cfg.overwrite,
+        model_name=inf_cfg.model_name,
+        project_root=inf_cfg.project_root,
+        num_workers=inf_cfg.num_workers,
+        data_split_percent=inf_cfg.data_split_percent,
+        eval_batch_size=inf_cfg.eval_batch_size,
+        test_batch_size=inf_cfg.test_batch_size,
+        max_token_len=inf_cfg.max_token_len,
+        raw_data_root=inf_cfg.raw_data_root,
+        data_prep_out_root=inf_cfg.data_prep_out_root,
+        delexicalize=inf_cfg.delexicalize,
+        model=inf_cfg.model,
+        num_test_dialogs=inf_cfg.num_test_dialogs,
+        generate_max_len=inf_cfg.generate_max_len,
+        num_turns=inf_cfg.num_turns,
+        domains=inf_cfg.domains,
+        overwrite=inf_cfg.overwrite,
+        test_settings=inf_cfg.test_settings,
     )
     inf.run()
 

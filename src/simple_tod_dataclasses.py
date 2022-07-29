@@ -19,8 +19,10 @@ class SimpleTodBelief:
             dom_slot, value = text.split(SimpleTodConstants.SLOT_VALUE_SEPARATOR)
         except ValueError:
             return self("", "","", text)
-        domain, slot_name = dom_slot.split(SimpleTodConstants.DOMAIN_SLOT_SEPARATOR)
-        
+        try:
+            domain, slot_name = dom_slot.split(SimpleTodConstants.DOMAIN_SLOT_SEPARATOR)
+        except ValueError:
+            return self("", "", value, text)
         return self(domain, slot_name, value)
 
     def __repr__(self) -> str:
@@ -43,16 +45,23 @@ class SimpleTodAction:
     domain: str
     action_type: str
     slot_name: Optional[str] = ""
-    value: Optional[str] = ""
+    values: Optional[str] = ""
     prediction: Optional[str] = ""
     @classmethod
     def from_string(self, text: str):
         try:
-            action_type, dom_slot = text.split(SimpleTodConstants.SLOT_VALUE_SEPARATOR)
+            action_type, rest = text.split(SimpleTodConstants.SLOT_VALUE_SEPARATOR)
         except ValueError:
-            return self("","", text)
-        domain, slot_name = dom_slot.split(SimpleTodConstants.DOMAIN_SLOT_SEPARATOR)
-        return self(domain, action_type, slot_name)
+            return self("","", prediction=text)
+        try:
+            dom_slot, values = rest.split(SimpleTodConstants.ACTION_VALUE_SEPARATOR)
+        except ValueError:
+            return self("",action_type, prediction=text)
+        try:    
+            domain, slot_name = dom_slot.split(SimpleTodConstants.DOMAIN_SLOT_SEPARATOR)
+        except ValueError:
+            return self("", action_type, values, text)
+        return self(domain, action_type, slot_name, values)
 
     def is_inform(self) -> bool:
         return self.action_type == SimpleTodConstants.ACTION_TYPE_INFORM or self.action_type == SimpleTodConstants.ACTION_TYPE_INFORM_COUNT 
@@ -61,7 +70,7 @@ class SimpleTodAction:
         return self.__str__()
 
     def __str__(self) -> str:
-        return "".join([self.action_type, SimpleTodConstants.SLOT_VALUE_SEPARATOR, self.domain, SimpleTodConstants.DOMAIN_SLOT_SEPARATOR, self.slot_name])
+        return "".join([self.action_type, SimpleTodConstants.SLOT_VALUE_SEPARATOR, self.domain, SimpleTodConstants.DOMAIN_SLOT_SEPARATOR, self.slot_name, SimpleTodConstants.ACTION_VALUE_SEPARATOR, self.values])
 
 
 @dataclass
@@ -195,6 +204,7 @@ class SimpleTodConstants(str, Enum):
     SLOT_VALUE_SEPARATOR = "->"
     DOMAIN_SLOT_SEPARATOR = "_"
     ITEM_SEPARATOR = "|"
+    ACTION_VALUE_SEPARATOR = "<-"
     NEW_LINES = "\n\n"
     ACTION_TYPE_INFORM = "INFORM"
     ACTION_TYPE_INFORM_COUNT = "INFORM_COUNT"

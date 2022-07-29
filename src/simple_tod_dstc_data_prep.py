@@ -110,6 +110,7 @@ class SimpleTODDSTCDataPrep:
                         frame.service,
                         action.act,
                         humps.camelize(action.slot),
+                        " ".join(action.values),
                     )
                 )
 
@@ -274,7 +275,12 @@ class SimpleTODDSTCDataPrep:
                     total=num_dialog,
                 )
             )
-            out_data = [d for d in list(res) if len(d)]
+            # res = []
+            # for d in tqdm(dialog_paths[:num_dialog]):
+            #     output = self._prepare_dialog_file(d, schemas)
+            #     if res is not None:
+            #         res.append(output)
+            out_data = [d for d in res if len(d)]
             headers = ["dialog_id", "turn_id", "context", "target"]
             if len(out_data) == 0:
                 print(f"No data for {step}")

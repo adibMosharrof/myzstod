@@ -158,3 +158,38 @@ class Steps(str, Enum):
     @classmethod
     def list(cls):
         return [c.value for c in cls]
+
+
+class TestSettings(str, Enum):
+    SEEN = "seen"
+    UNSEEN = "unseen"
+    ALL = "all"
+    CUSTOM = "custom"
+
+
+class DstcDomains(list[str], Enum):
+    SEEN = [
+        "Banks",
+        "Buses",
+        "Calendar",
+        "Events",
+        "Flights",
+        "Homes",
+        "Hotels",
+        "Media",
+        "Movies",
+        "Music",
+        "RentalCars",
+        "Restaurants",
+        "RideSharing",
+        "Services",
+        "Travel",
+        "Weather",
+    ]
+    UNSEEN = [
+        "Alarm",
+        "Messaging",
+        "Payment",
+        "Train",
+    ]
+    ALL = SEEN + UNSEEN

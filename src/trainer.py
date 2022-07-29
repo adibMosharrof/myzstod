@@ -143,6 +143,8 @@ class SimpleTODTrainer:
         return {"bleu": bleu_score["bleu"]}
 
     def train(self, model: GPT2LMHeadModel, dm: SimpleTodDataModule):
+        # old_output_dir = Path("outputs/2022-07-28/18-49-17")
+        # pretrain_out = self.project_root / str(old_output_dir / "pretrain")
         pretrain_out = str(self.output_dir / "pretrain")
         training_args = TrainingArguments(
             output_dir=pretrain_out,
@@ -163,8 +165,8 @@ class SimpleTODTrainer:
         )
 
         # start training
-        trainer = Trainer(
-            # trainer = TodTrainer(
+        pre_trainer = Trainer(
+            # pre_trainer = TodTrainer(
             model=model,
             args=training_args,
             train_dataset=dm.datasets["train"],
@@ -172,13 +174,25 @@ class SimpleTODTrainer:
             # compute_metrics=self.compute_metrics,
             data_collator=dm.pretraining_collator,
         )
-        trainer.pad_token_id = self.tokenizer.pad_token_id
-        trainer.train()
-        trainer.save_model()
-
+        pre_trainer.pad_token_id = self.tokenizer.pad_token_id
+        pre_trainer.train()
+        pre_trainer.save_model()
+        # pretrain_path = (
+        #     self.project_root / "outputs/2022-07-27/22-17-46/results/pretrain/"
+        # )
+        # model_train = GPT2LMHeadModel.from_pretrained(pretrain_path)
+        # model_train = GPT2LMHeadModel.from_pretrained(pretrain_path)
+        model_train = GPT2LMHeadModel.from_pretrained(pretrain_out)
         training_args.output_dir = str(self.output_dir / "train")
         training_args.num_train_epochs = self.train_epochs
-        trainer.data_collator = dm.training_collator
+        trainer = Trainer(
+            model=model_train,
+            args=training_args,
+            train_dataset=dm.datasets["train"],
+            eval_dataset=dm.datasets["dev"],
+            data_collator=dm.training_collator,
+        )
+        trainer.pad_token_id = self.tokenizer.pad_token_id
         trainer.train()
         trainer.save_model()
 
