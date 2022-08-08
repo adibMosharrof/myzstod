@@ -24,7 +24,7 @@ from simple_tod_dataclasses import (
     SpecialTokens,
     TokenizerTokens,
 )
-import logging
+from transformers.utils import logging
 
 from tod_metrics import (
     BleuMetric,
@@ -50,6 +50,7 @@ class Inference:
         delexicalize: bool = True,
         max_token_len: int = 1024,
         data_prep_out_root: str = None,
+        out_dir: str = None,
         eval_batch_size: int = 6,
         test_batch_size: int = 32,
         num_workers: int = 8,
@@ -64,6 +65,7 @@ class Inference:
         num_turns: int = 26,
         overwrite: list[bool] = None,
         test_settings: list[str] = None,
+        # tb_writer: utils.TensorboardWriter = None,
     ):
         self.device = device
         self.project_root = Path(project_root)
@@ -72,6 +74,7 @@ class Inference:
         self.delexicalize = delexicalize
         self.max_token_len = max_token_len
         self.data_prep_out_root = Path(data_prep_out_root)
+        self.out_dir = out_dir
         self.eval_batch_size = eval_batch_size
         self.test_batch_size = test_batch_size
         self.num_workers = num_workers
@@ -86,7 +89,8 @@ class Inference:
         self.overwrite = overwrite
         # self.dataloader = dataloader if dataloader else self._get_dataloader()
         self.padding_regexp = re.compile(re.escape(TokenizerTokens.pad_token))
-        self.logger = logging.getLogger(__name__)
+        self.logger = utils.get_logger()
+        # self.tb_writer = tb_writer
         self.tod_metrics = MetricCollection(
             {
                 "goal_accuracy": GoalMetric(SimpleTodBelief),
@@ -240,6 +244,7 @@ def hydra_start(cfg: DictConfig) -> None:
         domains=inf_cfg.domains,
         overwrite=inf_cfg.overwrite,
         test_settings=inf_cfg.test_settings,
+        out_dir=inf_cfg.out_dir,
     )
     inf.run()
 

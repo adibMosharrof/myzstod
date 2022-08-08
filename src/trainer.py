@@ -16,9 +16,11 @@ from transformers import (
     Trainer,
     TrainingArguments,
     pipeline,
+    logging,
 )
 import evaluate
 from dstc_dataclasses import Steps
+from hydra_configs import TrainerConfig
 from inference import Inference
 from my_datamodules import SimpleTodDataModule
 from simple_tod_dataclasses import SpecialTokens, TokenizerTokens
@@ -57,6 +59,7 @@ class SimpleTODTrainer:
         domains: List[str] = None,
         num_turns: int = 26,
         overwrite: List[bool] = None,
+        pretrain_model_path: str = None,
     ) -> None:
         self.model_name = model_name
         self.pretrain_epochs = pretrain_epochs
@@ -82,6 +85,7 @@ class SimpleTODTrainer:
         self.overwrite = overwrite or [False, False, False]
         self.domains = domains or ["restaurant", "hotel", "attraction"]
         self.num_turns = num_turns
+        self.pretrain_model_path = pretrain_model_path
 
     def run(self):
 
@@ -143,8 +147,6 @@ class SimpleTODTrainer:
         return {"bleu": bleu_score["bleu"]}
 
     def train(self, model: GPT2LMHeadModel, dm: SimpleTodDataModule):
-        # old_output_dir = Path("outputs/2022-07-28/18-49-17")
-        # pretrain_out = self.project_root / str(old_output_dir / "pretrain")
         pretrain_out = str(self.output_dir / "pretrain")
         training_args = TrainingArguments(
             output_dir=pretrain_out,
@@ -166,22 +168,18 @@ class SimpleTODTrainer:
 
         # start training
         pre_trainer = Trainer(
-            # pre_trainer = TodTrainer(
             model=model,
             args=training_args,
             train_dataset=dm.datasets["train"],
             eval_dataset=dm.datasets["dev"],
-            # compute_metrics=self.compute_metrics,
             data_collator=dm.pretraining_collator,
         )
         pre_trainer.pad_token_id = self.tokenizer.pad_token_id
-        pre_trainer.train()
-        pre_trainer.save_model()
-        # pretrain_path = (
-        #     self.project_root / "outputs/2022-07-27/22-17-46/results/pretrain/"
-        # )
-        # model_train = GPT2LMHeadModel.from_pretrained(pretrain_path)
-        # model_train = GPT2LMHeadModel.from_pretrained(pretrain_path)
+        if not self.pretrain_model_path:
+            pre_trainer.train()
+            pre_trainer.save_model()
+        else:
+            pretrain_out = self.project_root / self.pretrain_model_path
         model_train = GPT2LMHeadModel.from_pretrained(pretrain_out)
         training_args.output_dir = str(self.output_dir / "train")
         training_args.num_train_epochs = self.train_epochs
@@ -220,29 +218,32 @@ class TodTrainer(Trainer):
 
 @hydra.main(config_path="../config/trainer/", config_name="simple_tod_trainer")
 def hydra_start(cfg: DictConfig) -> None:
+    logging.set_verbosity_info()
+    train_cfg = TrainerConfig(**cfg)
     stt = SimpleTODTrainer(
-        pretrain_epochs=cfg.pretrain_epochs,
-        train_epochs=cfg.train_epochs,
-        model_name=cfg.model_name,
-        train_batch_size=cfg.train_batch_size,
-        eval_batch_size=cfg.eval_batch_size,
-        test_batch_size=cfg.test_batch_size,
-        output_dir=cfg.output_dir,
-        logging_dir=cfg.logging_dir,
-        logging_steps=cfg.logging_steps,
-        max_token_len=cfg.max_token_len,
-        raw_data_root=cfg.raw_data_root,
-        data_prep_out_root=cfg.data_prep_out_root,
-        project_root=cfg.project_root,
-        num_workers=cfg.num_workers,
-        data_split_percent=cfg.data_split_percent,
-        delexicalize=cfg.delexicalize,
-        num_dialogs=cfg.num_dialogs,
-        should_test=cfg.should_test,
-        domains=cfg.domains,
-        num_turns=cfg.num_turns,
-        overwrite=cfg.overwrite,
-        generate_max_len=cfg.generate_max_len,
+        pretrain_epochs=train_cfg.pretrain_epochs,
+        train_epochs=train_cfg.train_epochs,
+        model_name=train_cfg.model_name,
+        train_batch_size=train_cfg.train_batch_size,
+        eval_batch_size=train_cfg.eval_batch_size,
+        test_batch_size=train_cfg.test_batch_size,
+        output_dir=train_cfg.output_dir,
+        logging_dir=train_cfg.logging_dir,
+        logging_steps=train_cfg.logging_steps,
+        max_token_len=train_cfg.max_token_len,
+        raw_data_root=train_cfg.raw_data_root,
+        data_prep_out_root=train_cfg.data_prep_out_root,
+        project_root=train_cfg.project_root,
+        num_workers=train_cfg.num_workers,
+        data_split_percent=train_cfg.data_split_percent,
+        delexicalize=train_cfg.delexicalize,
+        num_dialogs=train_cfg.num_dialogs,
+        should_test=train_cfg.should_test,
+        domains=train_cfg.domains,
+        num_turns=train_cfg.num_turns,
+        overwrite=train_cfg.overwrite,
+        generate_max_len=train_cfg.generate_max_len,
+        pretrain_model_path=train_cfg.pretrain_model_path,
     )
     stt.run()
 
