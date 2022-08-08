@@ -1,3 +1,6 @@
+from transformers import AutoTokenizer
+
+
 class InferenceConfig:
     def __init__(
         self,
@@ -20,6 +23,9 @@ class InferenceConfig:
         overwrite: list[bool] = None,
         test_settings: list[str] = None,
         out_dir: str = None,
+        tokenizer: AutoTokenizer = None,
+        context_max_len: int = 600,
+        target_max_len: int = 424,
     ) -> None:
         self.num_workers = num_workers
         self.data_split_percent = data_split_percent or [1, 1, 0.1]
@@ -55,6 +61,9 @@ class InferenceConfig:
         self.num_turns = num_turns
         self.overwrite = overwrite or [False, False, False]
         self.out_dir = out_dir or "results"
+        self.tokenizer = tokenizer
+        self.context_max_len = context_max_len
+        self.target_max_len = target_max_len
 
 
 class TrainerConfig:
@@ -85,6 +94,8 @@ class TrainerConfig:
         domains: list[str] = None,
         should_test: bool = False,
         logging_steps: int = 50,
+        context_max_len: int = 600,
+        target_max_len: int = 424,
     ) -> None:
         self.project_root = project_root
         self.data_prep_out_root = data_prep_out_root
@@ -112,3 +123,5 @@ class TrainerConfig:
         self.logging_steps = logging_steps
         self.train_batch_size = train_batch_size
         self.raw_data_root = raw_data_root
+        self.context_max_len = context_max_len
+        self.target_max_len = target_max_len

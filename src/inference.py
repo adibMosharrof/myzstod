@@ -1,5 +1,4 @@
 import re
-from typing import Union
 import hydra
 from omegaconf import DictConfig
 from pathlib import Path
@@ -9,13 +8,11 @@ from transformers import (
     AutoTokenizer,
     GPT2LMHeadModel,
     GPT2PreTrainedModel,
-    GPT2Tokenizer,
-    PreTrainedTokenizerFast,
 )
 from dstc_dataclasses import DstcDomains, TestSettings
 import dstc_utils
 from hydra_configs import InferenceConfig
-from my_datamodules import SimpleTodDataModule, SimpleTodDataSet
+from my_datamodules import SimpleTodDataModule
 from simple_tod_dataclasses import (
     SimpleTodAction,
     SimpleTodBelief,
@@ -24,10 +21,8 @@ from simple_tod_dataclasses import (
     SpecialTokens,
     TokenizerTokens,
 )
-from transformers.utils import logging
 
 from tod_metrics import (
-    BleuMetric,
     CombinedMetric,
     GoalMetric,
     InformMetric,
@@ -44,53 +39,36 @@ import numpy as np
 class Inference:
     def __init__(
         self,
-        model: Union[str, GPT2PreTrainedModel] = None,
-        project_root: str = None,
-        raw_data_root: str = None,
-        delexicalize: bool = True,
-        max_token_len: int = 1024,
-        data_prep_out_root: str = None,
-        out_dir: str = None,
-        eval_batch_size: int = 6,
-        test_batch_size: int = 32,
-        num_workers: int = 8,
-        data_split_percent: list[float] = None,
-        dataloader: SimpleTodDataSet = None,
-        tokenizer: PreTrainedTokenizerFast = None,
-        model_name: str = "gpt2",
-        num_test_dialogs: int = 10,
-        device: str = "cuda",
-        generate_max_len: int = 1024,
-        domains: list[str] = None,
-        num_turns: int = 26,
-        overwrite: list[bool] = None,
-        test_settings: list[str] = None,
-        # tb_writer: utils.TensorboardWriter = None,
+        inf_config: InferenceConfig,
     ):
-        self.device = device
-        self.project_root = Path(project_root)
-        self.model = self._get_model(model)
-        self.raw_data_root = Path(raw_data_root)
-        self.delexicalize = delexicalize
-        self.max_token_len = max_token_len
-        self.data_prep_out_root = Path(data_prep_out_root)
-        self.out_dir = out_dir
-        self.eval_batch_size = eval_batch_size
-        self.test_batch_size = test_batch_size
-        self.num_workers = num_workers
-        self.data_split_percent = data_split_percent
-        self.model_name = model_name
-        self.tokenizer = tokenizer if tokenizer else self._get_tokenizer(model)
-        self.test_num_dialogs = num_test_dialogs
+        self.device = inf_config.device
+        self.project_root = Path(inf_config.project_root)
+        self.model = self._get_model(inf_config.model)
+        self.raw_data_root = Path(inf_config.raw_data_root)
+        self.delexicalize = inf_config.delexicalize
+        self.max_token_len = inf_config.max_token_len
+        self.data_prep_out_root = Path(inf_config.data_prep_out_root)
+        self.out_dir = inf_config.out_dir
+        self.eval_batch_size = inf_config.eval_batch_size
+        self.test_batch_size = inf_config.test_batch_size
+        self.num_workers = inf_config.num_workers
+        self.data_split_percent = inf_config.data_split_percent
+        self.model_name = inf_config.model_name
+        self.tokenizer = (
+            inf_config.tokenizer
+            if inf_config.tokenizer
+            else self._get_tokenizer(inf_config.model)
+        )
+        self.test_num_dialogs = inf_config.num_test_dialogs
         self.num_dialogs = [1, 1, self.test_num_dialogs]
-        self.generate_max_len = generate_max_len
-        self.domains = domains or ["restaurant", "hotel", "attraction"]
-        self.num_turns = num_turns
-        self.overwrite = overwrite
-        # self.dataloader = dataloader if dataloader else self._get_dataloader()
+        self.generate_max_len = inf_config.generate_max_len
+        self.domains = inf_config.domains or ["restaurant", "hotel", "attraction"]
+        self.num_turns = inf_config.num_turns
+        self.overwrite = inf_config.overwrite
         self.padding_regexp = re.compile(re.escape(TokenizerTokens.pad_token))
         self.logger = utils.get_logger()
-        # self.tb_writer = tb_writer
+        self.context_max_len = inf_config.context_max_len
+        self.target_max_len = inf_config.target_max_len
         self.tod_metrics = MetricCollection(
             {
                 "goal_accuracy": GoalMetric(SimpleTodBelief),
@@ -104,7 +82,6 @@ class Inference:
         )
         self.bleu_metrics = MetricCollection(
             {
-                # "overall_bleu": BleuMetric(),
                 "combined": CombinedMetric(
                     self.tod_metrics.metrics["inform"],
                     self.tod_metrics.metrics["success"],
@@ -112,7 +89,7 @@ class Inference:
                 ),
             }
         )
-        self.test_settings = test_settings or ["seen"]
+        self.test_settings = inf_config.test_settings
 
     def _get_dataloader(self, domains: list[str] = None):
         dm = SimpleTodDataModule(
@@ -128,7 +105,6 @@ class Inference:
             num_workers=self.num_workers,
             delexicalize=self.delexicalize,
             num_dialogs=self.num_dialogs,
-            # domains=self.domains,
             domains=domains,
             num_turns=self.num_turns,
             overwrite=self.overwrite,
@@ -192,7 +168,6 @@ class Inference:
                     pad_token_id=self._get_token_id(TokenizerTokens.pad_token),
                 )
                 gen_without_context = gen[:, self.max_token_len :]
-                # gen_without_context = gen[:, self.max_token_len - 1 :]
                 pred_text = self.tokenizer.batch_decode(
                     gen_without_context, skip_special_tokens=False
                 )
@@ -203,14 +178,10 @@ class Inference:
                 self.bleu_metrics.add_batch(
                     references=batch.targets_text, predictions=pred_text_no_pad
                 )
-                # test_csv_out_data.append(
-                #     np.column_stack([batch.targets_text, pred_text_no_pad])
-                # )
                 all_targets.append(batch.targets_text)
                 all_predictions.append(pred_text_no_pad)
             all_predictions = np.concatenate(all_predictions, axis=0)
             all_targets = np.concatenate(all_targets, axis=0)
-            # test_csv_out_data = [[t, p] for p, t in zip(all_predictions, all_targets)]
             test_csv_out_data = np.column_stack([all_targets, all_predictions])
             utils.write_csv(headers, test_csv_out_data, text_csv_out_path)
             self.logger.info(str(self.tod_metrics))
@@ -225,27 +196,7 @@ class Inference:
 
 @hydra.main(config_path="../config/inference/", config_name="simple_tod_inference")
 def hydra_start(cfg: DictConfig) -> None:
-    inf_cfg = InferenceConfig(**cfg)
-    inf = Inference(
-        model_name=inf_cfg.model_name,
-        project_root=inf_cfg.project_root,
-        num_workers=inf_cfg.num_workers,
-        data_split_percent=inf_cfg.data_split_percent,
-        eval_batch_size=inf_cfg.eval_batch_size,
-        test_batch_size=inf_cfg.test_batch_size,
-        max_token_len=inf_cfg.max_token_len,
-        raw_data_root=inf_cfg.raw_data_root,
-        data_prep_out_root=inf_cfg.data_prep_out_root,
-        delexicalize=inf_cfg.delexicalize,
-        model=inf_cfg.model,
-        num_test_dialogs=inf_cfg.num_test_dialogs,
-        generate_max_len=inf_cfg.generate_max_len,
-        num_turns=inf_cfg.num_turns,
-        domains=inf_cfg.domains,
-        overwrite=inf_cfg.overwrite,
-        test_settings=inf_cfg.test_settings,
-        out_dir=inf_cfg.out_dir,
-    )
+    inf = Inference(InferenceConfig(**cfg))
     inf.run()
 
 
