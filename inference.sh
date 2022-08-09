@@ -10,4 +10,4 @@
 #SBATCH --gres=gpu:1
 module load ccs/Miniconda3
 source activate ./envs
-time python src/inference.py --config_name lcc_simple_tod_inference
+time python src/inference.py --config-name lcc_simple_tod_inference
