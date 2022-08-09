@@ -1,40 +1,22 @@
-num_workers: 8
 data_split_percent:
   - 1
   - 1
-  - .1
+  - 0.1
 eval_batch_size: 6
 test_batch_size: 100
 max_token_len: 512
-raw_data_root: data/dstc8-schema-guided-dialogue/
-project_root: /mounts/u-amo-d0/grad/adibm/projects/generative_tod/
-data_prep_out_root: processed_data/simple_tod
-num_test_dialogs: 1
-delexicalize: false
-model: outputs/2022-07-22/12-58-37/results/train/checkpoint-51
-model_name: gpt2
-device: cuda
-generate_max_len: 1024
-domains:
-  - Buses
-  - Events
-  - Flights
-  - Homes
-  - Hotels
-  - Media
-  - Movies
-  - Music
-  - RentalCars
-  - Restaurants
-  - RideSharing
-  - Services
-  - Travel
-  - Weather
-num_turns: 10
+num_test_dialogs: 34
+# model: outputs/2022-07-27/20-07-27/results/train/checkpoint-14134
+# model: outputs/2022-07-27/22-17-46/results/train/checkpoint-7067
+# model: outputs/2022-07-28/17-06-27/results/train/checkpoint-1414
+model: outputs/2022-07-29/19-46-27/results/train/checkpoint-14134
+num_turns: 26
 overwrite:
-  # - false
-  # - false
-  # - false
-  - true
-  - true
-  - true
+  - false
+  - false
+  - false
+  # - true
+  # - true
+  # - true
+test_settings:
+  - seen

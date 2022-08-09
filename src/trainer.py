@@ -35,57 +35,32 @@ warnings.filterwarnings("ignore")
 class SimpleTODTrainer:
     def __init__(
         self,
-        model_name: str = None,
-        pretrain_epochs: int = 2,
-        train_epochs: int = 2,
-        train_batch_size: int = 30,
-        eval_batch_size: int = 30,
-        test_batch_size: int = 30,
-        eval_accumulation_steps: int = 10,
-        data_split_percent: list[float] = None,
-        raw_data_root: str = None,
-        output_dir: str = "results",
-        logging_dir: str = "logs",
-        logging_steps: int = 10,
-        max_token_len: int = 128,
-        data_prep_out_root: str = None,
-        project_root: str = None,
-        num_workers: int = 0,
-        delexicalize: bool = True,
-        num_dialogs: List[int] = None,
-        model_checkpoint_path: str = None,
-        should_test: bool = False,
-        generate_max_len: int = 200,
-        domains: List[str] = None,
-        num_turns: int = 26,
-        overwrite: List[bool] = None,
-        pretrain_model_path: str = None,
+        trainer_config: TrainerConfig,
     ) -> None:
-        self.model_name = model_name
-        self.pretrain_epochs = pretrain_epochs
-        self.train_epochs = train_epochs
-        self.train_batch_size = train_batch_size
-        self.eval_batch_size = eval_batch_size
-        self.test_batch_size = test_batch_size
-        self.data_split_percent = data_split_percent
-        self.eval_accumulation_steps = eval_accumulation_steps
-        self.output_dir = Path(output_dir)
-        self.logging_dir = logging_dir
-        self.logging_steps = logging_steps
-        self.max_token_len = max_token_len
-        self.raw_data_root = raw_data_root
-        self.data_prep_out_root = data_prep_out_root
-        self.project_root = Path(project_root)
-        self.num_workers = num_workers
-        self.delexicalize = delexicalize
-        self.num_dialogs = num_dialogs
-        self.model_checkpoint_path = model_checkpoint_path
-        self.should_test = should_test
-        self.generate_max_len = generate_max_len
-        self.overwrite = overwrite or [False, False, False]
-        self.domains = domains or ["restaurant", "hotel", "attraction"]
-        self.num_turns = num_turns
-        self.pretrain_model_path = pretrain_model_path
+        self.model_name = trainer_config.model_name
+        self.pretrain_epochs = trainer_config.pretrain_epochs
+        self.train_epochs = trainer_config.train_epochs
+        self.train_batch_size = trainer_config.train_batch_size
+        self.eval_batch_size = trainer_config.eval_batch_size
+        self.test_batch_size = trainer_config.test_batch_size
+        self.data_split_percent = trainer_config.data_split_percent
+        self.eval_accumulation_steps = trainer_config.eval_accumulation_steps
+        self.output_dir = Path(trainer_config.output_dir)
+        self.logging_dir = trainer_config.logging_dir
+        self.logging_steps = trainer_config.logging_steps
+        self.max_token_len = trainer_config.max_token_len
+        self.raw_data_root = trainer_config.raw_data_root
+        self.data_prep_out_root = trainer_config.data_prep_out_root
+        self.project_root = Path(trainer_config.project_root)
+        self.num_workers = trainer_config.num_workers
+        self.delexicalize = trainer_config.delexicalize
+        self.num_dialogs = trainer_config.num_dialogs
+        self.should_test = trainer_config.should_test
+        self.generate_max_len = trainer_config.generate_max_len
+        self.overwrite = trainer_config.overwrite
+        self.domains = trainer_config.domains
+        self.num_turns = trainer_config.num_turns
+        self.pretrain_model_path = trainer_config.pretrain_model_path
 
     def run(self):
 
@@ -219,32 +194,7 @@ class TodTrainer(Trainer):
 @hydra.main(config_path="../config/trainer/", config_name="simple_tod_trainer")
 def hydra_start(cfg: DictConfig) -> None:
     logging.set_verbosity_info()
-    train_cfg = TrainerConfig(**cfg)
-    stt = SimpleTODTrainer(
-        pretrain_epochs=train_cfg.pretrain_epochs,
-        train_epochs=train_cfg.train_epochs,
-        model_name=train_cfg.model_name,
-        train_batch_size=train_cfg.train_batch_size,
-        eval_batch_size=train_cfg.eval_batch_size,
-        test_batch_size=train_cfg.test_batch_size,
-        output_dir=train_cfg.output_dir,
-        logging_dir=train_cfg.logging_dir,
-        logging_steps=train_cfg.logging_steps,
-        max_token_len=train_cfg.max_token_len,
-        raw_data_root=train_cfg.raw_data_root,
-        data_prep_out_root=train_cfg.data_prep_out_root,
-        project_root=train_cfg.project_root,
-        num_workers=train_cfg.num_workers,
-        data_split_percent=train_cfg.data_split_percent,
-        delexicalize=train_cfg.delexicalize,
-        num_dialogs=train_cfg.num_dialogs,
-        should_test=train_cfg.should_test,
-        domains=train_cfg.domains,
-        num_turns=train_cfg.num_turns,
-        overwrite=train_cfg.overwrite,
-        generate_max_len=train_cfg.generate_max_len,
-        pretrain_model_path=train_cfg.pretrain_model_path,
-    )
+    stt = SimpleTODTrainer(TrainerConfig(**cfg))
     stt.run()
 
 

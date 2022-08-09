@@ -1,16 +1,15 @@
 import re
-import hydra
-from omegaconf import DictConfig
 from pathlib import Path
-from tqdm import tqdm
 
-from transformers import (
-    AutoTokenizer,
-    GPT2LMHeadModel,
-    GPT2PreTrainedModel,
-)
-from dstc_dataclasses import DstcDomains, TestSettings
+import hydra
+import numpy as np
+from omegaconf import DictConfig
+from tqdm import tqdm
+from transformers import AutoTokenizer, GPT2LMHeadModel, GPT2PreTrainedModel
+
 import dstc_utils
+import utils
+from dstc_dataclasses import DstcDomains, TestSettings
 from hydra_configs import InferenceConfig
 from my_datamodules import SimpleTodDataModule
 from simple_tod_dataclasses import (
@@ -21,7 +20,6 @@ from simple_tod_dataclasses import (
     SpecialTokens,
     TokenizerTokens,
 )
-
 from tod_metrics import (
     CombinedMetric,
     GoalMetric,
@@ -32,8 +30,6 @@ from tod_metrics import (
     ResponseBleuMetric,
     SuccessMetric,
 )
-import utils
-import numpy as np
 
 
 class Inference:
@@ -49,6 +45,7 @@ class Inference:
         self.max_token_len = inf_config.max_token_len
         self.data_prep_out_root = Path(inf_config.data_prep_out_root)
         self.out_dir = inf_config.out_dir
+        self.predictions_log_dir = inf_config.predictions_log_dir
         self.eval_batch_size = inf_config.eval_batch_size
         self.test_batch_size = inf_config.test_batch_size
         self.num_workers = inf_config.num_workers
@@ -115,8 +112,9 @@ class Inference:
     def _get_tokenizer(self, model_path_str):
         model_path = self.project_root / model_path_str
         try:
-            tokenizer = AutoTokenizer.from_pretrained(model_path.parent)
+            tokenizer = AutoTokenizer.from_pretrained(model_path.parent.parent)
         except OSError:
+            print('Could not find tokenizer for model "{}"'.format(model_path))
             tokenizer = dstc_utils.get_tokenizer(self.model_name)
         return tokenizer
 
@@ -186,6 +184,7 @@ class Inference:
             utils.write_csv(headers, test_csv_out_data, text_csv_out_path)
             self.logger.info(str(self.tod_metrics))
             self.logger.info(str(self.bleu_metrics))
+            self.tod_metrics.visualize(self.predictions_log_dir)
 
     def run(self):
         print("begin inference")

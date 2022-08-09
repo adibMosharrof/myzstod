@@ -13,32 +13,49 @@
 
 "
 """
-from abc import ABC
 import abc
+from abc import ABC, abstractmethod
+from pathlib import Path
 from typing import Optional, Tuple, Union
 
+import evaluate
+import numpy as np
+
+from predictions_logger import PredictionsLoggerBase, IntentsPredictionLogger
 from simple_tod_dataclasses import (
     SimpleTodAction,
     SimpleTodBelief,
     SimpleTodConstants,
     SpecialTokens,
 )
-import evaluate
-import numpy as np
 
 
 class TodMetricsBase(ABC):
     """Base class for all TOD metrics."""
 
-    def __init__(self, score: bool = 0.0, is_cached=False):
+    def __init__(
+        self,
+        score: bool = 0.0,
+        is_cached=False,
+        error_log: PredictionsLoggerBase = None,
+    ):
         self.score = score
         self.is_cached = is_cached
         self.wrong_preds = {}
+        self.error_log = error_log
 
     def _add_wrong_pred(self, key: any):
         if type(key) not in [int, str]:
             key = str(key)
         self.wrong_preds[key] = self.wrong_preds.get(key, 0) + 1
+
+    def _log_error(self, pred: str, ref: str, is_correct: any):
+        self.error_log.log(pred, ref, is_correct)
+
+    def visualize(self, out_dir: Path) -> None:
+        if not self.error_log:
+            return
+        self.error_log.visualize(out_dir)
 
     def _extract_section_from_text(
         self, text: str, start_token: str, end_token: str, default_value: any = None
@@ -121,13 +138,16 @@ class MetricCollection:
     def compute(self) -> float:
         return [m.compute() for m in self.metrics.values()]
 
+    def visualize(self, out_dir: Path) -> None:
+        return [m.visualize(out_dir) for m in self.metrics.values()]
+
     def __str__(self):
         return "\n".join([str(m) for m in self.metrics.values()])
 
 
 class IntentAccuracyMetric(TodMetricsBase):
     def __init__(self) -> None:
-        super().__init__()
+        super().__init__(error_log=IntentsPredictionLogger())
         self.metric = evaluate.load("accuracy")
 
     def _add_batch(self, predictions: list[str], references: list[str]) -> None:
@@ -146,8 +166,10 @@ class IntentAccuracyMetric(TodMetricsBase):
             )
             if t == p:
                 pred_intents.append(1)
+                self._log_error(p, t, True)
             else:
                 self._add_wrong_pred(t)
+                self._log_error(p, t, False)
                 pred_intents.append(0)
 
         self.metric.add_batch(predictions=pred_intents, references=target_intents)

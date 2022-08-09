@@ -9,7 +9,7 @@ from omegaconf import DictConfig
 from tqdm import tqdm
 
 import dstc_utils
-from dstc_dataclasses import Steps
+from dstc_dataclasses import DstcDomains, Steps
 from simple_tod_dataclasses import (
     SimpleTodConstants,
     SimpleTodTurnCsvRow,
@@ -28,7 +28,7 @@ class DataModelExploration:
         model_name: str = "gpt2",
         out_root: str = "figures/model_size_calc",
         num_turns: int = 10,
-        domains: List[str] = None,
+        domain_settings: str = "SEEN",
     ):
         self.project_root = Path(project_root)
         self.data_root = self.project_root / data_root
@@ -40,16 +40,18 @@ class DataModelExploration:
         special_tokens = SpecialTokens.list()
         self.tokenizer.add_tokens(special_tokens, special_tokens=True)
         self.num_turns = num_turns
-        self.domains = domains
+        self.domains = DstcDomains[domain_settings].value
 
     def _get_simple_tod_rows(self):
         steps = Steps.list()
         rows = []
         for step, num_dialog in tqdm(zip(steps, self.num_dialogs)):
-            csv_file_path = (
-                self.data_root
-                / step
-                / f"simple_tod_dstc_turns_{self.num_turns}_dialogs_{num_dialog}{SimpleTodConstants.DELEXICALIZED if self.delexicalize else ''}_{'_'.join(self.domains)}.csv"
+            csv_file_path = dstc_utils.get_csv_data_path(
+                step,
+                num_dialog,
+                delexicalized=False,
+                processed_data_root=self.data_root,
+                domains=self.domains,
             )
             rows.append(read_csv_dataclass(csv_file_path, SimpleTodTurnCsvRow))
         return np.concatenate(rows, axis=0)

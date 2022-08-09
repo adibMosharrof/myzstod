@@ -1,4 +1,8 @@
+from pathlib import Path
+
 from transformers import AutoTokenizer
+
+from dstc_dataclasses import DstcDomains
 
 
 class InferenceConfig:
@@ -12,6 +16,7 @@ class InferenceConfig:
         raw_data_root: str = "data/dstc8-schema-guided-dialogue/",
         project_root: str = "/mounts/u-amo-d0/grad/adibm/projects/generative_tod/",
         data_prep_out_root: str = "processed_data/simple_tod",
+        predictions_log_dir: str = "predictions_logs",
         num_test_dialogs: int = 1,
         delexicalize: bool = False,
         model: str = "outputs/2022-07-26/22-28-09/results/train/checkpoint-7067",
@@ -64,6 +69,8 @@ class InferenceConfig:
         self.tokenizer = tokenizer
         self.context_max_len = context_max_len
         self.target_max_len = target_max_len
+        self.predictions_log_dir = Path(predictions_log_dir)
+        self.predictions_log_dir.mkdir(parents=True, exist_ok=True)
 
 
 class TrainerConfig:
@@ -83,6 +90,7 @@ class TrainerConfig:
         delexicalize: bool = False,
         num_turns: int = 10,
         overwrite: list[bool] = None,
+        train_domain_settings: str = "SEEN",
         test_settings: list[str] = None,
         train_settings: str = None,
         output_dir: str = None,
@@ -96,6 +104,7 @@ class TrainerConfig:
         logging_steps: int = 50,
         context_max_len: int = 600,
         target_max_len: int = 424,
+        eval_accumulation_steps: int = 25,
     ) -> None:
         self.project_root = project_root
         self.data_prep_out_root = data_prep_out_root
@@ -110,14 +119,14 @@ class TrainerConfig:
         self.num_turns = num_turns
         self.overwrite = overwrite or [False, False, False]
         self.test_settings = test_settings or ["seen"]
-        self.out_dir = output_dir or "results"
+        self.output_dir = output_dir or "results"
         self.pretrain_epochs = pretrain_epochs
         self.train_epochs = train_epochs
         self.train_settings = train_settings or "seen"
         self.pretrain_model_path = pretrain_model_path
         self.logging_dir = logging_dir or "logs"
         self.generate_max_len = generate_max_len
-        self.domains = domains
+        self.domains = domains if domains else DstcDomains[train_domain_settings].value
         self.should_test = should_test
         self.delexicalize = delexicalize
         self.logging_steps = logging_steps
@@ -125,3 +134,4 @@ class TrainerConfig:
         self.raw_data_root = raw_data_root
         self.context_max_len = context_max_len
         self.target_max_len = target_max_len
+        self.eval_accumulation_steps = eval_accumulation_steps

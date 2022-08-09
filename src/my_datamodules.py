@@ -141,6 +141,15 @@ class SimpleTodDataModule(pl.LightningDataModule):
             max_length=self.max_token_len,
         )
 
+    def test_tokenize(self, item):
+        return self.tokenizer(
+            item,
+            return_tensors="pt",
+            truncation=True,
+            padding="max_length",
+            max_length=self.test_max_token_len,
+        )
+
     def train_eval_tokenize(self, item):
         return self.tokenizer.encode(
             item,
@@ -162,6 +171,7 @@ class SimpleTodDataModule(pl.LightningDataModule):
             unused_len = self.max_token_len - context_len - target_len
             # handling case when input is greater than tokenizer length
             if unused_len < 0:
+                context_start_token = context_tokens[0]
                 context_tokens = context_tokens[unused_len * -1 :]
                 context_len = len(context_tokens)
                 unused_len = 0
