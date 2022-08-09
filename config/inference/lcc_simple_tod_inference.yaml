@@ -1,0 +1,19 @@
+data_split_percent:
+  - 1
+  - 1
+  - 1
+eval_batch_size: 6
+test_batch_size: 133
+max_token_len: 512
+num_test_dialogs: 34
+model: asdf
+num_turns: 26
+overwrite:
+  # - false
+  # - false
+  # - false
+  - true
+  - true
+  - true
+test_settings:
+  - seen
