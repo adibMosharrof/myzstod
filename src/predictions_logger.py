@@ -1,4 +1,5 @@
 import abc
+from enum import Enum
 from fileinput import filename
 from pathlib import Path
 from typing import Optional
@@ -14,6 +15,13 @@ from sklearn.metrics import confusion_matrix
 from simple_tod_dataclasses import SimpleTodBelief
 
 
+class LoggerColsEnum:
+    PREDICTIONS = "predictions"
+    REFERENCES = "references"
+    IS_CORRECT = "is_correct"
+    COUNT = "count"
+
+
 class PredictionsLoggerBase(abc.ABC):
     @abc.abstractmethod
     def log(self, pred: any = None, ref: any = None, is_correct: any = None):
@@ -22,6 +30,15 @@ class PredictionsLoggerBase(abc.ABC):
     @abc.abstractmethod
     def visualize(self, out_dir: Path):
         raise (NotImplementedError)
+
+    def _init_data_frame(self):
+        return pd.DataFrame(
+            {
+                LoggerColsEnum.PREDICTIONS: self.preds,
+                LoggerColsEnum.REFERENCES: self.refs,
+                LoggerColsEnum.IS_CORRECT: self.is_correct,
+            }
+        )
 
     def plot_confusion_matrix(self, labels, x_label, y_label, title, file_name):
         plt.figure(figsize=(10, 10), dpi=200)
@@ -106,38 +123,45 @@ class IntentsPredictionLogger(PredictionsLoggerBase):
         plt.style.use("ggplot")
         sns.set(style="darkgrid")
 
-        df = pd.DataFrame(
-            {
-                "predictions": self.preds,
-                "references": self.refs,
-                "is_correct": self.is_correct,
-            }
-        )
+        df = self._init_data_frame()
 
         df_false = (
-            df[df["is_correct"] == False]
-            .groupby(["predictions", "references", "is_correct"])["is_correct"]
+            df[df[LoggerColsEnum.IS_CORRECT] == False]
+            .groupby(
+                [
+                    LoggerColsEnum.PREDICTIONS,
+                    LoggerColsEnum.REFERENCES,
+                    LoggerColsEnum.IS_CORRECT,
+                ]
+            )[LoggerColsEnum.IS_CORRECT]
             .count()
-            .reset_index(name="count")
+            .reset_index(name=LoggerColsEnum.COUNT)
         )
 
         error_refs = (
-            df_false.groupby(["references"])["count"]
+            df_false.groupby([LoggerColsEnum.REFERENCES])[LoggerColsEnum.COUNT]
             .sum()
-            .reset_index(name="count")
-            .sort_values("count", ascending=False)
+            .reset_index(name=LoggerColsEnum.COUNT)
+            .sort_values(LoggerColsEnum.COUNT, ascending=False)
         )
 
         # stacked hbar plot
         top_error_refs_bar = error_refs[:top_k_bar]
-        df_bar = df[df["references"].isin(top_error_refs_bar["references"])]
+        df_bar = df[
+            df[LoggerColsEnum.REFERENCES].isin(
+                top_error_refs_bar[LoggerColsEnum.REFERENCES]
+            )
+        ]
         # sorting values by predictions where is_correct is false
         cross_tab_prop = pd.crosstab(
-            index=df_bar["references"], columns=df_bar["is_correct"], normalize="index"
+            index=df_bar[LoggerColsEnum.REFERENCES],
+            columns=df_bar[LoggerColsEnum.IS_CORRECT],
+            normalize="index",
         ).sort_values(False)
 
         cross_tab_count = pd.crosstab(
-            index=df_bar["references"], columns=df_bar["is_correct"]
+            index=df_bar[LoggerColsEnum.REFERENCES],
+            columns=df_bar[LoggerColsEnum.IS_CORRECT],
         ).reindex(cross_tab_prop.index)
 
         self._plot_stacked_bar_chart(
@@ -150,13 +174,20 @@ class IntentsPredictionLogger(PredictionsLoggerBase):
         )
 
         top_error_refs_cm = list(cross_tab_prop.index[:top_k_confusion])
-        heatmap_data = df_false[df_false["references"].isin(top_error_refs_cm)]
-        cf_labels = np.unique([heatmap_data["references"], heatmap_data["predictions"]])
+        heatmap_data = df_false[
+            df_false[LoggerColsEnum.REFERENCES].isin(top_error_refs_cm)
+        ]
+        cf_labels = np.unique(
+            [
+                heatmap_data[LoggerColsEnum.REFERENCES],
+                heatmap_data[LoggerColsEnum.PREDICTIONS],
+            ]
+        )
 
         self.plot_confusion_matrix(
             cf_labels,
-            "Predictions",
-            "Reference",
+            humps.camelize(LoggerColsEnum.PREDICTIONS),
+            humps.camelize(LoggerColsEnum.REFERENCES),
             "Intents Confusion Matrix",
             out_dir / "intents_confusion_matrix.png",
         )
@@ -173,43 +204,9 @@ class RequestedSlotPredictionLogger(PredictionsLoggerBase):
         self.refs.append(ref)
         self.is_correct.append(is_correct)
 
-    def visualize(self, out_dir: Path, top_k=7):
-        return
-        plt.style.use("ggplot")
-        sns.set(style="darkgrid")
-        df = pd.DataFrame(
-            {
-                "predictions": self.preds,
-                "references": self.refs,
-                "is_correct": self.is_correct,
-            }
-        )
-        df_correct = df[df["is_correct"] == True].iloc[:, :-1]
-        df_incorrect = df[df["is_correct"] == False].iloc[:, :-1]
-
-        heat_df = df_incorrect.pivot_table(
-            index="predictions", columns="references", aggfunc="value_counts"
-        ).head(top_k)
-        plt.figure(figsize=(10, 10), dpi=150)
-        heat = sns.heatmap(
-            heat_df,
-            cmap="rocket_r",
-            annot=True,
-            linewidths=1,
-            linecolor="w",
-            annot_kws={"fontsize": 8},
-        )
-        plt.yticks(fontsize=8)
-        plt.xticks(rotation=90, fontsize=8)
-        plt.tight_layout()
-        plt.title("Requested Slot Detailed Errors")
-        plt.savefig(out_dir / "requested_slot_pair_errors.png")
-
-        plt.figure()
-
-        hist = sns.histplot(
-            data=df_correct, x="references", label="Correct", color="green", alpha=0.5
-        )
+    def visualize(self, out_dir: Path, top_k=15):
+        df = self._init_data_frame()
+        # df_false = df[df]
 
 
 class BeliefGoalPredictionLogger(PredictionsLoggerBase):
@@ -228,17 +225,17 @@ class BeliefGoalPredictionLogger(PredictionsLoggerBase):
 
     def _plot_graph(self, df: any, column: str, out_dir: str, top_k=15) -> None:
         top_data = (
-            df[df["is_correct"] == False]
-            .groupby([column, "is_correct"])[column]
+            df[df[LoggerColsEnum.IS_CORRECT] == False]
+            .groupby([column, LoggerColsEnum.IS_CORRECT])[column]
             .count()
-            .reset_index(name="count")
-            .sort_values("count", ascending=False)[:top_k]
+            .reset_index(name=LoggerColsEnum.COUNT)
+            .sort_values(LoggerColsEnum.COUNT, ascending=False)[:top_k]
         )
         data = (
             df[df[column].isin(top_data[column])]
-            .groupby([column, "is_correct"])[column]
+            .groupby([column, LoggerColsEnum.IS_CORRECT])[column]
             .count()
-            .reset_index(name="count")
+            .reset_index(name=LoggerColsEnum.COUNT)
         )
         plt.style.use("ggplot")
         sns.set(style="darkgrid")
@@ -246,25 +243,30 @@ class BeliefGoalPredictionLogger(PredictionsLoggerBase):
         sns.barplot(
             data=data,
             x=column,
-            y="count",
-            hue="is_correct",
+            y=LoggerColsEnum.COUNT,
+            hue=LoggerColsEnum.IS_CORRECT,
             palette=["r", "g"],
             saturation=0.5,
         )
         plt.xlabel(humps.pascalize(column))
-        plt.ylabel("Count")
+        plt.ylabel(humps.pascalize(LoggerColsEnum.COUNT))
         plt.xticks(rotation=90, fontsize=8)
-        plt.title(f"{humps.pascalize(column)} Predictions")
+        plt.title(
+            f"{humps.pascalize(column)} {humps.pascalize(LoggerColsEnum.PREDICTIONS)}"
+        )
         plt.tight_layout()
-        plt.legend(title="Is Correct")
-        plt.savefig(out_dir / f"Belief_{humps.pascalize(column)}_predictions.png")
+        plt.legend(title=humps.pascalize(LoggerColsEnum.IS_CORRECT))
+        plt.savefig(
+            out_dir
+            / f"Belief_{humps.pascalize(column)}_{LoggerColsEnum.PREDICTIONS}.png"
+        )
         plt.close()
 
     def visualize(self, out_dir: Path):
         df = pd.concat(
             [
                 pd.DataFrame(self.refs),
-                pd.DataFrame(self.is_correct, columns=["is_correct"]),
+                pd.DataFrame(self.is_correct, columns=[LoggerColsEnum.IS_CORRECT]),
             ],
             axis=1,
         )
