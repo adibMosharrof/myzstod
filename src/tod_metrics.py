@@ -15,19 +15,52 @@
 """
 import abc
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional, Tuple, Union
 
 import evaluate
 import numpy as np
 
-from predictions_logger import PredictionsLoggerBase, IntentsPredictionLogger
-from simple_tod_dataclasses import (
-    SimpleTodAction,
-    SimpleTodBelief,
-    SimpleTodConstants,
-    SpecialTokens,
-)
+from predictions_logger import (ActionGoalPredictionLogger,
+                                BeliefGoalPredictionLogger,
+                                IntentsPredictionLogger, PredictionsLoggerBase,
+                                RequestedSlotPredictionLogger)
+from simple_tod_dataclasses import (GoalMetricConfigType, SimpleTodAction,
+                                    SimpleTodBelief, SimpleTodConstants,
+                                    SpecialPredictions, SpecialTokens)
+
+
+@dataclass
+class GoalMetricConfig:
+    start_token: str
+    end_token: str
+    step_name: str
+    prediction_logger: PredictionsLoggerBase
+    tod_class: Union[SimpleTodBelief, SimpleTodAction]
+
+
+class GoalMetricConfigFactory:
+    @staticmethod
+    def create(step) -> GoalMetricConfig:
+        if step == GoalMetricConfigType.ACTION:
+            return GoalMetricConfig(
+                SpecialTokens.begin_action,
+                SpecialTokens.end_action,
+                "action",
+                ActionGoalPredictionLogger(),
+                SimpleTodAction,
+            )
+        elif step == GoalMetricConfigType.BELIEF:
+            return GoalMetricConfig(
+                SpecialTokens.begin_belief,
+                SpecialTokens.end_belief,
+                "belief",
+                BeliefGoalPredictionLogger(),
+                SimpleTodBelief,
+            )
+        else:
+            raise ValueError(f"Unknown step name: {step}")
 
 
 class TodMetricsBase(ABC):
@@ -37,25 +70,27 @@ class TodMetricsBase(ABC):
         self,
         score: bool = 0.0,
         is_cached=False,
-        error_log: PredictionsLoggerBase = None,
+        prediction_logger: PredictionsLoggerBase = None,
     ):
         self.score = score
         self.is_cached = is_cached
         self.wrong_preds = {}
-        self.error_log = error_log
+        self.prediction_logger = prediction_logger
 
     def _add_wrong_pred(self, key: any):
         if type(key) not in [int, str]:
             key = str(key)
         self.wrong_preds[key] = self.wrong_preds.get(key, 0) + 1
 
-    def _log_error(self, pred: str, ref: str, is_correct: any):
-        self.error_log.log(pred, ref, is_correct)
+    def _log_prediction(
+        self, pred: str = None, ref: str = None, is_correct: any = None
+    ):
+        self.prediction_logger.log(pred, ref, is_correct)
 
     def visualize(self, out_dir: Path) -> None:
-        if not self.error_log:
+        if not self.prediction_logger:
             return
-        self.error_log.visualize(out_dir)
+        self.prediction_logger.visualize(out_dir)
 
     def _extract_section_from_text(
         self, text: str, start_token: str, end_token: str, default_value: any = None
@@ -147,7 +182,7 @@ class MetricCollection:
 
 class IntentAccuracyMetric(TodMetricsBase):
     def __init__(self) -> None:
-        super().__init__(error_log=IntentsPredictionLogger())
+        super().__init__(prediction_logger=IntentsPredictionLogger())
         self.metric = evaluate.load("accuracy")
 
     def _add_batch(self, predictions: list[str], references: list[str]) -> None:
@@ -162,14 +197,14 @@ class IntentAccuracyMetric(TodMetricsBase):
                 continue
             target_intents.append(1)
             p = self._extract_section_from_text(
-                prediction, SpecialTokens.begin_intent, SpecialTokens.end_intent
+                prediction, SpecialTokens.begin_intent, SpecialTokens.end_intent, SpecialPredictions.DUMMY
             )
             if t == p:
                 pred_intents.append(1)
-                self._log_error(p, t, True)
+                self._log_prediction(p, t, True)
             else:
                 self._add_wrong_pred(t)
-                self._log_error(p, t, False)
+                self._log_prediction(p, t, False)
                 pred_intents.append(0)
 
         self.metric.add_batch(predictions=pred_intents, references=target_intents)
@@ -184,7 +219,7 @@ class IntentAccuracyMetric(TodMetricsBase):
 
 class RequestedSlotsMetric(TodMetricsBase):
     def __init__(self) -> None:
-        super().__init__()
+        super().__init__(prediction_logger=RequestedSlotPredictionLogger())
         self.tp, self.fp, self.fn = 0, 0, 0
         self.slot_appear_num, self.slot_correct_num = {}, {}
         self.false_slots = set()
@@ -256,43 +291,31 @@ class GoalMetric(TodMetricsBase):
             * SimpleTodBelief: it will calculate belief accuracy
     """
 
-    def __init__(
-        self, target_step_class: Union[SimpleTodAction, SimpleTodBelief]
-    ) -> None:
+    def __init__(self, config: GoalMetricConfig) -> None:
         super().__init__()
         self.all_accuracies = []
         self.joint_accuracies = []
         self.wrong_preds = {}
-        self.target_step_class = target_step_class
-        if target_step_class is SimpleTodBelief:
-            self.start_token = SpecialTokens.begin_belief
-            self.end_token = SpecialTokens.end_belief
-            self.step_name = "Goal"
-        elif target_step_class is SimpleTodAction:
-            self.start_token = SpecialTokens.begin_action
-            self.end_token = SpecialTokens.end_action
-            self.step_name = "Action"
-        else:
-            raise ValueError(
-                f"Provided target_step_class:{target_step_class}, but it must be SimpleTodBelief or SimpleTodAction"
-            )
+        self.config = config
+        self.prediction_logger = config.prediction_logger
 
     def _add_batch(self, turn_predictions: list[str], references: list[str]) -> None:
         for ref, pred in zip(references, turn_predictions):
             target_txt_items = self._extract_section_and_split_items_from_text(
-                ref, self.start_token, self.end_token
+                ref, self.config.start_token, self.config.end_token
             )
             if not len(target_txt_items):
                 continue
             target_items = [
-                self.target_step_class.from_string(t) for t in target_txt_items
+                self.config.tod_class.from_string(t) for t in target_txt_items
             ]
-
+            if self.config.tod_class is SimpleTodBelief:
+                target_items = [t for t in target_items if t.value != ""]
             pred_belief_txt_items = self._extract_section_and_split_items_from_text(
-                pred, self.start_token, self.end_token
+                pred, self.config.start_token, self.config.end_token
             )
             pred_beliefs = [
-                self.target_step_class.from_string(t) for t in pred_belief_txt_items
+                self.config.tod_class.from_string(t) for t in pred_belief_txt_items
             ]
 
             turn_predictions = []
@@ -300,9 +323,10 @@ class GoalMetric(TodMetricsBase):
             for t in target_items:
                 if t in pred_beliefs:
                     turn_predictions.append(1)
+                    self._log_prediction(ref=t, is_correct=True)
                 else:
                     turn_predictions.append(0)
-                    self._add_wrong_pred(t)
+                    self._log_prediction(ref=t, is_correct=False)
                     any_wrong_preds = True
 
             self.joint_accuracies.append(0 if any_wrong_preds else 1)
@@ -313,7 +337,7 @@ class GoalMetric(TodMetricsBase):
 
     def __str__(self) -> str:
         avg_ga, joint_ga = self.compute()
-        return f"Average {self.step_name} Accuracy: {avg_ga*100:.2f}, Joint {self.step_name} Accuracy: {joint_ga*100:.2f}"
+        return f"Average {self.config.step_name} Accuracy: {avg_ga*100:.2f}, Joint {self.config.step_name} Accuracy: {joint_ga*100:.2f}"
 
 
 class SuccessMetric(TodMetricsBase):

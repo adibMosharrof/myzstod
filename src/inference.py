@@ -13,6 +13,7 @@ from dstc_dataclasses import DstcDomains, TestSettings
 from hydra_configs import InferenceConfig
 from my_datamodules import SimpleTodDataModule
 from simple_tod_dataclasses import (
+    GoalMetricConfigType,
     SimpleTodAction,
     SimpleTodBelief,
     SimpleTodConstants,
@@ -23,6 +24,7 @@ from simple_tod_dataclasses import (
 from tod_metrics import (
     CombinedMetric,
     GoalMetric,
+    GoalMetricConfigFactory,
     InformMetric,
     IntentAccuracyMetric,
     MetricCollection,
@@ -68,8 +70,12 @@ class Inference:
         self.target_max_len = inf_config.target_max_len
         self.tod_metrics = MetricCollection(
             {
-                "goal_accuracy": GoalMetric(SimpleTodBelief),
-                "action_accuracy": GoalMetric(SimpleTodAction),
+                "goal_accuracy": GoalMetric(
+                    GoalMetricConfigFactory.create(GoalMetricConfigType.BELIEF)
+                ),
+                "action_accuracy": GoalMetric(
+                    GoalMetricConfigFactory.create(GoalMetricConfigType.ACTION)
+                ),
                 "intent_accuracy": IntentAccuracyMetric(),
                 "requested_slots": RequestedSlotsMetric(),
                 "inform": InformMetric(),
@@ -184,6 +190,7 @@ class Inference:
             utils.write_csv(headers, test_csv_out_data, text_csv_out_path)
             self.logger.info(str(self.tod_metrics))
             self.logger.info(str(self.bleu_metrics))
+            self.logger.info(str(self.out_dir))
             self.tod_metrics.visualize(self.predictions_log_dir)
 
     def run(self):
