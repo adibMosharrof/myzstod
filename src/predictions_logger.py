@@ -177,8 +177,8 @@ class PredictionsLoggerBase(abc.ABC):
                     fontsize=8,
                     color="black",
                 )
-        plt.tight_layout()
         plt.title(title)
+        plt.tight_layout()
         plt.savefig(file_name)
         plt.close()
 
@@ -195,7 +195,7 @@ class IntentsPredictionLogger(PredictionsLoggerBase):
         self.is_correct.append(is_correct)
 
     def visualize(self, out_dir: Path, top_k_bar=10, top_k_confusion=5):
-        data = self._get_stacked_bar_chart_data()
+        data = self._get_stacked_bar_chart_data(top_k=top_k_bar)
 
         self._plot_stacked_bar_chart(
             data,
@@ -236,8 +236,15 @@ class RequestedSlotPredictionLogger(PredictionsLoggerBase):
         self.refs.append(ref)
         self.is_correct.append(is_correct)
 
-    def visualize(self, out_dir: Path, top_k=15):
-        data = self._get_stacked_bar_chart_data()
+    def visualize(self, out_dir: Path, top_k=10):
+        data = self._get_stacked_bar_chart_data(top_k=top_k)
+        self._plot_stacked_bar_chart(
+            data,
+            "Proportion",
+            "Requested Slots",
+            "Requested Slots Accuracy",
+            out_dir / "requested_slots_predictions.png",
+        )
 
 
 class BeliefGoalPredictionLogger(PredictionsLoggerBase):
