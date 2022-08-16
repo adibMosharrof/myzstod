@@ -25,7 +25,7 @@ from sklearn.metrics import f1_score
 
 from predictions_logger import (
     ActionGoalPredictionLogger,
-    BeliefGoalPredictionLogger,
+    GoalPredictionLogger,
     IntentsPredictionLogger,
     PredictionsLoggerBase,
     RequestedSlotPredictionLogger,
@@ -44,7 +44,7 @@ from simple_tod_dataclasses import (
 class GoalMetricConfig:
     start_token: str
     end_token: str
-    step_name: str
+    step_name: GoalMetricConfigType
     prediction_logger: PredictionsLoggerBase
     tod_class: Union[SimpleTodBelief, SimpleTodAction]
 
@@ -56,16 +56,16 @@ class GoalMetricConfigFactory:
             return GoalMetricConfig(
                 SpecialTokens.begin_action,
                 SpecialTokens.end_action,
-                "action",
-                ActionGoalPredictionLogger(),
+                GoalMetricConfigType.ACTION,
+                GoalPredictionLogger(step=GoalMetricConfigType.ACTION),
                 SimpleTodAction,
             )
         elif step == GoalMetricConfigType.BELIEF:
             return GoalMetricConfig(
                 SpecialTokens.begin_belief,
                 SpecialTokens.end_belief,
-                "belief",
-                BeliefGoalPredictionLogger(),
+                GoalMetricConfigType.BELIEF,
+                GoalPredictionLogger(step=GoalMetricConfigType.BELIEF),
                 SimpleTodBelief,
             )
         else:

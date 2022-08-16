@@ -1,10 +1,10 @@
+from collections import deque
 from dataclasses import dataclass, field
 from enum import Enum
 from itertools import zip_longest
 from typing import Dict, List, Optional
-from collections import deque
-import torch
 
+import torch
 
 @dataclass
 class SimpleTodBelief:
@@ -39,7 +39,6 @@ class SimpleTodBelief:
             ]
         )
 
-
 @dataclass
 class SimpleTodAction:
     domain: str
@@ -71,7 +70,6 @@ class SimpleTodAction:
 
     def __str__(self) -> str:
         return "".join([self.action_type, SimpleTodConstants.SLOT_VALUE_SEPARATOR, self.domain, SimpleTodConstants.DOMAIN_SLOT_SEPARATOR, self.slot_name, SimpleTodConstants.ACTION_VALUE_SEPARATOR, self.values])
-
 
 @dataclass
 class SimpleTodContext:
@@ -209,6 +207,15 @@ class SimpleTodConstants(str, Enum):
     ACTION_TYPE_INFORM = "INFORM"
     ACTION_TYPE_INFORM_COUNT = "INFORM_COUNT"
 
+class GoalMetricConfigType(str, Enum):
+    ACTION = "action"
+    BELIEF = "belief"
+
+    def __repr__(self) -> str:
+        return self.value
+
+class SpecialPredictions(str, Enum):
+    DUMMY = "DUMMY"
 
 # Datamodule classes
 @dataclass
