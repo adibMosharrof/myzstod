@@ -21,14 +21,23 @@ from typing import Optional, Tuple, Union
 
 import evaluate
 import numpy as np
+from sklearn.metrics import f1_score
 
-from predictions_logger import (ActionGoalPredictionLogger,
-                                BeliefGoalPredictionLogger,
-                                IntentsPredictionLogger, PredictionsLoggerBase,
-                                RequestedSlotPredictionLogger)
-from simple_tod_dataclasses import (GoalMetricConfigType, SimpleTodAction,
-                                    SimpleTodBelief, SimpleTodConstants,
-                                    SpecialPredictions, SpecialTokens)
+from predictions_logger import (
+    ActionGoalPredictionLogger,
+    BeliefGoalPredictionLogger,
+    IntentsPredictionLogger,
+    PredictionsLoggerBase,
+    RequestedSlotPredictionLogger,
+)
+from simple_tod_dataclasses import (
+    GoalMetricConfigType,
+    SimpleTodAction,
+    SimpleTodBelief,
+    SimpleTodConstants,
+    SpecialPredictions,
+    SpecialTokens,
+)
 
 
 @dataclass
@@ -197,7 +206,10 @@ class IntentAccuracyMetric(TodMetricsBase):
                 continue
             target_intents.append(1)
             p = self._extract_section_from_text(
-                prediction, SpecialTokens.begin_intent, SpecialTokens.end_intent, SpecialPredictions.DUMMY
+                prediction,
+                SpecialTokens.begin_intent,
+                SpecialTokens.end_intent,
+                SpecialPredictions.DUMMY,
             )
             if t == p:
                 pred_intents.append(1)
@@ -220,10 +232,8 @@ class IntentAccuracyMetric(TodMetricsBase):
 class RequestedSlotsMetric(TodMetricsBase):
     def __init__(self) -> None:
         super().__init__(prediction_logger=RequestedSlotPredictionLogger())
-        self.tp, self.fp, self.fn = 0, 0, 0
-        self.slot_appear_num, self.slot_correct_num = {}, {}
-        self.false_slots = set()
-        self.requested_slots_misclassification = {}
+        self.all_preds = []
+        self.all_refs = []
 
     def _add_batch(self, predictions: list[str], references: list[str]) -> any:
         for ref, pred in zip(references, predictions):
@@ -240,26 +250,23 @@ class RequestedSlotsMetric(TodMetricsBase):
                 SpecialTokens.begin_requested_slots,
                 SpecialTokens.end_requested_slots,
             )
-            for slot in pred_slots:
-                if slot in target_slots:
-                    val = self.slot_correct_num.get(slot, 0)
-                    self.slot_correct_num[slot] = val + 1
-                    self.tp += 1
+
+            if len(pred_slots) < len(target_slots):
+                diff = len(target_slots) - len(pred_slots)
+                pred_slots.extend([SpecialPredictions.DUMMY] * diff)
+
+            for i, slot in enumerate(target_slots):
+                if slot in pred_slots:
+                    self.all_preds.append(slot)
+                    self.all_refs.append(slot)
+                    self._log_prediction(ref=slot, pred=slot, is_correct=True)
                 else:
-                    self.fp += 1
-                    self.false_slots.add(slot)
-            for slot in target_slots:
-                val = self.slot_appear_num.get(slot, 0)
-                self.slot_appear_num[slot] = val + 1
-                if slot not in pred_slots:
-                    self.fn += 1
-                    self.false_slots.add(slot)
+                    self.all_preds.append(pred_slots[i])
+                    self.all_refs.append(slot)
+                    self._log_prediction(ref=slot, pred=pred_slots[i], is_correct=False)
 
     def _compute(self) -> float:
-        precision = self.tp / (self.tp + self.fp + 1e-10)
-        recall = self.tp / (self.tp + self.fn + 1e-10)
-        f1 = 2 * (precision * recall) / (precision + recall + 1e-10) * 100
-        return f1
+        return f1_score(self.all_refs, self.all_preds, average="macro") * 100
 
     def __str__(self) -> str:
         score = self.compute()
