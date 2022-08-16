@@ -5,12 +5,15 @@ from itertools import zip_longest
 from pathlib import Path
 
 from dataclass_csv import DataclassReader
-from transformers.utils import logging
+
+# from transformers.utils import logging
+import logging
 
 
 def get_logger(name: str = "transformers"):
-    logging.set_verbosity_info()
-    return logging.get_logger(name)
+    # logging.set_verbosity_info()
+    # return logging.get_logger(name)
+    return logging.getLogger(__name__)
 
 
 def write_csv(headers: list[str], data, file_name: Path):
