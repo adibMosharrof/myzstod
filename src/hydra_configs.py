@@ -126,7 +126,9 @@ class TrainerConfig:
         self.pretrain_model_path = pretrain_model_path
         self.logging_dir = logging_dir or "logs"
         self.generate_max_len = generate_max_len
-        self.domains = domains if domains else DstcDomains[train_domain_settings].value
+        self.domains = (
+            domains if domains else DstcDomains[train_domain_settings.upper()].value
+        )
         self.should_test = should_test
         self.delexicalize = delexicalize
         self.logging_steps = logging_steps

@@ -40,7 +40,7 @@ class DataModelExploration:
         special_tokens = SpecialTokens.list()
         self.tokenizer.add_tokens(special_tokens, special_tokens=True)
         self.num_turns = num_turns
-        self.domains = DstcDomains[domain_settings].value
+        self.domains = DstcDomains[domain_settings.upper()].value
 
     def _get_simple_tod_rows(self):
         steps = Steps.list()
@@ -158,6 +158,15 @@ class DataModelExploration:
         )
         plt.close()
 
+    def plot_domain_distribution(self):
+        rows = self._get_simple_tod_rows()
+
+        a = 1
+
+    def run(self):
+        self.plot_domain_distribution()
+        self.plot_model_size()
+
 
 @hydra.main(config_path="../config/", config_name="data_model_exploration")
 def hydra_start(cfg: DictConfig) -> None:
@@ -169,9 +178,9 @@ def hydra_start(cfg: DictConfig) -> None:
         model_name=cfg.model_name,
         out_root=cfg.out_root,
         num_turns=cfg.num_turns,
-        domains=cfg.domains,
+        domain_settings=cfg.domain_settings,
     )
-    msc.plot_model_size()
+    msc.run()
 
 
 if __name__ == "__main__":
