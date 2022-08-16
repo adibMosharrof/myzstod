@@ -1,4 +1,5 @@
 import abc
+from dataclasses import dataclass
 from enum import Enum
 from fileinput import filename
 from pathlib import Path
@@ -22,6 +23,16 @@ class LoggerColsEnum:
     COUNT = "count"
 
 
+@dataclass
+class StackedBarChartData:
+    df: pd.DataFrame
+    df_false: pd.DataFrame
+    error_refs: pd.DataFrame
+    top_error_refs: pd.DataFrame
+    proportions: pd.DataFrame
+    counts: pd.DataFrame
+
+
 class PredictionsLoggerBase(abc.ABC):
     @abc.abstractmethod
     def log(self, pred: any = None, ref: any = None, is_correct: any = None):
@@ -30,15 +41,6 @@ class PredictionsLoggerBase(abc.ABC):
     @abc.abstractmethod
     def visualize(self, out_dir: Path):
         raise (NotImplementedError)
-
-    def _init_data_frame(self):
-        return pd.DataFrame(
-            {
-                LoggerColsEnum.PREDICTIONS: self.preds,
-                LoggerColsEnum.REFERENCES: self.refs,
-                LoggerColsEnum.IS_CORRECT: self.is_correct,
-            }
-        )
 
     def plot_confusion_matrix(self, labels, x_label, y_label, title, file_name):
         plt.figure(figsize=(10, 10), dpi=200)
@@ -73,11 +75,84 @@ class PredictionsLoggerBase(abc.ABC):
         plt.savefig(file_name)
         plt.close()
 
+    def _get_false_predictions(self, df):
+        if LoggerColsEnum.PREDICTIONS in df.columns:
+            return (
+                df[df[LoggerColsEnum.IS_CORRECT] == False]
+                .groupby(
+                    [
+                        LoggerColsEnum.PREDICTIONS,
+                        LoggerColsEnum.REFERENCES,
+                        LoggerColsEnum.IS_CORRECT,
+                    ]
+                )[LoggerColsEnum.IS_CORRECT]
+                .count()
+                .reset_index(name=LoggerColsEnum.COUNT)
+            )
+        return (
+            df[df[LoggerColsEnum.IS_CORRECT] == False]
+            .groupby(
+                [
+                    LoggerColsEnum.REFERENCES,
+                    LoggerColsEnum.IS_CORRECT,
+                ]
+            )[LoggerColsEnum.IS_CORRECT]
+            .count()
+            .reset_index(name=LoggerColsEnum.COUNT)
+        )
+
+    def _get_stacked_bar_chart_data(self, top_k=10) -> StackedBarChartData:
+        df = pd.DataFrame(
+            {
+                LoggerColsEnum.REFERENCES: self.refs,
+                LoggerColsEnum.IS_CORRECT: self.is_correct,
+            }
+        )
+        if len(self.preds):
+            df = pd.concat(
+                [df, pd.DataFrame({LoggerColsEnum.PREDICTIONS: self.preds})], axis=1
+            )
+
+        df_false = self._get_false_predictions(df)
+        error_refs = (
+            df_false.groupby([LoggerColsEnum.REFERENCES])[LoggerColsEnum.COUNT]
+            .sum()
+            .reset_index(name=LoggerColsEnum.COUNT)
+            .sort_values(LoggerColsEnum.COUNT, ascending=False)
+        )
+
+        # stacked hbar plot
+        top_error_refs_bar = error_refs[:top_k]
+        df_bar = df[
+            df[LoggerColsEnum.REFERENCES].isin(
+                top_error_refs_bar[LoggerColsEnum.REFERENCES]
+            )
+        ]
+        # sorting values by predictions where is_correct is false
+        data_prop = pd.crosstab(
+            index=df_bar[LoggerColsEnum.REFERENCES],
+            columns=df_bar[LoggerColsEnum.IS_CORRECT],
+            normalize="index",
+        ).sort_values(False)
+
+        data_count = pd.crosstab(
+            index=df_bar[LoggerColsEnum.REFERENCES],
+            columns=df_bar[LoggerColsEnum.IS_CORRECT],
+        ).reindex(data_prop.index)
+
+        return StackedBarChartData(
+            df, df_false, error_refs, top_error_refs_bar, data_prop, data_count
+        )
+
     def _plot_stacked_bar_chart(
-        self, data_prop, data_count, x_label, y_label, title, file_name
+        self, data: StackedBarChartData, x_label, y_label, title, file_name
     ):
+
+        plt.style.use("ggplot")
+        sns.set(style="darkgrid")
+
         plt.figure(figsize=(10, 15), dpi=200)
-        data_prop.plot(
+        data.proportions.plot(
             kind="barh",
             stacked=True,
             figsize=(10, 15),
@@ -87,11 +162,11 @@ class PredictionsLoggerBase(abc.ABC):
         plt.ylabel(y_label)
         plt.xlabel(x_label)
 
-        for n, x in enumerate([*data_count.index.values]):
+        for n, x in enumerate([*data.counts.index.values]):
             for proportion, count, y_loc in zip(
-                data_prop.loc[x],
-                data_count.loc[x],
-                data_prop.loc[x].cumsum(),
+                data.proportions.loc[x],
+                data.counts.loc[x],
+                data.proportions.loc[x].cumsum(),
             ):
 
                 plt.text(
@@ -120,62 +195,19 @@ class IntentsPredictionLogger(PredictionsLoggerBase):
         self.is_correct.append(is_correct)
 
     def visualize(self, out_dir: Path, top_k_bar=10, top_k_confusion=5):
-        plt.style.use("ggplot")
-        sns.set(style="darkgrid")
-
-        df = self._init_data_frame()
-
-        df_false = (
-            df[df[LoggerColsEnum.IS_CORRECT] == False]
-            .groupby(
-                [
-                    LoggerColsEnum.PREDICTIONS,
-                    LoggerColsEnum.REFERENCES,
-                    LoggerColsEnum.IS_CORRECT,
-                ]
-            )[LoggerColsEnum.IS_CORRECT]
-            .count()
-            .reset_index(name=LoggerColsEnum.COUNT)
-        )
-
-        error_refs = (
-            df_false.groupby([LoggerColsEnum.REFERENCES])[LoggerColsEnum.COUNT]
-            .sum()
-            .reset_index(name=LoggerColsEnum.COUNT)
-            .sort_values(LoggerColsEnum.COUNT, ascending=False)
-        )
-
-        # stacked hbar plot
-        top_error_refs_bar = error_refs[:top_k_bar]
-        df_bar = df[
-            df[LoggerColsEnum.REFERENCES].isin(
-                top_error_refs_bar[LoggerColsEnum.REFERENCES]
-            )
-        ]
-        # sorting values by predictions where is_correct is false
-        cross_tab_prop = pd.crosstab(
-            index=df_bar[LoggerColsEnum.REFERENCES],
-            columns=df_bar[LoggerColsEnum.IS_CORRECT],
-            normalize="index",
-        ).sort_values(False)
-
-        cross_tab_count = pd.crosstab(
-            index=df_bar[LoggerColsEnum.REFERENCES],
-            columns=df_bar[LoggerColsEnum.IS_CORRECT],
-        ).reindex(cross_tab_prop.index)
+        data = self._get_stacked_bar_chart_data()
 
         self._plot_stacked_bar_chart(
-            cross_tab_prop,
-            cross_tab_count,
+            data,
             "Proportion",
             "Intents",
             "Intents Accuracy",
             out_dir / "intents_prediction_distribution.png",
         )
 
-        top_error_refs_cm = list(cross_tab_prop.index[:top_k_confusion])
-        heatmap_data = df_false[
-            df_false[LoggerColsEnum.REFERENCES].isin(top_error_refs_cm)
+        top_error_refs_cm = list(data.proportions.index[:top_k_confusion])
+        heatmap_data = data.df_false[
+            data.df_false[LoggerColsEnum.REFERENCES].isin(top_error_refs_cm)
         ]
         cf_labels = np.unique(
             [
@@ -205,8 +237,7 @@ class RequestedSlotPredictionLogger(PredictionsLoggerBase):
         self.is_correct.append(is_correct)
 
     def visualize(self, out_dir: Path, top_k=15):
-        df = self._init_data_frame()
-        # df_false = df[df]
+        data = self._get_stacked_bar_chart_data()
 
 
 class BeliefGoalPredictionLogger(PredictionsLoggerBase):
@@ -284,4 +315,7 @@ class ActionGoalPredictionLogger(PredictionsLoggerBase):
         self.is_correct.append(is_correct)
 
     def visualize(self, out_dir: Path):
-        a = 1
+        return
+        df = self._init_data_frame()
+        df_false = self._get_false_predictions(df)
+        error_refs = self._get_data_grouped_by_false_references(df_false)
