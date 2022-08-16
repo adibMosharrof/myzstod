@@ -2,6 +2,34 @@ channels:
   - pytorch
   - defaults
 dependencies:
+  - _libgcc_mutex=0.1
+  - _openmp_mutex=5.1
+  - blas=1.0
+  - ca-certificates=2022.4.26
+  - certifi=2022.6.15
+  - cudatoolkit=11.3.1
+  - intel-openmp=2022.0.1
+  - ld_impl_linux-64=2.38
+  - libffi=3.3
+  - libgcc-ng=11.2.0
+  - libgomp=11.2.0
+  - libstdcxx-ng=11.2.0
+  - mkl=2022.0.1
+  - ncurses=6.3
+  - openssl=1.1.1p
+  - pip=21.2.4
+  - python=3.9.7
+  - pytorch=1.12.0
+  - pytorch-mutex=1.0
+  - readline=8.1.2
+  - setuptools=61.2.0
+  - sqlite=3.38.5
+  - tk=8.6.12
+  - typing_extensions=4.1.1
+  - tzdata=2022a
+  - wheel=0.37.1
+  - xz=5.2.5
+  - zlib=1.2.12
   - pip:
     - absl-py==1.1.0
     - aiohttp==3.8.1
@@ -30,6 +58,7 @@ dependencies:
     - hydra-core==1.2.0
     - idna==3.3
     - importlib-metadata==4.12.0
+    - iniconfig==1.1.1
     - joblib==1.1.0
     - kiwisolver==1.4.3
     - markdown==3.3.7
@@ -49,15 +78,18 @@ dependencies:
     - pathspec==0.9.0
     - pillow==9.2.0
     - platformdirs==2.5.2
+    - pluggy==1.0.0
     - pox==0.3.1
     - ppft==1.7.6.5
     - protobuf==3.19.4
+    - py==1.11.0
     - pyarrow==8.0.0
     - pyasn1==0.4.8
     - pyasn1-modules==0.2.8
     - pydeprecate==0.3.2
     - pyhumps==3.7.2
     - pyparsing==3.0.9
+    - pytest==7.1.2
     - python-dateutil==2.8.2
     - pytorch-lightning==1.6.4
     - pytz==2022.1
