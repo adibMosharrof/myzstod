@@ -2,7 +2,7 @@ from collections import deque
 from dataclasses import dataclass, field
 from enum import Enum
 from itertools import zip_longest
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 import torch
 
@@ -62,6 +62,9 @@ class SimpleTodAction:
             return self("", action_type, values, text)
         return self(domain, action_type, slot_name, values)
 
+    def __eq__(self, other) -> bool:
+        return self.domain == other.domain and self.action_type == other.action_type and self.slot_name == other.slot_name and self.values == other.values
+
     def is_inform(self) -> bool:
         return self.action_type == SimpleTodConstants.ACTION_TYPE_INFORM or self.action_type == SimpleTodConstants.ACTION_TYPE_INFORM_COUNT 
 
@@ -70,6 +73,35 @@ class SimpleTodAction:
 
     def __str__(self) -> str:
         return "".join([self.action_type, SimpleTodConstants.SLOT_VALUE_SEPARATOR, self.domain, SimpleTodConstants.DOMAIN_SLOT_SEPARATOR, self.slot_name, SimpleTodConstants.ACTION_VALUE_SEPARATOR, self.values])
+
+@dataclass
+class SimpleTodRequestedSlot:
+    domain: str
+    slot_name: str
+
+    @classmethod
+    def from_string(self, text: str):
+        try:
+            domain, slot_name = text.split(SimpleTodConstants.DOMAIN_SLOT_SEPARATOR)
+        except ValueError:
+            return self("", text)
+        return self(domain, slot_name)
+
+    def __repr__(self) -> str:
+        return self.__str__()
+
+    def __eq__(self, other) -> bool:
+        return self.domain == other.domain and self.slot_name == other.slot_name
+
+    def __str__(self) -> str:
+        return "".join(
+            [
+                self.domain,
+                SimpleTodConstants.DOMAIN_SLOT_SEPARATOR,
+                self.slot_name,
+            ]
+        )
+
 
 @dataclass
 class SimpleTodContext:
@@ -99,7 +131,7 @@ class SimpleTodTarget:
     actions: List[SimpleTodAction]
     response: str
     active_intent: Optional[str] = None
-    requested_slots: Optional[List[str]] = None
+    requested_slots: Optional[List[SimpleTodRequestedSlot]] = None
 
     def __repr__(self) -> str:
         return self.__str__()

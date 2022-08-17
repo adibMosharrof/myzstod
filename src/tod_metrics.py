@@ -16,6 +16,7 @@
 import abc
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from enum import Enum
 from pathlib import Path
 from typing import Optional, Tuple, Union
 
@@ -24,17 +25,17 @@ import numpy as np
 from sklearn.metrics import f1_score
 
 from predictions_logger import (
-    ActionGoalPredictionLogger,
-    GoalPredictionLogger,
     IntentsPredictionLogger,
+    PredictionLoggerFactory,
     PredictionsLoggerBase,
-    RequestedSlotPredictionLogger,
+    TodMetricsEnum,
 )
 from simple_tod_dataclasses import (
     GoalMetricConfigType,
     SimpleTodAction,
     SimpleTodBelief,
     SimpleTodConstants,
+    SimpleTodRequestedSlot,
     SpecialPredictions,
     SpecialTokens,
 )
@@ -57,7 +58,7 @@ class GoalMetricConfigFactory:
                 SpecialTokens.begin_action,
                 SpecialTokens.end_action,
                 GoalMetricConfigType.ACTION,
-                GoalPredictionLogger(step=GoalMetricConfigType.ACTION),
+                PredictionLoggerFactory.create(TodMetricsEnum.ACTION),
                 SimpleTodAction,
             )
         elif step == GoalMetricConfigType.BELIEF:
@@ -65,7 +66,7 @@ class GoalMetricConfigFactory:
                 SpecialTokens.begin_belief,
                 SpecialTokens.end_belief,
                 GoalMetricConfigType.BELIEF,
-                GoalPredictionLogger(step=GoalMetricConfigType.BELIEF),
+                PredictionLoggerFactory.create(TodMetricsEnum.BELIEF),
                 SimpleTodBelief,
             )
         else:
@@ -191,8 +192,9 @@ class MetricCollection:
 
 class IntentAccuracyMetric(TodMetricsBase):
     def __init__(self) -> None:
-        super().__init__(prediction_logger=IntentsPredictionLogger())
+        super().__init__()
         self.metric = evaluate.load("accuracy")
+        self.prediction_logger = IntentsPredictionLogger()
 
     def _add_batch(self, predictions: list[str], references: list[str]) -> None:
         target_intents = []
@@ -231,46 +233,66 @@ class IntentAccuracyMetric(TodMetricsBase):
 
 class RequestedSlotsMetric(TodMetricsBase):
     def __init__(self) -> None:
-        super().__init__(prediction_logger=RequestedSlotPredictionLogger())
+        super().__init__()
         self.all_preds = []
         self.all_refs = []
+        self.prediction_logger = PredictionLoggerFactory.create(
+            TodMetricsEnum.REQUESTED_SLOTS
+        )
 
     def _add_batch(self, predictions: list[str], references: list[str]) -> any:
         for ref, pred in zip(references, predictions):
 
-            target_slots = self._extract_section_and_split_items_from_text(
+            target_txt_items = self._extract_section_and_split_items_from_text(
                 ref,
                 SpecialTokens.begin_requested_slots,
                 SpecialTokens.end_requested_slots,
             )
+            target_slots = [
+                SimpleTodRequestedSlot.from_string(t) for t in target_txt_items
+            ]
+
             if not len(target_slots):
                 continue
-            pred_slots = self._extract_section_and_split_items_from_text(
+            pred_txt_items = self._extract_section_and_split_items_from_text(
                 pred,
                 SpecialTokens.begin_requested_slots,
                 SpecialTokens.end_requested_slots,
             )
+            pred_slots = [SimpleTodRequestedSlot.from_string(t) for t in pred_txt_items]
 
             if len(pred_slots) < len(target_slots):
                 diff = len(target_slots) - len(pred_slots)
-                pred_slots.extend([SpecialPredictions.DUMMY] * diff)
+                pred_slots.extend(
+                    [
+                        SimpleTodRequestedSlot(
+                            SpecialPredictions.DUMMY, SpecialPredictions.DUMMY
+                        )
+                        for _ in range(diff)
+                    ]
+                )
 
             for i, slot in enumerate(target_slots):
                 if slot in pred_slots:
-                    self.all_preds.append(slot)
-                    self.all_refs.append(slot)
+                    self.all_preds.append(str(slot))
+                    self.all_refs.append(str(slot))
                     self._log_prediction(ref=slot, pred=slot, is_correct=True)
                 else:
-                    self.all_preds.append(pred_slots[i])
-                    self.all_refs.append(slot)
+                    self.all_preds.append(str(pred_slots[i]))
+                    self.all_refs.append(str(slot))
                     self._log_prediction(ref=slot, pred=pred_slots[i], is_correct=False)
 
     def _compute(self) -> float:
-        return f1_score(self.all_refs, self.all_preds, average="macro") * 100
+        return (
+            f1_score(self.all_refs, self.all_preds, average="macro") * 100,
+            f1_score(self.all_refs, self.all_preds, average="micro") * 100,
+        )
 
     def __str__(self) -> str:
-        score = self.compute()
-        return f"Requested Slots Macro F1: {score:.2f}"
+        macro_score, micro_score = self.compute()
+        return (
+            f"Requested Slots Macro F1: {macro_score:.2f} Micro F1: {micro_score:.2f}"
+        )
 
 
 class BleuMetric(TodMetricsBase):
@@ -351,28 +373,45 @@ class SuccessMetric(TodMetricsBase):
     def __init__(self) -> None:
         super().__init__()
         self.all_success = []
+        self.prediction_logger = PredictionLoggerFactory.create(TodMetricsEnum.SUCCESS)
 
     def _add_batch(self, turn_predictions: list[str], references: list[str]) -> None:
         for ref, pred in zip(references, turn_predictions):
-            target_items = self._extract_section_and_split_items_from_text(
+            requested_slots_txt = self._extract_section_and_split_items_from_text(
                 ref,
                 SpecialTokens.begin_requested_slots,
                 SpecialTokens.end_requested_slots,
             )
-            if not len(target_items):
+            requested_slots = [
+                SimpleTodRequestedSlot.from_string(t) for t in requested_slots_txt
+            ]
+            if not len(requested_slots):
                 continue
-            pred_items = self._extract_section_and_split_items_from_text(
-                pred,
-                SpecialTokens.begin_requested_slots,
-                SpecialTokens.end_requested_slots,
+            target_actions_txt = self._extract_section_and_split_items_from_text(
+                ref,
+                SpecialTokens.begin_action,
+                SpecialTokens.end_action,
             )
+            target_actions = [
+                SimpleTodAction.from_string(t) for t in target_actions_txt
+            ]
+            target_items = [act for act in target_actions if act in requested_slots]
+            pred_items_txt = self._extract_section_and_split_items_from_text(
+                pred,
+                SpecialTokens.begin_action,
+                SpecialTokens.end_action,
+            )
+            pred_items = [SimpleTodAction.from_string(t) for t in pred_items_txt]
+
             batch_success = []
             for t in target_items:
                 if t in pred_items:
                     batch_success.append(1)
+                    self._log_prediction(ref=t, is_correct=True)
                 else:
                     self._add_wrong_pred(t)
                     batch_success.append(0)
+                    self._log_prediction(ref=t, is_correct=False)
             if not len(batch_success):
                 continue
             self.all_success.append(np.mean(batch_success))
@@ -389,6 +428,13 @@ class InformMetric(TodMetricsBase):
     def __init__(self) -> None:
         super().__init__()
         self.all_inform = []
+        self.prediction_logger = PredictionLoggerFactory.create(TodMetricsEnum.INFORM)
+
+    def _check(self, target: SimpleTodAction, preds: list[SimpleTodAction]) -> bool:
+        for p in preds:
+            if p.slot_name == target.slot_name:
+                return True
+        return False
 
     def _add_batch(self, turn_predictions: list[str], references: list[str]) -> None:
         for ref, pred in zip(references, turn_predictions):
@@ -408,11 +454,13 @@ class InformMetric(TodMetricsBase):
             for t in target_actions:
                 if not t.is_inform():
                     continue
-                if t in pred_actions:
+                # if t in pred_actions:
+                if self._check(t, pred_actions):
                     batch_inform.append(1)
+                    self._log_prediction(ref=t, is_correct=True)
                 else:
-                    self._add_wrong_pred(t)
                     batch_inform.append(0)
+                    self._log_prediction(ref=t, is_correct=False)
             if not len(batch_inform):
                 continue
             self.all_inform.append(np.mean(batch_inform))
@@ -425,10 +473,12 @@ class InformMetric(TodMetricsBase):
         return f"Inform: {avg_inform*100:.2f}"
 
 
-class ResponseBleuMetric(TodMetricsBase):
-    def __init__(self) -> None:
+class ResponseMetric(TodMetricsBase):
+    def __init__(self, metric_name="bleu", metric_key_name=None) -> None:
         super().__init__()
-        self.metric = evaluate.load("bleu")
+        self.metric_name = metric_name
+        self.metric = evaluate.load(metric_name)
+        self.metric_key_name = metric_key_name or metric_name
 
     def _add_batch(self, predictions: list[str], references: list[str]) -> None:
         pred_responses_batch = []
@@ -452,11 +502,14 @@ class ResponseBleuMetric(TodMetricsBase):
         )
 
     def _compute(self) -> float:
-        return self.metric.compute()["bleu"]
+        res = self.metric.compute()[self.metric_key_name]
+        if self.metric_name == "rouge":
+            return res.mid.fmeasure
+        return res
 
     def __str__(self) -> str:
         score = self.compute()
-        return f"Response BLEU: {score*100:.2f}"
+        return f"Response {self.metric_name.upper()}: {score*100:.2f}"
 
 
 class CombinedMetric(TodMetricsBase):
@@ -464,7 +517,7 @@ class CombinedMetric(TodMetricsBase):
         self,
         inform: InformMetric,
         success: SuccessMetric,
-        response_bleu: ResponseBleuMetric,
+        response_bleu: ResponseMetric,
     ) -> None:
         super().__init__()
         self.inform = inform

@@ -29,7 +29,7 @@ from tod_metrics import (
     IntentAccuracyMetric,
     MetricCollection,
     RequestedSlotsMetric,
-    ResponseBleuMetric,
+    ResponseMetric,
     SuccessMetric,
 )
 
@@ -80,7 +80,10 @@ class Inference:
                 "requested_slots": RequestedSlotsMetric(),
                 "inform": InformMetric(),
                 "success": SuccessMetric(),
-                "response_bleu": ResponseBleuMetric(),
+                "response_bleu": ResponseMetric(metric_name="bleu"),
+                "response_rouge": ResponseMetric(
+                    metric_name="rouge", metric_key_name="rouge2"
+                ),
             }
         )
         self.bleu_metrics = MetricCollection(

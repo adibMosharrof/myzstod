@@ -4,7 +4,7 @@ from dataclasses_json import dataclass_json
 from enum import Enum
 import humps
 import dstc_utils
-from simple_tod_dataclasses import SimpleTodConstants, Speaker
+from simple_tod_dataclasses import SimpleTodConstants, SimpleTodRequestedSlot, Speaker
 
 """
     DSTC Dialog Dataclass
@@ -62,7 +62,7 @@ class DstcTurn:
                 return frame.state.active_intent
         return None
 
-    def get_requested_slots(self) -> Optional[List[str]]:
+    def get_requested_slots(self) -> Optional[List[SimpleTodRequestedSlot]]:
         if self.speaker == Speaker.SYSTEM:
             return None
         for frame in self.frames:
@@ -70,13 +70,7 @@ class DstcTurn:
                 continue
             if len(frame.state.requested_slots):
                 return [
-                    "".join(
-                        [
-                            frame.service,
-                            SimpleTodConstants.DOMAIN_SLOT_SEPARATOR,
-                            humps.camelize(s),
-                        ],
-                    )
+                    SimpleTodRequestedSlot(frame.service, humps.camelize(s))
                     for s in frame.state.requested_slots
                 ]
         return None

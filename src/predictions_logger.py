@@ -15,13 +15,14 @@ from numerize.numerize import numerize
 from sklearn.metrics import confusion_matrix
 
 from simple_tod_dataclasses import GoalMetricConfigType, SimpleTodBelief
+from dotmap import DotMap
 
-
-class LoggerColsEnum:
-    PREDICTIONS = "predictions"
-    REFERENCES = "references"
-    IS_CORRECT = "is_correct"
-    COUNT = "count"
+logger_cols = DotMap(
+    PREDICTIONS="predictions",
+    REFERENCES="references",
+    IS_CORRECT="is_correct",
+    COUNT="count",
+)
 
 
 @dataclass
@@ -59,7 +60,7 @@ class PredictionsLoggerBase(abc.ABC):
             fmt="",
             linewidths=1,
             cmap="rocket_r",
-            annot_kws={"fontsize": 8},
+            annot_kws={"fontsize": 8 if cf_matrix.shape[0] < 20 else 6},
         )
         plt.xlabel(x_label)
         plt.ylabel(y_label)
@@ -81,67 +82,40 @@ class PredictionsLoggerBase(abc.ABC):
         plt.savefig(file_name)
         plt.close()
 
-    def _get_false_predictions(self, df, group_column=[LoggerColsEnum.REFERENCES]):
-        if LoggerColsEnum.PREDICTIONS in df.columns:
-            return (
-                df[df[LoggerColsEnum.IS_CORRECT] == False]
-                .groupby(
-                    [
-                        LoggerColsEnum.PREDICTIONS,
-                        LoggerColsEnum.REFERENCES,
-                        LoggerColsEnum.IS_CORRECT,
-                    ]
-                )[LoggerColsEnum.IS_CORRECT]
-                .count()
-                .reset_index(name=LoggerColsEnum.COUNT)
-            )
-        return (
-            df[df[LoggerColsEnum.IS_CORRECT] == False]
-            # .groupby(np.concatenate([group_columns, [LoggerColsEnum.IS_CORRECT]]))[
-            .groupby([group_column, LoggerColsEnum.IS_CORRECT])[
-                LoggerColsEnum.IS_CORRECT
-            ]
-            .count()
-            .reset_index(name=LoggerColsEnum.COUNT)
-        )
-
     def _get_stacked_bar_chart_data(
-        self, group_column=LoggerColsEnum.REFERENCES, top_k=10, df=None
+        self,
+        group_columns=[logger_cols.REFERENCES],
+        bar_group_column=logger_cols.REFERENCES,
+        top_k=10,
+        df=None,
     ) -> StackedBarChartData:
-
-        if df is None:
-            df = pd.DataFrame(
-                {
-                    LoggerColsEnum.REFERENCES: self.refs,
-                    LoggerColsEnum.IS_CORRECT: self.is_correct,
-                }
-            )
-            if len(self.preds):
-                df = pd.concat(
-                    [df, pd.DataFrame({LoggerColsEnum.PREDICTIONS: self.preds})], axis=1
-                )
-
-        df_false = self._get_false_predictions(df, group_column=group_column)
+        group_by = np.hstack([group_columns, [logger_cols.IS_CORRECT]]).tolist()
+        df_false = (
+            df[df[logger_cols.IS_CORRECT] == False]
+            .groupby(group_by)[logger_cols.IS_CORRECT]
+            .count()
+            .reset_index(name=logger_cols.COUNT)
+        )
         error_refs = (
-            df_false.groupby(group_column)[LoggerColsEnum.COUNT]
+            df_false.groupby(group_columns)[logger_cols.COUNT]
             .sum()
-            .reset_index(name=LoggerColsEnum.COUNT)
-            .sort_values(LoggerColsEnum.COUNT, ascending=False)
+            .reset_index(name=logger_cols.COUNT)
+            .sort_values(logger_cols.COUNT, ascending=False)
         )
 
         # stacked hbar plot
         top_error_refs_bar = error_refs[:top_k]
-        df_bar = df[df[group_column].isin(top_error_refs_bar[group_column])]
+        df_bar = df[df[bar_group_column].isin(top_error_refs_bar[bar_group_column])]
         # sorting values by predictions where is_correct is false
         data_prop = pd.crosstab(
-            index=df_bar[group_column],
-            columns=df_bar[LoggerColsEnum.IS_CORRECT],
+            index=df_bar[bar_group_column],
+            columns=df_bar[logger_cols.IS_CORRECT],
             normalize="index",
         ).sort_values(False)
 
         data_count = pd.crosstab(
-            index=df_bar[group_column],
-            columns=df_bar[LoggerColsEnum.IS_CORRECT],
+            index=df_bar[bar_group_column],
+            columns=df_bar[logger_cols.IS_CORRECT],
         ).reindex(data_prop.index)
 
         return StackedBarChartData(
@@ -188,6 +162,15 @@ class PredictionsLoggerBase(abc.ABC):
         plt.close()
 
 
+"""
+TODO: seems a little complex, so on hold
+extend generic logger class
+return data from visualize method
+call super visualize
+plot confusion matrix
+"""
+
+
 class IntentsPredictionLogger(PredictionsLoggerBase):
     def __init__(self):
         super().__init__()
@@ -198,7 +181,22 @@ class IntentsPredictionLogger(PredictionsLoggerBase):
         self.is_correct.append(is_correct)
 
     def visualize(self, out_dir: Path, top_k_bar=10, top_k_confusion=5):
-        data = self._get_stacked_bar_chart_data(top_k=top_k_bar)
+        df = pd.DataFrame(
+            {
+                logger_cols.REFERENCES: self.refs,
+                logger_cols.IS_CORRECT: self.is_correct,
+            }
+        )
+        if len(self.preds):
+            df = pd.concat(
+                [df, pd.DataFrame({logger_cols.PREDICTIONS: self.preds})], axis=1
+            )
+        data = self._get_stacked_bar_chart_data(
+            df=df,
+            top_k=top_k_bar,
+            group_columns=[logger_cols.REFERENCES, logger_cols.PREDICTIONS],
+            bar_group_column=logger_cols.REFERENCES,
+        )
 
         self._plot_stacked_bar_chart(
             data,
@@ -210,84 +208,29 @@ class IntentsPredictionLogger(PredictionsLoggerBase):
 
         top_error_refs_cm = list(data.proportions.index[:top_k_confusion])
         heatmap_data = data.df_false[
-            data.df_false[LoggerColsEnum.REFERENCES].isin(top_error_refs_cm)
+            data.df_false[logger_cols.REFERENCES].isin(top_error_refs_cm)
         ]
         cf_labels = np.unique(
             [
-                heatmap_data[LoggerColsEnum.REFERENCES],
-                heatmap_data[LoggerColsEnum.PREDICTIONS],
+                heatmap_data[logger_cols.REFERENCES],
+                heatmap_data[logger_cols.PREDICTIONS],
             ]
         )
 
         self.plot_confusion_matrix(
             cf_labels,
-            humps.camelize(LoggerColsEnum.PREDICTIONS),
-            humps.camelize(LoggerColsEnum.REFERENCES),
+            humps.camelize(logger_cols.PREDICTIONS),
+            humps.camelize(logger_cols.REFERENCES),
             "Intents Confusion Matrix",
             out_dir / "intents_confusion_matrix.png",
         )
 
 
-class RequestedSlotPredictionLogger(PredictionsLoggerBase):
-    def __init__(self):
+class GenericPredictionLogger(PredictionsLoggerBase):
+    def __init__(self, columns: list[str], metric_name: str):
         super().__init__()
-
-    def log(self, pred, ref, is_correct):
-        self.preds.append(pred)
-        self.refs.append(ref)
-        self.is_correct.append(is_correct)
-
-    def visualize(self, out_dir: Path, top_k=10):
-        data = self._get_stacked_bar_chart_data(top_k=top_k)
-        self._plot_stacked_bar_chart(
-            data,
-            "Proportion",
-            "Requested Slots",
-            "Requested Slots Predictions",
-            out_dir / "requested_slots_predictions.png",
-        )
-
-
-class GoalPredictionLogger(PredictionsLoggerBase):
-    def __init__(self, step: GoalMetricConfigType = GoalMetricConfigType.BELIEF):
-        super().__init__()
-        self.step = step
-        if step == GoalMetricConfigType.BELIEF:
-            self.columns = ["domain", "slot_name", "value"]
-        elif step == GoalMetricConfigType.ACTION:
-            self.columns = ["domain", "action_type", "slot_name", "values"]
-
-    def log(
-        self,
-        pred: Optional[SimpleTodBelief] = None,
-        ref: Optional[SimpleTodBelief] = None,
-        is_correct: bool = None,
-    ):
-        self.refs.append(ref)
-        self.is_correct.append(is_correct)
-
-    def visualize(self, out_dir: Path):
-        df = pd.concat(
-            [
-                pd.DataFrame(map(lambda x: x.__dict__, self.refs)),
-                pd.DataFrame(self.is_correct, columns=[LoggerColsEnum.IS_CORRECT]),
-            ],
-            axis=1,
-        )
-        for col in self.columns:
-            data = self._get_stacked_bar_chart_data(df=df, group_column=col)
-            self._plot_stacked_bar_chart(
-                data,
-                "Proportion",
-                f"{humps.pascalize(self.step.value)} {humps.pascalize(col)}s",
-                f"{humps.pascalize(col)} Predictions",
-                out_dir / f"{self.step}_{col}_predictions.png",
-            )
-
-
-class ActionGoalPredictionLogger(PredictionsLoggerBase):
-    def __init__(self):
-        super().__init__()
+        self.columns = columns
+        self.metric_name = metric_name
 
     def log(self, pred=None, ref=None, is_correct=None):
         self.refs.append(ref)
@@ -297,16 +240,39 @@ class ActionGoalPredictionLogger(PredictionsLoggerBase):
         df = pd.concat(
             [
                 pd.DataFrame(map(lambda x: x.__dict__, self.refs)),
-                pd.DataFrame(self.is_correct, columns=[LoggerColsEnum.IS_CORRECT]),
+                pd.DataFrame(self.is_correct, columns=[logger_cols.IS_CORRECT]),
             ],
             axis=1,
         )
-        for col in ["domain", "action_type", "slot_name", "values"]:
-            data = self._get_stacked_bar_chart_data(df=df, group_column=col)
+        for col in self.columns:
+            data = self._get_stacked_bar_chart_data(
+                df=df, group_columns=[col], bar_group_column=col
+            )
             self._plot_stacked_bar_chart(
                 data,
                 "Proportion",
-                f"Action {humps.pascalize(col)}s",
-                f"{humps.pascalize(col)} Predictions",
-                out_dir / f"action_{col}_predictions.png",
+                f"{humps.pascalize(self.metric_name)} {humps.pascalize(col)}s",
+                f"{humps.pascalize(self.metric_name)}{humps.pascalize(col)} Predictions",
+                out_dir / f"{self.metric_name}_{col}_predictions.png",
             )
+
+
+class TodMetricsEnum(str, Enum):
+    BELIEF = "belief"
+    ACTION = "action"
+    INFORM = "inform"
+    REQUESTED_SLOTS = "requested_slots"
+    SUCCESS = "success"
+
+
+class PredictionLoggerFactory:
+    @staticmethod
+    def create(metric: TodMetricsEnum) -> PredictionsLoggerBase:
+        if metric in [TodMetricsEnum.INFORM, TodMetricsEnum.REQUESTED_SLOTS]:
+            columns = ["domain", "slot_name"]
+        elif metric in [TodMetricsEnum.ACTION, TodMetricsEnum.SUCCESS]:
+            columns = ["domain", "action_type", "slot_name", "values"]
+        elif metric == TodMetricsEnum.BELIEF:
+            columns = ["domain", "slot_name", "value"]
+
+        return GenericPredictionLogger(metric_name=metric.value, columns=columns)
