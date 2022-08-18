@@ -44,3 +44,4 @@ domains:
   - Travel
   - Weather
 num_turns: 26
+train_domain_settings: ALL
