@@ -1,3 +1,14 @@
+overwrite: 
+  # - False
+  # - False
+  # - False
+  - True
+  - True
+  - True
+data_split_percent: 
+  - 1
+  - 1
+  - 1
 project_root: /mounts/u-amo-d0/grad/adibm/projects/generative_tod/
 data_root: processed_data/simple_tod
 out_root: figures/data_model_exploration
@@ -10,19 +21,5 @@ num_dialogs:
   - 34
 delexicalize: false
 model_name: gpt2
-domains:
-  - Buses
-  - Events
-  - Flights
-  - Homes
-  - Hotels
-  - Media
-  - Movies
-  - Music
-  - RentalCars
-  - Restaurants
-  - RideSharing
-  - Services
-  - Travel
-  - Weather
+domain_settings: seen
 num_turns: 26

@@ -9,7 +9,7 @@ data_split_percent:
   - 1
 eval_batch_size: 10
 test_batch_size: 80
-eval_accumulation_step: 25
+eval_accumulation_steps: 25
 output_dir: results
 logging_dir: logs
 logging_steps: 50
@@ -22,26 +22,18 @@ num_dialogs:
   - 127
   - 20
   - 34
+  # - 1
+  # - 1
+  # - 1
 overwrite:
-  - true
-  - true
-  - true
+  - false
+  - false
+  - false
+  # - true
+  # - true
+  # - true
 should_test: false
 generate_max_len: 1024
-domains:
-  - Buses
-  - Events
-  - Flights
-  - Homes
-  - Hotels
-  - Media
-  - Movies
-  - Music
-  - RentalCars
-  - Restaurants
-  - RideSharing
-  - Services
-  - Travel
-  - Weather
 num_turns: 26
 train_domain_settings: ALL
+is_multi_task: false

@@ -68,6 +68,7 @@ class Inference:
         self.logger = utils.get_logger()
         self.context_max_len = inf_config.context_max_len
         self.target_max_len = inf_config.target_max_len
+        self.is_multi_task = inf_config.is_multi_task
         self.tod_metrics = MetricCollection(
             {
                 "goal_accuracy": GoalMetric(
@@ -103,7 +104,6 @@ class Inference:
             data_prep_out_root=self.data_prep_out_root,
             raw_data_root=self.raw_data_root,
             project_root=self.project_root,
-            out_root=self.data_prep_out_root,
             eval_batch_size=self.eval_batch_size,
             test_batch_size=self.test_batch_size,
             data_split_percent=self.data_split_percent,
@@ -114,6 +114,7 @@ class Inference:
             domains=domains,
             num_turns=self.num_turns,
             overwrite=self.overwrite,
+            is_multi_task=self.is_multi_task,
         )
         dm.setup()
         return dm.test_dataloader()
@@ -123,7 +124,9 @@ class Inference:
         try:
             tokenizer = AutoTokenizer.from_pretrained(model_path.parent.parent)
         except OSError:
-            print('Could not find tokenizer for model "{}"'.format(model_path))
+            self.logger.info(
+                'Could not find tokenizer for model "{}"'.format(model_path)
+            )
             tokenizer = dstc_utils.get_tokenizer(self.model_name)
         return tokenizer
 
@@ -163,14 +166,21 @@ class Inference:
             all_predictions = []
             for batch in tqdm(test_dataloader):
                 batch: SimpleTodTestDataRow
+                # gen = self.model.generate(
+                #     inputs=batch.context_tokens.to(self.device),
+                #     attention_mask=batch.context_attention_masks.to(self.device),
+                #     do_sample=True,
+                #     top_k=50,
+                #     top_p=0.94,
+                #     max_length=self.generate_max_len,
+                #     temperature=0.5,
+                #     eos_token_id=self._get_token_id(SpecialTokens.end_response),
+                #     pad_token_id=self._get_token_id(TokenizerTokens.pad_token),
+                # )
                 gen = self.model.generate(
                     inputs=batch.context_tokens.to(self.device),
                     attention_mask=batch.context_attention_masks.to(self.device),
-                    do_sample=True,
-                    top_k=50,
-                    top_p=0.94,
                     max_length=self.generate_max_len,
-                    temperature=0.5,
                     eos_token_id=self._get_token_id(SpecialTokens.end_response),
                     pad_token_id=self._get_token_id(TokenizerTokens.pad_token),
                 )

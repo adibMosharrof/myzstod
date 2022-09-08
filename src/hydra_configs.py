@@ -3,6 +3,7 @@ from pathlib import Path
 from transformers import AutoTokenizer
 
 from dstc_dataclasses import DstcDomains
+import dstc_utils
 
 
 class InferenceConfig:
@@ -31,6 +32,7 @@ class InferenceConfig:
         tokenizer: AutoTokenizer = None,
         context_max_len: int = 600,
         target_max_len: int = 424,
+        is_multi_task: bool = False,
     ) -> None:
         self.num_workers = num_workers
         self.data_split_percent = data_split_percent or [1, 1, 0.1]
@@ -71,6 +73,7 @@ class InferenceConfig:
         self.target_max_len = target_max_len
         self.predictions_log_dir = Path(predictions_log_dir)
         self.predictions_log_dir.mkdir(parents=True, exist_ok=True)
+        self.is_multi_task = is_multi_task
 
 
 class TrainerConfig:
@@ -92,22 +95,23 @@ class TrainerConfig:
         overwrite: list[bool] = None,
         train_domain_settings: str = "SEEN",
         test_settings: list[str] = None,
-        train_settings: str = None,
-        output_dir: str = None,
+        train_settings: str = "seen",
+        output_dir: str = "results",
         pretrain_epochs: int = 1,
         pretrain_model_path: str = None,
         train_epochs: int = 1,
-        logging_dir: str = None,
+        logging_dir: str = "logs",
         generate_max_len: int = 1024,
         domains: list[str] = None,
         should_test: bool = False,
         logging_steps: int = 50,
-        context_max_len: int = 600,
-        target_max_len: int = 424,
+        context_max_len: int = 800,
+        target_max_len: int = 224,
         eval_accumulation_steps: int = 25,
+        is_multi_task: bool = False,
     ) -> None:
-        self.project_root = project_root
-        self.data_prep_out_root = data_prep_out_root
+        self.project_root = Path(project_root)
+        self.data_prep_out_root = Path(data_prep_out_root)
         self.model_name = model_name
         self.num_workers = num_workers
         self.data_split_percent = data_split_percent or [1, 1, 1]
@@ -119,12 +123,12 @@ class TrainerConfig:
         self.num_turns = num_turns
         self.overwrite = overwrite or [False, False, False]
         self.test_settings = test_settings or ["seen"]
-        self.output_dir = output_dir or "results"
+        self.output_dir = Path(output_dir)
         self.pretrain_epochs = pretrain_epochs
         self.train_epochs = train_epochs
-        self.train_settings = train_settings or "seen"
+        self.train_settings = train_settings
         self.pretrain_model_path = pretrain_model_path
-        self.logging_dir = logging_dir or "logs"
+        self.logging_dir = Path(logging_dir)
         self.generate_max_len = generate_max_len
         self.domains = (
             domains if domains else DstcDomains[train_domain_settings.upper()].value
@@ -137,3 +141,5 @@ class TrainerConfig:
         self.context_max_len = context_max_len
         self.target_max_len = target_max_len
         self.eval_accumulation_steps = eval_accumulation_steps
+        self.is_multi_task = is_multi_task
+        self.tokenizer = dstc_utils.get_tokenizer(model_name)

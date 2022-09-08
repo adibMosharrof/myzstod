@@ -17,6 +17,8 @@ from simple_tod_dataclasses import (
     SimpleTodDatasetItem,
     SimpleTodTestDataBatch,
     SimpleTodTurnCsvRow,
+    SpecialTokens,
+    get_multi_task_special_tokens,
 )
 import dstc_utils
 
@@ -27,25 +29,25 @@ class SimpleTodDataModule(pl.LightningDataModule):
 
     def __init__(
         self,
-        num_workers=0,
+        num_workers=8,
         batch_size=32,
         eval_batch_size=32,
         test_batch_size=32,
         data_split_percent: List[float] = None,
         project_root: str = None,
-        out_root: str = None,
-        raw_data_root: str = None,
-        data_prep_out_root: str = None,
+        raw_data_root: str = "data/dstc8-schema-guided-dialogue/",
+        data_prep_out_root: str = "processed_data/simple_tod",
         max_token_len: int = 128,
         num_dialogs: List[int] = None,
         preprocessing_model_name="simple_tod",
         dataset_name="dstc",
         model_name="gpt2",
         tokenizer=None,
-        delexicalize: bool = True,
-        overwrite: List[bool] = False,
+        delexicalize: bool = False,
+        overwrite: List[bool] = None,
         num_turns: int = 26,
         domains: List[str] = None,
+        is_multi_task: bool = False,
     ):
         super().__init__()
         self.num_workers = num_workers
@@ -53,7 +55,6 @@ class SimpleTodDataModule(pl.LightningDataModule):
         self.project_root = Path(project_root)
         self.processed_data_root = self.project_root / data_prep_out_root
         self.raw_data_root = raw_data_root
-        self.out_root = out_root
         self.batch_size = batch_size
         self.eval_batch_size = eval_batch_size
         self.test_batch_size = test_batch_size
@@ -63,22 +64,24 @@ class SimpleTodDataModule(pl.LightningDataModule):
         self.dataset_name = dataset_name
 
         self.datasets: Dict[str, Dataset] = {}
-        self.tokenizer = tokenizer
+        self.tokenizer = tokenizer or dstc_utils.get_tokenizer()
         self.delexicalize = delexicalize
         self.overwrite = overwrite or [False] * len(self.steps)
         self.num_turns = num_turns
         self.domains = domains or ["restaurant", "hotel", "attraction", "train"]
+        self.is_multi_task = is_multi_task
 
     def prepare_data(self):
         stdp = SimpleTODDSTCDataPrep(
             project_root=self.project_root,
             data_root=self.raw_data_root,
-            out_root=self.out_root,
+            out_root=self.processed_data_root,
             num_dialogs=self.num_dialogs,
             domains=self.domains,
             num_turns=self.num_turns,
             overwrite=self.overwrite,
             delexicalize=self.delexicalize,
+            is_multi_task=self.is_multi_task,
         )
         stdp.run()
 
@@ -95,6 +98,7 @@ class SimpleTodDataModule(pl.LightningDataModule):
                 self.processed_data_root,
                 num_turns=self.num_turns,
                 domains=self.domains,
+                is_multi_task=self.is_multi_task,
             )
             data = utils.read_csv_dataclass(csv_path, SimpleTodTurnCsvRow)
             data = data[: int(len(data) * split_percent)]
@@ -158,7 +162,10 @@ class SimpleTodDataModule(pl.LightningDataModule):
             max_length=self.max_token_len,
         )
 
-    def training_collator(self, batch: SimpleTodDatasetItem):
+    def training_collator(self, batch: list[SimpleTodDatasetItem]):
+        if self.is_multi_task:
+            batch = self.multi_task_preprocessor(batch)
+
         input_ids = []
         attention_masks = []
         labels = []
@@ -198,7 +205,9 @@ class SimpleTodDataModule(pl.LightningDataModule):
             "labels": torch.stack(labels),
         }
 
-    def pretraining_collator(self, batch):
+    def pretraining_collator(self, batch: list[SimpleTodDatasetItem]):
+        if self.is_multi_task:
+            batch = self.multi_task_preprocessor(batch)
         texts = [x.context + x.target for x in batch]
         targets = [x.target for x in batch]
         texts_tokens = self.tokenizer(
@@ -232,6 +241,36 @@ class SimpleTodDataModule(pl.LightningDataModule):
             contexts,
             targets,
         )
+
+    def _extract_from_target(self, target, start_token, end_token):
+        try:
+            start_index = target.index(start_token)
+            end_index = target.index(end_token)
+        except ValueError:
+            raise ValueError(
+                f"could not find start or end token in target, {start_token}, {end_token}"
+            )
+        return target[start_index : end_index + len(end_token)]
+
+    def multi_task_preprocessor(
+        self, batch: list[SimpleTodDatasetItem]
+    ) -> list[SimpleTodDatasetItem]:
+        out = []
+        multi_task_special_tokens = get_multi_task_special_tokens()
+        for item in batch:
+            for mtst in multi_task_special_tokens:
+                try:
+                    text = self._extract_from_target(
+                        item.target, mtst.start_token, mtst.end_token
+                    )
+                except ValueError:
+                    continue
+                row = SimpleTodDatasetItem(
+                    context=item.context + mtst.prompt_token,
+                    target=text,
+                )
+                out.append(row)
+        return out
 
 
 class SimpleTodDataSet(Dataset):

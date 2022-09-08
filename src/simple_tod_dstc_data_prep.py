@@ -22,6 +22,8 @@ from simple_tod_dataclasses import (
     SimpleTodContext,
     SimpleTodTarget,
     SimpleTodTurn,
+    SpecialTokens,
+    get_multi_task_special_tokens,
 )
 
 
@@ -36,6 +38,7 @@ class SimpleTODDSTCDataPrep:
         overwrite: List[bool] = None,
         domains: List[str] = None,
         num_turns: int = 55,
+        is_multi_task: bool = False,
     ):
         self.project_root = Path(project_root)
         self.data_root = self.project_root / data_root
@@ -46,6 +49,17 @@ class SimpleTODDSTCDataPrep:
         self.overwrite = overwrite or [False, False, False]
         self.domains = domains or ["Buses", "Hotels", "Events"]
         self.num_turns = num_turns
+        self.is_multi_task = is_multi_task
+
+    """
+        A context contains a list of user and system turns. The data format expects system turn first, and then user turn.
+        
+        In the first turn, system turn is null and there is only a user turn and the system turn is placed in 
+        the next system utterance of the current context.
+
+        If we have a previous turn, we make a deep copy of it. Check context length by number of turns.
+        The system utterance for this turn is the next system utterance of the previous context.
+    """
 
     def _prepare_context(
         self,
@@ -55,22 +69,24 @@ class SimpleTODDSTCDataPrep:
         schemas: Dict[str, DstcSchema],
     ):
         if not prev_tod_turn:
-            context = SimpleTodContext()
+            context = SimpleTodContext(max_length=self.num_turns)
         else:
             context = copy.deepcopy(prev_tod_turn.context)
-            if len(context.system_utterances) == self.num_turns:
-                context.system_utterances.popleft()
+            # if len(context.system_utterances) == self.num_turns:
+            #     context.system_utterances.popleft()
             context.system_utterances.append(
                 prev_tod_turn.context.next_system_utterance
             )
+            context.user_utterances.append(prev_tod_turn.context.current_user_utterance)
 
         if user_turn:
             utterance = user_turn.utterance
             if self.delexicalize:
                 utterance = self._delexicalize_utterance(user_turn, schemas)
-            if len(context.user_utterances) == self.num_turns:
-                context.user_utterances.popleft()
-            context.user_utterances.append(utterance)
+            # if len(context.user_utterances) == self.num_turns:
+            #     context.user_utterances.popleft()
+            # context.user_utterances.append(utterance)
+            context.current_user_utterance = utterance
         if system_turn:
             utterance = system_turn.utterance
             if self.delexicalize:
@@ -184,6 +200,42 @@ class SimpleTODDSTCDataPrep:
             for ds in dialogue_services
         )
 
+    def _extract_from_target(self, target, start_token, end_token):
+        try:
+            start_index = target.index(start_token)
+            end_index = target.index(end_token)
+        except ValueError:
+            raise ValueError(
+                f"could not find start or end token in target, {start_token}, {end_token}"
+            )
+        return "".join(
+            [
+                SpecialTokens.begin_target,
+                target[start_index : end_index + len(end_token)],
+                SpecialTokens.end_target,
+            ]
+        )
+
+    def _prepare_multitask_dialog(self, turn: SimpleTodTurn) -> list[str]:
+        out = []
+        multi_task_special_tokens = get_multi_task_special_tokens()
+
+        for mtst in multi_task_special_tokens:
+            try:
+                text = self._extract_from_target(
+                    str(turn.target), mtst.start_token, mtst.end_token
+                )
+            except ValueError:
+                continue
+            row = SimpleTodTurn(
+                dialog_id=turn.dialog_id,
+                turn_id=turn.turn_id,
+                context=str(turn.context) + mtst.prompt_token,
+                target=text,
+            )
+            out.append(row.to_csv_row())
+        return out
+
     def _prepare_dialog(
         self, dstc_dialog: DstcDialog, schemas: Dict[str, DstcSchema]
     ) -> Optional[List[SimpleTodTurn]]:
@@ -198,8 +250,14 @@ class SimpleTODDSTCDataPrep:
             tod_turn = self._prepare_turn(user_turn, system_turn, tod_turn, schemas)
             tod_turn.dialog_id = dstc_dialog.dialogue_id
             tod_turn.turn_id = i + 1
-            tod_turns.append(tod_turn.to_csv_row())
-        return tod_turns
+            if self.is_multi_task:
+                tod_turns.append(self._prepare_multitask_dialog(tod_turn))
+            else:
+                tod_turns.append(tod_turn.to_csv_row())
+        if not self.is_multi_task:
+            return tod_turns
+        out = np.concatenate(tod_turns, axis=0)
+        return out
 
     def _prepare_dialog_file(
         self, path: Path, schemas: Dict[str, DstcSchema]
@@ -258,6 +316,7 @@ class SimpleTODDSTCDataPrep:
                 domains=self.domains,
                 processed_data_root=self.out_root,
                 num_turns=self.num_turns,
+                is_multi_task=self.is_multi_task,
             )
             if csv_file_path.exists() and not should_overwrite:
                 print(
@@ -265,21 +324,21 @@ class SimpleTODDSTCDataPrep:
                 )
                 continue
 
-            res = list(
-                tqdm(
-                    Pool().imap(
-                        self._prepare_dialog_file,
-                        dialog_paths[:num_dialog],
-                        itertools.repeat(schemas),
-                    ),
-                    total=num_dialog,
-                )
-            )
-            # res = []
-            # for d in tqdm(dialog_paths[:num_dialog]):
-            #     output = self._prepare_dialog_file(d, schemas)
-            #     if res is not None:
-            #         res.append(output)
+            # res = list(
+            #     tqdm(
+            #         Pool().imap(
+            #             self._prepare_dialog_file,
+            #             dialog_paths[:num_dialog],
+            #             itertools.repeat(schemas),
+            #         ),
+            #         total=num_dialog,
+            #     )
+            # )
+            res = []
+            for d in tqdm(dialog_paths[:num_dialog]):
+                output = self._prepare_dialog_file(d, schemas)
+                if res is not None:
+                    res.append(output)
             out_data = [d for d in res if len(d)]
             headers = ["dialog_id", "turn_id", "context", "target"]
             if len(out_data) == 0:

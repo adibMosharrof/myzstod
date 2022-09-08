@@ -1,47 +1,31 @@
-model_name: gpt2
 pretrain_epochs: 2
-train_epochs: 3
-num_workers: 8
-train_batch_size: 8
+train_epochs: 2
+train_batch_size: 9
 data_split_percent:
-  - .1
-  - .1
-  - .1
+  - .01
+  - .01
+  - .01
+  # - 1
+  # - 1
+  # - 1
 eval_batch_size: 10
-test_batch_size: 80
-eval_accumulation_step: 25
-output_dir: results
-logging_dir: logs
-logging_steps: 50
+test_batch_size: 30
 max_token_len: 700
-raw_data_root: data/dstc8-schema-guided-dialogue/
-project_root: /mounts/u-amo-d0/grad/adibm/projects/generative_tod/
-data_prep_out_root: processed_data/simple_tod
-delexicalize: false
 num_dialogs: 
   - 1
   - 1
   - 1
+  # - 127
+  # - 20
+  # - 34
 overwrite:
-  - true
-  - true
-  - true
+  # - true
+  # - true
+  # - true
+  - false 
+  - false 
+  - false 
 should_test: false
-generate_max_len: 1024
-domains:
-  - Buses
-  - Events
-  - Flights
-  - Homes
-  - Hotels
-  - Media
-  - Movies
-  - Music
-  - RentalCars
-  - Restaurants
-  - RideSharing
-  - Services
-  - Travel
-  - Weather
 num_turns: 26
 train_domain_settings: ALL
+is_multi_task: true

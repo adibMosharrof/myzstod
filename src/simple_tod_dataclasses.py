@@ -6,6 +6,7 @@ from typing import Dict, List, Optional, Union
 
 import torch
 
+
 @dataclass
 class SimpleTodBelief:
     domain: str
@@ -18,7 +19,7 @@ class SimpleTodBelief:
         try:
             dom_slot, value = text.split(SimpleTodConstants.SLOT_VALUE_SEPARATOR)
         except ValueError:
-            return self("", "","", text)
+            return self("", "", "", text)
         try:
             domain, slot_name = dom_slot.split(SimpleTodConstants.DOMAIN_SLOT_SEPARATOR)
         except ValueError:
@@ -39,6 +40,7 @@ class SimpleTodBelief:
             ]
         )
 
+
 @dataclass
 class SimpleTodAction:
     domain: str
@@ -46,33 +48,53 @@ class SimpleTodAction:
     slot_name: Optional[str] = ""
     values: Optional[str] = ""
     prediction: Optional[str] = ""
+
     @classmethod
     def from_string(self, text: str):
         try:
             action_type, rest = text.split(SimpleTodConstants.SLOT_VALUE_SEPARATOR)
         except ValueError:
-            return self("","", prediction=text)
+            return self("", "", prediction=text)
         try:
             dom_slot, values = rest.split(SimpleTodConstants.ACTION_VALUE_SEPARATOR)
         except ValueError:
-            return self("",action_type, prediction=text)
-        try:    
+            return self("", action_type, prediction=text)
+        try:
             domain, slot_name = dom_slot.split(SimpleTodConstants.DOMAIN_SLOT_SEPARATOR)
         except ValueError:
             return self("", action_type, values, text)
         return self(domain, action_type, slot_name, values)
 
     def __eq__(self, other) -> bool:
-        return self.domain == other.domain and self.action_type == other.action_type and self.slot_name == other.slot_name and self.values == other.values
+        return (
+            self.domain == other.domain
+            and self.action_type == other.action_type
+            and self.slot_name == other.slot_name
+            and self.values == other.values
+        )
 
     def is_inform(self) -> bool:
-        return self.action_type == SimpleTodConstants.ACTION_TYPE_INFORM or self.action_type == SimpleTodConstants.ACTION_TYPE_INFORM_COUNT 
+        return (
+            self.action_type == SimpleTodConstants.ACTION_TYPE_INFORM
+            or self.action_type == SimpleTodConstants.ACTION_TYPE_INFORM_COUNT
+        )
 
     def __repr__(self) -> str:
         return self.__str__()
 
     def __str__(self) -> str:
-        return "".join([self.action_type, SimpleTodConstants.SLOT_VALUE_SEPARATOR, self.domain, SimpleTodConstants.DOMAIN_SLOT_SEPARATOR, self.slot_name, SimpleTodConstants.ACTION_VALUE_SEPARATOR, self.values])
+        return "".join(
+            [
+                self.action_type,
+                SimpleTodConstants.SLOT_VALUE_SEPARATOR,
+                self.domain,
+                SimpleTodConstants.DOMAIN_SLOT_SEPARATOR,
+                self.slot_name,
+                SimpleTodConstants.ACTION_VALUE_SEPARATOR,
+                self.values,
+            ]
+        )
+
 
 @dataclass
 class SimpleTodRequestedSlot:
@@ -108,6 +130,11 @@ class SimpleTodContext:
     user_utterances: deque[str] = field(default_factory=deque)
     system_utterances: deque[str] = field(default_factory=deque)
     next_system_utterance: str = None
+    current_user_utterance: str = None
+
+    def __init__(self, max_length: int = 10):
+        self.user_utterances = deque(maxlen=max_length)
+        self.system_utterances = deque(maxlen=max_length)
 
     def __repr__(self) -> str:
         return self.__str__()
@@ -121,7 +148,12 @@ class SimpleTodContext:
                 out += SpecialTokens.user + user
             if system:
                 out += SpecialTokens.system + system
-        out += SpecialTokens.end_context + SimpleTodConstants.NEW_LINES
+
+        out += (
+            SpecialTokens.begin_last_user_utterance
+            + self.current_user_utterance
+            + SpecialTokens.end_last_user_utterance
+        )
         return out
 
 
@@ -146,7 +178,9 @@ class SimpleTodTarget:
 
         if self.requested_slots:
             out += SpecialTokens.begin_requested_slots
-            out += SimpleTodConstants.ITEM_SEPARATOR.join(map(str, self.requested_slots))
+            out += SimpleTodConstants.ITEM_SEPARATOR.join(
+                map(str, self.requested_slots)
+            )
             out += SpecialTokens.end_requested_slots + SimpleTodConstants.NEW_LINES
 
         out += SpecialTokens.begin_belief
@@ -166,6 +200,14 @@ class SimpleTodTarget:
 
 
 @dataclass
+class SimpleTodTurnCsvRow:
+    dialog_id: str
+    turn_id: str
+    context: str
+    target: str
+
+
+@dataclass
 class SimpleTodTurn:
     context: SimpleTodContext
     target: SimpleTodTarget
@@ -176,14 +218,6 @@ class SimpleTodTurn:
         return [self.dialog_id, self.turn_id, str(self.context), str(self.target)]
 
 
-@dataclass
-class SimpleTodTurnCsvRow:
-    dialog_id: str
-    turn_id: str
-    context: str
-    target: str
-
-
 class Speaker(str, Enum):
     SYSTEM = "SYSTEM"
     USER = "USER"
@@ -191,11 +225,14 @@ class Speaker(str, Enum):
 
 class SpecialTokens(str, Enum):
     begin_target = "<|begintarget|>"
+    end_target = "<|endtarget|>"
 
     begin_context = "<|begincontext|>"
     end_context = "<|endcontext|>"
     system = "<|system|>"
     user = "<|user|>"
+    begin_last_user_utterance = "<|beginlastuserutterance|>"
+    end_last_user_utterance = "<|endlastuserutterance|>"
 
     begin_belief = "<|beginbelief|>"
     end_belief = "<|endbelief|>"
@@ -211,6 +248,12 @@ class SpecialTokens(str, Enum):
 
     begin_requested_slots = "<|beginrequestedslots|>"
     end_requested_slots = "<|endrequestedslots|>"
+
+    prompt_intent = "<|promptintent|>"
+    prompt_requested_slots = "<|promptrequestedslots|>"
+    prompt_belief = "<|promptbelief|>"
+    prompt_action = "<|promptaction|>"
+    prompt_response = "<|promptresponse|>"
 
     @classmethod
     def list(cls):
@@ -239,6 +282,7 @@ class SimpleTodConstants(str, Enum):
     ACTION_TYPE_INFORM = "INFORM"
     ACTION_TYPE_INFORM_COUNT = "INFORM_COUNT"
 
+
 class GoalMetricConfigType(str, Enum):
     ACTION = "action"
     BELIEF = "belief"
@@ -246,8 +290,10 @@ class GoalMetricConfigType(str, Enum):
     def __repr__(self) -> str:
         return self.value
 
+
 class SpecialPredictions(str, Enum):
     DUMMY = "DUMMY"
+
 
 # Datamodule classes
 @dataclass
@@ -286,4 +332,39 @@ class SimpleTodTestDataBatch:
         ):
             yield SimpleTodTestDataRow(*item)
 
-    
+
+@dataclass
+class MultiTaskSpecialTokens:
+    start_token: SpecialTokens
+    end_token: SpecialTokens
+    prompt_token: SpecialTokens
+
+
+def get_multi_task_special_tokens() -> list[MultiTaskSpecialTokens]:
+    return [
+        MultiTaskSpecialTokens(
+            SpecialTokens.begin_intent,
+            SpecialTokens.end_intent,
+            SpecialTokens.prompt_intent,
+        ),
+        MultiTaskSpecialTokens(
+            SpecialTokens.begin_requested_slots,
+            SpecialTokens.end_requested_slots,
+            SpecialTokens.prompt_requested_slots,
+        ),
+        MultiTaskSpecialTokens(
+            SpecialTokens.begin_belief,
+            SpecialTokens.end_belief,
+            SpecialTokens.prompt_belief,
+        ),
+        MultiTaskSpecialTokens(
+            SpecialTokens.begin_action,
+            SpecialTokens.end_action,
+            SpecialTokens.prompt_action,
+        ),
+        MultiTaskSpecialTokens(
+            SpecialTokens.begin_response,
+            SpecialTokens.end_response,
+            SpecialTokens.prompt_response,
+        ),
+    ]

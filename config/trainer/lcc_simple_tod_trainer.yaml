@@ -26,7 +26,7 @@ overwrite:
   - true
   - true
   - true
-should_test: true
+should_test: false
 generate_max_len: 1024
 domains:
   - Buses
@@ -45,3 +45,4 @@ domains:
   - Weather
 num_turns: 26
 train_domain_settings: ALL
+is_multi_task: true

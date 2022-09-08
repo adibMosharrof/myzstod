@@ -443,6 +443,8 @@ class InformMetric(TodMetricsBase):
                 SpecialTokens.begin_action,
                 SpecialTokens.end_action,
             )
+            if not len(target_items):
+                continue
             pred_items = self._extract_section_and_split_items_from_text(
                 pred,
                 SpecialTokens.begin_action,
@@ -489,6 +491,8 @@ class ResponseMetric(TodMetricsBase):
                 SpecialTokens.begin_response,
                 SpecialTokens.end_response,
             )
+            if not target_response:
+                continue
             pred_response = self._extract_section_from_text(
                 pred,
                 SpecialTokens.begin_response,

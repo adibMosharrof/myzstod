@@ -237,6 +237,8 @@ class GenericPredictionLogger(PredictionsLoggerBase):
         self.is_correct.append(is_correct)
 
     def visualize(self, out_dir: Path):
+        if not len(self.refs):
+            return
         df = pd.concat(
             [
                 pd.DataFrame(map(lambda x: x.__dict__, self.refs)),

@@ -6,6 +6,7 @@ from typing import List
 from transformers import AutoTokenizer, PreTrainedTokenizerFast
 
 from simple_tod_dataclasses import SimpleTodConstants, SpecialTokens, TokenizerTokens
+from tokenizers.processors import TemplateProcessing
 
 
 def get_dstc_service_name(service_name: str) -> str:
@@ -25,11 +26,12 @@ def get_csv_data_path(
     processed_data_root: Path = None,
     domains: List[str] = None,
     num_turns: int = 26,
+    is_multi_task: bool = False,
 ):
     step_dir = processed_data_root / step
     return (
         step_dir
-        / f"simple_tod_dstc_turns_{num_turns}_dialogs_{num_dialogs}{SimpleTodConstants.DELEXICALIZED if delexicalized else ''}_{'_'.join(domains)}.csv"
+        / f"simple_tod_dstc_multi_task_{is_multi_task}_turns_{num_turns}_dialogs_{num_dialogs}{SimpleTodConstants.DELEXICALIZED if delexicalized else ''}_{'_'.join(domains)}.csv"
     )
 
 
@@ -45,4 +47,11 @@ def get_tokenizer(model_name: str = "gpt2") -> PreTrainedTokenizerFast:
     )
     special_tokens = SpecialTokens.list()
     tokenizer.add_tokens(special_tokens, special_tokens=True)
+    tokenizer._tokenizer.post_processor = TemplateProcessing(
+        single=f"{tokenizer.bos_token}:0 $A:0 {tokenizer.eos_token}:0",
+        special_tokens=[
+            (tokenizer.bos_token, tokenizer.bos_token_id),
+            (tokenizer.eos_token, tokenizer.eos_token_id),
+        ],
+    )
     return tokenizer
