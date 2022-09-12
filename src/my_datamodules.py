@@ -154,23 +154,32 @@ class SimpleTodDataModule(pl.LightningDataModule):
             max_length=self.test_max_token_len,
         )
 
-    def train_eval_tokenize(self, item):
+    def train_tokenizer(self, item):
         return self.tokenizer.encode(
             item,
             return_tensors="pt",
+            padding="max_length",
         )
 
-    def training_collator(self, batch: list[SimpleTodDatasetItem]):
-        if self.is_multi_task:
-            batch = self.multi_task_preprocessor(batch)
+    def pretrain_tokenizer(self, item: list[str]):
+        tokens = self.train_tokenizer(item)[0]
+        if len(tokens) > self.max_token_len:
+            extra_tokens = len(tokens) - self.max_token_len - 2
+            start_tokens = tokens[:2]
+            trimmed_tokens = torch.cat([start_tokens, tokens[extra_tokens:]])
+            return trimmed_tokens
+        return tokens
 
+    def training_collator(self, batch: list[SimpleTodDatasetItem]):
+        # if self.is_multi_task:
+        #     batch = self.multi_task_preprocessor(batch)
         input_ids = []
         attention_masks = []
         labels = []
 
         for item in batch:
-            context_tokens = self.train_eval_tokenize(item.context)[0]
-            target_tokens = self.train_eval_tokenize(item.target)[0]
+            context_tokens = self.train_tokenizer(item.context)[0]
+            target_tokens = self.train_tokenizer(item.target)[0]
             context_len = len(context_tokens)
             target_len = len(target_tokens)
             unused_len = self.max_token_len - context_len - target_len
@@ -207,20 +216,18 @@ class SimpleTodDataModule(pl.LightningDataModule):
         }
 
     def pretraining_collator(self, batch: list[SimpleTodDatasetItem]):
-        if self.is_multi_task:
-            batch = self.multi_task_preprocessor(batch)
-        texts = [x.context + x.target for x in batch]
-        targets = [x.target for x in batch]
-        texts_tokens = self.tokenizer(
-            texts,
-            return_tensors="pt",
-            truncation=True,
-            padding="max_length",
-            max_length=self.max_token_len,
-        )
-        targets_tokens = self.tokenize(targets)
+        # if self.is_multi_task:
+        #     batch = self.multi_task_preprocessor(batch)
+        # texts = [x.context + x.target for x in batch]
+        # texts_tokens = self.tokenizer(
+        #     texts,
+        #     return_tensors="pt",
+        #     truncation=True,
+        #     padding="max_length",
+        #     max_length=self.max_token_len,
+        # )
+        texts_tokens = [self.pretrain_tokenizer(x.context + x.target) for x in batch]
         input_ids = torch.stack([*texts_tokens["input_ids"]])
-        labels = torch.stack([*targets_tokens["input_ids"]])
         return {
             "input_ids": input_ids,
             "attention_mask": torch.stack([*texts_tokens["attention_mask"]]),

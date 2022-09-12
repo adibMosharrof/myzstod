@@ -35,9 +35,12 @@ def get_csv_data_path(
     )
 
 
-def get_tokenizer(model_name: str = "gpt2") -> PreTrainedTokenizerFast:
+def get_tokenizer(
+    model_name: str = "gpt2", max_token_len: int = 700
+) -> PreTrainedTokenizerFast:
     tokenizer = AutoTokenizer.from_pretrained(
         model_name,
+        model_max_length=max_token_len,
         truncation_side="left",
         pad_token=TokenizerTokens.pad_token,
         bos_token=TokenizerTokens.bos_token,
@@ -55,3 +58,7 @@ def get_tokenizer(model_name: str = "gpt2") -> PreTrainedTokenizerFast:
         ],
     )
     return tokenizer
+
+
+def get_token_id(tokenizer: AutoTokenizer, token_str: str) -> int:
+    return tokenizer(token_str)["input_ids"][0]

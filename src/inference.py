@@ -127,7 +127,7 @@ class Inference:
             self.logger.info(
                 'Could not find tokenizer for model "{}"'.format(model_path)
             )
-            tokenizer = dstc_utils.get_tokenizer(self.model_name)
+            tokenizer = dstc_utils.get_tokenizer(self.model_name, self.max_token_len)
         return tokenizer
 
     def _get_model(self, model):

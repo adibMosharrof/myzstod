@@ -38,30 +38,6 @@ class SimpleTODTrainer:
         trainer_config: TrainerConfig,
     ) -> None:
         self.cfg = trainer_config
-        # self.model_name = trainer_config.model_name
-        # self.pretrain_epochs = trainer_config.pretrain_epochs
-        # self.train_epochs = trainer_config.train_epochs
-        # self.train_batch_size = trainer_config.train_batch_size
-        # self.eval_batch_size = trainer_config.eval_batch_size
-        # self.test_batch_size = trainer_config.test_batch_size
-        # self.data_split_percent = trainer_config.data_split_percent
-        # self.eval_accumulation_steps = trainer_config.eval_accumulation_steps
-        # self.output_dir = Path(trainer_config.output_dir)
-        # self.logging_dir = trainer_config.logging_dir
-        # self.logging_steps = trainer_config.logging_steps
-        # self.max_token_len = trainer_config.max_token_len
-        # self.raw_data_root = trainer_config.raw_data_root
-        # self.data_prep_out_root = trainer_config.data_prep_out_root
-        # self.project_root = Path(trainer_config.project_root)
-        # self.num_workers = trainer_config.num_workers
-        # self.delexicalize = trainer_config.delexicalize
-        # self.num_dialogs = trainer_config.num_dialogs
-        # self.should_test = trainer_config.should_test
-        # self.generate_max_len = trainer_config.generate_max_len
-        # self.overwrite = trainer_config.overwrite
-        # self.domains = trainer_config.domains
-        # self.num_turns = trainer_config.num_turns
-        # self.pretrain_model_path = trainer_config.pretrain_model_path
 
     def run(self):
 
