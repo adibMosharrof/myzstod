@@ -158,8 +158,6 @@ class SimpleTodDataModule(pl.LightningDataModule):
         return self.tokenizer.encode(
             item,
             return_tensors="pt",
-            truncation=True,
-            max_length=self.max_token_len,
         )
 
     def training_collator(self, batch: list[SimpleTodDatasetItem]):
@@ -178,8 +176,11 @@ class SimpleTodDataModule(pl.LightningDataModule):
             unused_len = self.max_token_len - context_len - target_len
             # handling case when input is greater than tokenizer length
             if unused_len < 0:
-                context_start_token = context_tokens[0]
-                context_tokens = context_tokens[unused_len * -1 :]
+                context_start_tokens = context_tokens[:2]
+                trimmed_context = context_tokens[unused_len * -1 + 2 :]
+                context_tokens = torch.cat(
+                    [context_start_tokens, trimmed_context], axis=0
+                )
                 context_len = len(context_tokens)
                 unused_len = 0
 
