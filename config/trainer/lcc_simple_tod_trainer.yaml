@@ -2,7 +2,7 @@ model_name: gpt2
 pretrain_epochs: 5
 train_epochs: 10
 num_workers: 8
-train_batch_size: 6
+train_batch_size: 10
 data_split_percent:
   - 1
   - 1
@@ -23,9 +23,12 @@ num_dialogs:
   - 20
   - 34
 overwrite:
-  - true
-  - true
-  - true
+  #- true
+  #- true
+  #- true
+  - false
+  - false
+  - false
 should_test: false
 generate_max_len: 1024
 domains:
