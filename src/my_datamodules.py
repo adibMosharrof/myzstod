@@ -158,21 +158,23 @@ class SimpleTodDataModule(pl.LightningDataModule):
         return self.tokenizer.encode(
             item,
             return_tensors="pt",
-            padding="max_length",
         )
 
-    def pretrain_tokenizer(self, item: list[str]):
-        tokens = self.train_tokenizer(item)[0]
-        if len(tokens) > self.max_token_len:
-            extra_tokens = len(tokens) - self.max_token_len - 2
-            start_tokens = tokens[:2]
-            trimmed_tokens = torch.cat([start_tokens, tokens[extra_tokens:]])
-            return trimmed_tokens
-        return tokens
+    def get_training_labels(self, context_len, unused_len, target_tokens):
+        return torch.cat(
+            [
+                torch.full([context_len], self._huggingface_ignore_label_id),
+                target_tokens,
+                torch.full([unused_len], self._huggingface_ignore_label_id),
+            ]
+        )
 
-    def training_collator(self, batch: list[SimpleTodDatasetItem]):
-        # if self.is_multi_task:
-        #     batch = self.multi_task_preprocessor(batch)
+    def pretraining_collator(self, batch: list[SimpleTodDatasetItem]):
+        return self.training_collator(batch, True)
+
+    def training_collator(
+        self, batch: list[SimpleTodDatasetItem], is_pretrain: bool = False
+    ):
         input_ids = []
         attention_masks = []
         labels = []
@@ -195,13 +197,16 @@ class SimpleTodDataModule(pl.LightningDataModule):
 
             pad = torch.full([unused_len], self.tokenizer.pad_token_id)
             input_tokens = torch.cat([context_tokens, target_tokens, pad])
-            label = torch.cat(
-                [
-                    torch.full([context_len], self._huggingface_ignore_label_id),
-                    target_tokens,
-                    torch.full([unused_len], self._huggingface_ignore_label_id),
-                ]
-            )
+            if is_pretrain:
+                label = input_tokens
+            else:
+                label = torch.cat(
+                    [
+                        torch.full([context_len], self._huggingface_ignore_label_id),
+                        target_tokens,
+                        torch.full([unused_len], self._huggingface_ignore_label_id),
+                    ]
+                )
             attention_mask = torch.cat(
                 [torch.full([context_len + target_len], 1), torch.full([unused_len], 0)]
             )
@@ -213,25 +218,6 @@ class SimpleTodDataModule(pl.LightningDataModule):
             "input_ids": torch.stack(input_ids),
             "attention_mask": torch.stack(attention_masks),
             "labels": torch.stack(labels),
-        }
-
-    def pretraining_collator(self, batch: list[SimpleTodDatasetItem]):
-        # if self.is_multi_task:
-        #     batch = self.multi_task_preprocessor(batch)
-        # texts = [x.context + x.target for x in batch]
-        # texts_tokens = self.tokenizer(
-        #     texts,
-        #     return_tensors="pt",
-        #     truncation=True,
-        #     padding="max_length",
-        #     max_length=self.max_token_len,
-        # )
-        texts_tokens = [self.pretrain_tokenizer(x.context + x.target) for x in batch]
-        input_ids = torch.stack([*texts_tokens["input_ids"]])
-        return {
-            "input_ids": input_ids,
-            "attention_mask": torch.stack([*texts_tokens["attention_mask"]]),
-            "labels": input_ids,
         }
 
     def my_test_collate(self, batch):

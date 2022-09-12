@@ -120,6 +120,7 @@ class Inference:
         return dm.test_dataloader()
 
     def _get_tokenizer(self, model_path_str):
+        # return dstc_utils.get_tokenizer(self.model_name)
         model_path = self.project_root / model_path_str
         try:
             tokenizer = AutoTokenizer.from_pretrained(model_path.parent.parent)
@@ -127,7 +128,7 @@ class Inference:
             self.logger.info(
                 'Could not find tokenizer for model "{}"'.format(model_path)
             )
-            tokenizer = dstc_utils.get_tokenizer(self.model_name, self.max_token_len)
+            tokenizer = dstc_utils.get_tokenizer(self.model_name)
         return tokenizer
 
     def _get_model(self, model):
@@ -181,8 +182,9 @@ class Inference:
                     inputs=batch.context_tokens.to(self.device),
                     attention_mask=batch.context_attention_masks.to(self.device),
                     max_length=self.generate_max_len,
-                    eos_token_id=self._get_token_id(SpecialTokens.end_response),
+                    eos_token_id=self._get_token_id(TokenizerTokens.eos_token),
                     pad_token_id=self._get_token_id(TokenizerTokens.pad_token),
+                    bos_token_id=self._get_token_id(TokenizerTokens.bos_token),
                 )
                 gen_without_context = gen[:, self.max_token_len :]
                 pred_text = self.tokenizer.batch_decode(

@@ -142,4 +142,4 @@ class TrainerConfig:
         self.target_max_len = target_max_len
         self.eval_accumulation_steps = eval_accumulation_steps
         self.is_multi_task = is_multi_task
-        self.tokenizer = dstc_utils.get_tokenizer(model_name, max_token_len)
+        self.tokenizer = dstc_utils.get_tokenizer(model_name)
