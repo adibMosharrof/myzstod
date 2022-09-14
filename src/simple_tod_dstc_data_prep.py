@@ -7,13 +7,13 @@ import numpy as np
 from omegaconf import DictConfig, ListConfig, OmegaConf
 from tqdm import tqdm
 import humps
+from my_enums import Steps
 
 import utils
 from pathos.multiprocessing import ProcessingPool as Pool
 
-from dstc_dataclasses import DstcDialog, DstcFrame, DstcSchema, DstcTurn, Steps
+from dstc_dataclasses import DstcDialog, DstcFrame, DstcSchema, DstcTurn
 from dstc_utils import get_csv_data_path, get_dialog_file_paths, get_dstc_service_name
-import itertools
 
 from simple_tod_dataclasses import (
     SimpleTodAction,

@@ -8,29 +8,19 @@ from tqdm import tqdm
 from transformers import AutoTokenizer, GPT2LMHeadModel, GPT2PreTrainedModel
 
 import dstc_utils
+from metrics.intent_accuracy_metric import IntentAccuracyMetric
+from metrics.response_metrics import ResponseMetric
+from metrics.tod_metrics_base import MetricCollection
+from metrics.goal_metric import GoalMetric, GoalMetricConfigFactory
+from metrics.requested_slots_metric import RequestedSlotsMetric
+from metrics.dstc_metrics import InformMetric, SuccessMetric, CombinedMetric
+from my_enums import DstcDomains, GoalMetricConfigType, TestSettings, TokenizerTokens
 import utils
-from dstc_dataclasses import DstcDomains, TestSettings
 from hydra_configs import InferenceConfig
 from my_datamodules import SimpleTodDataModule
 from simple_tod_dataclasses import (
-    GoalMetricConfigType,
-    SimpleTodAction,
-    SimpleTodBelief,
     SimpleTodConstants,
     SimpleTodTestDataRow,
-    SpecialTokens,
-    TokenizerTokens,
-)
-from tod_metrics import (
-    CombinedMetric,
-    GoalMetric,
-    GoalMetricConfigFactory,
-    InformMetric,
-    IntentAccuracyMetric,
-    MetricCollection,
-    RequestedSlotsMetric,
-    ResponseMetric,
-    SuccessMetric,
 )
 
 

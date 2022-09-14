@@ -8,16 +8,14 @@ from responses import target
 import torch
 from torch.utils.data import DataLoader, Dataset, default_collate
 from transformers import AutoTokenizer, PreTrainedTokenizerFast
-from dstc_dataclasses import Steps
+from my_enums import Steps
 
 import utils
 from simple_tod_dstc_data_prep import SimpleTODDSTCDataPrep
 from simple_tod_dataclasses import (
-    SimpleTodConstants,
     SimpleTodDatasetItem,
     SimpleTodTestDataBatch,
     SimpleTodTurnCsvRow,
-    SpecialTokens,
     get_multi_task_special_tokens,
 )
 import dstc_utils

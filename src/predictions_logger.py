@@ -1,11 +1,7 @@
 import abc
 from dataclasses import dataclass
 from enum import Enum
-from fileinput import filename
 from pathlib import Path
-from tokenize import group
-from typing import Optional
-
 import humps
 import matplotlib.pyplot as plt
 import numpy as np
@@ -14,8 +10,9 @@ import seaborn as sns
 from numerize.numerize import numerize
 from sklearn.metrics import confusion_matrix
 
-from simple_tod_dataclasses import GoalMetricConfigType, SimpleTodBelief
 from dotmap import DotMap
+
+from my_enums import TodMetricsEnum
 
 logger_cols = DotMap(
     PREDICTIONS="predictions",
@@ -257,14 +254,6 @@ class GenericPredictionLogger(PredictionsLoggerBase):
                 f"{humps.pascalize(self.metric_name)}{humps.pascalize(col)} Predictions",
                 out_dir / f"{self.metric_name}_{col}_predictions.png",
             )
-
-
-class TodMetricsEnum(str, Enum):
-    BELIEF = "belief"
-    ACTION = "action"
-    INFORM = "inform"
-    REQUESTED_SLOTS = "requested_slots"
-    SUCCESS = "success"
 
 
 class PredictionLoggerFactory:

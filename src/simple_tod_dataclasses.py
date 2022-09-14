@@ -1,10 +1,11 @@
 from collections import deque
 from dataclasses import dataclass, field
-from enum import Enum
 from itertools import zip_longest
 from typing import Dict, List, Optional, Union
 
 import torch
+
+from my_enums import SimpleTodConstants, SpecialTokens
 
 
 @dataclass
@@ -216,83 +217,6 @@ class SimpleTodTurn:
 
     def to_csv_row(self) -> List[any]:
         return [self.dialog_id, self.turn_id, str(self.context), str(self.target)]
-
-
-class Speaker(str, Enum):
-    SYSTEM = "SYSTEM"
-    USER = "USER"
-
-
-class SpecialTokens(str, Enum):
-    begin_target = "<|begintarget|>"
-    end_target = "<|endtarget|>"
-
-    begin_context = "<|begincontext|>"
-    end_context = "<|endcontext|>"
-    system = "<|system|>"
-    user = "<|user|>"
-    begin_last_user_utterance = "<|beginlastuserutterance|>"
-    end_last_user_utterance = "<|endlastuserutterance|>"
-
-    begin_belief = "<|beginbelief|>"
-    end_belief = "<|endbelief|>"
-
-    begin_response = "<|beginresponse|>"
-    end_response = "<|endresponse|>"
-
-    begin_action = "<|beginaction|>"
-    end_action = "<|endaction|>"
-
-    begin_intent = "<|beginintent|>"
-    end_intent = "<|endintent|>"
-
-    begin_requested_slots = "<|beginrequestedslots|>"
-    end_requested_slots = "<|endrequestedslots|>"
-
-    prompt_intent = "<|promptintent|>"
-    prompt_requested_slots = "<|promptrequestedslots|>"
-    prompt_belief = "<|promptbelief|>"
-    prompt_action = "<|promptaction|>"
-    prompt_response = "<|promptresponse|>"
-
-    @classmethod
-    def list(cls):
-        return [c.value for c in cls]
-
-
-class TokenizerTokens(str, Enum):
-    pad_token = "<|pad|>"
-    eos_token = "<|endoftext|>"
-    bos_token = "<|startoftext|>"
-
-    def __str__(self) -> str:
-        return self.value
-
-    def __repr__(self) -> str:
-        return self.__str__()
-
-
-class SimpleTodConstants(str, Enum):
-    DELEXICALIZED = "_delexicalized"
-    SLOT_VALUE_SEPARATOR = "->"
-    DOMAIN_SLOT_SEPARATOR = "_"
-    ITEM_SEPARATOR = "|"
-    ACTION_VALUE_SEPARATOR = "<-"
-    NEW_LINES = "\n\n"
-    ACTION_TYPE_INFORM = "INFORM"
-    ACTION_TYPE_INFORM_COUNT = "INFORM_COUNT"
-
-
-class GoalMetricConfigType(str, Enum):
-    ACTION = "action"
-    BELIEF = "belief"
-
-    def __repr__(self) -> str:
-        return self.value
-
-
-class SpecialPredictions(str, Enum):
-    DUMMY = "DUMMY"
 
 
 # Datamodule classes

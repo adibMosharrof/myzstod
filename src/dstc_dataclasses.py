@@ -4,11 +4,8 @@ from dataclasses_json import dataclass_json
 from enum import Enum
 import humps
 import dstc_utils
-from simple_tod_dataclasses import SimpleTodConstants, SimpleTodRequestedSlot, Speaker
-
-"""
-    DSTC Dialog Dataclass
-"""
+from my_enums import Speaker
+from simple_tod_dataclasses import SimpleTodRequestedSlot
 
 
 @dataclass
@@ -88,14 +85,6 @@ class DstcDialog:
         self.turns = turns
         self.services = [dstc_utils.get_dstc_service_name(s) for s in services]
 
-    # @property
-    # def services(self) -> List[str]:
-    #     return self._services
-
-    # @services.setter
-    # def services(self, values: List[str]):
-    #     self._services = [dstc_utils.get_dstc_service_name(value) for value in values]
-
 
 @dataclass
 class DstcSchemaIntent:
@@ -142,50 +131,3 @@ class DstcSchema:
     slots: List[DstcSchemaSlot]
     intents: List[DstcSchemaIntent]
     step: Optional[str] = None
-
-
-class Steps(str, Enum):
-    TRAIN = "train"
-    DEV = "dev"
-    TEST = "test"
-
-    @classmethod
-    def list(cls):
-        return [c.value for c in cls]
-
-
-class TestSettings(str, Enum):
-    SEEN = "seen"
-    UNSEEN = "unseen"
-    ALL = "all"
-    CUSTOM = "custom"
-
-
-class DstcDomains(list[str], Enum):
-    SEEN = [
-        "Banks",
-        "Buses",
-        "Calendar",
-        "Events",
-        "Flights",
-        "Homes",
-        "Hotels",
-        "Media",
-        "Movies",
-        "Music",
-        "RentalCars",
-        "Restaurants",
-        "RideSharing",
-        "Services",
-        "Travel",
-        "Weather",
-    ]
-    UNSEEN = [
-        "Alarm",
-        "Messaging",
-        "Payment",
-        "Train",
-    ]
-    ALL = SEEN + UNSEEN
-
-    
