@@ -1,5 +1,5 @@
 from metrics.tod_metrics_base import TodMetricsBase
-from simple_tod_dataclasses import SpecialTokens
+from my_enums import SpecialTokens
 import evaluate
 
 

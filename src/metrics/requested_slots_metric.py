@@ -1,10 +1,9 @@
 from sklearn.metrics import f1_score
 from metrics.tod_metrics_base import TodMetricsBase
+from my_enums import SpecialPredictions, SpecialTokens
 from predictions_logger import PredictionLoggerFactory, TodMetricsEnum
 from simple_tod_dataclasses import (
     SimpleTodRequestedSlot,
-    SpecialPredictions,
-    SpecialTokens,
 )
 
 

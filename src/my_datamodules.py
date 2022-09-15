@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, Iterable, List
 
 import numpy as np
 import pytorch_lightning as pl
@@ -13,10 +13,8 @@ from my_enums import Steps
 import utils
 from simple_tod_dstc_data_prep import SimpleTODDSTCDataPrep
 from simple_tod_dataclasses import (
-    SimpleTodDatasetItem,
     SimpleTodTestDataBatch,
     SimpleTodTurnCsvRow,
-    get_multi_task_special_tokens,
 )
 import dstc_utils
 
@@ -83,12 +81,11 @@ class SimpleTodDataModule(pl.LightningDataModule):
         )
         stdp.run()
 
-    def setup(self, stage: str = None):
+    def setup(self):
         self.prepare_data()
         for step, split_percent, num_dialog in zip(
             self.steps, self.data_split_percent, self.num_dialogs
         ):
-
             csv_path = dstc_utils.get_csv_data_path(
                 step,
                 num_dialog,
@@ -104,27 +101,7 @@ class SimpleTodDataModule(pl.LightningDataModule):
                 data, tokenizer=self.tokenizer, max_token_len=self.max_token_len
             )
 
-    def train_dataloader(self):
-        return DataLoader(
-            self.datasets[Steps.TRAIN],
-            batch_size=self.batch_size,
-            shuffle=True,
-            num_workers=self.num_workers,
-            collate_fn=self.training_collator,
-            pin_memory=True,
-        )
-
-    def val_dataloader(self):
-        return DataLoader(
-            self.datasets[Steps.DEV],
-            batch_size=self.eval_batch_size,
-            shuffle=True,
-            num_workers=self.num_workers,
-            collate_fn=self.training_collator,
-            pin_memory=True,
-        )
-
-    def test_dataloader(self):
+    def test_dataloader(self) -> Iterable[SimpleTodTestDataBatch]:
         return DataLoader(
             self.datasets[Steps.TEST],
             batch_size=self.test_batch_size,
@@ -167,11 +144,11 @@ class SimpleTodDataModule(pl.LightningDataModule):
             ]
         )
 
-    def pretraining_collator(self, batch: list[SimpleTodDatasetItem]):
+    def pretraining_collator(self, batch: list[SimpleTodTurnCsvRow]):
         return self.training_collator(batch, True)
 
     def training_collator(
-        self, batch: list[SimpleTodDatasetItem], is_pretrain: bool = False
+        self, batch: list[SimpleTodTurnCsvRow], is_pretrain: bool = False
     ):
         input_ids = []
         attention_masks = []
@@ -218,9 +195,15 @@ class SimpleTodDataModule(pl.LightningDataModule):
             "labels": torch.stack(labels),
         }
 
-    def my_test_collate(self, batch):
-        contexts = [x.context for x in batch]
-        targets = [x.target for x in batch]
+    def my_test_collate(self, batch: list[SimpleTodTurnCsvRow]):
+        # dialog_ids, turn_ids, contexts, targets = zip(*batch)
+        dialog_ids, turn_ids, contexts, targets = [], [], [], []
+        for item in batch:
+            dialog_ids.append(item.dialog_id)
+            turn_ids.append(item.turn_id)
+            contexts.append(item.context)
+            targets.append(item.target)
+
         contexts_tokens, targets_tokens = self.tokenize(contexts), self.tokenize(
             targets
         )
@@ -232,6 +215,8 @@ class SimpleTodDataModule(pl.LightningDataModule):
             torch.stack([*targets_tokens["attention_mask"]]),
             contexts,
             targets,
+            dialog_ids,
+            turn_ids,
         )
 
     def _extract_from_target(self, target, start_token, end_token):
@@ -243,26 +228,6 @@ class SimpleTodDataModule(pl.LightningDataModule):
                 f"could not find start or end token in target, {start_token}, {end_token}"
             )
         return target[start_index : end_index + len(end_token)]
-
-    def multi_task_preprocessor(
-        self, batch: list[SimpleTodDatasetItem]
-    ) -> list[SimpleTodDatasetItem]:
-        out = []
-        multi_task_special_tokens = get_multi_task_special_tokens()
-        for item in batch:
-            for mtst in multi_task_special_tokens:
-                try:
-                    text = self._extract_from_target(
-                        item.target, mtst.start_token, mtst.end_token
-                    )
-                except ValueError:
-                    continue
-                row = SimpleTodDatasetItem(
-                    context=item.context + mtst.prompt_token,
-                    target=text,
-                )
-                out.append(row)
-        return out
 
 
 class SimpleTodDataSet(Dataset):
@@ -277,22 +242,11 @@ class SimpleTodDataSet(Dataset):
         self.max_token_len = max_token_len
 
     def tokenize(self, text: str):
-        # tokens = self.tokenizer.encode_plus(
-        # tokens = self.tokenizer.encode_plus(
-        #     text,
-        #     add_special_tokens=True,
-        #     return_tensors="pt",
-        #     truncation=True,
-        #     padding="max_length",
-        #     max_length=self.max_token_len,
-        #     return_attention_mask=True,
-        # )
+
         tokens = self.tokenizer(
             text, truncation=True, max_length=self.max_token_len, padding="max_length"
         )
         return {
-            # "input_ids": tokens.input_ids.flatten(),
-            # "attention_mask": tokens.attention_mask.flatten(),
             "input_ids": tokens["input_ids"],
             "attention_mask": tokens["attention_mask"],
         }
@@ -300,7 +254,5 @@ class SimpleTodDataSet(Dataset):
     def __len__(self):
         return len(self.data)
 
-    def __getitem__(self, idx):
-        row: SimpleTodTurnCsvRow = self.data[idx]
-        # return self.tokenize(row.context), self.tokenize(row.target)
-        return SimpleTodDatasetItem(row.context, row.target)
+    def __getitem__(self, idx) -> SimpleTodTurnCsvRow:
+        return self.data[idx]

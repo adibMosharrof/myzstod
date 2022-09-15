@@ -5,8 +5,9 @@ from typing import List
 
 from transformers import AutoTokenizer, PreTrainedTokenizerFast
 
-from simple_tod_dataclasses import SimpleTodConstants, SpecialTokens, TokenizerTokens
 from tokenizers.processors import TemplateProcessing
+
+from my_enums import SimpleTodConstants, SpecialTokens, TokenizerTokens
 
 
 def get_dstc_service_name(service_name: str) -> str:
@@ -60,3 +61,13 @@ def get_tokenizer(model_name: str = "gpt2") -> PreTrainedTokenizerFast:
 
 def get_token_id(tokenizer: AutoTokenizer, token_str: str) -> int:
     return tokenizer(token_str)["input_ids"][0]
+
+
+def get_text_in_between(text: str, start: str, end: str) -> str:
+    return text[text.find(start) + len(start) : text.find(end)]
+
+
+def remove_tokens_from_text(text: str, tokens: List[str]) -> str:
+    for token in tokens:
+        text = text.replace(token, "")
+    return text

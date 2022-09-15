@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Optional
 
 from predictions_logger import PredictionsLoggerBase
-from simple_tod_dataclasses import SimpleTodConstants
+from my_enums import SimpleTodConstants
 
 
 class TodMetricsBase(ABC):

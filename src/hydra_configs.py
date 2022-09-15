@@ -2,7 +2,7 @@ from pathlib import Path
 
 from transformers import AutoTokenizer
 
-from dstc_dataclasses import DstcDomains
+from my_enums import DstcDomains
 import dstc_utils
 
 

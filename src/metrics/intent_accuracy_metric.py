@@ -1,6 +1,6 @@
 from metrics.tod_metrics_base import TodMetricsBase
+from my_enums import SpecialPredictions, SpecialTokens
 from predictions_logger import IntentsPredictionLogger
-from simple_tod_dataclasses import SpecialPredictions, SpecialTokens
 
 import evaluate
 

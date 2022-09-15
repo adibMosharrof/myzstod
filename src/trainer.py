@@ -100,7 +100,7 @@ class SimpleTODTrainer:
             eval_dataset=dm.datasets["dev"],
             data_collator=dm.pretraining_collator,
         )
-        pre_trainer.pad_token_id = self.cfg.tokenizer.pad_token_id
+        # pre_trainer.pad_token_id = self.cfg.tokenizer.pad_token_id
         if not self.cfg.pretrain_model_path:
             pre_trainer.train()
             pre_trainer.save_model()
@@ -116,7 +116,7 @@ class SimpleTODTrainer:
             eval_dataset=dm.datasets["dev"],
             data_collator=dm.training_collator,
         )
-        trainer.pad_token_id = self.cfg.tokenizer.pad_token_id
+        # trainer.pad_token_id = self.cfg.tokenizer.pad_token_id
         trainer.train()
         trainer.save_model()
 

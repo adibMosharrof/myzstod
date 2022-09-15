@@ -19,8 +19,8 @@ import utils
 from hydra_configs import InferenceConfig
 from my_datamodules import SimpleTodDataModule
 from simple_tod_dataclasses import (
+    InferenceRecords,
     SimpleTodConstants,
-    SimpleTodTestDataRow,
 )
 
 
@@ -54,7 +54,8 @@ class Inference:
         self.domains = inf_config.domains or ["restaurant", "hotel", "attraction"]
         self.num_turns = inf_config.num_turns
         self.overwrite = inf_config.overwrite
-        self.padding_regexp = re.compile(re.escape(TokenizerTokens.pad_token))
+        # self.padding_regexp = re.compile(re.escape(TokenizerTokens.pad_token))
+        self.padding_regexp = re.compile(re.escape(TokenizerTokens.bos_token))
         self.logger = utils.get_logger()
         self.context_max_len = inf_config.context_max_len
         self.target_max_len = inf_config.target_max_len
@@ -153,10 +154,8 @@ class Inference:
             headers = ["target", "prediction"]
             text_csv_out_path = f"simple_tod_dstc_predictions_{setting}_{self.num_turns}_dialogs_{self.num_dialogs}{SimpleTodConstants.DELEXICALIZED if self.delexicalize else ''}_{'_'.join(domains)}.csv"
             test_dataloader = self._get_dataloader(domains)
-            all_targets = []
-            all_predictions = []
+            inf_records = InferenceRecords()
             for batch in tqdm(test_dataloader):
-                batch: SimpleTodTestDataRow
                 # gen = self.model.generate(
                 #     inputs=batch.context_tokens.to(self.device),
                 #     attention_mask=batch.context_attention_masks.to(self.device),
@@ -181,17 +180,25 @@ class Inference:
                     gen_without_context, skip_special_tokens=False
                 )
                 pred_text_no_pad = [self._remove_padding(text) for text in pred_text]
-                self.tod_metrics.add_batch(
-                    references=batch.targets_text, predictions=pred_text_no_pad
+                if not self.is_multi_task:
+                    self.tod_metrics.add_batch(
+                        references=batch.targets_text, predictions=pred_text_no_pad
+                    )
+                    self.bleu_metrics.add_batch(
+                        references=batch.targets_text, predictions=pred_text_no_pad
+                    )
+                inf_records.add(
+                    pred_text_no_pad,
+                    batch.targets_text,
+                    batch.dialog_ids,
+                    batch.turn_ids,
                 )
-                self.bleu_metrics.add_batch(
-                    references=batch.targets_text, predictions=pred_text_no_pad
-                )
-                all_targets.append(batch.targets_text)
-                all_predictions.append(pred_text_no_pad)
-            all_predictions = np.concatenate(all_predictions, axis=0)
-            all_targets = np.concatenate(all_targets, axis=0)
-            test_csv_out_data = np.column_stack([all_targets, all_predictions])
+            inf_records.concat_data()
+            test_csv_out_data = np.column_stack([inf_records.refs, inf_records.preds])
+            if self.is_multi_task:
+                preds, refs = inf_records.get_data_for_multitask()
+                self.tod_metrics.add_batch(references=refs, predictions=preds)
+                self.bleu_metrics.add_batch(references=refs, predictions=preds)
             utils.write_csv(headers, test_csv_out_data, text_csv_out_path)
             self.logger.info(str(self.tod_metrics))
             self.logger.info(str(self.bleu_metrics))

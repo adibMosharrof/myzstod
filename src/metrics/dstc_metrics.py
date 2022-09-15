@@ -1,12 +1,11 @@
 import numpy as np
-from transformers import SpecialTokensMixin
 from metrics.response_metrics import ResponseMetric
 from metrics.tod_metrics_base import TodMetricsBase
+from my_enums import SpecialTokens
 from predictions_logger import PredictionLoggerFactory, TodMetricsEnum
 from simple_tod_dataclasses import (
     SimpleTodAction,
     SimpleTodRequestedSlot,
-    SpecialTokens,
 )
 
 
@@ -20,7 +19,7 @@ class SuccessMetric(TodMetricsBase):
         for ref, pred in zip(references, turn_predictions):
             requested_slots_txt = self._extract_section_and_split_items_from_text(
                 ref,
-                SpecialTokensMixin.begin_requested_slots,
+                SpecialTokens.begin_requested_slots,
                 SpecialTokens.end_requested_slots,
             )
             requested_slots = [

@@ -3,6 +3,7 @@ from typing import Union
 
 import numpy as np
 from metrics.tod_metrics_base import TodMetricsBase
+from my_enums import GoalMetricConfigType, SpecialTokens
 from predictions_logger import (
     PredictionLoggerFactory,
     PredictionsLoggerBase,
@@ -10,10 +11,8 @@ from predictions_logger import (
 )
 
 from simple_tod_dataclasses import (
-    GoalMetricConfigType,
     SimpleTodAction,
     SimpleTodBelief,
-    SpecialTokens,
 )
 
 

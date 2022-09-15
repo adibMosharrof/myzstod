@@ -1,11 +1,14 @@
-from collections import deque
+from collections import defaultdict, deque
 from dataclasses import dataclass, field
 from itertools import zip_longest
-from typing import Dict, List, Optional, Union
+from typing import DefaultDict, Dict, List, Optional, Union
+import numpy as np
+import pandas as pd
 
 import torch
 
-from my_enums import SimpleTodConstants, SpecialTokens
+from my_enums import SimpleTodConstants, SpecialTokens, TokenizerTokens
+import dstc_utils
 
 
 @dataclass
@@ -220,41 +223,18 @@ class SimpleTodTurn:
 
 
 # Datamodule classes
-@dataclass
-class SimpleTodDatasetItem:
-    context: str
-    target: str
-
-
-@dataclass
-class SimpleTodTestDataRow:
-    context_tokens: torch.Tensor
-    context_attention_masks: torch.Tensor
-    label_tokens: torch.Tensor
-    label_attention_masks: torch.Tensor
-    contexts_text: str
-    targets_text: str
 
 
 @dataclass
 class SimpleTodTestDataBatch:
-    context_tokens: torch.Tensor
-    context_attention_masks: torch.Tensor
-    label_tokens: torch.Tensor
-    label_attention_masks: torch.Tensor
-    contexts_text: List[str]
-    targets_text: List[str]
-
-    def __iter__(self):
-        for item in zip(
-            self.context_tokens,
-            self.context_attention_masks,
-            self.label_tokens,
-            self.label_attention_masks,
-            self.contexts_text,
-            self.targets_text,
-        ):
-            yield SimpleTodTestDataRow(*item)
+    context_tokens: list[list[int]]
+    context_attention_masks: list[list[int]]
+    label_tokens: list[list[int]]
+    label_attention_masks: list[list[int]]
+    contexts_text: list[str]
+    targets_text: list[str]
+    dialog_ids: list[int]
+    turn_ids: list[int]
 
 
 @dataclass
@@ -262,6 +242,84 @@ class MultiTaskSpecialTokens:
     start_token: SpecialTokens
     end_token: SpecialTokens
     prompt_token: SpecialTokens
+
+
+@dataclass
+class PredRef:
+    pred: str
+    ref: str
+
+
+@dataclass(frozen=True, eq=True)
+class MultiTaskTurnKey:
+    dialog_id: str
+    turn_id: int
+
+
+class InferenceRecords:
+    def __init__(self):
+        self.preds = []
+        self.dialog_ids = []
+        self.turn_ids = []
+        self.refs = []
+        self.is_data_concatenated = False
+
+    def add(self, preds, refs, dialog_ids, turn_ids):
+        self.preds.append(preds)
+        self.dialog_ids.append(dialog_ids)
+        self.turn_ids.append(turn_ids)
+        self.refs.append(refs)
+
+    def concat_data(self):
+        self.preds = np.concatenate(self.preds, axis=0)
+        self.refs = np.concatenate(self.refs, axis=0)
+        self.dialog_ids = np.concatenate(self.dialog_ids, axis=0)
+        self.turn_ids = np.concatenate(self.turn_ids, axis=0)
+        self.is_data_concatenated = True
+
+    def get_data_by_turns(self) -> Dict[MultiTaskTurnKey, list[PredRef]]:
+        if not self.is_data_concatenated:
+            self.concat_data()
+        turns: DefaultDict[MultiTaskTurnKey, list[PredRef]] = defaultdict(list)
+        for pred, ref, dialog_id, turn_id in zip(
+            self.preds, self.refs, self.dialog_ids, self.turn_ids
+        ):
+            turns[MultiTaskTurnKey(dialog_id, turn_id)].append(PredRef(pred, ref))
+        return turns
+
+    def get_data_for_multitask(self)->Tuple[list[str], list[str]]:
+        turns = self.get_data_by_turns()
+        preds: list[str] = []
+        refs: list[str] = []
+        for key, turn in turns.items():
+            mt_preds = "".join(
+                [
+                    SpecialTokens.begin_target,
+                    "".join([self.extract_target(t.pred) for t in turn]),
+                    SpecialTokens.end_target,
+                ]
+            )
+            mt_refs = "".join(
+                [
+                    SpecialTokens.begin_target,
+                    "".join([self.extract_target(t.ref) for t in turn]),
+                    SpecialTokens.end_target,
+                ]
+            )
+            preds.append(mt_preds)
+            refs.append(mt_refs)
+        return preds, refs
+
+    def extract_target(self, text: str) -> str:
+        return dstc_utils.remove_tokens_from_text(
+            text,
+            [
+                SpecialTokens.begin_target,
+                SpecialTokens.end_target,
+                TokenizerTokens.bos_token,
+                TokenizerTokens.eos_token,
+            ],
+        )
 
 
 def get_multi_task_special_tokens() -> list[MultiTaskSpecialTokens]:
