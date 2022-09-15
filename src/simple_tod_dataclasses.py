@@ -1,7 +1,7 @@
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
 from itertools import zip_longest
-from typing import DefaultDict, Dict, List, Optional, Union
+from typing import DefaultDict, Dict, List, Optional, Tuple, Union
 import numpy as np
 import pandas as pd
 
@@ -287,7 +287,7 @@ class InferenceRecords:
             turns[MultiTaskTurnKey(dialog_id, turn_id)].append(PredRef(pred, ref))
         return turns
 
-    def get_data_for_multitask(self)->Tuple[list[str], list[str]]:
+    def get_data_for_multitask(self) -> Tuple[list[str], list[str]]:
         turns = self.get_data_by_turns()
         preds: list[str] = []
         refs: list[str] = []
