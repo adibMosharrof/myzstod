@@ -95,8 +95,11 @@ class SimpleTodDataModule(pl.LightningDataModule):
                 domains=self.domains,
                 is_multi_task=self.is_multi_task,
             )
-            data = utils.read_csv_dataclass(csv_path, SimpleTodTurnCsvRow)
-            data = data[: int(len(data) * split_percent)]
+            try:
+                data = utils.read_csv_dataclass(csv_path, SimpleTodTurnCsvRow)
+                data = data[: int(len(data) * split_percent)]
+            except FileNotFoundError:
+                data = []
             self.datasets[step] = SimpleTodDataSet(
                 data, tokenizer=self.tokenizer, max_token_len=self.max_token_len
             )
@@ -118,15 +121,6 @@ class SimpleTodDataModule(pl.LightningDataModule):
             truncation=True,
             padding="max_length",
             max_length=self.max_token_len,
-        )
-
-    def test_tokenize(self, item):
-        return self.tokenizer(
-            item,
-            return_tensors="pt",
-            truncation=True,
-            padding="max_length",
-            max_length=self.test_max_token_len,
         )
 
     def train_tokenizer(self, item):
@@ -196,7 +190,6 @@ class SimpleTodDataModule(pl.LightningDataModule):
         }
 
     def my_test_collate(self, batch: list[SimpleTodTurnCsvRow]):
-        # dialog_ids, turn_ids, contexts, targets = zip(*batch)
         dialog_ids, turn_ids, contexts, targets = [], [], [], []
         for item in batch:
             dialog_ids.append(item.dialog_id)
@@ -219,7 +212,7 @@ class SimpleTodDataModule(pl.LightningDataModule):
             turn_ids,
         )
 
-    def _extract_from_target(self, target, start_token, end_token):
+    def _extract_from_target(self, target: str, start_token: str, end_token: str):
         try:
             start_index = target.index(start_token)
             end_index = target.index(end_token)
@@ -240,16 +233,6 @@ class SimpleTodDataSet(Dataset):
         self.data = data
         self.tokenizer = tokenizer
         self.max_token_len = max_token_len
-
-    def tokenize(self, text: str):
-
-        tokens = self.tokenizer(
-            text, truncation=True, max_length=self.max_token_len, padding="max_length"
-        )
-        return {
-            "input_ids": tokens["input_ids"],
-            "attention_mask": tokens["attention_mask"],
-        }
 
     def __len__(self):
         return len(self.data)

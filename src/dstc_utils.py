@@ -7,7 +7,7 @@ from transformers import AutoTokenizer, PreTrainedTokenizerFast
 
 from tokenizers.processors import TemplateProcessing
 
-from my_enums import SimpleTodConstants, SpecialTokens, TokenizerTokens
+from my_enums import SimpleTodConstants, SpecialTokens
 
 
 def get_dstc_service_name(service_name: str) -> str:
@@ -40,9 +40,9 @@ def get_tokenizer(model_name: str = "gpt2") -> PreTrainedTokenizerFast:
     tokenizer = AutoTokenizer.from_pretrained(
         model_name,
         truncation_side="left",
-        pad_token=TokenizerTokens.pad_token,
-        bos_token=TokenizerTokens.bos_token,
-        eos_token=TokenizerTokens.eos_token,
+        pad_token=SpecialTokens.pad_token,
+        bos_token=SpecialTokens.bos_token,
+        eos_token=SpecialTokens.eos_token,
         additional_special_tokens=SpecialTokens.list()
         # bos_token=SpecialTokens.begin_context,
         # eos_token=SpecialTokens.end_response,

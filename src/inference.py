@@ -14,7 +14,7 @@ from metrics.tod_metrics_base import MetricCollection
 from metrics.goal_metric import GoalMetric, GoalMetricConfigFactory
 from metrics.requested_slots_metric import RequestedSlotsMetric
 from metrics.dstc_metrics import InformMetric, SuccessMetric, CombinedMetric
-from my_enums import DstcDomains, GoalMetricConfigType, TestSettings, TokenizerTokens
+from my_enums import DstcDomains, GoalMetricConfigType, SpecialTokens, TestSettings
 import utils
 from hydra_configs import InferenceConfig
 from my_datamodules import SimpleTodDataModule
@@ -55,7 +55,7 @@ class Inference:
         self.num_turns = inf_config.num_turns
         self.overwrite = inf_config.overwrite
         # self.padding_regexp = re.compile(re.escape(TokenizerTokens.pad_token))
-        self.padding_regexp = re.compile(re.escape(TokenizerTokens.bos_token))
+        self.padding_regexp = re.compile(re.escape(SpecialTokens.bos_token))
         self.logger = utils.get_logger()
         self.context_max_len = inf_config.context_max_len
         self.target_max_len = inf_config.target_max_len
@@ -154,6 +154,9 @@ class Inference:
             headers = ["target", "prediction"]
             text_csv_out_path = f"simple_tod_dstc_predictions_{setting}_{self.num_turns}_dialogs_{self.num_dialogs}{SimpleTodConstants.DELEXICALIZED if self.delexicalize else ''}_{'_'.join(domains)}.csv"
             test_dataloader = self._get_dataloader(domains)
+            if not len(test_dataloader):
+                self.logger.info(f"No data to test for {setting}")
+                continue
             inf_records = InferenceRecords()
             for batch in tqdm(test_dataloader):
                 # gen = self.model.generate(
@@ -171,9 +174,9 @@ class Inference:
                     inputs=batch.context_tokens.to(self.device),
                     attention_mask=batch.context_attention_masks.to(self.device),
                     max_length=self.generate_max_len,
-                    eos_token_id=self._get_token_id(TokenizerTokens.eos_token),
-                    pad_token_id=self._get_token_id(TokenizerTokens.pad_token),
-                    bos_token_id=self._get_token_id(TokenizerTokens.bos_token),
+                    eos_token_id=self._get_token_id(SpecialTokens.eos_token),
+                    pad_token_id=self._get_token_id(SpecialTokens.pad_token),
+                    bos_token_id=self._get_token_id(SpecialTokens.bos_token),
                 )
                 gen_without_context = gen[:, self.max_token_len :]
                 pred_text = self.tokenizer.batch_decode(

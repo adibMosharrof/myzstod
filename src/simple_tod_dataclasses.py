@@ -7,7 +7,7 @@ import pandas as pd
 
 import torch
 
-from my_enums import SimpleTodConstants, SpecialTokens, TokenizerTokens
+from my_enums import SimpleTodConstants, SpecialTokens
 import dstc_utils
 
 
@@ -316,8 +316,8 @@ class InferenceRecords:
             [
                 SpecialTokens.begin_target,
                 SpecialTokens.end_target,
-                TokenizerTokens.bos_token,
-                TokenizerTokens.eos_token,
+                SpecialTokens.bos_token,
+                SpecialTokens.eos_token,
             ],
         )
 
