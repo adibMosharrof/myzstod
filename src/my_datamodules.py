@@ -17,6 +17,7 @@ from simple_tod_dataclasses import (
     SimpleTodTurnCsvRow,
 )
 import dstc_utils
+from hydra_configs import DataModuleConfig, DataPrepConfig
 
 
 class SimpleTodDataModule(pl.LightningDataModule):
@@ -25,106 +26,58 @@ class SimpleTodDataModule(pl.LightningDataModule):
 
     def __init__(
         self,
-        num_workers=8,
-        batch_size=32,
-        eval_batch_size=32,
-        test_batch_size=32,
-        data_split_percent: List[float] = None,
-        project_root: str = None,
-        raw_data_root: str = "data/dstc8-schema-guided-dialogue/",
-        data_prep_out_root: str = "processed_data/simple_tod",
-        max_token_len: int = 128,
-        num_dialogs: List[int] = None,
-        preprocessing_model_name="simple_tod",
-        dataset_name="dstc",
-        model_name="gpt2",
-        tokenizer=None,
-        delexicalize: bool = False,
-        overwrite: List[bool] = None,
-        num_turns: int = 26,
-        domains: List[str] = None,
-        is_multi_task: bool = False,
+        cfg: DataModuleConfig,
     ):
         super().__init__()
-        self.num_workers = num_workers
-        self.preprocessing_model_name = preprocessing_model_name
-        self.project_root = Path(project_root)
-        self.processed_data_root = self.project_root / data_prep_out_root
-        self.raw_data_root = raw_data_root
-        self.batch_size = batch_size
-        self.eval_batch_size = eval_batch_size
-        self.test_batch_size = test_batch_size
-        self.data_split_percent = data_split_percent
-        self.max_token_len = max_token_len
-        self.num_dialogs = num_dialogs
-        self.dataset_name = dataset_name
-
-        self.datasets: Dict[str, Dataset] = {}
-        self.tokenizer = tokenizer or dstc_utils.get_tokenizer()
-        self.delexicalize = delexicalize
-        self.overwrite = overwrite or [False] * len(self.steps)
-        self.num_turns = num_turns
-        self.domains = domains or ["restaurant", "hotel", "attraction", "train"]
-        self.is_multi_task = is_multi_task
+        self.cfg = cfg
 
     def prepare_data(self):
-        stdp = SimpleTODDSTCDataPrep(
-            project_root=self.project_root,
-            data_root=self.raw_data_root,
-            out_root=self.processed_data_root,
-            num_dialogs=self.num_dialogs,
-            domains=self.domains,
-            num_turns=self.num_turns,
-            overwrite=self.overwrite,
-            delexicalize=self.delexicalize,
-            is_multi_task=self.is_multi_task,
-        )
+        stdp = SimpleTODDSTCDataPrep(DataPrepConfig.from_dm_config(self.cfg))
         stdp.run()
 
     def setup(self):
         self.prepare_data()
         for step, split_percent, num_dialog in zip(
-            self.steps, self.data_split_percent, self.num_dialogs
+            self.steps, self.cfg.data_split_percent, self.cfg.num_dialogs
         ):
             csv_path = dstc_utils.get_csv_data_path(
                 step,
                 num_dialog,
-                self.delexicalize,
-                self.processed_data_root,
-                num_turns=self.num_turns,
-                domains=self.domains,
-                is_multi_task=self.is_multi_task,
+                self.cfg.delexicalize,
+                self.cfg.processed_data_root,
+                num_turns=self.cfg.num_turns,
+                domains=self.cfg.domains,
+                is_multi_task=self.cfg.is_multi_task,
+                should_add_schema=self.cfg.should_add_schema,
             )
             try:
                 data = utils.read_csv_dataclass(csv_path, SimpleTodTurnCsvRow)
                 data = data[: int(len(data) * split_percent)]
             except FileNotFoundError:
                 data = []
-            self.datasets[step] = SimpleTodDataSet(
-                data, tokenizer=self.tokenizer, max_token_len=self.max_token_len
-            )
+            self.cfg.datasets[step] = SimpleTodDataSet(data)
 
     def test_dataloader(self) -> Iterable[SimpleTodTestDataBatch]:
         return DataLoader(
-            self.datasets[Steps.TEST],
-            batch_size=self.test_batch_size,
+            self.cfg.datasets[Steps.TEST],
+            batch_size=self.cfg.test_batch_size,
             shuffle=False,
-            num_workers=self.num_workers,
+            num_workers=self.cfg.num_workers,
             collate_fn=self.my_test_collate,
             pin_memory=True,
         )
 
     def tokenize(self, item):
-        return self.tokenizer(
+        return self.cfg.tokenizer(
             item,
             return_tensors="pt",
             truncation=True,
             padding="max_length",
-            max_length=self.max_token_len,
+            max_length=self.cfg.max_token_len,
         )
 
     def train_tokenizer(self, item):
-        return self.tokenizer.encode(
+        return self.cfg.tokenizer.encode(
             item,
             return_tensors="pt",
         )
@@ -151,9 +104,11 @@ class SimpleTodDataModule(pl.LightningDataModule):
         for item in batch:
             context_tokens = self.train_tokenizer(item.context)[0]
             target_tokens = self.train_tokenizer(item.target)[0]
+            schema_tokens = self.train_tokenizer(item.schema)[0]
             context_len = len(context_tokens)
             target_len = len(target_tokens)
-            unused_len = self.max_token_len - context_len - target_len
+            schema_len = len(schema_tokens)
+            unused_len = self.cfg.max_token_len - context_len - target_len - schema_len
             # handling case when input is greater than tokenizer length
             if unused_len < 0:
                 context_start_tokens = context_tokens[:2]
@@ -164,20 +119,28 @@ class SimpleTodDataModule(pl.LightningDataModule):
                 context_len = len(context_tokens)
                 unused_len = 0
 
-            pad = torch.full([unused_len], self.tokenizer.pad_token_id)
-            input_tokens = torch.cat([context_tokens, target_tokens, pad])
+            pad = torch.full([unused_len], self.cfg.tokenizer.pad_token_id)
+            input_tokens = torch.cat(
+                [context_tokens, schema_tokens, target_tokens, pad]
+            )
             if is_pretrain:
                 label = input_tokens
             else:
                 label = torch.cat(
                     [
-                        torch.full([context_len], self._huggingface_ignore_label_id),
+                        torch.full(
+                            [context_len + schema_len],
+                            self._huggingface_ignore_label_id,
+                        ),
                         target_tokens,
                         torch.full([unused_len], self._huggingface_ignore_label_id),
                     ]
                 )
             attention_mask = torch.cat(
-                [torch.full([context_len + target_len], 1), torch.full([unused_len], 0)]
+                [
+                    torch.full([context_len + schema_len + target_len], 1),
+                    torch.full([unused_len], 0),
+                ]
             )
             input_ids.append(input_tokens)
             attention_masks.append(torch.tensor(attention_mask))
@@ -190,7 +153,7 @@ class SimpleTodDataModule(pl.LightningDataModule):
         }
 
     def my_test_collate(self, batch: list[SimpleTodTurnCsvRow]):
-        dialog_ids, turn_ids, contexts, targets = [], [], [], []
+        dialog_ids, turn_ids, contexts, schemas, targets = [], [], [], [], []
         for item in batch:
             dialog_ids.append(item.dialog_id)
             turn_ids.append(item.turn_id)
@@ -212,27 +175,13 @@ class SimpleTodDataModule(pl.LightningDataModule):
             turn_ids,
         )
 
-    def _extract_from_target(self, target: str, start_token: str, end_token: str):
-        try:
-            start_index = target.index(start_token)
-            end_index = target.index(end_token)
-        except ValueError:
-            raise ValueError(
-                f"could not find start or end token in target, {start_token}, {end_token}"
-            )
-        return target[start_index : end_index + len(end_token)]
-
 
 class SimpleTodDataSet(Dataset):
     def __init__(
         self,
         data: List[SimpleTodTurnCsvRow],
-        tokenizer: PreTrainedTokenizerFast = None,
-        max_token_len: int = 128,
     ):
         self.data = data
-        self.tokenizer = tokenizer
-        self.max_token_len = max_token_len
 
     def __len__(self):
         return len(self.data)

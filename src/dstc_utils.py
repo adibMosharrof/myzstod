@@ -28,11 +28,12 @@ def get_csv_data_path(
     domains: List[str] = None,
     num_turns: int = 26,
     is_multi_task: bool = False,
+    should_add_schema: bool = False,
 ):
     step_dir = processed_data_root / step
     return (
         step_dir
-        / f"simple_tod_dstc_multi_task_{is_multi_task}_turns_{num_turns}_dialogs_{num_dialogs}{SimpleTodConstants.DELEXICALIZED if delexicalized else ''}_{'_'.join(domains)}.csv"
+        / f"simple_tod_dstc_multi_task_{is_multi_task}_schema_{should_add_schema}_turns_{num_turns}_dialogs_{num_dialogs}{SimpleTodConstants.DELEXICALIZED if delexicalized else ''}_{'_'.join(domains)}.csv"
     )
 
 
@@ -43,12 +44,8 @@ def get_tokenizer(model_name: str = "gpt2") -> PreTrainedTokenizerFast:
         pad_token=SpecialTokens.pad_token,
         bos_token=SpecialTokens.bos_token,
         eos_token=SpecialTokens.eos_token,
-        additional_special_tokens=SpecialTokens.list()
-        # bos_token=SpecialTokens.begin_context,
-        # eos_token=SpecialTokens.end_response,
+        additional_special_tokens=SpecialTokens.list(),
     )
-    # special_tokens = SpecialTokens.list()
-    # tokenizer.add_tokens(special_tokens, special_tokens=True)
     tokenizer._tokenizer.post_processor = TemplateProcessing(
         single=f"{tokenizer.bos_token}:0 $A:0 {tokenizer.eos_token}:0",
         special_tokens=[

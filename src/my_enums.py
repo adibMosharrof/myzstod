@@ -87,6 +87,21 @@ class SpecialTokens(str, Enum):
     eos_token = "<|endoftext|>"
     bos_token = "<|startoftext|>"
 
+    begin_schema = "<|beginschema|>"
+    end_schema = "<|endschema|>"
+    schema_name = "<|schemaname|>"
+    schema_description = "<|schemadescription|>"
+
+    begin_schema_intent = "<|beginschemaintent|>"
+    end_schema_intent = "<|endschemaintent|>"
+    intent_required_slots = "<|intentrequiredslots|>"
+    intent_result_slots = "<|intentresultslots|>"
+    intent_optional_slots = "<|intentoptionalslots|>"
+
+    begin_schema_slot = "<|beginschemaslot|>"
+    end_schema_slot = "<|endschemaslot|>"
+    schema_slot_values = "<|schemaslotvalues|>"
+
     @classmethod
     def list(cls):
         return [c.value for c in cls]

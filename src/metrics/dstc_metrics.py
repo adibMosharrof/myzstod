@@ -5,8 +5,8 @@ from my_enums import SpecialTokens
 from predictions_logger import PredictionLoggerFactory, TodMetricsEnum
 from simple_tod_dataclasses import (
     SimpleTodAction,
-    SimpleTodRequestedSlot,
 )
+from dstc_dataclasses import DstcRequestedSlot
 
 
 class SuccessMetric(TodMetricsBase):
@@ -23,7 +23,7 @@ class SuccessMetric(TodMetricsBase):
                 SpecialTokens.end_requested_slots,
             )
             requested_slots = [
-                SimpleTodRequestedSlot.from_string(t) for t in requested_slots_txt
+                DstcRequestedSlot.from_string(t) for t in requested_slots_txt
             ]
             if not len(requested_slots):
                 continue

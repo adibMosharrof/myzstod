@@ -6,7 +6,7 @@ from transformers import (
     TrainingArguments,
     logging,
 )
-from hydra_configs import InferenceConfig, TrainerConfig
+from hydra_configs import DataModuleConfig, InferenceConfig, TrainerConfig
 from inference import Inference
 from my_datamodules import SimpleTodDataModule
 import os
@@ -28,24 +28,7 @@ class SimpleTODTrainer:
         model.resize_token_embeddings(len(self.cfg.tokenizer))
         model = model.cuda()
 
-        dm = SimpleTodDataModule(
-            tokenizer=self.cfg.tokenizer,
-            data_prep_out_root=self.cfg.data_prep_out_root,
-            raw_data_root=self.cfg.raw_data_root,
-            project_root=self.cfg.project_root,
-            batch_size=self.cfg.train_batch_size,
-            eval_batch_size=self.cfg.eval_batch_size,
-            test_batch_size=self.cfg.test_batch_size,
-            data_split_percent=self.cfg.data_split_percent,
-            max_token_len=self.cfg.max_token_len,
-            num_workers=self.cfg.num_workers,
-            delexicalize=self.cfg.delexicalize,
-            num_dialogs=self.cfg.num_dialogs,
-            domains=self.cfg.domains,
-            num_turns=self.cfg.num_turns,
-            overwrite=self.cfg.overwrite,
-            is_multi_task=self.cfg.is_multi_task,
-        )
+        dm = SimpleTodDataModule(DataModuleConfig.from_trainer_config(self.cfg))
         dm.setup()
         self.train(model, dm)
         print("Training done")
@@ -96,8 +79,8 @@ class SimpleTODTrainer:
         pre_trainer = Trainer(
             model=model,
             args=training_args,
-            train_dataset=dm.datasets["train"],
-            eval_dataset=dm.datasets["dev"],
+            train_dataset=dm.cfg.datasets["train"],
+            eval_dataset=dm.cfg.datasets["dev"],
             data_collator=dm.pretraining_collator,
         )
         # pre_trainer.pad_token_id = self.cfg.tokenizer.pad_token_id
@@ -112,8 +95,8 @@ class SimpleTODTrainer:
         trainer = Trainer(
             model=model_train,
             args=training_args,
-            train_dataset=dm.datasets["train"],
-            eval_dataset=dm.datasets["dev"],
+            train_dataset=dm.cfg.datasets["train"],
+            eval_dataset=dm.cfg.datasets["dev"],
             data_collator=dm.training_collator,
         )
         # trainer.pad_token_id = self.cfg.tokenizer.pad_token_id

@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 
 import torch
+from dstc_dataclasses import DstcRequestedSlot, DstcSchema
 
 from my_enums import SimpleTodConstants, SpecialTokens
 import dstc_utils
@@ -69,7 +70,7 @@ class SimpleTodAction:
             return self("", action_type, values, text)
         return self(domain, action_type, slot_name, values)
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: "SimpleTodAction") -> bool:
         return (
             self.domain == other.domain
             and self.action_type == other.action_type
@@ -96,35 +97,6 @@ class SimpleTodAction:
                 self.slot_name,
                 SimpleTodConstants.ACTION_VALUE_SEPARATOR,
                 self.values,
-            ]
-        )
-
-
-@dataclass
-class SimpleTodRequestedSlot:
-    domain: str
-    slot_name: str
-
-    @classmethod
-    def from_string(self, text: str):
-        try:
-            domain, slot_name = text.split(SimpleTodConstants.DOMAIN_SLOT_SEPARATOR)
-        except ValueError:
-            return self("", text)
-        return self(domain, slot_name)
-
-    def __repr__(self) -> str:
-        return self.__str__()
-
-    def __eq__(self, other) -> bool:
-        return self.domain == other.domain and self.slot_name == other.slot_name
-
-    def __str__(self) -> str:
-        return "".join(
-            [
-                self.domain,
-                SimpleTodConstants.DOMAIN_SLOT_SEPARATOR,
-                self.slot_name,
             ]
         )
 
@@ -167,7 +139,7 @@ class SimpleTodTarget:
     actions: List[SimpleTodAction]
     response: str
     active_intent: Optional[str] = None
-    requested_slots: Optional[List[SimpleTodRequestedSlot]] = None
+    requested_slots: Optional[List[DstcRequestedSlot]] = None
 
     def __repr__(self) -> str:
         return self.__str__()
@@ -208,7 +180,15 @@ class SimpleTodTurnCsvRow:
     dialog_id: str
     turn_id: str
     context: str
+    schema: str
     target: str
+
+
+@dataclass
+class MultiTaskSpecialToken:
+    start_token: SpecialTokens
+    end_token: SpecialTokens
+    prompt_token: SpecialTokens
 
 
 @dataclass
@@ -217,9 +197,27 @@ class SimpleTodTurn:
     target: SimpleTodTarget
     dialog_id: Optional[str] = None
     turn_id: Optional[int] = None
+    schemas: Optional[list[DstcSchema]] = None
+    multi_task_token: Optional[MultiTaskSpecialToken] = None
+    active_intent: Optional[str] = None
+    schema_str: Optional[str] = None
 
     def to_csv_row(self) -> List[any]:
-        return [self.dialog_id, self.turn_id, str(self.context), str(self.target)]
+        if self.schema_str:
+            return [
+                self.dialog_id,
+                self.turn_id,
+                str(self.context),
+                self.schema_str,
+                str(self.target),
+            ]
+
+        return [
+            self.dialog_id,
+            self.turn_id,
+            str(self.context),
+            str(self.target),
+        ]
 
 
 # Datamodule classes
@@ -235,13 +233,6 @@ class SimpleTodTestDataBatch:
     targets_text: list[str]
     dialog_ids: list[int]
     turn_ids: list[int]
-
-
-@dataclass
-class MultiTaskSpecialTokens:
-    start_token: SpecialTokens
-    end_token: SpecialTokens
-    prompt_token: SpecialTokens
 
 
 @dataclass
@@ -322,29 +313,29 @@ class InferenceRecords:
         )
 
 
-def get_multi_task_special_tokens() -> list[MultiTaskSpecialTokens]:
+def get_multi_task_special_tokens() -> list[MultiTaskSpecialToken]:
     return [
-        MultiTaskSpecialTokens(
+        MultiTaskSpecialToken(
             SpecialTokens.begin_intent,
             SpecialTokens.end_intent,
             SpecialTokens.prompt_intent,
         ),
-        MultiTaskSpecialTokens(
+        MultiTaskSpecialToken(
             SpecialTokens.begin_requested_slots,
             SpecialTokens.end_requested_slots,
             SpecialTokens.prompt_requested_slots,
         ),
-        MultiTaskSpecialTokens(
+        MultiTaskSpecialToken(
             SpecialTokens.begin_belief,
             SpecialTokens.end_belief,
             SpecialTokens.prompt_belief,
         ),
-        MultiTaskSpecialTokens(
+        MultiTaskSpecialToken(
             SpecialTokens.begin_action,
             SpecialTokens.end_action,
             SpecialTokens.prompt_action,
         ),
-        MultiTaskSpecialTokens(
+        MultiTaskSpecialToken(
             SpecialTokens.begin_response,
             SpecialTokens.end_response,
             SpecialTokens.prompt_response,
