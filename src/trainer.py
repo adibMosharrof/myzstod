@@ -109,7 +109,6 @@ class SimpleTODTrainer:
 
 @hydra.main(config_path="../config/trainer/", config_name="simple_tod_trainer")
 def hydra_start(cfg: DictConfig) -> None:
-    logging.set_verbosity_info()
     stt = SimpleTODTrainer(TrainerConfig(**cfg))
     stt.run()
 

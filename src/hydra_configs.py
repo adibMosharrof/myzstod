@@ -1,13 +1,15 @@
 from lib2to3.pgen2.tokenize import tokenize
+import os
 from pathlib import Path
 from typing import Dict
 from datasets import Dataset
 
-from transformers import AutoTokenizer
+from transformers import AutoTokenizer, GPT2LMHeadModel, GPT2PreTrainedModel
 
-from my_enums import DstcDomains, Steps
+from my_enums import DstcDomains, SpecialTokens, Steps
 import dstc_utils
-
+import utils
+import re
 
 class InferenceConfig:
     def __init__(
@@ -25,17 +27,17 @@ class InferenceConfig:
         delexicalize: bool = False,
         model: str = "outputs/2022-07-26/22-28-09/results/train/checkpoint-7067",
         model_name: str = "gpt2",
-        device: str = "cuda",
         generate_max_len: int = 1024,
         domains: list[str] = None,
         num_turns: int = 10,
         overwrite: list[bool] = None,
         test_settings: list[str] = None,
-        out_dir: str = None,
+        out_dir: str = "results",
         tokenizer: AutoTokenizer = None,
         context_max_len: int = 600,
         target_max_len: int = 424,
         is_multi_task: bool = False,
+        should_add_schema: bool = False,
     ) -> None:
         self.num_workers = num_workers
         self.data_split_percent = data_split_percent or [1, 1, 0.1]
@@ -43,13 +45,12 @@ class InferenceConfig:
         self.test_batch_size = test_batch_size
         self.max_token_len = max_token_len
         self.raw_data_root = raw_data_root
-        self.project_root = project_root
+        self.project_root = Path(project_root)
         self.data_prep_out_root = data_prep_out_root
         self.num_test_dialogs = num_test_dialogs
         self.delexicalize = delexicalize
-        self.model = model
+        self.model = self._get_model(model)
         self.model_name = model_name
-        self.device = device
         self.generate_max_len = generate_max_len
         self.domains = domains or [
             "Buses",
@@ -70,14 +71,39 @@ class InferenceConfig:
         self.test_settings = test_settings or ["seen"]
         self.num_turns = num_turns
         self.overwrite = overwrite or [False, False, False]
-        self.out_dir = out_dir or "results"
+        self.out_dir = out_dir
         self.tokenizer = tokenizer
         self.context_max_len = context_max_len
         self.target_max_len = target_max_len
         self.predictions_log_dir = Path(predictions_log_dir)
         self.predictions_log_dir.mkdir(parents=True, exist_ok=True)
         self.is_multi_task = is_multi_task
+        self.should_add_schema = should_add_schema
+        self.logger = utils.get_logger()
+        self.tokenizer = (
+            self.tokenizer
+            if self.tokenizer
+            else self._get_tokenizer(model)
+        )
+        self.padding_regexp = re.compile(re.escape(SpecialTokens.bos_token))
 
+    def _get_tokenizer(self, model_path_str:str):
+        model_path:Path = self.project_root / model_path_str
+        try:
+            tokenizer = AutoTokenizer.from_pretrained(model_path.parent.parent)
+        except OSError:
+            self.logger.info(
+                'Could not find tokenizer for model "{}"'.format(model_path)
+            )
+            tokenizer = dstc_utils.get_tokenizer(self.model_name)
+        return tokenizer
+    
+    def _get_model(self, model):
+        if isinstance(model, str):
+            model_path = self.project_root / model
+            return GPT2LMHeadModel.from_pretrained(model_path).cuda()
+        if isinstance(model, GPT2PreTrainedModel):
+            return model.cuda()
 
 class TrainerConfig:
     def __init__(
@@ -218,6 +244,28 @@ class DataModuleConfig:
             data_split_percent=trainer_config.data_split_percent,
         )
 
+    @classmethod
+    def from_inference_config(self, inf_config:InferenceConfig) ->'DataModuleConfig':
+        return self(
+            num_workers=inf_config.num_workers,
+            project_root=inf_config.project_root,
+            raw_data_root=inf_config.raw_data_root,
+            data_prep_out_root=inf_config.data_prep_out_root,
+            max_token_len=inf_config.max_token_len,
+            num_dialogs=[1,1,inf_config.num_test_dialogs],
+            delexicalize=inf_config.delexicalize,
+            overwrite=[False, False, True],
+            num_turns=inf_config.num_turns,
+            domains=inf_config.domains,
+            is_multi_task=inf_config.is_multi_task,
+            should_add_schema=inf_config.should_add_schema,
+            tokenizer=inf_config.tokenizer,
+            batch_size=inf_config.test_batch_size,
+            eval_batch_size=inf_config.test_batch_size,
+            test_batch_size=inf_config.test_batch_size,
+            data_split_percent=inf_config.data_split_percent,
+        )
+
 
 class DataPrepConfig:
     def __init__(
@@ -259,3 +307,24 @@ class DataPrepConfig:
             dm_config.is_multi_task,
             dm_config.should_add_schema,
         )
+
+
+class ReconstructDialogConfig:
+    def __init__(
+        self,
+        project_root: str = "/mounts/u-amo-d0/grad/adibm/projects/generative_tod/",
+        raw_data_root: str="data/dstc8-schema-guided-dialogue/",
+        out_dir: str = "results",
+        model_path: str = None,
+    ):
+        self.project_root = Path(project_root)
+        self.data_root = self.project_root / raw_data_root
+        self.out_dir = self.project_root / out_dir
+        self.out_dir.mkdir(parents=True, exist_ok=True)
+        self.model_path = self.project_root/model_path
+        self.logger = utils.get_logger()
+        files = [fname for fname in os.listdir(self.model_path) if fname.endswith(".csv")]
+        if not len(files):
+            raise ValueError("No csv files found in the model path")
+        self.predictions_csv_path = self.model_path / files[0]
+        

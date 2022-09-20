@@ -49,7 +49,7 @@ class DstcRequestedSlot:
     domain: str
     slot_name: str
 
-    @staticmethod
+    @classmethod
     def from_string(self, text: str) -> "DstcRequestedSlot":
         try:
             domain, slot_name = text.split(SimpleTodConstants.DOMAIN_SLOT_SEPARATOR)

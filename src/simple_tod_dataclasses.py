@@ -180,8 +180,8 @@ class SimpleTodTurnCsvRow:
     dialog_id: str
     turn_id: str
     context: str
-    schema: str
-    target: str
+    target: str = None
+    schema: Optional[str] = None
 
 
 @dataclass
@@ -208,8 +208,8 @@ class SimpleTodTurn:
                 self.dialog_id,
                 self.turn_id,
                 str(self.context),
-                self.schema_str,
                 str(self.target),
+                self.schema_str,
             ]
 
         return [
