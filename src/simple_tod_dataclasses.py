@@ -134,19 +134,13 @@ class SimpleTodContext:
 
 
 @dataclass
-class SimpleTodTarget:
+class SimpleTodDst:
     beliefs: List[SimpleTodBelief]
-    actions: List[SimpleTodAction]
-    response: str
-    active_intent: Optional[str] = None
+    active_intent: str
     requested_slots: Optional[List[DstcRequestedSlot]] = None
 
-    def __repr__(self) -> str:
-        return self.__str__()
-
     def __str__(self) -> str:
-        out = SpecialTokens.begin_target
-
+        out = SpecialTokens.begin_dst
         if self.active_intent:
             out += SpecialTokens.begin_intent
             out += self.active_intent
@@ -161,7 +155,35 @@ class SimpleTodTarget:
 
         out += SpecialTokens.begin_belief
         out += SimpleTodConstants.ITEM_SEPARATOR.join(map(str, self.beliefs))
-        out += SpecialTokens.end_belief + SimpleTodConstants.NEW_LINES
+        out += (
+            SpecialTokens.end_belief
+            + SpecialTokens.end_dst
+            + SimpleTodConstants.NEW_LINES
+        )
+        return out
+
+
+@dataclass
+class SimpleTodTarget:
+    actions: List[SimpleTodAction]
+    response: str
+    dsts: List[SimpleTodDst]
+    requested_slots: Optional[List[DstcRequestedSlot]] = None
+
+    def __repr__(self) -> str:
+
+        return self.__str__()
+
+    def __str__(self) -> str:
+        out = "".join(
+            [
+                SpecialTokens.begin_target,
+                SpecialTokens.begin_dsts,
+                "".join(map(str, self.dsts)),
+                SpecialTokens.end_dsts,
+                SimpleTodConstants.NEW_LINES,
+            ]
+        )
 
         out += SpecialTokens.begin_action
         out += SimpleTodConstants.ITEM_SEPARATOR.join(map(str, self.actions))
@@ -253,19 +275,22 @@ class InferenceRecords:
         self.dialog_ids = []
         self.turn_ids = []
         self.refs = []
+        self.contexts = []
         self.is_data_concatenated = False
 
-    def add(self, preds, refs, dialog_ids, turn_ids):
+    def add(self, preds, refs, dialog_ids, turn_ids, contexts):
         self.preds.append(preds)
         self.dialog_ids.append(dialog_ids)
         self.turn_ids.append(turn_ids)
         self.refs.append(refs)
+        self.contexts.append(contexts)
 
     def concat_data(self):
         self.preds = np.concatenate(self.preds, axis=0)
         self.refs = np.concatenate(self.refs, axis=0)
         self.dialog_ids = np.concatenate(self.dialog_ids, axis=0)
         self.turn_ids = np.concatenate(self.turn_ids, axis=0)
+        self.contexts = np.concatenate(self.contexts, axis=0)
         self.is_data_concatenated = True
 
     def get_data_by_turns(self) -> Dict[MultiTaskTurnKey, list[PredRef]]:

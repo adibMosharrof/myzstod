@@ -318,8 +318,8 @@ class ReconstructDialogConfig:
         model_path: str = None,
     ):
         self.project_root = Path(project_root)
-        self.data_root = self.project_root / raw_data_root
-        self.out_dir = self.project_root / out_dir
+        self.raw_data_root = self.project_root / raw_data_root
+        self.out_dir = Path(out_dir)
         self.out_dir.mkdir(parents=True, exist_ok=True)
         self.model_path = self.project_root/model_path
         self.logger = utils.get_logger()

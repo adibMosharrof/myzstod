@@ -1,7 +1,7 @@
 import glob
 import re
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 from transformers import AutoTokenizer, PreTrainedTokenizerFast
 
@@ -60,8 +60,16 @@ def get_token_id(tokenizer: AutoTokenizer, token_str: str) -> int:
     return tokenizer(token_str)["input_ids"][0]
 
 
-def get_text_in_between(text: str, start: str, end: str) -> str:
-    return text[text.find(start) + len(start) : text.find(end)]
+def get_text_in_between(
+    text: str, start_token: str, end_token: str, default_value: any = None
+) -> Optional[str]:
+    try:
+        idx1 = text.index(start_token)
+        idx2 = text.index(end_token)
+        res = text[idx1 + len(start_token) : idx2]
+        return res
+    except ValueError:
+        return default_value
 
 
 def remove_tokens_from_text(text: str, tokens: List[str]) -> str:

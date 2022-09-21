@@ -86,7 +86,6 @@ class Inference:
             self.cfg.logger.info(f"Testing {setting}")
             domains = self._get_domains_from_test_settings(setting)
             test_csv_out_data = []
-            headers = ["dialog_id", "turn_id", "target", "prediction"]
             text_csv_out_path = f"simple_tod_dstc_predictions_{setting}_{self.cfg.num_turns}_dialogs_{self.cfg.num_test_dialogs}{SimpleTodConstants.DELEXICALIZED if self.cfg.delexicalize else ''}_{'_'.join(domains)}.csv"
             test_dataloader = self._get_dataloader()
             if not len(test_dataloader):
@@ -130,12 +129,14 @@ class Inference:
                     batch.targets_text,
                     batch.dialog_ids,
                     batch.turn_ids,
+                    batch.contexts_text,
                 )
             inf_records.concat_data()
             test_csv_out_data = np.column_stack(
                 [
                     inf_records.dialog_ids,
                     inf_records.turn_ids,
+                    inf_records.contexts,
                     inf_records.refs,
                     inf_records.preds,
                 ]
@@ -144,6 +145,7 @@ class Inference:
                 preds, refs = inf_records.get_data_for_multitask()
                 self.tod_metrics.add_batch(references=refs, predictions=preds)
                 self.bleu_metrics.add_batch(references=refs, predictions=preds)
+            headers = ["dialog_id", "turn_id", "context", "target", "prediction"]
             utils.write_csv(headers, test_csv_out_data, text_csv_out_path)
             self.cfg.logger.info(str(self.tod_metrics))
             self.cfg.logger.info(str(self.bleu_metrics))

@@ -77,10 +77,14 @@ class SimpleTodDataModule(pl.LightningDataModule):
         )
 
     def train_tokenizer(self, item):
-        return self.cfg.tokenizer.encode(
-            item,
-            return_tensors="pt",
-        )
+        try:
+            tokens = self.cfg.tokenizer.encode(
+                item,
+                return_tensors="pt",
+            )
+        except TypeError as e:
+            tokens = torch.empty([1, 0], dtype=torch.int64)
+        return tokens
 
     def get_training_labels(self, context_len, unused_len, target_tokens):
         return torch.cat(

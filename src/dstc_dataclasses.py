@@ -10,7 +10,7 @@ from my_enums import Speaker, SpecialTokens, SimpleTodConstants
 @dataclass
 class DstcState:
     active_intent: str
-    slot_values: Dict[str, any]
+    slot_values: Dict[str, List[str]]
     requested_slots: Optional[List[str]] = None
 
 
@@ -30,6 +30,7 @@ class DstcFrame:
     slots: List[any]
     service: str
     state: Optional[DstcState] = None
+    # full_service: Optional[str] = None
 
     def __init__(
         self,
@@ -37,11 +38,13 @@ class DstcFrame:
         slots: List[any],
         service: str,
         state: Optional[DstcState] = None,
+        reconstruct: bool = False,
     ):
         self.actions = actions
         self.slots = slots
         self.state = state
         self.service = dstc_utils.get_dstc_service_name(service)
+        self.full_service = service
 
 
 @dataclass

@@ -22,6 +22,7 @@ from simple_tod_dataclasses import (
     SimpleTodBelief,
     SimpleTodConstants,
     SimpleTodContext,
+    SimpleTodDst,
     SimpleTodTarget,
     SimpleTodTurn,
     SpecialTokens,
@@ -71,11 +72,14 @@ class SimpleTODDSTCDataPrep:
             context.next_system_utterance = utterance
         return context
 
-    def _prepare_belief(self, user_turn: DstcTurn) -> List[SimpleTodBelief]:
-        beliefs = []
+    def _prepare_dst(self, user_turn: DstcTurn) -> List[SimpleTodBelief]:
+        dsts = []
         for frame in user_turn.frames:
             if not frame.state:
                 continue
+            beliefs = []
+            active_intent = frame.state.active_intent
+            requested_slots = frame.state.requested_slots
             for slot_name, value in frame.state.slot_values.items():
                 beliefs.append(
                     SimpleTodBelief(
@@ -84,7 +88,8 @@ class SimpleTODDSTCDataPrep:
                         " ".join(value),
                     )
                 )
-        return beliefs
+            dsts.append(SimpleTodDst(beliefs, active_intent, requested_slots))
+        return dsts
 
     def _create_user_action(
         self, actions: list[SimpleTodAction], frames: List[DstcFrame]
@@ -150,14 +155,10 @@ class SimpleTODDSTCDataPrep:
         system_turn: DstcTurn,
         schemas: Dict[str, DstcSchema],
     ):
-        beliefs = self._prepare_belief(user_turn)
+        dsts = self._prepare_dst(user_turn)
         actions = self._prepare_action(system_turn)
         response = self._prepare_response(system_turn, schemas)
-        active_intent = user_turn.get_active_intent()
-        requested_slots = user_turn.get_requested_slots()
-        return SimpleTodTarget(
-            beliefs, actions, response, active_intent, requested_slots
-        )
+        return SimpleTodTarget(dsts=dsts, actions=actions, response=response)
 
     def _prepare_turn(
         self,

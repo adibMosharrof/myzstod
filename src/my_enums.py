@@ -62,6 +62,12 @@ class SpecialTokens(str, Enum):
     begin_last_user_utterance = "<|beginlastuserutterance|>"
     end_last_user_utterance = "<|endlastuserutterance|>"
 
+    begin_dsts  = "<|begindsts|>"
+    end_dsts = "<|enddsts|>"
+
+    begin_dst = "<|begindst|>"
+    end_dst = "<|enddst|>"
+
     begin_belief = "<|beginbelief|>"
     end_belief = "<|endbelief|>"
 
