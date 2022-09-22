@@ -10,6 +10,7 @@ import utils
 from my_enums import SimpleTodConstants, Speaker, SpecialTokens, Steps
 import json
 from dstc_utils import get_text_in_between
+import humps
 
 
 class ReconstructDialog:
@@ -43,13 +44,13 @@ class ReconstructDialog:
             actions.append(dstc_action)
         return actions
 
-    def _get_user_state(self, target: str) -> DstcState:
+    def _get_user_state(self, dst: str) -> DstcState:
         active_intent = get_text_in_between(
-            target, SpecialTokens.begin_intent, SpecialTokens.end_intent
+            dst, SpecialTokens.begin_intent, SpecialTokens.end_intent
         )
 
         requested_slots_txt = get_text_in_between(
-            target,
+            dst,
             SpecialTokens.begin_requested_slots,
             SpecialTokens.end_requested_slots,
         )
@@ -60,17 +61,34 @@ class ReconstructDialog:
             )
 
         beliefs_str = get_text_in_between(
-            target, SpecialTokens.begin_belief, SpecialTokens.end_belief
+            dst, SpecialTokens.begin_belief, SpecialTokens.end_belief
         )
         slot_values = {}
-        for belief_str in beliefs_str.split(SimpleTodConstants.ITEM_SEPARATOR):
-            tod_belief = SimpleTodBelief.from_string(belief_str)
-            slot_values[tod_belief.slot_name] = [tod_belief.value]
+        if beliefs_str:
+            for belief_str in beliefs_str.split(SimpleTodConstants.ITEM_SEPARATOR):
+                tod_belief = SimpleTodBelief.from_string(belief_str)
+                slot_name = humps.depascalize(tod_belief.slot_name)
+                slot_values[slot_name] = tod_belief.values
         return DstcState(
             active_intent=active_intent,
             slot_values=slot_values,
             requested_slots=requested_slots,
         )
+
+    def _get_user_frames(self, target: str, gt_user_turn: DstcTurn) -> list[DstcFrame]:
+        dsts = get_text_in_between(
+            target, SpecialTokens.begin_dst, SpecialTokens.end_dst, multiple_values=True
+        )
+
+        return [
+            DstcFrame(
+                state=self._get_user_state(dst),
+                actions=[],
+                service=gt_frame.service,
+                slots=[],
+            )
+            for dst, gt_frame in zip(dsts, gt_user_turn.frames)
+        ]
 
     def _extract_turn(
         self, pred: str, context: str, gt_user_turn: DstcTurn, gt_sys_turn: DstcTurn
@@ -81,18 +99,11 @@ class ReconstructDialog:
             SpecialTokens.begin_last_user_utterance,
             SpecialTokens.end_last_user_utterance,
         )
-        user_frame = DstcFrame(
-            state=self._get_user_state(pred),
-            actions=[],
-            slots=[],
-            service=gt_user_turn.frames[0].service,
-        )
-        user_frame.service = gt_user_turn.frames[0].full_service
 
+        user_frames = self._get_user_frames(pred, gt_user_turn)
         user_turn = DstcTurn(
-            speaker=Speaker.USER.value, frames=[], utterance=user_utterance
+            speaker=Speaker.USER.value, frames=user_frames, utterance=user_utterance
         )
-        user_turn.frames.append(user_frame)
 
         utterance = get_text_in_between(
             pred, SpecialTokens.begin_response, SpecialTokens.end_response
@@ -100,7 +111,6 @@ class ReconstructDialog:
         sys_frame = DstcFrame(
             actions=[], slots=[], service=gt_sys_turn.frames[0].service
         )
-        sys_frame.service = gt_sys_turn.frames[0].full_service
         sys_turn = DstcTurn(
             speaker=Speaker.SYSTEM.value, utterance=utterance, frames=[]
         )
@@ -117,9 +127,8 @@ class ReconstructDialog:
             # utils.write_json(dialog_json, self.cfg.out_dir / f"{id}.json")
             gt_dialog = self._read_dialog_from_file(id)
             dstc_dialog = DstcDialog(
-                dialogue_id=id, turns=[], services=gt_dialog.full_services
+                dialogue_id=id, turns=[], services=gt_dialog.services
             )
-            dstc_dialog.services = gt_dialog.full_services
             for turn_id, target, pred, context, (gt_user_turn, gt_sys_turn) in zip(
                 dialog.turn_id,
                 dialog.target,
