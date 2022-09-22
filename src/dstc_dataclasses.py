@@ -10,7 +10,7 @@ from my_enums import Speaker, SpecialTokens, SimpleTodConstants
 @dataclass
 class DstcState:
     active_intent: str
-    slot_values: Dict[str, List[str]]
+    slot_values: Dict[str, list[str]]
     requested_slots: Optional[List[str]] = None
 
 
@@ -30,7 +30,6 @@ class DstcFrame:
     slots: List[any]
     service: str
     state: Optional[DstcState] = None
-    # full_service: Optional[str] = None
 
     def __init__(
         self,
@@ -38,13 +37,12 @@ class DstcFrame:
         slots: List[any],
         service: str,
         state: Optional[DstcState] = None,
-        reconstruct: bool = False,
     ):
         self.actions = actions
         self.slots = slots
         self.state = state
-        self.service = dstc_utils.get_dstc_service_name(service)
-        self.full_service = service
+        self.short_service = dstc_utils.get_dstc_service_name(service)
+        self.service = service
 
 
 @dataclass
@@ -97,7 +95,7 @@ class DstcTurn:
                 continue
             if len(frame.state.requested_slots):
                 return [
-                    DstcRequestedSlot(frame.service, humps.camelize(s))
+                    DstcRequestedSlot(frame.short_service, humps.camelize(s))
                     for s in frame.state.requested_slots
                 ]
         return None
@@ -109,19 +107,17 @@ class DstcDialog:
     dialogue_id: str
     turns: List[DstcTurn]
     services: List[str]
-    full_services: Optional[List[str]] = None
 
     def __init__(
         self,
         dialogue_id: str,
         turns: List[DstcTurn],
         services: List[str],
-        full_services: Optional[List[str]] = None,
     ):
         self.dialogue_id = dialogue_id
         self.turns = turns
-        self.services = [dstc_utils.get_dstc_service_name(s) for s in services]
-        self.full_services = services
+        self.short_services = [dstc_utils.get_dstc_service_name(s) for s in services]
+        self.services = services
 
 
 @dataclass

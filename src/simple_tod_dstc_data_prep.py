@@ -83,7 +83,7 @@ class SimpleTODDSTCDataPrep:
             for slot_name, value in frame.state.slot_values.items():
                 beliefs.append(
                     SimpleTodBelief(
-                        frame.service,
+                        frame.short_service,
                         humps.camelize(slot_name),
                         " ".join(value),
                     )
@@ -97,7 +97,9 @@ class SimpleTODDSTCDataPrep:
         for frame in frames:
             for action in frame.actions:
                 actions.append(
-                    SimpleTodAction(frame.service, action.act, " ".join(action.values))
+                    SimpleTodAction(
+                        frame.short_service, action.act, " ".join(action.values)
+                    )
                 )
 
     def _create_system_action(
@@ -107,7 +109,7 @@ class SimpleTODDSTCDataPrep:
             for action in frame.actions:
                 actions.append(
                     SimpleTodAction(
-                        frame.service,
+                        frame.short_service,
                         action.act,
                         humps.camelize(action.slot),
                         " ".join(action.values),
@@ -125,7 +127,7 @@ class SimpleTODDSTCDataPrep:
     ) -> str:
         delexicalized_utterance = turn.utterance
         for frame in turn.frames:
-            schema = schemas[frame.service]
+            schema = schemas[frame.short_service]
             for action in frame.actions:
                 for value in action.values:
                     slot = next(
@@ -134,7 +136,9 @@ class SimpleTODDSTCDataPrep:
                     )
                     if not slot:
                         continue
-                    replacement = f"<{frame.service}_{humps.camelize(action.slot)}>"
+                    replacement = (
+                        f"<{frame.short_service}_{humps.camelize(action.slot)}>"
+                    )
                     delexicalized_utterance = delexicalized_utterance.replace(
                         value, replacement
                     )
@@ -250,7 +254,7 @@ class SimpleTODDSTCDataPrep:
     ) -> Optional[List[SimpleTodTurn]]:
         tod_turns = []
         tod_turn = None
-        if not self._is_dialogue_in_domain(dstc_dialog.services):
+        if not self._is_dialogue_in_domain(dstc_dialog.short_services):
             return None
 
         for i, (user_turn, system_turn) in enumerate(
@@ -258,7 +262,7 @@ class SimpleTODDSTCDataPrep:
         ):
 
             tod_turn = self._prepare_turn(
-                user_turn, system_turn, tod_turn, schemas, dstc_dialog.full_services
+                user_turn, system_turn, tod_turn, schemas, dstc_dialog.services
             )
             tod_turn.dialog_id = dstc_dialog.dialogue_id
             tod_turn.turn_id = i + 1
@@ -330,7 +334,8 @@ class SimpleTODDSTCDataPrep:
             #         Pool().imap(
             #             self._prepare_dialog_file,
             #             dialog_paths[:num_dialog],
-            #             itertools.repeat(schemas),
+            #
+            #            itertools.repeat(schemas),
             #         ),
             #         total=num_dialog,
             #     )
