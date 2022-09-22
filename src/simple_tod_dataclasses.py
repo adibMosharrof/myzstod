@@ -16,20 +16,21 @@ import dstc_utils
 class SimpleTodBelief:
     domain: str
     slot_name: str
-    value: any
+    values: any
     prediction: Optional[str] = ""
 
     @classmethod
     def from_string(self, text: str):
         try:
-            dom_slot, value = text.split(SimpleTodConstants.SLOT_VALUE_SEPARATOR)
+            dom_slot, values_str = text.split(SimpleTodConstants.SLOT_VALUE_SEPARATOR)
+            values = values_str.split(SimpleTodConstants.VALUE_SEPARATOR)
         except ValueError:
             return self("", "", "", text)
         try:
             domain, slot_name = dom_slot.split(SimpleTodConstants.DOMAIN_SLOT_SEPARATOR)
         except ValueError:
-            return self("", "", value, text)
-        return self(domain, slot_name, value)
+            return self("", "", values, text)
+        return self(domain, slot_name, values)
 
     def __repr__(self) -> str:
         return self.__str__()
@@ -41,7 +42,7 @@ class SimpleTodBelief:
                 SimpleTodConstants.DOMAIN_SLOT_SEPARATOR,
                 self.slot_name,
                 SimpleTodConstants.SLOT_VALUE_SEPARATOR,
-                self.value,
+                SimpleTodConstants.VALUE_SEPARATOR.join(self.values),
             ]
         )
 

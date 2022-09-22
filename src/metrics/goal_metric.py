@@ -76,7 +76,7 @@ class GoalMetric(TodMetricsBase):
                 self.config.tod_class.from_string(t) for t in target_txt_items
             ]
             if self.config.tod_class is SimpleTodBelief:
-                target_items = [t for t in target_items if t.value != ""]
+                target_items = [t for t in target_items if t.values != ""]
             pred_belief_txt_items = self._extract_section_and_split_items_from_text(
                 pred, self.config.start_token, self.config.end_token
             )

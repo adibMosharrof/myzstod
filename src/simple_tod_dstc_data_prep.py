@@ -85,7 +85,7 @@ class SimpleTODDSTCDataPrep:
                     SimpleTodBelief(
                         frame.short_service,
                         humps.camelize(slot_name),
-                        " ".join(value),
+                        value,
                     )
                 )
             dsts.append(SimpleTodDst(beliefs, active_intent, requested_slots))

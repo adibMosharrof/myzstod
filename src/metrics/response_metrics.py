@@ -36,7 +36,10 @@ class ResponseMetric(TodMetricsBase):
         )
 
     def _compute(self) -> float:
-        res = self.metric.compute()[self.metric_key_name]
+        try:
+            res = self.metric.compute()[self.metric_key_name]
+        except ZeroDivisionError:
+            res = 0.0
         if self.metric_name == "rouge":
             return res.mid.fmeasure
         return res
