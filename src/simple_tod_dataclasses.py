@@ -129,6 +129,7 @@ class SimpleTodContext:
             SpecialTokens.begin_last_user_utterance
             + self.current_user_utterance
             + SpecialTokens.end_last_user_utterance
+            + SpecialTokens.end_context
         )
         return out
 
@@ -193,7 +194,7 @@ class SimpleTodTarget:
         out += self.response
         out += SpecialTokens.end_response + SimpleTodConstants.NEW_LINES
 
-        # out += SpecialTokens.end_of_text
+        out += SpecialTokens.end_target
         return out
 
 
