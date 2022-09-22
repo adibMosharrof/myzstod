@@ -16,25 +16,26 @@ class IntentAccuracyMetric(TodMetricsBase):
         pred_intents = []
         for target, prediction in zip(references, predictions):
 
-            t = self._extract_section_from_text(
+            t_intents = self._extract_section_from_text(
                 target, SpecialTokens.begin_intent, SpecialTokens.end_intent
             )
-            if not t:
+            if not len(t_intents):
                 continue
-            target_intents.append(1)
+            for _ in t_intents:
+                target_intents.append(1)
             p = self._extract_section_from_text(
                 prediction,
                 SpecialTokens.begin_intent,
                 SpecialTokens.end_intent,
-                SpecialPredictions.DUMMY,
+                [SpecialPredictions.DUMMY],
             )
-            if t == p:
-                pred_intents.append(1)
-                self._log_prediction(p, t, True)
-            else:
-                self._add_wrong_pred(t)
-                self._log_prediction(p, t, False)
-                pred_intents.append(0)
+            for t_intent in t_intents:
+                if t_intent in p:
+                    pred_intents.append(1)
+                    self._log_prediction(t_intent, t_intent, True)
+                else:
+                    pred_intents.append(0)
+                    self._log_prediction(p[0], t_intent, False)
 
         self.metric.add_batch(predictions=pred_intents, references=target_intents)
 

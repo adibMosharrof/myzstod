@@ -1,10 +1,14 @@
 from abc import ABC
 import abc
 from pathlib import Path
+import re
 from typing import Optional
+
+import numpy as np
 
 from predictions_logger import PredictionsLoggerBase
 from my_enums import SimpleTodConstants
+import dstc_utils
 
 
 class TodMetricsBase(ABC):
@@ -38,14 +42,10 @@ class TodMetricsBase(ABC):
 
     def _extract_section_from_text(
         self, text: str, start_token: str, end_token: str, default_value: any = None
-    ) -> Optional[str]:
-        try:
-            idx1 = text.index(start_token)
-            idx2 = text.index(end_token)
-            res = text[idx1 + len(start_token) : idx2]
-            return res
-        except ValueError:
-            return default_value
+    ) -> list[str]:
+        return dstc_utils.get_text_in_between(
+            text, start_token, end_token, default_value
+        )
 
     def _extract_section_and_split_items_from_text(
         self,
@@ -53,14 +53,17 @@ class TodMetricsBase(ABC):
         start_token: str,
         end_token: str,
         separator: str = SimpleTodConstants.ITEM_SEPARATOR,
-        default_value: any = None,
-    ) -> list[str]:
-        section_txt = self._extract_section_from_text(
+        default_value: any = [],
+    ) -> np.ndarray:
+        section_txts = self._extract_section_from_text(
             text, start_token, end_token, default_value
         )
-        if not section_txt:
-            return []
-        return section_txt.split(separator)
+        if not section_txts:
+            return default_value
+        out = [st.split(separator) for st in section_txts]
+        return np.concatenate(out, axis=0, dtype=str)
+
+        # return section_txts.split(separator)
 
     def add_batch(self, predictions: list[str], references: list[str]) -> None:
         if not len(predictions):

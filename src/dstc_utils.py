@@ -63,13 +63,10 @@ def get_token_id(tokenizer: AutoTokenizer, token_str: str) -> int:
 def get_text_in_between(
     text: str, start_token: str, end_token: str, default_value: any = None
 ) -> Optional[str]:
-    try:
-        idx1 = text.index(start_token)
-        idx2 = text.index(end_token)
-        res = text[idx1 + len(start_token) : idx2]
-        return res
-    except ValueError:
+    items = re.findall(f"{re.escape(start_token)}(.+?){re.escape(end_token)}", text)
+    if not items:
         return default_value
+    return items
 
 
 def remove_tokens_from_text(text: str, tokens: List[str]) -> str:

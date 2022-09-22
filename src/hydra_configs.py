@@ -85,7 +85,7 @@ class InferenceConfig:
             if self.tokenizer
             else self._get_tokenizer(model)
         )
-        self.padding_regexp = re.compile(re.escape(SpecialTokens.bos_token))
+        self.padding_regexp = re.compile(re.escape(SpecialTokens.pad_token))
 
     def _get_tokenizer(self, model_path_str:str):
         model_path:Path = self.project_root / model_path_str

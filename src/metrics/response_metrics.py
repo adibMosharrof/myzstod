@@ -27,8 +27,10 @@ class ResponseMetric(TodMetricsBase):
                 SpecialTokens.end_response,
                 "",
             )
-            pred_responses_batch.append(pred_response)
-            target_responses_batch.append(target_response)
+            if not pred_response:
+                pred_response = [""]
+            pred_responses_batch.append(pred_response[0])
+            target_responses_batch.append(target_response[0])
         self.metric.add_batch(
             predictions=pred_responses_batch, references=target_responses_batch
         )
