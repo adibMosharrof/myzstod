@@ -77,6 +77,8 @@ class SpecialTokens(str, Enum):
     begin_action = "<|beginaction|>"
     end_action = "<|endaction|>"
 
+    sys_actions = "<|sysactions|>"
+
     begin_intent = "<|beginintent|>"
     end_intent = "<|endintent|>"
 
@@ -143,3 +145,20 @@ class TodMetricsEnum(str, Enum):
     INFORM = "inform"
     REQUESTED_SLOTS = "requested_slots"
     SUCCESS = "success"
+
+
+class DstcSystemActions(str, Enum):
+    INFORM = "INFORM"
+    REQUEST = "REQUEST"
+    CONFIRM = "CONFIRM"
+    OFFER = "OFFER"
+    NOTIFY_SUCCESS = "NOTIFY_SUCCESS"
+    NOTIFY_FAILURE = "NOTIFY_FAILURE"
+    INFORM_COUNT = "INFORM_COUNT"
+    OFFER_INTENT = "OFFER_INTENT"
+    REQ_MORE = "REQ_MORE"
+    GOODBYE = "GOODBYE"
+
+    @classmethod
+    def list(cls):
+        return [c.value for c in cls]

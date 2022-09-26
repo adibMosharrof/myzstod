@@ -44,12 +44,7 @@ class SimpleTodDataModule(pl.LightningDataModule):
             csv_path = dstc_utils.get_csv_data_path(
                 step,
                 num_dialog,
-                self.cfg.delexicalize,
-                self.cfg.processed_data_root,
-                num_turns=self.cfg.num_turns,
-                domains=self.cfg.domains,
-                is_multi_task=self.cfg.is_multi_task,
-                should_add_schema=self.cfg.should_add_schema,
+                cfg=self.cfg,
             )
             try:
                 data = utils.read_csv_dataclass(csv_path, SimpleTodTurnCsvRow)

@@ -141,6 +141,7 @@ class TrainerConfig:
         eval_accumulation_steps: int = 25,
         is_multi_task: bool = False,
         should_add_schema: bool = False,
+        should_add_sys_actions: bool = False,
     ) -> None:
         self.project_root = Path(project_root)
         self.data_prep_out_root = Path(data_prep_out_root)
@@ -176,6 +177,7 @@ class TrainerConfig:
         self.is_multi_task = is_multi_task
         self.tokenizer = dstc_utils.get_tokenizer(model_name)
         self.should_add_schema = should_add_schema
+        self.should_add_sys_actions = should_add_sys_actions
 
 class DataModelExplorationConfig:
     def __init__(
@@ -233,6 +235,7 @@ class DataModuleConfig:
         domains: list[str] = None,
         is_multi_task: bool = False,
         should_add_schema: bool = False,
+        should_add_sys_actions: bool = False,
     ):
         self.num_workers = num_workers
         self.preprocessing_model_name = preprocessing_model_name
@@ -255,6 +258,7 @@ class DataModuleConfig:
         self.domains = domains or ["restaurant", "hotel", "attraction", "train"]
         self.is_multi_task = is_multi_task
         self.should_add_schema = should_add_schema
+        self.should_add_sys_actions = should_add_sys_actions
 
     @classmethod
     def from_trainer_config(self, trainer_config: TrainerConfig) -> "DataModuleConfig":
@@ -276,6 +280,7 @@ class DataModuleConfig:
             eval_batch_size=trainer_config.eval_batch_size,
             test_batch_size=trainer_config.test_batch_size,
             data_split_percent=trainer_config.data_split_percent,
+            should_add_sys_actions=trainer_config.should_add_sys_actions,
         )
 
     @classmethod
@@ -321,7 +326,7 @@ class DataPrepConfig:
         self,
         project_root: str,
         data_root: str,
-        out_root: str,
+        processed_data_root: str,
         num_dialogs: list[int] = None,
         delexicalize: bool = True,
         overwrite: list[bool] = None,
@@ -329,11 +334,12 @@ class DataPrepConfig:
         num_turns: int = 55,
         is_multi_task: bool = False,
         should_add_schema: bool = False,
+        should_add_sys_actions: bool = False,
     ):
         self.project_root = Path(project_root)
         self.data_root = self.project_root / data_root
-        self.out_root = self.project_root / out_root
-        self.out_root.mkdir(parents=True, exist_ok=True)
+        self.processed_data_root = self.project_root / processed_data_root
+        self.processed_data_root.mkdir(parents=True, exist_ok=True)
         self.num_dialogs = num_dialogs
         self.delexicalize = delexicalize
         self.overwrite = overwrite or [False, False, False]
@@ -341,6 +347,7 @@ class DataPrepConfig:
         self.num_turns = num_turns
         self.is_multi_task = is_multi_task
         self.should_add_schema = should_add_schema
+        self.should_add_sys_actions = should_add_sys_actions
 
     @classmethod
     def from_dm_config(self, dm_config: DataModuleConfig) -> "DataPrepConfig":
@@ -355,6 +362,7 @@ class DataPrepConfig:
             dm_config.num_turns,
             dm_config.is_multi_task,
             dm_config.should_add_schema,
+            dm_config.should_add_sys_actions,
         )
 
 

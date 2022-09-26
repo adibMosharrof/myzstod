@@ -8,19 +8,18 @@ from omegaconf import DictConfig, ListConfig, OmegaConf
 from tqdm import tqdm
 import humps
 from hydra_configs import DataPrepConfig
-from my_enums import Steps
+from my_enums import Steps, SimpleTodConstants
 
 import utils
 from pathos.multiprocessing import ProcessingPool as Pool
 
 from dstc_dataclasses import DstcDialog, DstcFrame, DstcSchema, DstcTurn
-from dstc_utils import get_csv_data_path, get_dialog_file_paths, get_dstc_service_name
+from dstc_utils import get_csv_data_path, get_dialog_file_paths
 
 from simple_tod_dataclasses import (
     MultiTaskSpecialToken,
     SimpleTodAction,
     SimpleTodBelief,
-    SimpleTodConstants,
     SimpleTodContext,
     SimpleTodDst,
     SimpleTodTarget,
@@ -53,6 +52,8 @@ class SimpleTODDSTCDataPrep:
     ):
         if not prev_tod_turn:
             context = SimpleTodContext(max_length=self.cfg.num_turns)
+            if self.cfg.should_add_sys_actions:
+                context.should_add_sys_actions = True
         else:
             context = copy.deepcopy(prev_tod_turn.context)
             context.system_utterances.append(
@@ -98,7 +99,9 @@ class SimpleTODDSTCDataPrep:
             for action in frame.actions:
                 actions.append(
                     SimpleTodAction(
-                        frame.short_service, action.act, " ".join(action.values)
+                        frame.short_service,
+                        action.act,
+                        SimpleTodConstants.ACTION_VALUE_SEPARATOR.join(action.values),
                     )
                 )
 
@@ -112,7 +115,7 @@ class SimpleTODDSTCDataPrep:
                         frame.short_service,
                         action.act,
                         humps.camelize(action.slot),
-                        " ".join(action.values),
+                        SimpleTodConstants.ACTION_VALUE_SEPARATOR.join(action.values),
                     )
                 )
 
@@ -306,7 +309,7 @@ class SimpleTODDSTCDataPrep:
         for step, num_dialog, should_overwrite in tqdm(
             zip(steps, self.cfg.num_dialogs, self.cfg.overwrite)
         ):
-            step_dir = Path(self.cfg.out_root / step)
+            step_dir = Path(self.cfg.processed_data_root / step)
             step_dir.mkdir(parents=True, exist_ok=True)
             dialog_paths = get_dialog_file_paths(self.cfg.data_root, step)
             schemas = self._get_schemas(step)
@@ -316,12 +319,7 @@ class SimpleTODDSTCDataPrep:
             csv_file_path = get_csv_data_path(
                 step=step,
                 num_dialogs=num_dialog,
-                delexicalized=self.cfg.delexicalize,
-                domains=self.cfg.domains,
-                processed_data_root=self.cfg.out_root,
-                num_turns=self.cfg.num_turns,
-                is_multi_task=self.cfg.is_multi_task,
-                should_add_schema=self.cfg.should_add_schema,
+                cfg=self.cfg,
             )
             if csv_file_path.exists() and not should_overwrite:
                 print(

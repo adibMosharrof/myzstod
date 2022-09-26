@@ -8,7 +8,7 @@ import pandas as pd
 import torch
 from dstc_dataclasses import DstcRequestedSlot, DstcSchema
 
-from my_enums import SimpleTodConstants, SpecialTokens
+from my_enums import DstcSystemActions, SimpleTodConstants, SpecialTokens
 import dstc_utils
 
 
@@ -108,6 +108,7 @@ class SimpleTodContext:
     system_utterances: deque[str] = field(default_factory=deque)
     next_system_utterance: str = None
     current_user_utterance: str = None
+    should_add_sys_actions: bool = None
 
     def __init__(self, max_length: int = 10):
         self.user_utterances = deque(maxlen=max_length)
@@ -130,8 +131,15 @@ class SimpleTodContext:
             SpecialTokens.begin_last_user_utterance
             + self.current_user_utterance
             + SpecialTokens.end_last_user_utterance
-            + SpecialTokens.end_context
         )
+        if self.should_add_sys_actions:
+            out += "".join(
+                [
+                    SpecialTokens.sys_actions,
+                    " ".join(DstcSystemActions.list()),
+                ]
+            )
+        out += SpecialTokens.end_context
         return out
 
 

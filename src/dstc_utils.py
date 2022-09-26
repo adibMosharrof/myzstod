@@ -23,17 +23,12 @@ def get_dialog_file_paths(data_root, step):
 def get_csv_data_path(
     step: str = "train",
     num_dialogs: int = 1,
-    delexicalized: bool = True,
-    processed_data_root: Path = None,
-    domains: List[str] = None,
-    num_turns: int = 26,
-    is_multi_task: bool = False,
-    should_add_schema: bool = False,
+    cfg=None,
 ):
-    step_dir = processed_data_root / step
+    step_dir = cfg.processed_data_root / step
     return (
         step_dir
-        / f"simple_tod_dstc_multi_task_{is_multi_task}_schema_{should_add_schema}_turns_{num_turns}_dialogs_{num_dialogs}{SimpleTodConstants.DELEXICALIZED if delexicalized else ''}_{'_'.join(domains)}.csv"
+        / f"simple_tod_dstc_multi_task_{cfg.is_multi_task}_schema_{cfg.should_add_schema}_sys_actions_{cfg.should_add_sys_actions}_turns_{cfg.num_turns}_dialogs_{num_dialogs}{SimpleTodConstants.DELEXICALIZED if cfg.delexicalize else ''}_{'_'.join(cfg.domains)}.csv"
     )
 
 

@@ -31,11 +31,7 @@ class DataModelExploration:
             csv_file_path = dstc_utils.get_csv_data_path(
                 step,
                 num_dialog,
-                delexicalized=False,
-                processed_data_root=self.cfg.data_root,
-                domains=self.cfg.domains,
-                should_add_schema=self.cfg.should_add_schema,
-                is_multi_task=self.cfg.is_multi_task,
+                cfg = self.cfg,
             )
             rows.append(read_csv_dataclass(csv_file_path, SimpleTodTurnCsvRow))
         return np.concatenate(rows, axis=0)
