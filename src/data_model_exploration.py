@@ -10,62 +10,32 @@ from omegaconf import DictConfig
 from tqdm import tqdm
 
 import dstc_utils
-from dstc_dataclasses import DstcDomains, Steps
+from hydra_configs import DataModelExplorationConfig, DataModuleConfig
+from my_enums import DstcDomains, Steps
 from my_datamodules import SimpleTodDataModule
 from simple_tod_dataclasses import (
-    SimpleTodConstants,
-    SimpleTodDatasetItem,
     SimpleTodTurnCsvRow,
-    SpecialTokens,
 )
 from utils import read_csv_dataclass
 
 
 class DataModelExploration:
-    def __init__(
-        self,
-        data_root: str = None,
-        project_root: str = None,
-        num_dialogs: list[int] = None,
-        delexicalize: bool = False,
-        model_name: str = "gpt2",
-        out_root: str = "figures/model_size_calc",
-        num_turns: int = 10,
-        domain_settings: str = "SEEN",
-        overwrite: list[bool] = None,
-        data_split_percent: list[float] = None,
-    ):
-        self.project_root = Path(project_root)
-        self.data_root = self.project_root / data_root
-        self.out_root = self.project_root / out_root
-        self.out_root.mkdir(parents=True, exist_ok=True)
-        self.num_dialogs = num_dialogs
-        self.delexicalize = delexicalize
-        self.tokenizer = dstc_utils.get_tokenizer(model_name)
-        special_tokens = SpecialTokens.list()
-        self.tokenizer.add_tokens(special_tokens, special_tokens=True)
-        self.num_turns = num_turns
-        self.domains = DstcDomains[domain_settings.upper()].value
-        self.dm = SimpleTodDataModule(
-            project_root=self.project_root,
-            data_split_percent=data_split_percent,
-            num_dialogs=[127, 20, 34],
-            domains=DstcDomains.ALL.value,
-            is_multi_task=True,
-            overwrite=overwrite,
-        )
-        self.dm.setup()
+    def __init__(self, cfg: DataModelExplorationConfig):
+        self.cfg = cfg
+        self.dm = SimpleTodDataModule(DataModuleConfig.from_data_model_exploration(cfg))
 
-    def _get_simple_tod_rows(self):
+    def _get_simple_tod_rows(self) -> list[SimpleTodTurnCsvRow]:
         steps = Steps.list()
         rows = []
-        for step, num_dialog in tqdm(zip(steps, self.num_dialogs)):
+        for step, num_dialog in tqdm(zip(steps, self.cfg.num_dialogs)):
             csv_file_path = dstc_utils.get_csv_data_path(
                 step,
                 num_dialog,
                 delexicalized=False,
-                processed_data_root=self.data_root,
-                domains=self.domains,
+                processed_data_root=self.cfg.data_root,
+                domains=self.cfg.domains,
+                should_add_schema=self.cfg.should_add_schema,
+                is_multi_task=self.cfg.is_multi_task,
             )
             rows.append(read_csv_dataclass(csv_file_path, SimpleTodTurnCsvRow))
         return np.concatenate(rows, axis=0)
@@ -172,71 +142,20 @@ class DataModelExploration:
         )
         plt.close()
 
-    def plot_intents_distribution(self):
+    def schema_size(self):
         rows = self._get_simple_tod_rows()
-
-        a = 1
-
-    def update_token_len(
-        self,
-        data: SimpleTodDatasetItem,
-    ):
-        c_tok = self.tokenizer(data.context, return_tensors="pt")
-        t_tok = self.tokenizer(data.target, return_tensors="pt")
-        c_tok_len = len(c_tok["input_ids"])
-        t_tok_len = len(t_tok["input_ids"])
-        self.context_hist[c_tok_len] += 1
-        self.target_hist[t_tok_len] += 1
-
-    def plot_multitask_token_len(self):
-        self.context_hist = defaultdict(int)
-        self.target_hist = defaultdict(int)
-        for step in tqdm(Steps.list()):
-            data = self.dm.multi_task_preprocessor(self.dm.datasets[step])
-            # res = list(
-            #     tqdm(
-            #         Pool().imap(
-            #             self.update_token_len,
-            #             data,
-            #         ),
-            #         total=len(data),
-            #     )
-            # )
-            for d in tqdm(data):
-                c_tok = self.tokenizer(d.context, return_tensors="pt")
-                t_tok = self.tokenizer(d.target, return_tensors="pt")
-                c_tok_len = c_tok["input_ids"].shape[1]
-                t_tok_len = t_tok["input_ids"].shape[1]
-                self.context_hist[c_tok_len] += 1
-                self.target_hist[t_tok_len] += 1
-        print(
-            f"Context len max:{max(self.context_hist.keys())}, avg {mean(self.context_hist.keys())}"
-        )
-        print(
-            f"Target len max:{max(self.target_hist.keys())}, avg {mean(self.target_hist.keys())}"
-        )
-        a = 1
+        turn_schema_size = defaultdict(list)
+        for row in tqdm(rows):
+            a = 1
 
     def run(self):
-        # self.plot_intents_distribution()
         # self.plot_model_size()
-        self.plot_multitask_token_len()
+        self.schema_size()
 
 
 @hydra.main(config_path="../config/", config_name="data_model_exploration")
 def hydra_start(cfg: DictConfig) -> None:
-    msc = DataModelExploration(
-        project_root=cfg.project_root,
-        data_root=cfg.data_root,
-        delexicalize=cfg.delexicalize,
-        num_dialogs=cfg.num_dialogs,
-        model_name=cfg.model_name,
-        out_root=cfg.out_root,
-        num_turns=cfg.num_turns,
-        domain_settings=cfg.domain_settings,
-        data_split_percent=cfg.data_split_percent,
-        overwrite=cfg.overwrite,
-    )
+    msc = DataModelExploration(DataModelExplorationConfig(**cfg))
     msc.run()
 
 

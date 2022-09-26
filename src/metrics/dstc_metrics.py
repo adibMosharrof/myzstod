@@ -21,6 +21,7 @@ class SuccessMetric(TodMetricsBase):
                 ref,
                 SpecialTokens.begin_requested_slots,
                 SpecialTokens.end_requested_slots,
+                multiple_values=True,
             )
             requested_slots = [
                 DstcRequestedSlot.from_string(t) for t in requested_slots_txt

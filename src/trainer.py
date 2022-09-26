@@ -29,7 +29,6 @@ class SimpleTODTrainer:
         model = model.cuda()
 
         dm = SimpleTodDataModule(DataModuleConfig.from_trainer_config(self.cfg))
-        dm.setup()
         self.train(model, dm)
         print("Training done")
         print("-" * 80)

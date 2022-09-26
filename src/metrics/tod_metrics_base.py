@@ -41,10 +41,15 @@ class TodMetricsBase(ABC):
         self.prediction_logger.visualize(out_dir)
 
     def _extract_section_from_text(
-        self, text: str, start_token: str, end_token: str, default_value: any = None
-    ) -> list[str]:
+        self,
+        text: str,
+        start_token: str,
+        end_token: str,
+        default_value: any = None,
+        multiple_values: bool = False,
+    ):
         return dstc_utils.get_text_in_between(
-            text, start_token, end_token, default_value
+            text, start_token, end_token, default_value, multiple_values=multiple_values
         )
 
     def _extract_section_and_split_items_from_text(
@@ -54,14 +59,17 @@ class TodMetricsBase(ABC):
         end_token: str,
         separator: str = SimpleTodConstants.ITEM_SEPARATOR,
         default_value: any = [],
+        multiple_values: bool = False,
     ) -> np.ndarray:
         section_txts = self._extract_section_from_text(
-            text, start_token, end_token, default_value
+            text, start_token, end_token, default_value, multiple_values=multiple_values
         )
         if not section_txts:
             return default_value
-        out = [st.split(separator) for st in section_txts]
-        return np.concatenate(out, axis=0, dtype=str)
+        if type(section_txts) == list:
+            out = [st.split(separator) for st in section_txts]
+            return np.concatenate(out, axis=0, dtype=str)
+        return np.array(section_txts.split(separator), dtype=str)
 
         # return section_txts.split(separator)
 

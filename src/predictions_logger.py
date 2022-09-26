@@ -262,8 +262,8 @@ class PredictionLoggerFactory:
         if metric in [TodMetricsEnum.INFORM, TodMetricsEnum.REQUESTED_SLOTS]:
             columns = ["domain", "slot_name"]
         elif metric in [TodMetricsEnum.ACTION, TodMetricsEnum.SUCCESS]:
-            columns = ["domain", "action_type", "slot_name", "values"]
+            columns = ["domain", "action_type", "slot_name"]
         elif metric == TodMetricsEnum.BELIEF:
-            columns = ["domain", "slot_name", "value"]
+            columns = ["domain", "slot_name"]
 
         return GenericPredictionLogger(metric_name=metric.value, columns=columns)

@@ -347,7 +347,7 @@ class SimpleTODDSTCDataPrep:
                     res.append(output)
             out_data = [d for d in res if len(d)]
             headers = (
-                ["dialog_id", "turn_id", "context", "schema", "target"]
+                ["dialog_id", "turn_id", "context", "target", "schema"]
                 if self.cfg.should_add_schema
                 else ["dialog_id", "turn_id", "context", "target"]
             )

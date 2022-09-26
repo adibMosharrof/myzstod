@@ -62,7 +62,7 @@ class SpecialTokens(str, Enum):
     begin_last_user_utterance = "<|beginlastuserutterance|>"
     end_last_user_utterance = "<|endlastuserutterance|>"
 
-    begin_dsts  = "<|begindsts|>"
+    begin_dsts = "<|begindsts|>"
     end_dsts = "<|enddsts|>"
 
     begin_dst = "<|begindst|>"
@@ -116,7 +116,7 @@ class SpecialTokens(str, Enum):
 class SimpleTodConstants(str, Enum):
     DELEXICALIZED = "_delexicalized"
     SLOT_VALUE_SEPARATOR = "->"
-    DOMAIN_SLOT_SEPARATOR = "_"
+    DOMAIN_SLOT_SEPARATOR = "^"
     ITEM_SEPARATOR = "|"
     ACTION_VALUE_SEPARATOR = "<-"
     VALUE_SEPARATOR = ACTION_VALUE_SEPARATOR

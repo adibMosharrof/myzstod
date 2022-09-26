@@ -67,8 +67,9 @@ class GoalMetric(TodMetricsBase):
 
     def _add_batch(self, turn_predictions: list[str], references: list[str]) -> None:
         for ref, pred in zip(references, turn_predictions):
+            multiple_values = True if self.config.tod_class == SimpleTodBelief else False
             target_txt_items = self._extract_section_and_split_items_from_text(
-                ref, self.config.start_token, self.config.end_token
+                ref, self.config.start_token, self.config.end_token, multiple_values=multiple_values
             )
             if not len(target_txt_items):
                 continue
@@ -76,9 +77,12 @@ class GoalMetric(TodMetricsBase):
                 self.config.tod_class.from_string(t) for t in target_txt_items
             ]
             if self.config.tod_class is SimpleTodBelief:
-                target_items = [t for t in target_items if t.values != ""]
+                target_items = [t for t in target_items if t.values]
             pred_belief_txt_items = self._extract_section_and_split_items_from_text(
-                pred, self.config.start_token, self.config.end_token
+                pred,
+                self.config.start_token,
+                self.config.end_token,
+                multiple_values=multiple_values,
             )
             pred_beliefs = [
                 self.config.tod_class.from_string(t) for t in pred_belief_txt_items

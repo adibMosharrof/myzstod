@@ -61,7 +61,6 @@ class Inference:
 
     def _get_dataloader(self):
         dm = SimpleTodDataModule(DataModuleConfig.from_inference_config(self.cfg))
-        dm.setup()
         return dm.test_dataloader()
 
     def _get_token_id(self, token_str):

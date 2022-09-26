@@ -30,6 +30,7 @@ class SimpleTodDataModule(pl.LightningDataModule):
     ):
         super().__init__()
         self.cfg = cfg
+        self.setup()
 
     def prepare_data(self):
         stdp = SimpleTODDSTCDataPrep(DataPrepConfig.from_dm_config(self.cfg))
