@@ -141,6 +141,7 @@ class TrainerConfig:
         eval_accumulation_steps: int = 25,
         is_multi_task: bool = False,
         should_add_schema: bool = False,
+        should_add_user_actions: bool = False,
         should_add_sys_actions: bool = False,
     ) -> None:
         self.project_root = Path(project_root)
@@ -178,6 +179,7 @@ class TrainerConfig:
         self.tokenizer = dstc_utils.get_tokenizer(model_name)
         self.should_add_schema = should_add_schema
         self.should_add_sys_actions = should_add_sys_actions
+        self.should_add_user_actions = should_add_user_actions
 
 class DataModelExplorationConfig:
     def __init__(
@@ -236,6 +238,7 @@ class DataModuleConfig:
         is_multi_task: bool = False,
         should_add_schema: bool = False,
         should_add_sys_actions: bool = False,
+        should_add_user_actions: bool = False,
     ):
         self.num_workers = num_workers
         self.preprocessing_model_name = preprocessing_model_name
@@ -259,6 +262,7 @@ class DataModuleConfig:
         self.is_multi_task = is_multi_task
         self.should_add_schema = should_add_schema
         self.should_add_sys_actions = should_add_sys_actions
+        self.should_add_user_actions = should_add_user_actions
 
     @classmethod
     def from_trainer_config(self, trainer_config: TrainerConfig) -> "DataModuleConfig":
@@ -280,6 +284,7 @@ class DataModuleConfig:
             eval_batch_size=trainer_config.eval_batch_size,
             test_batch_size=trainer_config.test_batch_size,
             data_split_percent=trainer_config.data_split_percent,
+            should_add_user_actions=trainer_config.should_add_user_actions,
             should_add_sys_actions=trainer_config.should_add_sys_actions,
         )
 
@@ -335,6 +340,7 @@ class DataPrepConfig:
         is_multi_task: bool = False,
         should_add_schema: bool = False,
         should_add_sys_actions: bool = False,
+        should_add_user_actions: bool = False,
     ):
         self.project_root = Path(project_root)
         self.data_root = self.project_root / data_root
@@ -348,6 +354,7 @@ class DataPrepConfig:
         self.is_multi_task = is_multi_task
         self.should_add_schema = should_add_schema
         self.should_add_sys_actions = should_add_sys_actions
+        self.should_add_user_actions = should_add_user_actions
 
     @classmethod
     def from_dm_config(self, dm_config: DataModuleConfig) -> "DataPrepConfig":
@@ -363,6 +370,7 @@ class DataPrepConfig:
             dm_config.is_multi_task,
             dm_config.should_add_schema,
             dm_config.should_add_sys_actions,
+            dm_config.should_add_user_actions,
         )
 
 

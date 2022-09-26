@@ -148,6 +148,7 @@ class SimpleTodDst:
     beliefs: List[SimpleTodBelief]
     active_intent: str
     requested_slots: Optional[List[DstcRequestedSlot]] = None
+    actions: List[SimpleTodAction] = None
 
     def __str__(self) -> str:
         out = SpecialTokens.begin_dst
@@ -170,6 +171,15 @@ class SimpleTodDst:
             + SpecialTokens.end_dst
             + SimpleTodConstants.NEW_LINES
         )
+        if self.actions:
+            out += "".join(
+                [
+                    SpecialTokens.begin_action,
+                    SimpleTodConstants.ITEM_SEPARATOR.join(map(str, self.beliefs)),
+                    SpecialTokens.end_action,
+                ]
+            )
+
         return out
 
 

@@ -79,6 +79,7 @@ class SimpleTODDSTCDataPrep:
             if not frame.state:
                 continue
             beliefs = []
+            actions = []
             active_intent = frame.state.active_intent
             requested_slots = frame.state.requested_slots
             for slot_name, value in frame.state.slot_values.items():
@@ -89,7 +90,21 @@ class SimpleTODDSTCDataPrep:
                         value,
                     )
                 )
-            dsts.append(SimpleTodDst(beliefs, active_intent, requested_slots))
+            if self.cfg.should_add_user_actions:
+                for action in frame.actions:
+                    actions.append(
+                        SimpleTodAction(
+                            frame.short_service,
+                            action.act,
+                            humps.camelize(action.slot),
+                            SimpleTodConstants.ACTION_VALUE_SEPARATOR.join(
+                                action.values
+                            ),
+                        )
+                    )
+            dsts.append(
+                SimpleTodDst(beliefs, active_intent, requested_slots, actions=actions)
+            )
         return dsts
 
     def _create_user_action(

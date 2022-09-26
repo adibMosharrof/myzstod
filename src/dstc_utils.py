@@ -28,7 +28,7 @@ def get_csv_data_path(
     step_dir = cfg.processed_data_root / step
     return (
         step_dir
-        / f"simple_tod_dstc_multi_task_{cfg.is_multi_task}_schema_{cfg.should_add_schema}_sys_actions_{cfg.should_add_sys_actions}_turns_{cfg.num_turns}_dialogs_{num_dialogs}{SimpleTodConstants.DELEXICALIZED if cfg.delexicalize else ''}_{'_'.join(cfg.domains)}.csv"
+        / f"multi_task_{cfg.is_multi_task}_schema_{cfg.should_add_schema}_user_actions_{cfg.should_add_user_actions}_sys_actions_{cfg.should_add_sys_actions}_turns_{cfg.num_turns}_dialogs_{num_dialogs}{SimpleTodConstants.DELEXICALIZED if cfg.delexicalize else ''}_{'_'.join(cfg.domains)}.csv"
     )
 
 
