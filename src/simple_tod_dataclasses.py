@@ -174,9 +174,9 @@ class SimpleTodDst:
         if self.actions:
             out += "".join(
                 [
-                    SpecialTokens.begin_action,
+                    SpecialTokens.begin_user_action,
                     SimpleTodConstants.ITEM_SEPARATOR.join(map(str, self.beliefs)),
-                    SpecialTokens.end_action,
+                    SpecialTokens.end_user_action,
                 ]
             )
 

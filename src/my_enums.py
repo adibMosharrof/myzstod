@@ -77,6 +77,8 @@ class SpecialTokens(str, Enum):
     begin_action = "<|beginaction|>"
     end_action = "<|endaction|>"
 
+    begin_user_action = "<|beginuseraction|>"
+    end_user_action = "<|enduseraction|>"
     sys_actions = "<|sysactions|>"
 
     begin_intent = "<|beginintent|>"
