@@ -2,7 +2,6 @@ import glob
 import re
 from pathlib import Path
 from typing import List, Optional, Union
-
 from transformers import AutoTokenizer, PreTrainedTokenizerFast
 
 from tokenizers.processors import TemplateProcessing
@@ -70,13 +69,15 @@ def get_text_in_between(
             return res
         except ValueError:
             return default_value
-    if SimpleTodConstants.NEW_LINES in text:
-        text = text.replace(SimpleTodConstants.NEW_LINES, "")
-    items = re.findall(f"{re.escape(start_token)}(.+?){re.escape(end_token)}", text)
-    if not items:
+    try:
+        if SimpleTodConstants.NEW_LINES in text:
+            text = text.replace(SimpleTodConstants.NEW_LINES, "")
+        items = re.findall(f"{re.escape(start_token)}(.+?){re.escape(end_token)}", text)
+        if not items:
+            return default_value
+        return items
+    except ValueError:
         return default_value
-    return items
-
 
 def remove_tokens_from_text(text: str, tokens: List[str]) -> str:
     for token in tokens:

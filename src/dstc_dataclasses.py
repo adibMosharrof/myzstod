@@ -95,7 +95,8 @@ class DstcTurn:
                 continue
             if len(frame.state.requested_slots):
                 return [
-                    DstcRequestedSlot(frame.short_service, humps.camelize(s))
+                    # DstcRequestedSlot(frame.short_service, humps.camelize(s))
+                    DstcRequestedSlot(frame.short_service, s)
                     for s in frame.state.requested_slots
                 ]
         return None

@@ -86,7 +86,8 @@ class SimpleTODDSTCDataPrep:
                 beliefs.append(
                     SimpleTodBelief(
                         frame.short_service,
-                        humps.camelize(slot_name),
+                        # humps.camelize(slot_name),
+                        slot_name,
                         value,
                     )
                 )
@@ -96,7 +97,8 @@ class SimpleTODDSTCDataPrep:
                         SimpleTodAction(
                             frame.short_service,
                             action.act,
-                            humps.camelize(action.slot),
+                            # humps.camelize(action.slot),
+                            action.slot,
                             SimpleTodConstants.ACTION_VALUE_SEPARATOR.join(
                                 action.values
                             ),
@@ -129,7 +131,8 @@ class SimpleTODDSTCDataPrep:
                     SimpleTodAction(
                         frame.short_service,
                         action.act,
-                        humps.camelize(action.slot),
+                        # humps.camelize(action.slot),
+                        action.slot,
                         SimpleTodConstants.ACTION_VALUE_SEPARATOR.join(action.values),
                     )
                 )
@@ -155,7 +158,8 @@ class SimpleTODDSTCDataPrep:
                     if not slot:
                         continue
                     replacement = (
-                        f"<{frame.short_service}_{humps.camelize(action.slot)}>"
+                        # f"<{frame.short_service}_{humps.camelize(action.slot)}>"
+                        f"<{frame.short_service}{SimpleTodConstants.DOMAIN_SLOT_SEPARATOR}{action.slot}>"
                     )
                     delexicalized_utterance = delexicalized_utterance.replace(
                         value, replacement
