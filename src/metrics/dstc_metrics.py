@@ -62,7 +62,7 @@ class SuccessMetric(TodMetricsBase):
 
     def __str__(self) -> str:
         avg_success = self.compute()
-        return f"Success: {avg_success*100:.2f}"
+        return f"Success\n|{avg_success*100:.2f}|"
 
 
 class InformMetric(TodMetricsBase):
@@ -113,7 +113,7 @@ class InformMetric(TodMetricsBase):
 
     def __str__(self) -> str:
         avg_inform = self.compute()
-        return f"Inform: {avg_inform*100:.2f}"
+        return f"Inform\n|{avg_inform*100:.2f}|"
 
 
 class CombinedMetric(TodMetricsBase):
@@ -139,4 +139,4 @@ class CombinedMetric(TodMetricsBase):
 
     def __str__(self) -> str:
         score = self.compute()
-        return f"Combined: {score*100:.2f}"
+        return f"Combined\n|{score*100:.2f}|"

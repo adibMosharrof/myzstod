@@ -67,9 +67,14 @@ class GoalMetric(TodMetricsBase):
 
     def _add_batch(self, turn_predictions: list[str], references: list[str]) -> None:
         for ref, pred in zip(references, turn_predictions):
-            multiple_values = True if self.config.tod_class == SimpleTodBelief else False
+            multiple_values = (
+                True if self.config.tod_class == SimpleTodBelief else False
+            )
             target_txt_items = self._extract_section_and_split_items_from_text(
-                ref, self.config.start_token, self.config.end_token, multiple_values=multiple_values
+                ref,
+                self.config.start_token,
+                self.config.end_token,
+                multiple_values=multiple_values,
             )
             if not len(target_txt_items):
                 continue
@@ -107,4 +112,4 @@ class GoalMetric(TodMetricsBase):
 
     def __str__(self) -> str:
         avg_ga, joint_ga = self.compute()
-        return f"Average {self.config.step_name} Accuracy: {avg_ga*100:.2f}, Joint {self.config.step_name} Accuracy: {joint_ga*100:.2f}"
+        return f"Average {self.config.step_name} Accuracy\n|{avg_ga*100:.2f}|,\nJoint {self.config.step_name} Accuracy\n|{joint_ga*100:.2f}|"

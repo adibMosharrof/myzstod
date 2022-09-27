@@ -63,5 +63,5 @@ class RequestedSlotsMetric(TodMetricsBase):
     def __str__(self) -> str:
         macro_score, micro_score = self.compute()
         return (
-            f"Requested Slots Macro F1: {macro_score:.2f} Micro F1: {micro_score:.2f}"
+            f"Requested Slots Macro, Micro F1\n|{macro_score:.2f}, {micro_score:.2f}|"
         )
