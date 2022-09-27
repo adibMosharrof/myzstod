@@ -81,6 +81,7 @@ class Inference:
         raise ValueError(f"Unknown test setting {test_setting}")
 
     def test(self):
+        self.cfg.logger.info(self.cfg.out_dir)
         for setting in self.cfg.test_settings:
             self.cfg.logger.info(f"Testing {setting}")
             domains = self._get_domains_from_test_settings(setting)
