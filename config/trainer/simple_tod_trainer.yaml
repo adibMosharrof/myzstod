@@ -1,31 +1,30 @@
-pretrain_epochs: 2
-train_epochs: 2
-train_batch_size: 9
+pretrain_epochs: 1
+pretrain_model_path: outputs/2022-09-29/10-36-13/results/pretrain/
+train_epochs: 1
+train_batch_size: 6
 data_split_percent:
-  - .01
-  - .01
-  - .01
-  # - 1
-  # - 1
-  # - 1
+  - .1
+  - .1
+  - .1
 eval_batch_size: 10
 test_batch_size: 30
-max_token_len: 700
+context_max_len: 100
 num_dialogs: 
   - 1
   - 1
   - 1
-  # - 127
-  # - 20
-  # - 34
-overwrite:
-  # - true
-  # - true
-  # - true
-  - false 
-  - false 
-  - false 
-should_test: false
+# overwrite:
+#   - true
+#   - true
+#   - true
+should_test: true
 num_turns: 26
-train_domain_settings: ALL
+train_domain_setting: all
 is_multi_task: true
+multi_tasks:
+  - 1
+  - 1
+  - 0
+# should_add_schema: true
+# should_add_sys_actions: true
+# should_add_user_actions: true

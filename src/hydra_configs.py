@@ -60,7 +60,7 @@ class TrainerConfig:
         self.delexicalize = delexicalize
         self.num_turns = num_turns
         self.overwrite = overwrite or [False, False, False]
-        self.test_domain_settings = test_domain_settings or ["seen"]
+        self.test_domain_settings = test_domain_settings or ["all","seen", "unseen"]
         self.out_dir = Path(out_dir)
         self.pretrain_epochs = pretrain_epochs
         self.train_epochs = train_epochs
@@ -127,7 +127,7 @@ class InferenceConfig:
         self.model = self._get_model(model)
         self.model_name = model_name
         self.generate_max_len = generate_max_len
-        self.test_domain_settings = test_domain_settings or ["seen"]
+        self.test_domain_settings = test_domain_settings or ["all","seen", "unseen"]
         self.num_turns = num_turns
         self.overwrite = overwrite or [False, False, False]
         self.out_dir = out_dir

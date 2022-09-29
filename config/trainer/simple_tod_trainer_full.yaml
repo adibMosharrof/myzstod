@@ -3,36 +3,30 @@ pretrain_epochs: 1
 train_epochs: 1
 num_workers: 8
 train_batch_size: 10
-data_split_percent:
-  - 1
-  - 1
-  - 1
+# data_split_percent:
+#   - .3
+#   - .3
+#   - .3
 eval_batch_size: 10
 test_batch_size: 80
 eval_accumulation_steps: 25
 output_dir: results
 logging_dir: logs
 logging_steps: 50
-max_token_len: 700
+max_token_len: 1022
 raw_data_root: data/dstc8-schema-guided-dialogue/
 project_root: /mounts/u-amo-d0/grad/adibm/projects/generative_tod/
 data_prep_out_root: processed_data/simple_tod
 delexicalize: false
 num_dialogs: 
-  - 127
-  - 20
-  - 34
-  # - 1
-  # - 1
-  # - 1
+  - 1
+  - 1
+  - 1
 overwrite:
-  - false
-  - false
-  - false
-  # - true
-  # - true
-  # - true
-should_test: false
+  - true
+  - true
+  - true
+# should_test: true
 generate_max_len: 1024
 num_turns: 26
 train_domain_settings: ALL

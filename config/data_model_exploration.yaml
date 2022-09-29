@@ -1,7 +1,4 @@
 overwrite: 
-  # - False
-  # - False
-  # - False
   - True
   - True
   - True
@@ -10,16 +7,13 @@ data_split_percent:
   - 1
   - 1
 project_root: /mounts/u-amo-d0/grad/adibm/projects/generative_tod/
-data_root: processed_data/simple_tod
-out_root: figures/data_model_exploration
 num_dialogs: 
-  # - 1
-  # - 1
-  # - 1
-  - 127
-  - 20
-  - 34
+  - 1
+  - 1
+  - 1
 delexicalize: false
 model_name: gpt2
-domain_settings: seen
+domain_settings: all
 num_turns: 26
+is_multi_task: True
+should_add_schema: True

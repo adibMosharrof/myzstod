@@ -4,7 +4,7 @@ out_root: processed_data/simple_tod
 num_dialogs: 
   - 1
   - 1
-  - 1
+  - 34
 # num_dialogs: 
 #   - None
 #   - None
@@ -14,19 +14,4 @@ overwrite:
   - true
   - true
   - true
-domains:
-  - Buses
-  - Events
-  - Flights
-  - Homes
-  - Hotels
-  - Media
-  - Movies
-  - Music
-  - RentalCars
-  - Restaurants
-  - RideSharing
-  - Services
-  - Travel
-  - Weather
-num_turns: 2
+num_turns: 26

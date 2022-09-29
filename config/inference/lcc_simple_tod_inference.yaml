@@ -14,7 +14,12 @@ overwrite:
   - true
   - true
   - true
-test_settings:
-  - seen
 #is_multi_task: True
-#should_add_schema: True
+#multi_task:
+#   - 1
+#   - 1
+#   - 0
+#should_add_schema: true
+#should_add_sys_actions: true
+#should_add_user_actions: true
+

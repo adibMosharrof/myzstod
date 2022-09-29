@@ -1,23 +1,23 @@
 data_split_percent:
-  - .1
-  - .1
-  - .1
+  - 1
+  - 1
+  - .01
 eval_batch_size: 6
 test_batch_size: 70
 max_token_len: 700
 num_test_dialogs: 1
-# model: outputs/2022-07-30/22-00-06/results/train/checkpoint-7067
-# model : outputs/2022-08-18/13-01-32/results/train/checkpoint-14134
-# model : outputs/2022-08-24/16-22-02/results/train/checkpoint-28268
-model : outputs/2022-09-08/13-34-22/results/train/checkpoint-12
+model : outputs/2022-09-29/15-04-55/results/train/checkpoint-39
 num_turns: 26
-overwrite:
-  - false
-  - false
-  - false
-  # - true
-  # - true
-  # - true
-test_settings:
+# overwrite:
+#   - true
+#   - true
+#   - true
+test_domain_settings:
   - all
+  # - seen
+  # - unseen
 is_multi_task: True
+multi_tasks:
+  - 1
+  - 1
+  - 0
