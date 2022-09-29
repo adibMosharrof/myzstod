@@ -4,19 +4,17 @@ data_split_percent:
   - 1
 eval_batch_size: 6
 test_batch_size: 110
-max_token_len: 700
+max_token_len: 1022
+context_max_len: 799
 num_test_dialogs: 34
 project_root: /project/msi290_uksr/generative_tod/
-model: outputs/2022-09-12/21-40-27/results/train/checkpoint-3534/
-#model: outputs/2022-09-12/21-49-35/results/train/checkpoint-14665
+model: outputs/2022-09-27/09-34-51/results/train/checkpoint-8250
 num_turns: 26
 overwrite:
-  - false
-  - false
-  - false
-  #- true
-  #- true
-  #- true
+  - true
+  - true
+  - true
 test_settings:
   - seen
-is_multi_task: False
+#is_multi_task: True
+#should_add_schema: True
