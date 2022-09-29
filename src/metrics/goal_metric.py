@@ -112,4 +112,4 @@ class GoalMetric(TodMetricsBase):
 
     def __str__(self) -> str:
         avg_ga, joint_ga = self.compute()
-        return f"Average {self.config.step_name} Accuracy\n|{avg_ga*100:.2f}|,\nJoint {self.config.step_name} Accuracy\n|{joint_ga*100:.2f}|"
+        return f"Average {self.config.step_name} Accuracy:{avg_ga*100:.2f}\nJoint {self.config.step_name} Accuracy:{joint_ga*100:.2f}"

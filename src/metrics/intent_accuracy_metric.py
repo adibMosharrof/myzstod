@@ -48,4 +48,4 @@ class IntentAccuracyMetric(TodMetricsBase):
 
     def __str__(self) -> str:
         score = self.compute()
-        return f"Intent Accuracy\n|{score*100:.2f}|"
+        return f"Intent Accuracy:{score*100:.2f}"

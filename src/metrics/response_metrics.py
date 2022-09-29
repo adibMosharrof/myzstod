@@ -44,4 +44,4 @@ class ResponseMetric(TodMetricsBase):
 
     def __str__(self) -> str:
         score = self.compute()
-        return f"Response {self.metric_name.upper()}\n|{score*100:.2f}|"
+        return f"Response {self.metric_name.upper()}:{score*100:.2f}"

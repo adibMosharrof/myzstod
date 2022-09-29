@@ -30,70 +30,18 @@ class Inference:
         cfg: InferenceConfig,
     ):
         self.cfg = cfg
-
-        self.tod_metrics = MetricCollection(
-            {
-                "goal_accuracy": GoalMetric(
-                    GoalMetricConfigFactory.create(GoalMetricConfigType.BELIEF)
-                ),
-                "action_accuracy": GoalMetric(
-                    GoalMetricConfigFactory.create(GoalMetricConfigType.ACTION)
-                ),
-                "intent_accuracy": IntentAccuracyMetric(),
-                "requested_slots": RequestedSlotsMetric(),
-                "inform": InformMetric(),
-                "success": SuccessMetric(),
-                "response_bleu": ResponseMetric(metric_name="bleu"),
-                "response_rouge": ResponseMetric(
-                    metric_name="rouge", metric_key_name="rouge2"
-                ),
-            }
-        )
-        self.bleu_metrics = MetricCollection(
-            {
-                "combined": CombinedMetric(
-                    self.tod_metrics.metrics["inform"],
-                    self.tod_metrics.metrics["success"],
-                    self.tod_metrics.metrics["response_bleu"],
-                ),
-            }
-        )
-
-    def _get_dataloader(self, test_setting: str) -> DataLoader:
-        dm = SimpleTodDataModule(
-            DataModuleConfig.from_inference_config(
-                self.cfg, domain_setting=test_setting
-            )
-        )
-        return dm.test_dataloader()
-
-    def _get_token_id(self, token_str):
-        return self.cfg.tokenizer(token_str)["input_ids"][0]
-
-    def _remove_padding(self, text):
-        return re.sub(self.cfg.padding_regexp, "", text)
-
-    def _get_domains_from_test_settings(self, test_setting: str) -> list[str]:
-        if test_setting == TestSettings.ALL:
-            return DstcDomains.ALL.value
-        if test_setting == TestSettings.SEEN:
-            return DstcDomains.SEEN.value
-        if test_setting == TestSettings.UNSEEN:
-            return DstcDomains.UNSEEN.value
-        if test_setting == TestSettings.CUSTOM:
-            return self.cfg.domains
-        raise ValueError(f"Unknown test setting {test_setting}")
+        self._set_metrics()
 
     def test(self):
         self.cfg.logger.info(self.cfg.out_dir)
-        for setting in self.cfg.test_domain_settings:
-            self.cfg.logger.info(f"Testing {setting}")
-            domains = self._get_domains_from_test_settings(setting)
+        for domain_setting in self.cfg.test_domain_settings:
+
+            domains = DstcDomains[domain_setting.upper()].value
             test_csv_out_data = []
-            text_csv_out_path = f"simple_tod_dstc_predictions_{setting}_{self.cfg.num_turns}_dialogs_{self.cfg.num_test_dialogs}{SimpleTodConstants.DELEXICALIZED if self.cfg.delexicalize else ''}_{'_'.join(domains)}.csv"
-            test_dataloader = self._get_dataloader(setting)
+            text_csv_out_path = f"simple_tod_dstc_predictions_{domain_setting}_{self.cfg.num_turns}_dialogs_{self.cfg.num_test_dialogs}{SimpleTodConstants.DELEXICALIZED if self.cfg.delexicalize else ''}_{'_'.join(domains)}.csv"
+            test_dataloader = self._get_dataloader(domain_setting)
             if not len(test_dataloader):
-                self.cfg.logger.info(f"No data to test for {setting}")
+                self.cfg.logger.info(f"No data to test for {domain_setting}")
                 continue
             inf_records = InferenceRecords()
             for batch in tqdm(test_dataloader):
@@ -125,7 +73,7 @@ class Inference:
                     self.tod_metrics.add_batch(
                         references=batch.targets_text, predictions=pred_text_no_pad
                     )
-                    self.bleu_metrics.add_batch(
+                    self.combined_metrics.add_batch(
                         references=batch.targets_text, predictions=pred_text_no_pad
                     )
                 inf_records.add(
@@ -148,11 +96,13 @@ class Inference:
             if self.cfg.is_multi_task:
                 preds, refs = inf_records.get_data_for_multitask()
                 self.tod_metrics.add_batch(references=refs, predictions=preds)
-                self.bleu_metrics.add_batch(references=refs, predictions=preds)
+                self.combined_metrics.add_batch(references=refs, predictions=preds)
             headers = ["dialog_id", "turn_id", "context", "target", "prediction"]
             utils.write_csv(headers, test_csv_out_data, text_csv_out_path)
-            self.cfg.logger.info(str(self.tod_metrics))
-            self.cfg.logger.info(str(self.bleu_metrics))
+            self.cfg.logger.info(f"Testing {domain_setting}")
+            self.print_metrics()
+            # self.cfg.logger.info(str(self.tod_metrics))
+            # self.cfg.logger.info(str(self.combined_metrics))
             self.cfg.logger.info(str(self.cfg.out_dir))
             self.tod_metrics.visualize(self.cfg.predictions_log_dir)
 
@@ -161,6 +111,80 @@ class Inference:
         self.test()
         print("end inference")
         print("-" * 80)
+
+    def print_metrics(self):
+        all_metric_str = "\n".join(map(str, [self.tod_metrics, self.combined_metrics]))
+        metric_strs = all_metric_str.split("\n")
+        cols = []
+        header_sep = []
+        values = []
+        for metric_str in metric_strs:
+            if not metric_str:
+                continue
+            col, value = metric_str.split(":")
+            cols.append(col)
+            header_sep.append("-")
+            values.append(value)
+        self.cfg.logger.info(f"|{'|'.join(cols)}|")
+        self.cfg.logger.info(f"|{'|'.join(header_sep)}|")
+        self.cfg.logger.info(f"|{'|'.join(values)}|")
+
+    def _set_metrics(self):
+        dst, action, response = self.cfg.multi_tasks
+        tod_metrics = {}
+        combined_metrics = {}
+        if dst:
+            tod_metrics.update(
+                {
+                    "goal_accuracy": GoalMetric(
+                        GoalMetricConfigFactory.create(GoalMetricConfigType.BELIEF)
+                    ),
+                    "action_accuracy": GoalMetric(
+                        GoalMetricConfigFactory.create(GoalMetricConfigType.ACTION)
+                    ),
+                    "intent_accuracy": IntentAccuracyMetric(),
+                    "requested_slots": RequestedSlotsMetric(),
+                }
+            )
+        if action:
+            tod_metrics.update(
+                {
+                    "inform": InformMetric(),
+                    "success": SuccessMetric(),
+                }
+            )
+        if response:
+            tod_metrics.update(
+                {
+                    "response_bleu": ResponseMetric(metric_name="bleu"),
+                    "response_rouge": ResponseMetric(
+                        metric_name="rouge", metric_key_name="rouge2"
+                    ),
+                }
+            )
+        if action and response:
+            combined_metrics.update(
+                {
+                    "combined": CombinedMetric(
+                        tod_metrics["inform"],
+                        tod_metrics["success"],
+                        tod_metrics["response_bleu"],
+                    ),
+                }
+            )
+        self.tod_metrics = MetricCollection(tod_metrics)
+        self.combined_metrics = MetricCollection(combined_metrics)
+
+    def _get_dataloader(self, test_setting: str) -> DataLoader:
+        dm = SimpleTodDataModule(
+            DataModuleConfig.from_inference_config(
+                self.cfg, domain_setting=test_setting
+            )
+        )
+        return dm.test_dataloader()
+
+    def _remove_padding(self, text):
+        return re.sub(self.cfg.padding_regexp, "", text)
 
 
 @hydra.main(config_path="../config/inference/", config_name="simple_tod_inference")
