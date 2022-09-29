@@ -87,9 +87,7 @@ class SpecialTokens(str, Enum):
     begin_requested_slots = "<|beginrequestedslots|>"
     end_requested_slots = "<|endrequestedslots|>"
 
-    prompt_intent = "<|promptintent|>"
-    prompt_requested_slots = "<|promptrequestedslots|>"
-    prompt_belief = "<|promptbelief|>"
+    prompt_dst = "<|promptdst|>"
     prompt_action = "<|promptaction|>"
     prompt_response = "<|promptresponse|>"
 

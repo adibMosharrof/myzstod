@@ -360,19 +360,9 @@ class InferenceRecords:
 def get_multi_task_special_tokens() -> list[MultiTaskSpecialToken]:
     return [
         MultiTaskSpecialToken(
-            SpecialTokens.begin_intent,
-            SpecialTokens.end_intent,
-            SpecialTokens.prompt_intent,
-        ),
-        MultiTaskSpecialToken(
-            SpecialTokens.begin_requested_slots,
-            SpecialTokens.end_requested_slots,
-            SpecialTokens.prompt_requested_slots,
-        ),
-        MultiTaskSpecialToken(
-            SpecialTokens.begin_belief,
-            SpecialTokens.end_belief,
-            SpecialTokens.prompt_belief,
+            SpecialTokens.begin_dsts,
+            SpecialTokens.end_dsts,
+            SpecialTokens.prompt_dst,
         ),
         MultiTaskSpecialToken(
             SpecialTokens.begin_action,

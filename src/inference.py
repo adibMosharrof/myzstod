@@ -6,7 +6,7 @@ import numpy as np
 from omegaconf import DictConfig
 from tqdm import tqdm
 from transformers import AutoTokenizer, GPT2LMHeadModel, GPT2PreTrainedModel
-
+from torch.utils.data import DataLoader
 import dstc_utils
 from metrics.intent_accuracy_metric import IntentAccuracyMetric
 from metrics.response_metrics import ResponseMetric
@@ -59,8 +59,12 @@ class Inference:
             }
         )
 
-    def _get_dataloader(self):
-        dm = SimpleTodDataModule(DataModuleConfig.from_inference_config(self.cfg))
+    def _get_dataloader(self, test_setting: str) -> DataLoader:
+        dm = SimpleTodDataModule(
+            DataModuleConfig.from_inference_config(
+                self.cfg, domain_setting=test_setting
+            )
+        )
         return dm.test_dataloader()
 
     def _get_token_id(self, token_str):
@@ -82,12 +86,12 @@ class Inference:
 
     def test(self):
         self.cfg.logger.info(self.cfg.out_dir)
-        for setting in self.cfg.test_settings:
+        for setting in self.cfg.test_domain_settings:
             self.cfg.logger.info(f"Testing {setting}")
             domains = self._get_domains_from_test_settings(setting)
             test_csv_out_data = []
             text_csv_out_path = f"simple_tod_dstc_predictions_{setting}_{self.cfg.num_turns}_dialogs_{self.cfg.num_test_dialogs}{SimpleTodConstants.DELEXICALIZED if self.cfg.delexicalize else ''}_{'_'.join(domains)}.csv"
-            test_dataloader = self._get_dataloader()
+            test_dataloader = self._get_dataloader(setting)
             if not len(test_dataloader):
                 self.cfg.logger.info(f"No data to test for {setting}")
                 continue
