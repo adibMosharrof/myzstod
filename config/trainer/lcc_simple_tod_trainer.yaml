@@ -1,18 +1,21 @@
 model_name: gpt2
 pretrain_epochs: 2
 #pretrain_model_path: outputs/2022-09-08/17-39-08/results/pretrain
-train_epochs: 4
-train_batch_size: 10
+train_epochs: 3
+train_batch_size: 6
 eval_batch_size: 6
 test_batch_size: 80
-max_token_len: 700
+max_token_len: 1022
+context_max_len: 799
 raw_data_root: data/dstc8-schema-guided-dialogue/
 project_root: /project/msi290_uksr/generative_tod
-overwrite:
-  - false
-  - false
-  - false
+#overwrite:
+#  - true
+#  - true
+#  - true
 should_test: false
 train_domain_settings: ALL
-is_multi_task: true
-should_add_schema: true
+#is_multi_task: true
+#should_add_schema: true
+#should_add_sys_actions: true
+#should_add_user_actions: true
