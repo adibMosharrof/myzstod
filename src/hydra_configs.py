@@ -36,7 +36,7 @@ class InferenceConfig:
         test_settings: list[str] = None,
         out_dir: str = "results",
         tokenizer: AutoTokenizer = None,
-        context_max_len: int = 600,
+        context_max_len: int = 799,
         target_max_len: int = 424,
         is_multi_task: bool = False,
         should_add_schema: bool = False,
@@ -87,7 +87,7 @@ class InferenceConfig:
             if self.tokenizer
             else self._get_tokenizer(model)
         )
-        self.padding_regexp = re.compile(re.escape(SpecialTokens.bos_token))
+        self.padding_regexp = re.compile(re.escape(SpecialTokens.pad_token))
 
     def _get_tokenizer(self, model_path_str:str):
         model_path:Path = self.project_root / model_path_str
@@ -119,7 +119,6 @@ class TrainerConfig:
         eval_batch_size: int = 6,
         test_batch_size: int = 32,
         train_batch_size: int = 8,
-        max_token_len: int = 512,
         num_dialogs: list[int] = None,
         delexicalize: bool = False,
         num_turns: int = 10,
@@ -136,8 +135,8 @@ class TrainerConfig:
         domains: list[str] = None,
         should_test: bool = False,
         logging_steps: int = 50,
-        context_max_len: int = 800,
-        target_max_len: int = 224,
+        context_max_len: int = 799,
+        max_token_len: int = 1022,
         eval_accumulation_steps: int = 25,
         is_multi_task: bool = False,
         should_add_schema: bool = False,
@@ -173,13 +172,16 @@ class TrainerConfig:
         self.train_batch_size = train_batch_size
         self.raw_data_root = raw_data_root
         self.context_max_len = context_max_len
-        self.target_max_len = target_max_len
         self.eval_accumulation_steps = eval_accumulation_steps
         self.is_multi_task = is_multi_task
         self.tokenizer = dstc_utils.get_tokenizer(model_name)
         self.should_add_schema = should_add_schema
         self.should_add_sys_actions = should_add_sys_actions
         self.should_add_user_actions = should_add_user_actions
+        if context_max_len > max_token_len:
+            raise ValueError(
+                "context_max_len must be less than max_token_len"
+            )
 
 class DataModelExplorationConfig:
     def __init__(
@@ -226,6 +228,7 @@ class DataModuleConfig:
         raw_data_root: str = "data/dstc8-schema-guided-dialogue/",
         data_prep_out_root: str = "processed_data/simple_tod",
         max_token_len: int = 128,
+        context_max_len: int = 799,
         num_dialogs: list[int] = None,
         preprocessing_model_name="simple_tod",
         dataset_name="dstc",
@@ -250,9 +253,9 @@ class DataModuleConfig:
         self.test_batch_size = test_batch_size
         self.data_split_percent = data_split_percent
         self.max_token_len = max_token_len
+        self.context_max_len = context_max_len
         self.num_dialogs = num_dialogs
         self.dataset_name = dataset_name
-
         self.datasets: Dict[str, Dataset] = {}
         self.tokenizer = tokenizer or dstc_utils.get_tokenizer()
         self.delexicalize = delexicalize
@@ -272,6 +275,7 @@ class DataModuleConfig:
             raw_data_root=trainer_config.raw_data_root,
             data_prep_out_root=trainer_config.data_prep_out_root,
             max_token_len=trainer_config.max_token_len,
+            context_max_len=trainer_config.context_max_len,
             num_dialogs=trainer_config.num_dialogs,
             delexicalize=trainer_config.delexicalize,
             overwrite=trainer_config.overwrite,
@@ -296,6 +300,7 @@ class DataModuleConfig:
             raw_data_root=inf_config.raw_data_root,
             data_prep_out_root=inf_config.data_prep_out_root,
             max_token_len=inf_config.max_token_len,
+            context_max_len=inf_config.context_max_len,
             num_dialogs=[1,1,inf_config.num_test_dialogs],
             delexicalize=inf_config.delexicalize,
             overwrite=inf_config.overwrite,
@@ -391,5 +396,5 @@ class ReconstructDialogConfig:
         files = [fname for fname in os.listdir(self.model_path) if fname.endswith(".csv")]
         if not len(files):
             raise ValueError("No csv files found in the model path")
-        self.predictions_csv_path = self.model_path / files[0]
+        self.csv_file_names = files
         

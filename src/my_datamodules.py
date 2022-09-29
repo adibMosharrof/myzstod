@@ -1,6 +1,8 @@
+from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Iterable, List
+from dotmap import DotMap
 
 import numpy as np
 import pytorch_lightning as pl
@@ -80,7 +82,7 @@ class SimpleTodDataModule(pl.LightningDataModule):
             )
         except TypeError as e:
             tokens = torch.empty([1, 0], dtype=torch.int64)
-        return tokens
+        return tokens[0]
 
     def get_training_labels(self, context_len, unused_len, target_tokens):
         return torch.cat(
@@ -102,17 +104,19 @@ class SimpleTodDataModule(pl.LightningDataModule):
         labels = []
 
         for item in batch:
-            context_tokens = self.train_tokenizer(item.context)[0]
-            target_tokens = self.train_tokenizer(item.target)[0]
-            schema_tokens = self.train_tokenizer(item.schema)[0]
+            context_tokens = self.train_tokenizer(item.context)
+            target_tokens = self.train_tokenizer(item.target)
+            schema_tokens = self.train_tokenizer(item.schema)
             context_len = len(context_tokens)
             target_len = len(target_tokens)
             schema_len = len(schema_tokens)
             unused_len = self.cfg.max_token_len - context_len - target_len - schema_len
+            start_token = torch.tensor([self.cfg.tokenizer.bos_token_id])
+            end_token = torch.tensor([self.cfg.tokenizer.eos_token_id])
             # handling case when input is greater than tokenizer length
             if unused_len < 0:
-                context_start_tokens = context_tokens[:2]
-                trimmed_context = context_tokens[unused_len * -1 + 2 :]
+                context_start_tokens = context_tokens[:1]
+                trimmed_context = context_tokens[unused_len * -1 + 1 :]
                 context_tokens = torch.cat(
                     [context_start_tokens, trimmed_context], axis=0
                 )
@@ -121,7 +125,14 @@ class SimpleTodDataModule(pl.LightningDataModule):
 
             pad = torch.full([unused_len], self.cfg.tokenizer.pad_token_id)
             input_tokens = torch.cat(
-                [context_tokens, schema_tokens, target_tokens, pad]
+                [
+                    start_token,
+                    context_tokens,
+                    schema_tokens,
+                    target_tokens,
+                    end_token,
+                    pad,
+                ]
             )
             if is_pretrain:
                 label = input_tokens
@@ -129,7 +140,12 @@ class SimpleTodDataModule(pl.LightningDataModule):
                 label = torch.cat(
                     [
                         torch.full(
-                            [context_len + schema_len],
+                            [
+                                context_len
+                                + schema_len
+                                + len(start_token)
+                                + len(end_token)
+                            ],
                             self._huggingface_ignore_label_id,
                         ),
                         target_tokens,
@@ -138,7 +154,16 @@ class SimpleTodDataModule(pl.LightningDataModule):
                 )
             attention_mask = torch.cat(
                 [
-                    torch.full([context_len + schema_len + target_len], 1),
+                    torch.full(
+                        [
+                            context_len
+                            + schema_len
+                            + target_len
+                            + len(start_token)
+                            + len(end_token)
+                        ],
+                        1,
+                    ),
                     torch.full([unused_len], 0),
                 ]
             )
@@ -153,26 +178,59 @@ class SimpleTodDataModule(pl.LightningDataModule):
         }
 
     def my_test_collate(self, batch: list[SimpleTodTurnCsvRow]):
-        dialog_ids, turn_ids, contexts, schemas, targets = [], [], [], [], []
-        for item in batch:
-            dialog_ids.append(item.dialog_id)
-            turn_ids.append(item.turn_id)
-            contexts.append(item.context)
-            targets.append(item.target)
-
-        contexts_tokens, targets_tokens = self.tokenize(contexts), self.tokenize(
-            targets
+        data = DotMap(
+            contexts_text=[],
+            targets_text=[],
+            schemas_text=[],
+            dialog_ids=[],
+            turn_ids=[],
+            input_ids=[],
+            attention_masks=[],
         )
+        for item in batch:
+            data.dialog_ids.append(item.dialog_id)
+            data.turn_ids.append(item.turn_id)
+            data.contexts_text.append(item.context)
+            data.targets_text.append(item.target)
+            data.schemas_text.append(item.schema)
+
+            context_tokens = self.train_tokenizer(item.context)
+            context_len = len(context_tokens)
+            schema_tokens = self.train_tokenizer(item.schema)
+            unused_len = self.cfg.context_max_len - context_len - len(schema_tokens)
+            start_token = torch.tensor([self.cfg.tokenizer.bos_token_id])
+            if unused_len < 0:
+                context_start_tokens = context_tokens[:1]
+                trimmed_context = context_tokens[unused_len * -1 + 1 :]
+                context_tokens = torch.cat(
+                    [context_start_tokens, trimmed_context], axis=0
+                )
+
+                unused_len = 0
+                context_len = len(context_tokens)
+
+            pad = torch.full([unused_len], self.cfg.tokenizer.pad_token_id)
+            input_tokens = torch.cat([start_token, context_tokens, schema_tokens, pad])
+            attention_mask = torch.cat(
+                [
+                    torch.full(
+                        [len(start_token) + context_len + len(schema_tokens)],
+                        1,
+                    ),
+                    torch.full([unused_len], 0),
+                ]
+            )
+            data.input_ids.append(input_tokens)
+            data.attention_masks.append(attention_mask)
 
         return SimpleTodTestDataBatch(
-            torch.stack([*contexts_tokens["input_ids"]]),
-            torch.stack([*contexts_tokens["attention_mask"]]),
-            torch.stack([*targets_tokens["input_ids"]]),
-            torch.stack([*targets_tokens["attention_mask"]]),
-            contexts,
-            targets,
-            dialog_ids,
-            turn_ids,
+            turn_ids=data.turn_ids,
+            dialog_ids=data.dialog_ids,
+            contexts_text=data.contexts_text,
+            targets_text=data.targets_text,
+            schemas_text=data.schemas_text,
+            input_ids=torch.stack(data.input_ids),
+            attention_masks=torch.stack(data.attention_masks),
         )
 
 

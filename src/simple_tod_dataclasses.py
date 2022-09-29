@@ -267,11 +267,10 @@ class SimpleTodTurn:
 
 @dataclass
 class SimpleTodTestDataBatch:
-    context_tokens: list[list[int]]
-    context_attention_masks: list[list[int]]
-    label_tokens: list[list[int]]
-    label_attention_masks: list[list[int]]
+    input_ids: list[list[int]]
+    attention_masks: list[list[int]]
     contexts_text: list[str]
+    schemas_text: list[str]
     targets_text: list[str]
     dialog_ids: list[int]
     turn_ids: list[int]

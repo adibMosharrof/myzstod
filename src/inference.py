@@ -105,12 +105,12 @@ class Inference:
                 #     pad_token_id=self._get_token_id(TokenizerTokens.pad_token),
                 # )
                 gen = self.cfg.model.generate(
-                    inputs=batch.context_tokens.cuda(),
-                    attention_mask=batch.context_attention_masks.cuda(),
+                    inputs=batch.input_ids.cuda(),
+                    attention_mask=batch.attention_masks.cuda(),
                     max_length=self.cfg.generate_max_len,
-                    eos_token_id=self._get_token_id(SpecialTokens.eos_token),
-                    pad_token_id=self._get_token_id(SpecialTokens.pad_token),
-                    bos_token_id=self._get_token_id(SpecialTokens.bos_token),
+                    eos_token_id=self.cfg.tokenizer.eos_token_id,
+                    pad_token_id=self.cfg.tokenizer.pad_token_id,
+                    bos_token_id=self.cfg.tokenizer.bos_token_id,
                 )
                 gen_without_context = gen[:, self.cfg.max_token_len :]
                 pred_text = self.cfg.tokenizer.batch_decode(

@@ -40,13 +40,13 @@ def get_tokenizer(model_name: str = "gpt2") -> PreTrainedTokenizerFast:
         eos_token=SpecialTokens.eos_token.value,
         additional_special_tokens=SpecialTokens.list(),
     )
-    tokenizer._tokenizer.post_processor = TemplateProcessing(
-        single=f"{tokenizer.bos_token}:0 $A:0 {tokenizer.eos_token}:0",
-        special_tokens=[
-            (tokenizer.bos_token, tokenizer.bos_token_id),
-            (tokenizer.eos_token, tokenizer.eos_token_id),
-        ],
-    )
+    # tokenizer._tokenizer.post_processor = TemplateProcessing(
+    #     single=f"{tokenizer.bos_token}:0 $A:0 {tokenizer.eos_token}:0",
+    #     special_tokens=[
+    #         (tokenizer.bos_token, tokenizer.bos_token_id),
+    #         (tokenizer.eos_token, tokenizer.eos_token_id),
+    #     ],
+    # )
     return tokenizer
 
 
@@ -78,6 +78,7 @@ def get_text_in_between(
         return items
     except ValueError:
         return default_value
+
 
 def remove_tokens_from_text(text: str, tokens: List[str]) -> str:
     for token in tokens:
