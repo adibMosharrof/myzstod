@@ -115,7 +115,7 @@ class InferenceConfig:
         should_add_schema: bool = False,
     ) -> None:
         self.num_workers = num_workers
-        self.data_split_percent = data_split_percent or [1, 1, 0.1]
+        self.data_split_percent = data_split_percent or [1, 1, 1]
         self.eval_batch_size = eval_batch_size
         self.test_batch_size = test_batch_size
         self.max_token_len = max_token_len
