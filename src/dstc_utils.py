@@ -25,10 +25,31 @@ def get_csv_data_path(
     cfg=None,
 ):
     step_dir = cfg.processed_data_root / step
-    return (
-        step_dir
-        / f"multi_task_{cfg.is_multi_task}_schema_{cfg.should_add_schema}_user_actions_{cfg.should_add_user_actions}_sys_actions_{cfg.should_add_sys_actions}_turns_{cfg.num_turns}_dialogs_{num_dialogs}{SimpleTodConstants.DELEXICALIZED if cfg.delexicalize else ''}_{'_'.join(cfg.domains)}.csv"
+    return step_dir / (
+        "_".join(
+            [
+                "multi_task",
+                str(cfg.is_multi_task),
+                "_".join(map(str, cfg.multi_tasks)),
+                "schema",
+                str(cfg.should_add_schema),
+                "user_actions",
+                str(cfg.should_add_user_actions),
+                "sys_actions",
+                str(cfg.should_add_sys_actions),
+                "turns",
+                str(cfg.num_turns),
+                "dialogs",
+                str(num_dialogs),
+                "delexicalize",
+                str(cfg.delexicalize),
+                "domain_setting",
+                str(cfg.domain_setting),
+            ]
+        )
+        + ".csv"
     )
+    # / f"multi_task_{cfg.is_multi_task}_schema_{cfg.should_add_schema}_user_actions_{cfg.should_add_user_actions}_sys_actions_{cfg.should_add_sys_actions}_turns_{cfg.num_turns}_dialogs_{num_dialogs}{SimpleTodConstants.DELEXICALIZED if cfg.delexicalize else ''}_{cfg.domain_setting}.csv"    )
 
 
 def get_tokenizer(model_name: str = "gpt2") -> PreTrainedTokenizerFast:

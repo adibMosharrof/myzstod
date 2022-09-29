@@ -231,7 +231,7 @@ class SimpleTODDSTCDataPrep:
         schema_str_list = [
             SpecialTokens.schema_description + schema.description for schema in schemas
         ]
-        if mtst.prompt_token == SpecialTokens.prompt_intent:
+        if mtst.prompt_token == SpecialTokens.prompt_dst:
             intents = [
                 intent
                 for schema in schemas
@@ -253,7 +253,11 @@ class SimpleTODDSTCDataPrep:
         out = []
         multi_task_special_tokens = get_multi_task_special_tokens()
 
-        for mtst in multi_task_special_tokens:
+        for mtst, should_perform_task in zip(
+            multi_task_special_tokens, self.cfg.multi_tasks
+        ):
+            if not should_perform_task:
+                continue
             try:
                 text = self._extract_from_target(
                     str(turn.target), mtst.start_token, mtst.end_token

@@ -34,28 +34,12 @@ class SimpleTODTrainer:
         print("-" * 80)
         if self.cfg.should_test:
             inf = Inference(
-                InferenceConfig(
-                    model=model,
-                    project_root=self.cfg.project_root,
-                    num_workers=self.cfg.num_workers,
-                    data_prep_out_root=self.cfg.data_prep_out_root,
-                    data_split_percent=self.cfg.data_split_percent,
-                    eval_batch_size=self.cfg.eval_batch_size,
-                    test_batch_size=self.cfg.test_batch_size,
-                    max_token_len=self.cfg.max_token_len,
-                    raw_data_root=self.cfg.raw_data_root,
-                    delexicalize=self.cfg.delexicalize,
-                    num_test_dialogs=self.cfg.num_dialogs[2],
-                    generate_max_len=self.cfg.generate_max_len,
-                    domains=self.cfg.domains,
-                    num_turns=self.cfg.num_turns,
-                    tokenizer=self.cfg.tokenizer,
-                )
+                InferenceConfig.from_trainer_config(self.cfg, model),
             )
             inf.test()
 
     def train(self, model: GPT2LMHeadModel, dm: SimpleTodDataModule):
-        pretrain_out = str(self.cfg.output_dir / "pretrain")
+        pretrain_out = str(self.cfg.out_dir / "pretrain")
         training_args = TrainingArguments(
             output_dir=pretrain_out,
             num_train_epochs=self.cfg.pretrain_epochs,
@@ -89,7 +73,7 @@ class SimpleTODTrainer:
         else:
             pretrain_out = self.cfg.project_root / self.cfg.pretrain_model_path
         model_train = GPT2LMHeadModel.from_pretrained(pretrain_out)
-        training_args.output_dir = str(self.cfg.output_dir / "train")
+        training_args.output_dir = str(self.cfg.out_dir / "train")
         training_args.num_train_epochs = self.cfg.train_epochs
         trainer = Trainer(
             model=model_train,
@@ -102,7 +86,7 @@ class SimpleTODTrainer:
         trainer.train()
         trainer.save_model()
 
-        self.cfg.tokenizer.save_pretrained(self.cfg.output_dir)
+        self.cfg.tokenizer.save_pretrained(self.cfg.out_dir)
         print("output_dir: ", os.getcwd())
 
 

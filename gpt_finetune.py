@@ -45,7 +45,7 @@ class SentimentDataset(Dataset):
 # Data load function
 def load_sentiment_dataset(tokenizer):
     # load dataset and sample 10k reviews.
-    file_path = "training.1600000.processed.noemoticon.csv"
+    file_path = "data/training.1600000.processed.noemoticon.csv"
     df = pd.read_csv(file_path, encoding="ISO-8859-1", header=None)
     df = df[[0, 5]]
     df.columns = ["label", "text"]
