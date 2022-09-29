@@ -137,7 +137,7 @@ class TrainerConfig:
         logging_steps: int = 50,
         context_max_len: int = 799,
         max_token_len: int = 1022,
-        eval_accumulation_steps: int = 25,
+        eval_accumulation_steps: int = 5,
         is_multi_task: bool = False,
         should_add_schema: bool = False,
         should_add_user_actions: bool = False,
