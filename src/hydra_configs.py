@@ -113,6 +113,8 @@ class InferenceConfig:
         is_multi_task: bool = False,
         multi_tasks: list[int] = None,
         should_add_schema: bool = False,
+        should_add_user_actions: bool = False,
+        should_add_sys_actions: bool = False,
     ) -> None:
         self.num_workers = num_workers
         self.data_split_percent = data_split_percent or [1, 1, 1]
@@ -138,6 +140,8 @@ class InferenceConfig:
         self.is_multi_task = is_multi_task
         self.multi_tasks = multi_tasks or [1,1,1]
         self.should_add_schema = should_add_schema
+        self.should_add_sys_actions = should_add_sys_actions
+        self.should_add_user_actions = should_add_user_actions
         self.logger = utils.get_logger()
         self.tokenizer = (
             self.tokenizer
@@ -145,6 +149,7 @@ class InferenceConfig:
             else self._get_tokenizer(model)
         )
         self.padding_regexp = re.compile(re.escape(SpecialTokens.pad_token))
+        
 
     def _get_tokenizer(self, model_path_str:str):
         model_path:Path = self.project_root / model_path_str
@@ -189,6 +194,8 @@ class InferenceConfig:
             is_multi_task=trainer_config.is_multi_task,
             multi_tasks = trainer_config.multi_tasks,
             should_add_schema=trainer_config.should_add_schema,
+            should_add_sys_actions = trainer_config.should_add_sys_actions,
+            should_add_user_actions = trainer_config.should_add_user_actions
         )
 class DataModelExplorationConfig:
     def __init__(
@@ -326,6 +333,8 @@ class DataModuleConfig:
             eval_batch_size=inf_config.test_batch_size,
             test_batch_size=inf_config.test_batch_size,
             data_split_percent=inf_config.data_split_percent,
+            should_add_user_actions=inf_config.should_add_user_actions,
+            should_add_sys_actions=inf_config.should_add_sys_actions,
         )
 
     @classmethod

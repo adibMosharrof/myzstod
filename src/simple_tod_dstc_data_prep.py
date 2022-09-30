@@ -240,8 +240,6 @@ class SimpleTODDSTCDataPrep:
             ]
             schema_str_list += map(str, intents)
         elif mtst.prompt_token in [
-            SpecialTokens.prompt_requested_slots,
-            SpecialTokens.prompt_belief,
             SpecialTokens.prompt_action,
             SpecialTokens.prompt_response,
         ]:
