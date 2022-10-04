@@ -1,16 +1,15 @@
-from lib2to3.pgen2.tokenize import tokenize
 import os
+import re
+from lib2to3.pgen2.tokenize import tokenize
 from pathlib import Path
 from typing import Dict
-from datasets import Dataset
 
+from datasets import Dataset
 from transformers import AutoTokenizer, GPT2LMHeadModel, GPT2PreTrainedModel
 
-from my_enums import DstcDomains, SpecialTokens, Steps
 import dstc_utils
 import utils
-import re
-
+from my_enums import DstcDomains, SpecialTokens, Steps
 
 
 class TrainerConfig:
@@ -56,7 +55,7 @@ class TrainerConfig:
         self.eval_batch_size = eval_batch_size
         self.test_batch_size = test_batch_size
         self.max_token_len = max_token_len
-        self.num_dialogs = num_dialogs or [127, 20, 34]
+        self.num_dialogs = num_dialogs or [20, 10, 17]
         self.delexicalize = delexicalize
         self.num_turns = num_turns
         self.overwrite = overwrite or [False, False, False]
