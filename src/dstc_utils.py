@@ -55,11 +55,13 @@ def get_csv_data_path(
 def get_tokenizer(model_name: str = "gpt2") -> PreTrainedTokenizerFast:
     tokenizer = AutoTokenizer.from_pretrained(
         model_name,
-        truncation_side="left",
         pad_token=SpecialTokens.pad_token.value,
-        bos_token=SpecialTokens.bos_token.value,
-        eos_token=SpecialTokens.eos_token.value,
+        # bos_token=SpecialTokens.bos_token.value,
+        # eos_token=SpecialTokens.eos_token.value,
+        bos_token=SpecialTokens.begin_context.value,
+        eos_token=SpecialTokens.end_target.value,
         additional_special_tokens=SpecialTokens.list(),
+        truncation_side="left",
     )
     # tokenizer._tokenizer.post_processor = TemplateProcessing(
     #     single=f"{tokenizer.bos_token}:0 $A:0 {tokenizer.eos_token}:0",
