@@ -68,8 +68,8 @@ class DstcRequestedSlot:
         )
 
     def __eq__(self, other: any) -> bool:
-        if not isinstance(other, DstcRequestedSlot):
-            return False
+        # if not isinstance(other, DstcRequestedSlot):
+        #     return False
         return self.domain == other.domain and self.slot_name == other.slot_name
 
 
@@ -150,17 +150,18 @@ class DstcSchemaIntent:
         return "".join(
             [
                 SpecialTokens.begin_schema_intent,
-                SpecialTokens.schema_name,
+                # SpecialTokens.schema_name,
                 self.name,
                 # SpecialTokens.schema_description,
                 # self.description,
                 SpecialTokens.intent_required_slots,
-                SimpleTodConstants.ITEM_SEPARATOR.join(self.required_slots),
-                SpecialTokens.intent_optional_slots,
-                SimpleTodConstants.ITEM_SEPARATOR.join(self.optional_slots),
-                SpecialTokens.intent_result_slots,
-                SimpleTodConstants.ITEM_SEPARATOR.join(self.result_slots),
-                SpecialTokens.end_schema_intent,
+                # SimpleTodConstants.ITEM_SEPARATOR.join(self.required_slots),
+                " ".join(self.required_slots),
+                SpecialTokens.intent_optional_slots if self.optional_slots else "",
+                " ".join(self.optional_slots),
+                # SpecialTokens.intent_result_slots,
+                # SimpleTodConstants.ITEM_SEPARATOR.join(self.result_slots),
+                # SpecialTokens.end_schema_intent,
             ]
         )
 
@@ -176,18 +177,7 @@ class DstcSchemaSlot:
         return self.name == slot_name
 
     def __str__(self):
-        return "".join(
-            [
-                SpecialTokens.begin_schema_slot,
-                SpecialTokens.schema_name,
-                self.name,
-                # SpecialTokens.schema_description,
-                # self.description,
-                SpecialTokens.schema_slot_values,
-                SimpleTodConstants.ITEM_SEPARATOR.join(self.possible_values),
-                SpecialTokens.end_schema_slot,
-            ]
-        )
+        return self.name
 
 
 @dataclass_json
@@ -199,14 +189,32 @@ class DstcSchema:
     intents: List[DstcSchemaIntent]
     step: Optional[str] = None
 
-    def __str__(self):
+    def get_slot_repr(self) -> str:
         return "".join(
             [
                 SpecialTokens.begin_schema,
-                SpecialTokens.schema_description,
-                self.description,
-                "".join(map(str, self.intents)),
-                "".join(map(str, self.slots)),
+                dstc_utils.get_dstc_service_name(self.service_name),
+                # SpecialTokens.schema_description,
+                # self.description,
+                SpecialTokens.begin_schema_slot,
+                " ".join(map(str, self.slots)),
                 SpecialTokens.end_schema,
             ]
         )
+
+    def get_full_repr(self) -> str:
+        return "".join(
+            [
+                SpecialTokens.begin_schema,
+                dstc_utils.get_dstc_service_name(self.service_name),
+                # SpecialTokens.schema_description,
+                # self.description,
+                "".join(map(str, self.intents)),
+                SpecialTokens.begin_schema_slot,
+                " ".join(map(str, self.slots)),
+                SpecialTokens.end_schema,
+            ]
+        )
+
+    def __str__(self):
+        return self.get_full_repr()

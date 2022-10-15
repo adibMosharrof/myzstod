@@ -16,6 +16,12 @@ def get_logger(name: str = "transformers"):
     return logging.getLogger(__name__)
 
 
+def append_csv(data, file_name: Path):
+    with open(file_name, "a", encoding="UTF8", newline="") as f:
+        csvwriter = csv.writer(f, quoting=csv.QUOTE_NONNUMERIC)
+        csvwriter.writerows(data)
+
+
 def write_csv(headers: list[str], data, file_name: Path):
     with open(file_name, "w", encoding="UTF8", newline="") as f:
         csvwriter = csv.writer(f, quoting=csv.QUOTE_NONNUMERIC)

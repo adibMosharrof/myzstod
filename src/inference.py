@@ -21,6 +21,7 @@ from my_datamodules import SimpleTodDataModule
 from simple_tod_dataclasses import (
     InferenceRecords,
     SimpleTodConstants,
+    SimpleTodTestDataBatch,
 )
 
 
@@ -31,6 +32,7 @@ class Inference:
     ):
         self.cfg = cfg
         self._set_metrics()
+        self.prompt_token_map = {}
 
     def test(self):
         self.cfg.logger.info(self.cfg.out_dir)
@@ -45,26 +47,8 @@ class Inference:
                 continue
             inf_records = InferenceRecords()
             for batch in tqdm(test_dataloader):
-                # gen = self.model.generate(
-                #     inputs=batch.context_tokens.to(self.device),
-                #     attention_mask=batch.context_attention_masks.to(self.device),
-                #     do_sample=True,
-                #     top_k=50,
-                #     top_p=0.94,
-                #     max_length=self.generate_max_len,
-                #     temperature=0.5,
-                #     eos_token_id=self._get_token_id(SpecialTokens.end_response),
-                #     pad_token_id=self._get_token_id(TokenizerTokens.pad_token),
-                # )
-                gen = self.cfg.model.generate(
-                    inputs=batch.input_ids.cuda(),
-                    attention_mask=batch.attention_masks.cuda(),
-                    max_length=self.cfg.generate_max_len,
-                    eos_token_id=self.cfg.tokenizer.eos_token_id,
-                    pad_token_id=self.cfg.tokenizer.pad_token_id,
-                    bos_token_id=self.cfg.tokenizer.bos_token_id,
-                )
-                gen_without_context = gen[:, self.cfg.max_token_len :]
+                gen = self._get_generation(batch)
+                gen_without_context = gen[:, self.cfg.test_prompt_max_len :]
                 pred_text = self.cfg.tokenizer.batch_decode(
                     gen_without_context, skip_special_tokens=False
                 )
@@ -100,9 +84,7 @@ class Inference:
             headers = ["dialog_id", "turn_id", "context", "target", "prediction"]
             utils.write_csv(headers, test_csv_out_data, text_csv_out_path)
             self.cfg.logger.info(f"Testing {domain_setting}")
-            self.print_metrics()
-            # self.cfg.logger.info(str(self.tod_metrics))
-            # self.cfg.logger.info(str(self.combined_metrics))
+            self._print_metrics()
             self.cfg.logger.info(str(self.cfg.out_dir))
             self.tod_metrics.visualize(self.cfg.predictions_log_dir)
 
@@ -112,7 +94,30 @@ class Inference:
         print("end inference")
         print("-" * 80)
 
-    def print_metrics(self):
+    def _get_generation(self, batch):
+        # gen = self.cfg.model.generate(
+        #     inputs=batch.context_tokens.to(self.device),
+        #     attention_mask=batch.context_attention_masks.to(self.device),
+        #     do_sample=True,
+        #     top_k=50,
+        #     top_p=0.94,
+        #     max_length=self.generate_max_len,
+        #     temperature=0.5,
+        #     eos_token_id=self._get_token_id(SpecialTokens.end_response),
+        #     pad_token_id=self._get_token_id(TokenizerTokens.pad_token),
+        # )
+
+        gen = self.cfg.model.generate(
+            inputs=batch.input_ids.cuda(),
+            attention_mask=batch.attention_masks.cuda(),
+            max_length=self.cfg.generate_max_len,
+            eos_token_id=self.cfg.tokenizer.eos_token_id,
+            pad_token_id=self.cfg.tokenizer.pad_token_id,
+            bos_token_id=self.cfg.tokenizer.bos_token_id,
+        )
+        return gen
+
+    def _print_metrics(self):
         all_metric_str = "\n".join(map(str, [self.tod_metrics, self.combined_metrics]))
         metric_strs = all_metric_str.split("\n")
         cols = []
@@ -175,16 +180,20 @@ class Inference:
         self.tod_metrics = MetricCollection(tod_metrics)
         self.combined_metrics = MetricCollection(combined_metrics)
 
-    def _get_dataloader(self, test_setting: str) -> DataLoader:
+    def _get_dataloader(self, test_setting: str) -> SimpleTodTestDataBatch:
         dm = SimpleTodDataModule(
             DataModuleConfig.from_inference_config(
-                self.cfg, domain_setting=test_setting
+                self.cfg,
+                domain_setting=test_setting,
             )
         )
         return dm.test_dataloader()
 
     def _remove_padding(self, text):
         return re.sub(self.cfg.padding_regexp, "", text)
+
+    def _get_token_id(self, text: str) -> int:
+        return self.cfg.tokenizer.encode(text)[0]
 
 
 @hydra.main(config_path="../config/inference/", config_name="simple_tod_inference")

@@ -83,6 +83,8 @@ class GoalMetric(TodMetricsBase):
             ]
             if self.config.tod_class is SimpleTodBelief:
                 target_items = [t for t in target_items if t.values]
+            if not len(target_items):
+                continue
             pred_belief_txt_items = self._extract_section_and_split_items_from_text(
                 pred,
                 self.config.start_token,
@@ -103,7 +105,6 @@ class GoalMetric(TodMetricsBase):
                     turn_predictions.append(0)
                     self._log_prediction(ref=t, is_correct=False)
                     any_wrong_preds = True
-
             self.joint_accuracies.append(0 if any_wrong_preds else 1)
             self.all_accuracies.append(np.mean(turn_predictions))
 

@@ -81,7 +81,16 @@ class SimpleTODDSTCDataPrep:
             beliefs = []
             actions = []
             active_intent = frame.state.active_intent
-            requested_slots = frame.state.requested_slots
+            requested_slots = [
+                "".join(
+                    [
+                        frame.short_service,
+                        SimpleTodConstants.DOMAIN_SLOT_SEPARATOR,
+                        slot,
+                    ]
+                )
+                for slot in frame.state.requested_slots
+            ]
             for slot_name, value in frame.state.slot_values.items():
                 beliefs.append(
                     SimpleTodBelief(
@@ -228,24 +237,24 @@ class SimpleTODDSTCDataPrep:
     ) -> str:
         if not schemas:
             return ""
-        schema_str_list = [
-            SpecialTokens.schema_description + schema.description for schema in schemas
-        ]
+        # schema_str_list = [
+        #     SpecialTokens.schema_description + schema.description for schema in schemas
+        # ]
+        schema_str = None
         if mtst.prompt_token == SpecialTokens.prompt_dst:
-            intents = [
-                intent
-                for schema in schemas
-                for intent in schema.intents
-                if intent.name == turn.active_intent
-            ]
-            schema_str_list += map(str, intents)
+            # intents = [
+            #     intent
+            #     for schema in schemas
+            #     for intent in schema.intents
+            #     if intent.name == turn.active_intent
+            # ]
+            schema_str = "".join([schema.get_full_repr() for schema in turn.schemas])
         elif mtst.prompt_token in [
             SpecialTokens.prompt_action,
             SpecialTokens.prompt_response,
         ]:
-            slots = [slot for schema in schemas for slot in schema.slots]
-            schema_str_list += map(str, slots)
-        return "".join(schema_str_list)
+            schema_str = "".join([schema.get_slot_repr() for schema in turn.schemas])
+        return schema_str
 
     def _prepare_multitask_dialog(self, turn: SimpleTodTurn) -> list[str]:
         out = []
@@ -305,8 +314,10 @@ class SimpleTODDSTCDataPrep:
     ) -> np.ndarray:
         data = []
         dialog_json_data = utils.read_json(path)
+        if any(x in dialog_json_data for x in ["~", "^"]):
+            raise ValueError("dialog contains ~")
         for d in dialog_json_data:
-            dialog = DstcDialog.from_json(json.dumps(d))
+            dialog = DstcDialog.from_dict(d)
             prepped_dialog = self._prepare_dialog(dialog, schemas)
             if prepped_dialog is None:
                 continue
