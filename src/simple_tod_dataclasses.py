@@ -218,7 +218,7 @@ class SimpleTodTarget:
 
 
 @dataclass
-class SimpleTodTurnCsvRow:
+class TodTurnCsvRow:
     dialog_id: str
     turn_id: str
     context: str
@@ -266,7 +266,7 @@ class SimpleTodTurn:
 
 
 @dataclass
-class SimpleTodTestDataBatch:
+class TodTestDataBatch:
     input_ids: list[list[int]]
     attention_masks: list[list[int]]
     contexts_text: list[str]

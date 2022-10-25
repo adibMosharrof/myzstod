@@ -1,0 +1,17 @@
+num_dialogs:
+  - 10
+  - 1
+  - 3
+data_split_percent:
+  - 1
+  - 1
+  - 1
+train_batch_size: 100
+train_epochs: 3
+contrast_with: user_act
+single_action_neg_samples: 10
+# model: outputs/2022-10-18/11-37-13/results
+# overwrite:
+#   - 1
+#   - 1
+#   - 1

@@ -6,11 +6,13 @@ from transformers import (
     TrainingArguments,
     logging,
 )
+from contrastive_dataclasses import ContrastiveTrainerHelper, ContrastiveTrainer
 from hydra_configs import DataModuleConfig, InferenceConfig, TrainerConfig
 from inference import Inference
-from my_datamodules import SimpleTodDataModule
+from my_datamodules import TodDataModule
 import os
 import warnings
+from sentence_transformers import SentenceTransformer, losses, evaluation
 
 warnings.filterwarnings("ignore")
 
@@ -28,7 +30,7 @@ class SimpleTODTrainer:
         model.resize_token_embeddings(len(self.cfg.tokenizer))
         model = model.cuda()
 
-        dm = SimpleTodDataModule(DataModuleConfig.from_trainer_config(self.cfg))
+        dm = TodDataModule(DataModuleConfig.from_trainer_config(self.cfg))
         self.train(model, dm)
         print("Training done")
         print("-" * 80)
@@ -38,7 +40,7 @@ class SimpleTODTrainer:
             )
             inf.test()
 
-    def train(self, model: GPT2LMHeadModel, dm: SimpleTodDataModule):
+    def train(self, model: GPT2LMHeadModel, dm: TodDataModule):
         pretrain_out = str(self.cfg.out_dir / "pretrain")
         training_args = TrainingArguments(
             output_dir=pretrain_out,
@@ -75,12 +77,16 @@ class SimpleTODTrainer:
         model_train = GPT2LMHeadModel.from_pretrained(pretrain_out)
         training_args.output_dir = str(self.cfg.out_dir / "train")
         training_args.num_train_epochs = self.cfg.train_epochs
-        trainer = Trainer(
+        # trainer = Trainer(
+        trainer = ContrastiveTrainer(
             model=model_train,
             args=training_args,
             train_dataset=dm.cfg.datasets["train"],
             eval_dataset=dm.cfg.datasets["dev"],
             data_collator=dm.training_collator,
+        )
+        trainer.contrastive_helper = ContrastiveTrainerHelper(
+            self.cfg.project_root / self.cfg.contrastive_model, self.cfg.tokenizer
         )
         # trainer.pad_token_id = self.cfg.tokenizer.pad_token_id
         trainer.train()

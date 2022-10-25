@@ -1,33 +1,30 @@
-model_name: gpt2
-pretrain_epochs: 1
-train_epochs: 1
-num_workers: 8
-train_batch_size: 10
-# data_split_percent:
-#   - .3
-#   - .3
-#   - .3
+pretrain_epochs: 2
+pretrain_model_path: outputs/2022-10-17/21-28-42/results/pretrain/checkpoint-2596
+train_epochs: 3
+train_batch_size: 5
+data_split_percent:
+  - 1
+  - 1
+  - 1
 eval_batch_size: 10
-test_batch_size: 80
-eval_accumulation_steps: 25
-output_dir: results
-logging_dir: logs
-logging_steps: 50
-max_token_len: 1022
-raw_data_root: data/dstc8-schema-guided-dialogue/
-project_root: /mounts/u-amo-d0/grad/adibm/projects/generative_tod/
-data_prep_out_root: processed_data/simple_tod
-delexicalize: false
-num_dialogs: 
+test_batch_size: 70
+max_token_len: 1024
+test_prompt_max_len: 750
+num_dialogs:
   - 1
   - 1
   - 1
-overwrite:
-  - true
-  - true
-  - true
-# should_test: true
-generate_max_len: 1024
+should_test: true
 num_turns: 26
-train_domain_settings: ALL
-is_multi_task: false
+train_domain_setting: all
+test_domain_settings:
+  - seen
+# is_multi_task: true
+# multi_tasks:
+#   - 1
+#   - 1
+#   - 0
+# should_add_schema: true
+# should_add_sys_actions: true
+should_add_user_actions: true
+contrastive_model: outputs/2022-10-19/15-33-22/results

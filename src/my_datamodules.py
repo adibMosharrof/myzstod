@@ -1,24 +1,25 @@
-from dataclasses import dataclass
-from pathlib import Path
-from typing import Dict, Iterable, List
 from dotmap import DotMap
 
-import numpy as np
-import pytorch_lightning as pl
 import torch
-from responses import target
-from torch.utils.data import DataLoader, Dataset, default_collate
-from transformers import AutoTokenizer, PreTrainedTokenizerFast
+from sentence_transformers import InputExample
+from base_datamodule import BaseDataModule
+from contrastive_dataclasses import ContrastiveUtils
 
+from hydra_configs import DataModuleConfig
+from my_enums import (
+    DstcSystemActions,
+    SimpleTodActionAttributes,
+    SimpleTodConstants,
+    SpecialTokens,
+    Steps,
+)
+from simple_tod_dataclasses import SimpleTodAction, TodTestDataBatch, TodTurnCsvRow
 import dstc_utils
-import utils
-from hydra_configs import DataModuleConfig, DataPrepConfig
-from my_enums import SpecialTokens, Steps
-from simple_tod_dataclasses import SimpleTodTestDataBatch, SimpleTodTurnCsvRow
-from simple_tod_dstc_data_prep import SimpleTODDSTCDataPrep
+from torch.utils.data import DataLoader, Dataset
+import random
 
 
-class SimpleTodDataModule(pl.LightningDataModule):
+class TodDataModule(BaseDataModule):
     steps = Steps.list()
     _huggingface_ignore_label_id = -100
 
@@ -26,84 +27,14 @@ class SimpleTodDataModule(pl.LightningDataModule):
         self,
         cfg: DataModuleConfig,
     ):
-        super().__init__()
-        self.cfg = cfg
-        self.setup()
-        self.prompt_token_map = {}
+        super().__init__(cfg)
 
-    def _get_token_id(self, text: str) -> int:
-        return self.cfg.tokenizer.encode(text)[0]
-
-    def prepare_data(self):
-        stdp = SimpleTODDSTCDataPrep(DataPrepConfig.from_dm_config(self.cfg))
-        stdp.run()
-
-    def setup(self):
-        self.prepare_data()
-        for step, split_percent, num_dialog in zip(
-            self.steps, self.cfg.data_split_percent, self.cfg.num_dialogs
-        ):
-            csv_path = dstc_utils.get_csv_data_path(
-                step,
-                num_dialog,
-                cfg=self.cfg,
-            )
-            try:
-                data = utils.read_csv_dataclass(csv_path, SimpleTodTurnCsvRow)
-                data = data[: int(len(data) * split_percent)]
-            except FileNotFoundError:
-                data = []
-            self.cfg.datasets[step] = SimpleTodDataSet(data)
-
-    def test_dataloader(self) -> SimpleTodTestDataBatch:
-        return DataLoader(
-            self.cfg.datasets[Steps.TEST],
-            batch_size=self.cfg.test_batch_size,
-            shuffle=False,
-            num_workers=self.cfg.num_workers,
-            collate_fn=self.my_test_collate,
-            pin_memory=True,
-        )
-
-    def tokenize(self, item):
-        return self.cfg.tokenizer(
-            item,
-            return_tensors="pt",
-            truncation=True,
-            padding="max_length",
-            max_length=self.cfg.max_token_len,
-        )
-
-    def train_tokenizer(self, item):
-        try:
-            tokens = self.cfg.tokenizer.encode(
-                item,
-                return_tensors="pt",
-            )
-        except TypeError as e:
-            tokens = torch.empty([1, 0], dtype=torch.int64)
-        return tokens
-
-    def get_training_labels(self, context_len, unused_len, target_tokens):
-        return torch.cat(
-            [
-                torch.full([context_len], self._huggingface_ignore_label_id),
-                target_tokens,
-                torch.full([unused_len], self._huggingface_ignore_label_id),
-            ]
-        )
-
-    def pretraining_collator(self, batch: list[SimpleTodTurnCsvRow]):
-        return self.training_collator(batch, True)
-
-    def training_collator(
-        self, batch: list[SimpleTodTurnCsvRow], is_pretrain: bool = False
-    ):
+    def training_collator(self, batch: list[TodTurnCsvRow], is_pretrain: bool = False):
         input_ids = []
         attention_masks = []
         labels = []
-        contexts_text = []
-        labels_text = []
+        targets_text = []
+        contrast_tokens = []
         for item in batch:
             context_tokens = self.train_tokenizer(item.context)[0]
             target_tokens = self.train_tokenizer(item.target)[0]
@@ -139,6 +70,10 @@ class SimpleTodDataModule(pl.LightningDataModule):
                         torch.full([unused_len], self._huggingface_ignore_label_id),
                     ]
                 )
+                if self.cfg.contrast_with:
+                    contrast_tokens.append(
+                        self._get_contrast_tokens(item.target, self.cfg.contrast_with)
+                    )
             attention_mask = torch.cat(
                 [
                     torch.full([context_len + schema_len + target_len], 1),
@@ -148,29 +83,19 @@ class SimpleTodDataModule(pl.LightningDataModule):
             input_ids.append(input_tokens)
             attention_masks.append(torch.tensor(attention_mask))
             labels.append(label)
+            targets_text.append(item.target)
 
-            # contexts_text.append(
-            #     self.cfg.tokenizer.decode(input_tokens[attention_mask > 0])
-            # )
-            # labels_text.append(
-            # self.cfg.tokenizer.decode(
-            #     input_tokens[label != self._huggingface_ignore_label_id]
-            # )
-            # )
-        # text_csv_data = np.column_stack([contexts_text, labels_text])
-        # path = f"text_csv_data_{is_pretrain }.csv"
-        # utils.append_csv(text_csv_data, path)
-
-        return {
+        out = {
             "input_ids": torch.stack(input_ids),
             "attention_mask": torch.stack(attention_masks),
             "labels": torch.stack(labels),
         }
+        if not is_pretrain and self.cfg.contrast_with:
+            out["contrastive_tokens"] = torch.stack(contrast_tokens)
 
-    def my_test_collate(
-        self, batch: list[SimpleTodTurnCsvRow]
-    ) -> SimpleTodTestDataBatch:
+        return out
 
+    def my_test_collate(self, batch: list[TodTurnCsvRow]) -> TodTestDataBatch:
         data = DotMap(
             dict.fromkeys(
                 [
@@ -225,7 +150,7 @@ class SimpleTodDataModule(pl.LightningDataModule):
             )
             data.attention_masks.append(attention_mask)
 
-        return SimpleTodTestDataBatch(
+        return TodTestDataBatch(
             input_ids=torch.stack(data.input_ids),
             attention_masks=torch.stack(data.attention_masks),
             schemas_text=data.schemas,
@@ -235,44 +160,16 @@ class SimpleTodDataModule(pl.LightningDataModule):
             turn_ids=data.turn_ids,
         )
 
-    def _get_filler_token_from_prompt(self, prompt_token: int, prompt_token_map: dict):
-        try:
-            filler_token = prompt_token_map[int(prompt_token)]
-        except KeyError:
-            raise ValueError("Prompt token not found")
-        return filler_token
-
-    def _add_multi_task_prompt_token(
-        self, context_tokens: torch.Tensor
-    ) -> torch.Tensor:
-        if not self.prompt_token_map.keys():
-            self.prompt_token_map = {
-                self._get_token_id(SpecialTokens.prompt_dst): self._get_token_id(
-                    SpecialTokens.begin_dsts
-                ),
-                self._get_token_id(SpecialTokens.prompt_action): self._get_token_id(
-                    SpecialTokens.begin_action
-                ),
-                self._get_token_id(SpecialTokens.prompt_response): self._get_token_id(
-                    SpecialTokens.begin_response
-                ),
-            }
-        prompt_token = self._get_filler_token_from_prompt(
-            context_tokens[-2], self.prompt_token_map
+    def _get_contrast_tokens(self, target: str, contrast_with: str) -> list[int]:
+        (
+            start_token,
+            end_token,
+            multiple_values,
+        ) = ContrastiveUtils._get_tokens_from_contrast_with(contrast_with)
+        text = dstc_utils.get_text_in_between(
+            target, start_token, end_token, multiple_values=multiple_values
         )
-        out = torch.cat([context_tokens, torch.tensor([prompt_token])])
-        return out
-
-
-class SimpleTodDataSet(Dataset):
-    def __init__(
-        self,
-        data: List[SimpleTodTurnCsvRow],
-    ):
-        self.data = data
-
-    def __len__(self):
-        return len(self.data)
-
-    def __getitem__(self, idx) -> SimpleTodTurnCsvRow:
-        return self.data[idx]
+        if isinstance(text, list):
+            text = SimpleTodConstants.ITEM_SEPARATOR.join(text)
+        tokens = self.contrastive_tokenizer(text)
+        return tokens

@@ -18,11 +18,11 @@ from metrics.dstc_metrics import InformMetric, SuccessMetric, CombinedMetric
 from my_enums import DstcDomains, GoalMetricConfigType, SpecialTokens, TestSettings
 import utils
 from hydra_configs import DataModuleConfig, InferenceConfig
-from my_datamodules import SimpleTodDataModule
+from my_datamodules import TodDataModule
 from simple_tod_dataclasses import (
     InferenceRecords,
     SimpleTodConstants,
-    SimpleTodTestDataBatch,
+    TodTestDataBatch,
 )
 
 
@@ -88,6 +88,7 @@ class Inference:
             self._print_metrics()
             self.cfg.logger.info(str(self.cfg.out_dir))
             self.tod_metrics.visualize(self.cfg.predictions_log_dir)
+            
 
     def run(self):
         print("begin inference")
@@ -182,8 +183,8 @@ class Inference:
         self.tod_metrics = MetricCollection(tod_metrics)
         self.combined_metrics = MetricCollection(combined_metrics)
 
-    def _get_dataloader(self, test_setting: str) -> SimpleTodTestDataBatch:
-        dm = SimpleTodDataModule(
+    def _get_dataloader(self, test_setting: str) -> TodTestDataBatch:
+        dm = TodDataModule(
             DataModuleConfig.from_inference_config(
                 self.cfg,
                 domain_setting=test_setting,
