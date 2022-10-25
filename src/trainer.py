@@ -1,6 +1,7 @@
 from omegaconf import DictConfig
 import hydra
 from transformers import (
+    AutoModel,
     GPT2LMHeadModel,
     Trainer,
     TrainingArguments,
@@ -12,7 +13,6 @@ from inference import Inference
 from my_datamodules import TodDataModule
 import os
 import warnings
-from sentence_transformers import SentenceTransformer, losses, evaluation
 
 warnings.filterwarnings("ignore")
 
@@ -39,6 +39,32 @@ class SimpleTODTrainer:
                 InferenceConfig.from_trainer_config(self.cfg, model),
             )
             inf.test()
+
+    def _get_trainer(
+        self,
+        model_train: AutoModel,
+        dm: TodDataModule,
+        training_args: TrainingArguments,
+    ) -> Trainer:
+        if self.cfg.contrastive_model:
+            trainer = ContrastiveTrainer(
+                model=model_train,
+                args=training_args,
+                train_dataset=dm.cfg.datasets["train"],
+                eval_dataset=dm.cfg.datasets["dev"],
+                data_collator=dm.training_collator,
+            )
+            trainer.contrastive_helper = ContrastiveTrainerHelper(
+                self.cfg.project_root / self.cfg.contrastive_model, self.cfg.tokenizer
+            )
+            return trainer
+        trainer = Trainer(
+            model=model_train,
+            args=training_args,
+            train_dataset=dm.cfg.datasets["train"],
+            eval_dataset=dm.cfg.datasets["dev"],
+            data_collator=dm.training_collator,
+        )
 
     def train(self, model: GPT2LMHeadModel, dm: TodDataModule):
         pretrain_out = str(self.cfg.out_dir / "pretrain")
@@ -68,7 +94,6 @@ class SimpleTODTrainer:
             eval_dataset=dm.cfg.datasets["dev"],
             data_collator=dm.pretraining_collator,
         )
-        # pre_trainer.pad_token_id = self.cfg.tokenizer.pad_token_id
         if not self.cfg.pretrain_model_path:
             pre_trainer.train()
             pre_trainer.save_model()
@@ -77,18 +102,7 @@ class SimpleTODTrainer:
         model_train = GPT2LMHeadModel.from_pretrained(pretrain_out)
         training_args.output_dir = str(self.cfg.out_dir / "train")
         training_args.num_train_epochs = self.cfg.train_epochs
-        # trainer = Trainer(
-        trainer = ContrastiveTrainer(
-            model=model_train,
-            args=training_args,
-            train_dataset=dm.cfg.datasets["train"],
-            eval_dataset=dm.cfg.datasets["dev"],
-            data_collator=dm.training_collator,
-        )
-        trainer.contrastive_helper = ContrastiveTrainerHelper(
-            self.cfg.project_root / self.cfg.contrastive_model, self.cfg.tokenizer
-        )
-        # trainer.pad_token_id = self.cfg.tokenizer.pad_token_id
+        trainer = self._get_trainer(model_train, dm, training_args)
         trainer.train()
         trainer.save_model()
 
