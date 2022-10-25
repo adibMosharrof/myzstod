@@ -1,11 +1,10 @@
-pretrain_epochs: 2
+pretrain_epochs: 3
 #pretrain_model_path: outputs/2022-09-08/17-39-08/results/pretrain
-train_epochs: 3
-train_batch_size: 6
+train_epochs: 4
+train_batch_size: 5
 eval_batch_size: 6
 test_batch_size: 80
-max_token_len: 1022
-context_max_len: 799
+max_token_len: 1024
 raw_data_root: data/dstc8-schema-guided-dialogue/
 project_root: /project/msi290_uksr/generative_tod
 #overwrite:
@@ -14,7 +13,12 @@ project_root: /project/msi290_uksr/generative_tod
 #  - true
 should_test: false
 train_domain_setting: all
-#is_multi_task: true
+is_multi_task: false
 #should_add_schema: true
 #should_add_sys_actions: true
-#should_add_user_actions: true
+should_add_user_actions: true
+#multi_tasks:
+#  - 1
+#  - 1
+#  - 0
+
