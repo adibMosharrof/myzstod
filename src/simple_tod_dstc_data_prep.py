@@ -60,6 +60,7 @@ class SimpleTODDSTCDataPrep:
                 prev_tod_turn.context.next_system_utterance
             )
             context.user_utterances.append(prev_tod_turn.context.current_user_utterance)
+            context.prev_tod_turn = prev_tod_turn
 
         if user_turn:
             utterance = user_turn.utterance
@@ -303,7 +304,7 @@ class SimpleTODDSTCDataPrep:
             if self.cfg.is_multi_task:
                 tod_turns.append(self._prepare_multitask_dialog(tod_turn))
             else:
-                tod_turns.append(tod_turn.to_csv_row())
+                tod_turns.append(tod_turn.to_csv_row(self.cfg.context_type))
         if not self.cfg.is_multi_task:
             return tod_turns
         out = np.concatenate(tod_turns, axis=0)

@@ -65,6 +65,7 @@ class SimpleTODTrainer:
             eval_dataset=dm.cfg.datasets["dev"],
             data_collator=dm.training_collator,
         )
+        return trainer
 
     def train(self, model: GPT2LMHeadModel, dm: TodDataModule):
         pretrain_out = str(self.cfg.out_dir / "pretrain")

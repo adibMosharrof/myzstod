@@ -6,6 +6,7 @@ from transformers import AutoTokenizer, PreTrainedTokenizerFast
 
 from tokenizers.processors import TemplateProcessing
 from dstc_dataclasses import DstcSchema
+from hydra_configs import DataModuleConfig, DataPrepConfig
 
 from my_enums import SimpleTodConstants, SpecialTokens
 import utils
@@ -35,12 +36,14 @@ def get_schemas(data_root: Path, step: str) -> Dict[str, DstcSchema]:
 def get_csv_data_path(
     step: str = "train",
     num_dialogs: int = 1,
-    cfg=None,
+    cfg: Union[DataPrepConfig, DataModuleConfig] = None,
 ):
     step_dir = cfg.processed_data_root / step
     return step_dir / (
         "_".join(
             [
+                "context_type",
+                cfg.context_type,
                 "multi_task",
                 str(cfg.is_multi_task),
                 "_".join(map(str, cfg.multi_tasks)),

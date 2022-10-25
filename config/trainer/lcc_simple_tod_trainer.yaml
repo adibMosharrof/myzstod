@@ -5,6 +5,7 @@ train_batch_size: 5
 eval_batch_size: 6
 test_batch_size: 80
 max_token_len: 1024
+context_max_len: 750
 raw_data_root: data/dstc8-schema-guided-dialogue/
 project_root: /project/msi290_uksr/generative_tod
 #overwrite:
@@ -16,9 +17,9 @@ train_domain_setting: all
 is_multi_task: false
 #should_add_schema: true
 #should_add_sys_actions: true
-should_add_user_actions: true
 #multi_tasks:
 #  - 1
 #  - 1
 #  - 0
-
+#should_add_user_actions: true
+#context_type: default
