@@ -1,14 +1,15 @@
-pretrain_epochs: 1
-pretrain_model_path: outputs/2022-09-29/10-36-13/results/pretrain/
+pretrain_epochs: 3
+pretrain_model_path: outputs/2022-10-19/22-16-52/results/pretrain/checkpoint-9041
 train_epochs: 1
-train_batch_size: 6
+train_batch_size: 3
 data_split_percent:
   - .1
-  - .1
-  - .1
+  - 1
+  - 1
 eval_batch_size: 10
-test_batch_size: 30
-context_max_len: 100
+test_batch_size: 60
+test_prompt_max_len: 750
+max_token_len: 1024
 num_dialogs: 
   - 1
   - 1
@@ -17,14 +18,21 @@ num_dialogs:
 #   - true
 #   - true
 #   - true
-should_test: true
+# should_test: true
+test_domain_settings:
+  - all
+  - seen
+  - unseen
 num_turns: 26
 train_domain_setting: all
-is_multi_task: true
+# is_multi_task: true
 multi_tasks:
   - 1
   - 1
-  - 0
+  - 1
 # should_add_schema: true
 # should_add_sys_actions: true
-# should_add_user_actions: true
+should_add_user_actions: true
+contrastive_model: outputs/2022-10-19/15-33-22/results
+contrast_with: user_act
+contrastive_max_token_len: 150

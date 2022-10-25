@@ -9,7 +9,7 @@ from transformers import AutoTokenizer, GPT2LMHeadModel, GPT2PreTrainedModel
 
 import dstc_utils
 import utils
-from my_enums import DstcDomains, SpecialTokens, Steps
+from my_enums import ContrastiveConstrants, DstcDomains, SpecialTokens, Steps
 
 
 class TrainerConfig:
@@ -46,6 +46,9 @@ class TrainerConfig:
         should_add_schema: bool = False,
         should_add_user_actions: bool = False,
         should_add_sys_actions: bool = False,
+        contrastive_model: str = None,
+        contrast_with: str = None,
+        contrastive_max_token_len: int = 150,
     ) -> None:
         self.project_root = Path(project_root)
         self.data_prep_out_root = Path(data_prep_out_root)
@@ -82,6 +85,9 @@ class TrainerConfig:
         self.should_add_user_actions = should_add_user_actions
         if test_prompt_max_len > max_token_len:
             raise ValueError("context_max_len must be less than max_token_len")
+        self.contrastive_model = contrastive_model
+        self.contrast_with = contrast_with
+        self.contrastive_max_token_len = contrastive_max_token_len
 
 
 class InferenceConfig:
@@ -112,6 +118,7 @@ class InferenceConfig:
         should_add_schema: bool = False,
         should_add_user_actions: bool = False,
         should_add_sys_actions: bool = False,
+        # contrastive_model: str = None,
     ) -> None:
         self.num_workers = num_workers
         self.data_split_percent = data_split_percent or [1, 1, 1]
@@ -144,6 +151,7 @@ class InferenceConfig:
             self.tokenizer if self.tokenizer else self._get_tokenizer(model)
         )
         self.padding_regexp = re.compile(re.escape(SpecialTokens.pad_token))
+        # self.contrastive_model = contrastive_model
 
     def _get_tokenizer(self, model_path_str: str):
         model_path: Path = self.project_root / model_path_str
@@ -192,6 +200,7 @@ class InferenceConfig:
             should_add_schema=trainer_config.should_add_schema,
             should_add_sys_actions=trainer_config.should_add_sys_actions,
             should_add_user_actions=trainer_config.should_add_user_actions,
+            # contrastive_model=trainer_config.contrastive_model,
         )
 
 
@@ -229,6 +238,70 @@ class DataModelExplorationConfig:
         self.domains = DstcDomains[domain_setting.upper()].value
 
 
+class ConstrastiveConfig:
+    def __init__(
+        self,
+        project_root: str = "/mounts/u-amo-d0/grad/adibm/projects/generative_tod/",
+        data_prep_out_root: str = "processed_data/simple_tod",
+        raw_data_root: str = "data/dstc8-schema-guided-dialogue/",
+        model_name: str = "bert-base-nli-mean-tokens",
+        model: str = None,
+        num_workers: int = 8,
+        data_split_percent: list[float] = None,
+        eval_batch_size: int = 6,
+        test_batch_size: int = 32,
+        train_batch_size: int = 8,
+        num_dialogs: list[int] = None,
+        num_turns: int = 10,
+        overwrite: list[bool] = None,
+        train_domain_setting: str = "SEEN",
+        test_domain_settings: list[str] = None,
+        out_dir: str = "results",
+        train_epochs: int = 2,
+        logging_dir: str = "logs",
+        logging_steps: int = 50,
+        eval_accumulation_steps: int = 5,
+        is_multi_task: bool = False,
+        multi_tasks: list[int] = None,
+        # should_add_user_actions: bool = False,
+        should_add_sys_actions: bool = False,
+        should_add_schema: bool = False,
+        contrast_with: str = ContrastiveConstrants.USER_ACT,
+        single_action_neg_samples: int = 5,
+    ):
+        self.project_root = Path(project_root)
+        self.data_prep_out_root = self.project_root / data_prep_out_root
+        self.raw_data_root = Path(raw_data_root)
+        self.model_name = model_name
+        self.model = self.project_root / model if model else None
+        self.num_workers = num_workers
+        self.data_split_percent = data_split_percent or [1, 1, 1]
+        self.eval_batch_size = eval_batch_size
+        self.test_batch_size = test_batch_size
+        self.train_batch_size = train_batch_size
+        self.num_dialogs = num_dialogs or [20, 5, 10]
+        self.num_turns = num_turns
+        self.overwrite = overwrite or [False, False, False]
+        self.train_domain_setting = train_domain_setting
+        self.test_domain_settings = test_domain_settings or ["ALL", "SEEN", "UNSEEN"]
+        self.out_dir = Path(out_dir)
+        self.out_dir.mkdir(parents=True, exist_ok=True)
+        self.train_epochs = train_epochs
+        self.logging_dir = Path(logging_dir)
+        self.logging_dir.mkdir(parents=True, exist_ok=True)
+        self.logging_steps = logging_steps
+        self.eval_accumulation_steps = eval_accumulation_steps
+        self.is_multi_task = is_multi_task
+        self.multi_tasks = multi_tasks or [1, 1, 1]
+        self.should_add_sys_actions = should_add_sys_actions
+        self.should_add_schema = should_add_schema
+        self.contrast_with = contrast_with
+        self.single_action_neg_samples = single_action_neg_samples
+        self.should_add_user_actions = (
+            False if self.contrast_with == ContrastiveConstrants.NLG else True
+        )
+
+
 class DataModuleConfig:
     def __init__(
         self,
@@ -256,6 +329,9 @@ class DataModuleConfig:
         should_add_schema: bool = False,
         should_add_sys_actions: bool = False,
         should_add_user_actions: bool = False,
+        single_action_neg_samples: int = 5,
+        contrast_with: str = None,
+        contrastive_max_token_len: int = 150,
     ):
         self.num_workers = num_workers
         self.preprocessing_model_name = preprocessing_model_name
@@ -282,6 +358,11 @@ class DataModuleConfig:
         self.should_add_user_actions = should_add_user_actions
         self.domain_setting = domain_setting
         self.domains = DstcDomains[domain_setting.upper()].value
+        self.single_action_neg_samples = (
+            single_action_neg_samples if single_action_neg_samples else 5
+        )
+        self.contrast_with = contrast_with
+        self.contrastive_max_token_len = contrastive_max_token_len
 
     @classmethod
     def from_trainer_config(self, trainer_config: TrainerConfig) -> "DataModuleConfig":
@@ -307,6 +388,8 @@ class DataModuleConfig:
             data_split_percent=trainer_config.data_split_percent,
             should_add_user_actions=trainer_config.should_add_user_actions,
             should_add_sys_actions=trainer_config.should_add_sys_actions,
+            contrast_with=trainer_config.contrast_with,
+            contrastive_max_token_len=trainer_config.contrastive_max_token_len,
         )
 
     @classmethod
@@ -314,7 +397,6 @@ class DataModuleConfig:
         self,
         inf_config: InferenceConfig,
         domain_setting: str = None,
-        prompt_token_map: dict = None,
     ) -> "DataModuleConfig":
         return self(
             num_workers=inf_config.num_workers,
@@ -355,6 +437,31 @@ class DataModuleConfig:
             should_add_schema=dme_config.should_add_schema,
             tokenizer=dme_config.tokenizer,
             data_split_percent=dme_config.data_split_percent,
+        )
+
+    @classmethod
+    def from_contrastive_config(
+        self, c_config: ConstrastiveConfig
+    ) -> "DataModuleConfig":
+        return self(
+            project_root=c_config.project_root,
+            data_prep_out_root=c_config.data_prep_out_root,
+            raw_data_root=c_config.raw_data_root,
+            batch_size=c_config.train_batch_size,
+            eval_batch_size=c_config.eval_batch_size,
+            test_batch_size=c_config.test_batch_size,
+            num_dialogs=c_config.num_dialogs,
+            overwrite=c_config.overwrite,
+            num_turns=c_config.num_turns,
+            domain_setting=c_config.train_domain_setting,
+            is_multi_task=c_config.is_multi_task,
+            multi_tasks=c_config.multi_tasks,
+            should_add_schema=c_config.should_add_schema,
+            data_split_percent=c_config.data_split_percent,
+            should_add_user_actions=c_config.should_add_user_actions,
+            should_add_sys_actions=c_config.should_add_sys_actions,
+            single_action_neg_samples=c_config.single_action_neg_samples,
+            contrast_with=c_config.contrast_with,
         )
 
 
@@ -430,57 +537,3 @@ class ReconstructDialogConfig:
         if not len(files):
             raise ValueError("No csv files found in the model path")
         self.csv_file_names = files
-
-
-class ConstrastiveConfig:
-    def __init__(
-        self,
-        project_root: str = "/mounts/u-amo-d0/grad/adibm/projects/generative_tod/",
-        data_prep_out_root: str = "processed_data/simple_tod",
-        raw_data_root: str = "data/dstc8-schema-guided-dialogue/",
-        model_name: str = "bert",
-        num_workers: int = 8,
-        data_split_percent: list[float] = None,
-        eval_batch_size: int = 6,
-        test_batch_size: int = 32,
-        train_batch_size: int = 8,
-        num_dialogs: list[int] = None,
-        num_turns: int = 10,
-        overwrite: list[bool] = None,
-        train_domain_setting: str = "SEEN",
-        test_domain_settings: list[str] = None,
-        out_dir: str = "results",
-        train_epochs: int = 1,
-        logging_dir: str = "logs",
-        logging_steps: int = 50,
-        eval_accumulation_steps: int = 5,
-        is_multi_task: bool = False,
-        multi_tasks: list[int] = None,
-        should_add_user_actions: bool = False,
-        should_add_sys_actions: bool = False,
-    ):
-        self.project_root = Path(project_root)
-        self.data_prep_out_root = self.project_root / data_prep_out_root
-        self.raw_data_root = Path(raw_data_root)
-        self.model_name = model_name
-        self.num_workers = num_workers
-        self.data_split_percent = data_split_percent or [1, 1, 1]
-        self.eval_batch_size = eval_batch_size
-        self.test_batch_size = test_batch_size
-        self.train_batch_size = train_batch_size
-        self.num_dialogs = num_dialogs
-        self.num_turns = num_turns
-        self.overwrite = overwrite or [False, False, False]
-        self.train_domain_setting = train_domain_setting
-        self.test_domain_settings = test_domain_settings or ["ALL", "SEEN", "UNSEEN"]
-        self.out_dir = Path(out_dir)
-        self.out_dir.mkdir(parents=True, exist_ok=True)
-        self.train_epochs = train_epochs
-        self.logging_dir = Path(logging_dir)
-        self.logging_dir.mkdir(parents=True, exist_ok=True)
-        self.logging_steps = logging_steps
-        self.eval_accumulation_steps = eval_accumulation_steps
-        self.is_multi_task = is_multi_task
-        self.multi_tasks = multi_tasks or [1, 1, 1]
-        self.should_add_user_actions = should_add_user_actions
-        self.should_add_sys_actions = should_add_sys_actions

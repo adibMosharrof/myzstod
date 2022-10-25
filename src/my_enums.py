@@ -51,6 +51,16 @@ class Speaker(str, Enum):
     USER = "USER"
 
 
+class SimpleTodActionAttributes(str, Enum):
+    domain = "domain"
+    action_type = "action_type"
+    slot_name = "slot_name"
+
+    @classmethod
+    def list(cls):
+        return [c.value for c in cls]
+
+
 class SpecialTokens(str, Enum):
     begin_target = "<|begintarget|>"
     end_target = "<|endtarget|>"
@@ -162,3 +172,8 @@ class DstcSystemActions(str, Enum):
     @classmethod
     def list(cls):
         return [c.value for c in cls]
+
+
+class ContrastiveConstrants(str, Enum):
+    NLG = "nlg"
+    USER_ACT = "user_act"

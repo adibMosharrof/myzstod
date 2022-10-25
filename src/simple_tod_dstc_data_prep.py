@@ -14,7 +14,7 @@ import utils
 from pathos.multiprocessing import ProcessingPool as Pool
 
 from dstc_dataclasses import DstcDialog, DstcFrame, DstcSchema, DstcTurn
-from dstc_utils import get_csv_data_path, get_dialog_file_paths
+from dstc_utils import get_csv_data_path, get_dialog_file_paths, get_schemas
 
 from simple_tod_dataclasses import (
     MultiTaskSpecialToken,
@@ -326,15 +326,15 @@ class SimpleTODDSTCDataPrep:
             return np.array(data)
         return np.concatenate(data, axis=0)
 
-    def _get_schemas(self, step: str) -> Dict[str, DstcSchema]:
-        path = self.cfg.data_root / step / "schema.json"
-        schema_json = utils.read_json(path)
-        schemas = {}
-        for s in schema_json:
-            schema: DstcSchema = DstcSchema.from_json(json.dumps(s))
-            schema.step = step
-            schemas[schema.service_name] = schema
-        return schemas
+    # def _get_schemas(self, step: str) -> Dict[str, DstcSchema]:
+    #     path = self.cfg.data_root / step / "schema.json"
+    #     schema_json = utils.read_json(path)
+    #     schemas = {}
+    #     for s in schema_json:
+    #         schema: DstcSchema = DstcSchema.from_json(json.dumps(s))
+    #         schema.step = step
+    #         schemas[schema.service_name] = schema
+    #     return schemas
 
     def run(self):
         steps = Steps.list()
@@ -344,7 +344,8 @@ class SimpleTODDSTCDataPrep:
             step_dir = Path(self.cfg.processed_data_root / step)
             step_dir.mkdir(parents=True, exist_ok=True)
             dialog_paths = get_dialog_file_paths(self.cfg.data_root, step)
-            schemas = self._get_schemas(step)
+            # schemas = self._get_schemas(step)
+            schemas = get_schemas(self.cfg.data_root, step)
             out_data = []
             if num_dialog == "None":
                 num_dialog = len(dialog_paths)
