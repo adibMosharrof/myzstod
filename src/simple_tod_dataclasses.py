@@ -8,7 +8,7 @@ import pandas as pd
 import torch
 from dstc_dataclasses import DstcRequestedSlot, DstcSchema
 
-from my_enums import DstcSystemActions, SimpleTodConstants, SpecialTokens
+from my_enums import ContextType, DstcSystemActions, SimpleTodConstants, SpecialTokens
 import dstc_utils
 
 
@@ -109,6 +109,7 @@ class SimpleTodContext:
     next_system_utterance: str = None
     current_user_utterance: str = None
     should_add_sys_actions: bool = None
+    prev_tod_turn: Optional["SimpleTodTurn"] = None
 
     def __init__(self, max_length: int = 10):
         self.user_utterances = deque(maxlen=max_length)
@@ -116,6 +117,18 @@ class SimpleTodContext:
 
     def __repr__(self) -> str:
         return self.__str__()
+
+    def get_short_repr(self) -> str:
+        return "".join(
+            [
+                SpecialTokens.begin_context,
+                self.prev_tod_turn.target.get_dst() if self.prev_tod_turn else "",
+                SpecialTokens.begin_last_user_utterance,
+                self.current_user_utterance,
+                SpecialTokens.end_last_user_utterance,
+                SpecialTokens.end_context,
+            ]
+        )
 
     def __str__(self) -> str:
         out = SpecialTokens.begin_context
@@ -190,6 +203,15 @@ class SimpleTodTarget:
     dsts: List[SimpleTodDst]
     requested_slots: Optional[List[DstcRequestedSlot]] = None
 
+    def get_dst(self) -> str:
+        return "".join(
+            [
+                SpecialTokens.begin_dsts,
+                "".join(map(str, self.dsts)),
+                SpecialTokens.end_dsts,
+            ]
+        )
+
     def __repr__(self) -> str:
 
         return self.__str__()
@@ -244,12 +266,17 @@ class SimpleTodTurn:
     active_intent: Optional[str] = None
     schema_str: Optional[str] = None
 
-    def to_csv_row(self) -> List[any]:
+    def to_csv_row(self, context_type: ContextType) -> List[any]:
+        context_str = ""
+        if context_type == ContextType.SHORT_REPR:
+            context_str = self.context.get_short_repr()
+        elif context_type == ContextType.DEFAULT:
+            context_str = str(self.context)
         if self.schema_str:
             return [
                 self.dialog_id,
                 self.turn_id,
-                str(self.context),
+                context_str,
                 str(self.target),
                 self.schema_str,
             ]
@@ -257,7 +284,7 @@ class SimpleTodTurn:
         return [
             self.dialog_id,
             self.turn_id,
-            str(self.context),
+            context_str,
             str(self.target),
         ]
 

@@ -9,7 +9,13 @@ from transformers import AutoTokenizer, GPT2LMHeadModel, GPT2PreTrainedModel
 
 import dstc_utils
 import utils
-from my_enums import ContrastiveConstrants, DstcDomains, SpecialTokens, Steps
+from my_enums import (
+    ContextType,
+    ContrastiveConstrants,
+    DstcDomains,
+    SpecialTokens,
+    Steps,
+)
 
 
 class TrainerConfig:
@@ -49,6 +55,7 @@ class TrainerConfig:
         contrastive_model: str = None,
         contrast_with: str = None,
         contrastive_max_token_len: int = 150,
+        context_type: str = ContextType.SHORT_REPR,
     ) -> None:
         self.project_root = Path(project_root)
         self.data_prep_out_root = Path(data_prep_out_root)
@@ -88,6 +95,7 @@ class TrainerConfig:
         self.contrastive_model = contrastive_model
         self.contrast_with = contrast_with
         self.contrastive_max_token_len = contrastive_max_token_len
+        self.context_type = context_type
 
 
 class InferenceConfig:
@@ -118,7 +126,7 @@ class InferenceConfig:
         should_add_schema: bool = False,
         should_add_user_actions: bool = False,
         should_add_sys_actions: bool = False,
-        # contrastive_model: str = None,
+        context_type: str = ContextType.SHORT_REPR,
     ) -> None:
         self.num_workers = num_workers
         self.data_split_percent = data_split_percent or [1, 1, 1]
@@ -151,6 +159,7 @@ class InferenceConfig:
             self.tokenizer if self.tokenizer else self._get_tokenizer(model)
         )
         self.padding_regexp = re.compile(re.escape(SpecialTokens.pad_token))
+        self.context_type = context_type
         # self.contrastive_model = contrastive_model
 
     def _get_tokenizer(self, model_path_str: str):
@@ -200,6 +209,7 @@ class InferenceConfig:
             should_add_schema=trainer_config.should_add_schema,
             should_add_sys_actions=trainer_config.should_add_sys_actions,
             should_add_user_actions=trainer_config.should_add_user_actions,
+            context_type=trainer_config.context_type,
             # contrastive_model=trainer_config.contrastive_model,
         )
 
@@ -332,6 +342,7 @@ class DataModuleConfig:
         single_action_neg_samples: int = 5,
         contrast_with: str = None,
         contrastive_max_token_len: int = 150,
+        context_type: str = ContextType.SHORT_REPR,
     ):
         self.num_workers = num_workers
         self.preprocessing_model_name = preprocessing_model_name
@@ -363,6 +374,7 @@ class DataModuleConfig:
         )
         self.contrast_with = contrast_with
         self.contrastive_max_token_len = contrastive_max_token_len
+        self.context_type = context_type
 
     @classmethod
     def from_trainer_config(self, trainer_config: TrainerConfig) -> "DataModuleConfig":
@@ -390,6 +402,7 @@ class DataModuleConfig:
             should_add_sys_actions=trainer_config.should_add_sys_actions,
             contrast_with=trainer_config.contrast_with,
             contrastive_max_token_len=trainer_config.contrastive_max_token_len,
+            context_type=trainer_config.context_type,
         )
 
     @classmethod
@@ -420,6 +433,7 @@ class DataModuleConfig:
             data_split_percent=inf_config.data_split_percent,
             should_add_user_actions=inf_config.should_add_user_actions,
             should_add_sys_actions=inf_config.should_add_sys_actions,
+            context_type=inf_config.context_type,
         )
 
     @classmethod
@@ -481,6 +495,7 @@ class DataPrepConfig:
         should_add_schema: bool = False,
         should_add_sys_actions: bool = False,
         should_add_user_actions: bool = False,
+        context_type: str = ContextType.SHORT_REPR,
     ):
         self.project_root = Path(project_root)
         self.data_root = self.project_root / data_root
@@ -497,6 +512,7 @@ class DataPrepConfig:
         self.should_add_schema = should_add_schema
         self.should_add_sys_actions = should_add_sys_actions
         self.should_add_user_actions = should_add_user_actions
+        self.context_type = context_type
 
     @classmethod
     def from_dm_config(self, dm_config: DataModuleConfig) -> "DataPrepConfig":
@@ -514,6 +530,7 @@ class DataPrepConfig:
             should_add_sys_actions=dm_config.should_add_sys_actions,
             should_add_user_actions=dm_config.should_add_user_actions,
             domain_setting=dm_config.domain_setting,
+            context_type=dm_config.context_type,
         )
 
 

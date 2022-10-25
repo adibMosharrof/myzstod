@@ -177,3 +177,8 @@ class DstcSystemActions(str, Enum):
 class ContrastiveConstrants(str, Enum):
     NLG = "nlg"
     USER_ACT = "user_act"
+
+
+class ContextType(str, Enum):
+    SHORT_REPR = "short_repr"
+    DEFAULT = "default"
