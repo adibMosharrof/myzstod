@@ -265,6 +265,7 @@ class SimpleTodTurn:
     multi_task_token: Optional[MultiTaskSpecialToken] = None
     active_intent: Optional[str] = None
     schema_str: Optional[str] = None
+    prompt_token: Optional[SpecialTokens] = None
 
     def to_csv_row(self, context_type: ContextType) -> List[any]:
         context_str = ""
@@ -272,6 +273,8 @@ class SimpleTodTurn:
             context_str = self.context.get_short_repr()
         elif context_type == ContextType.DEFAULT:
             context_str = str(self.context)
+            
+        context_str += self.prompt_token if self.prompt_token else ""
         if self.schema_str:
             return [
                 self.dialog_id,

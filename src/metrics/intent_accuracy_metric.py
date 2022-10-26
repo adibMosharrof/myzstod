@@ -10,8 +10,10 @@ class IntentAccuracyMetric(TodMetricsBase):
         super().__init__()
         self.metric = evaluate.load("accuracy")
         self.prediction_logger = IntentsPredictionLogger()
+        self.add_state("pred_intents", [], dist_reduce_fx="cat")
+        self.add_state("target_intents", [], dist_reduce_fx="cat")
 
-    def _add_batch(self, predictions: list[str], references: list[str]) -> None:
+    def _update(self, predictions: list[str], references: list[str]) -> None:
         target_intents = []
         pred_intents = []
         for target, prediction in zip(references, predictions):

@@ -275,12 +275,13 @@ class SimpleTODDSTCDataPrep:
             row = SimpleTodTurn(
                 dialog_id=turn.dialog_id,
                 turn_id=turn.turn_id,
-                context=str(turn.context) + mtst.prompt_token,
+                context=turn.context,
                 target=text,
+                prompt_token=mtst.prompt_token,
             )
             if self.cfg.should_add_schema:
                 row.schema_str = self._get_schema_str(turn.schemas, turn, mtst)
-            out.append(row.to_csv_row())
+            out.append(row.to_csv_row(self.cfg.context_type))
         return out
 
     def _prepare_dialog(

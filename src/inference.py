@@ -144,14 +144,14 @@ class Inference:
         if dst:
             tod_metrics.update(
                 {
-                    "goal_accuracy": GoalMetric(
-                        GoalMetricConfigFactory.create(GoalMetricConfigType.BELIEF)
-                    ),
-                    "action_accuracy": GoalMetric(
-                        GoalMetricConfigFactory.create(GoalMetricConfigType.ACTION)
-                    ),
+                    # "goal_accuracy": GoalMetric(
+                    #     GoalMetricConfigFactory.create(GoalMetricConfigType.BELIEF)
+                    # ),
+                    # "action_accuracy": GoalMetric(
+                    #     GoalMetricConfigFactory.create(GoalMetricConfigType.ACTION)
+                    # ),
                     "intent_accuracy": IntentAccuracyMetric(),
-                    "requested_slots": RequestedSlotsMetric(),
+                    # "requested_slots": RequestedSlotsMetric(),
                 }
             )
         if action:
