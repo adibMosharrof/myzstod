@@ -9,9 +9,11 @@ import numpy as np
 from predictions_logger import PredictionsLoggerBase
 from my_enums import SimpleTodConstants
 import dstc_utils
+from torchmetrics import Metric
 
 
-class TodMetricsBase(ABC):
+# class TodMetricsBase(ABC):
+class TodMetricsBase(Metric):
     """Base class for all TOD metrics."""
 
     def __init__(
@@ -19,7 +21,9 @@ class TodMetricsBase(ABC):
         score: bool = 0.0,
         is_cached=False,
         prediction_logger: PredictionsLoggerBase = None,
+        full_state_update: bool = False,
     ):
+        super().__init__(full_state_update=full_state_update)
         self.score = score
         self.is_cached = is_cached
         self.wrong_preds = {}
@@ -73,7 +77,7 @@ class TodMetricsBase(ABC):
 
         # return section_txts.split(separator)
 
-    def add_batch(self, predictions: list[str], references: list[str]) -> None:
+    def update(self, predictions: list[str], references: list[str]) -> None:
         if not len(predictions):
             raise ValueError("You must provide at least one prediction.")
         if not len(references):
@@ -81,10 +85,10 @@ class TodMetricsBase(ABC):
         if not len(predictions) == len(references):
             raise ValueError("Predictions and references must have the same length")
         self.is_cached = False
-        return self._add_batch(predictions, references)
+        return self._update(predictions, references)
 
     @abc.abstractmethod
-    def _add_batch(self, predictions: list[str], references: list[str]) -> None:
+    def _update(self, predictions: list[str], references: list[str]) -> None:
         pass
 
     def compute(self) -> float:
@@ -123,7 +127,7 @@ class MetricCollection:
 
     def add_batch(self, predictions: list[str], references: list[str]) -> None:
         for m in self.metrics.values():
-            m.add_batch(predictions, references)
+            m.update(predictions, references)
 
     def compute(self) -> float:
         return [m.compute() for m in self.metrics.values()]
