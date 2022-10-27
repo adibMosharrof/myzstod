@@ -15,15 +15,16 @@ from torchmetrics import Metric
 # class TodMetricsBase(ABC):
 class TodMetricsBase(Metric):
     """Base class for all TOD metrics."""
+    full_state_update = False
 
     def __init__(
         self,
         score: bool = 0.0,
         is_cached=False,
         prediction_logger: PredictionsLoggerBase = None,
-        full_state_update: bool = False,
     ):
-        super().__init__(full_state_update=full_state_update)
+        super().__init__()
+        # super().full_state_update = full_state_update
         self.score = score
         self.is_cached = is_cached
         self.wrong_preds = {}

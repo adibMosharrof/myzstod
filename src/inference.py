@@ -11,7 +11,9 @@ from torch.utils.data import DataLoader
 import dstc_utils
 from metrics.intent_accuracy_metric import IntentAccuracyMetric
 from metrics.response_metrics import ResponseMetric
-from metrics.tod_metrics_base import MetricCollection
+
+# from metrics.tod_metrics_base import MetricCollection
+from torchmetrics import MetricCollection
 from metrics.goal_metric import GoalMetric, GoalMetricConfigFactory
 from metrics.requested_slots_metric import RequestedSlotsMetric
 from metrics.dstc_metrics import InformMetric, SuccessMetric, CombinedMetric
@@ -55,10 +57,10 @@ class Inference:
                 )
                 pred_text_no_pad = [self._remove_padding(text) for text in pred_text]
                 if not self.cfg.is_multi_task:
-                    self.tod_metrics.add_batch(
+                    self.tod_metrics.update(
                         references=batch.targets_text, predictions=pred_text_no_pad
                     )
-                    self.combined_metrics.add_batch(
+                    self.combined_metrics.update(
                         references=batch.targets_text, predictions=pred_text_no_pad
                     )
                 inf_records.add(
@@ -80,15 +82,18 @@ class Inference:
             )
             if self.cfg.is_multi_task:
                 preds, refs = inf_records.get_data_for_multitask()
-                self.tod_metrics.add_batch(references=refs, predictions=preds)
-                self.combined_metrics.add_batch(references=refs, predictions=preds)
+                self.tod_metrics.update(references=refs, predictions=preds)
+                self.combined_metrics.update(references=refs, predictions=preds)
             headers = ["dialog_id", "turn_id", "context", "target", "prediction"]
             utils.write_csv(headers, test_csv_out_data, text_csv_out_path)
             self.cfg.logger.info(f"Testing {domain_setting}")
             self._print_metrics()
             self.cfg.logger.info(str(self.cfg.out_dir))
-            self.tod_metrics.visualize(self.cfg.predictions_log_dir)
-            
+            # self.tod_metrics.visualize(self.cfg.predictions_log_dir)
+            [
+                self.tod_metrics[m].visualize(Path(self.cfg.predictions_log_dir))
+                for m in self.tod_metrics
+            ]
 
     def run(self):
         print("begin inference")
@@ -121,7 +126,14 @@ class Inference:
         return gen
 
     def _print_metrics(self):
-        all_metric_str = "\n".join(map(str, [self.tod_metrics, self.combined_metrics]))
+        tod_metrics_str = [str(self.tod_metrics[m]) for m in self.tod_metrics]
+        combined_metrics_str = [
+            str(self.combined_metrics[m]) for m in self.combined_metrics
+        ]
+        all_metric_str = "\n".join(
+            np.concatenate([tod_metrics_str, combined_metrics_str])
+        )
+        # tod_metric_
         metric_strs = all_metric_str.split("\n")
         cols = []
         header_sep = []
@@ -138,20 +150,22 @@ class Inference:
         self.cfg.logger.info(f"|{'|'.join(values)}|")
 
     def _set_metrics(self):
-        dst, action, response = self.cfg.multi_tasks
+        dst, action, response = (
+            self.cfg.multi_tasks if self.cfg.is_multi_task else [1, 1, 1]
+        )
         tod_metrics = {}
         combined_metrics = {}
         if dst:
             tod_metrics.update(
                 {
-                    # "goal_accuracy": GoalMetric(
-                    #     GoalMetricConfigFactory.create(GoalMetricConfigType.BELIEF)
-                    # ),
-                    # "action_accuracy": GoalMetric(
-                    #     GoalMetricConfigFactory.create(GoalMetricConfigType.ACTION)
-                    # ),
+                    "goal_accuracy": GoalMetric(
+                        GoalMetricConfigFactory.create(GoalMetricConfigType.BELIEF)
+                    ),
+                    "action_accuracy": GoalMetric(
+                        GoalMetricConfigFactory.create(GoalMetricConfigType.ACTION)
+                    ),
                     "intent_accuracy": IntentAccuracyMetric(),
-                    # "requested_slots": RequestedSlotsMetric(),
+                    "requested_slots": RequestedSlotsMetric(),
                 }
             )
         if action:
