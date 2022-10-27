@@ -182,3 +182,8 @@ class ContrastiveConstrants(str, Enum):
 class ContextType(str, Enum):
     SHORT_REPR = "short_repr"
     DEFAULT = "default"
+
+
+class ResponseMetricType(str, Enum):
+    BLEU = "bleu"
+    ROUGE = "rouge"

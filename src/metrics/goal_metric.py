@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from typing import Union
-
+import torch
 import numpy as np
 from metrics.tod_metrics_base import TodMetricsBase
 from my_enums import GoalMetricConfigType, SpecialTokens
@@ -64,8 +64,10 @@ class GoalMetric(TodMetricsBase):
         self.wrong_preds = {}
         self.config = config
         self.prediction_logger = config.prediction_logger
+        self.add_state("joint_accuracies", [], dist_reduce_fx="cat")
+        self.add_state("all_accuracies", [], dist_reduce_fx="cat")
 
-    def _add_batch(self, turn_predictions: list[str], references: list[str]) -> None:
+    def _update(self, turn_predictions: list[str], references: list[str]) -> None:
         for ref, pred in zip(references, turn_predictions):
             multiple_values = (
                 True if self.config.tod_class == SimpleTodBelief else False
@@ -105,7 +107,9 @@ class GoalMetric(TodMetricsBase):
                     turn_predictions.append(0)
                     self._log_prediction(ref=t, is_correct=False)
                     any_wrong_preds = True
-            self.joint_accuracies.append(0 if any_wrong_preds else 1)
+            self.joint_accuracies.append(
+                torch.tensor(0) if any_wrong_preds else torch.tensor(1)
+            )
             self.all_accuracies.append(np.mean(turn_predictions))
 
     def _compute(self) -> float:

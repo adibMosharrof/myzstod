@@ -12,10 +12,11 @@ from dstc_dataclasses import DstcRequestedSlot
 class SuccessMetric(TodMetricsBase):
     def __init__(self) -> None:
         super().__init__()
-        self.all_success = []
+        # self.all_success = []
         self.prediction_logger = PredictionLoggerFactory.create(TodMetricsEnum.SUCCESS)
+        self.add_state("all_success", [], dist_reduce_fx="cat")
 
-    def _add_batch(self, turn_predictions: list[str], references: list[str]) -> None:
+    def _update(self, turn_predictions: list[str], references: list[str]) -> None:
         for ref, pred in zip(references, turn_predictions):
             requested_slots_txt = self._extract_section_and_split_items_from_text(
                 ref,
@@ -44,18 +45,18 @@ class SuccessMetric(TodMetricsBase):
             )
             pred_items = [SimpleTodAction.from_string(t) for t in pred_items_txt]
 
-            batch_success = []
+            # batch_success = []
             for t in target_items:
                 if t in pred_items:
-                    batch_success.append(1)
+                    self.all_success.append(1)
                     self._log_prediction(ref=t, is_correct=True)
                 else:
                     self._add_wrong_pred(t)
-                    batch_success.append(0)
+                    self.all_success.append(0)
                     self._log_prediction(ref=t, is_correct=False)
-            if not len(batch_success):
-                continue
-            self.all_success.append(np.mean(batch_success))
+            # if not len(batch_success):
+            #     continue
+            # self.all_success.append(np.mean(batch_success))
 
     def _compute(self) -> float:
         return np.mean(self.all_success)
@@ -68,8 +69,9 @@ class SuccessMetric(TodMetricsBase):
 class InformMetric(TodMetricsBase):
     def __init__(self) -> None:
         super().__init__()
-        self.all_inform = []
+        # self.all_inform = []
         self.prediction_logger = PredictionLoggerFactory.create(TodMetricsEnum.INFORM)
+        self.add_state("all_inform", [], dist_reduce_fx="cat")
 
     def _check(self, target: SimpleTodAction, preds: list[SimpleTodAction]) -> bool:
         for p in preds:
@@ -77,7 +79,7 @@ class InformMetric(TodMetricsBase):
                 return True
         return False
 
-    def _add_batch(self, turn_predictions: list[str], references: list[str]) -> None:
+    def _update(self, turn_predictions: list[str], references: list[str]) -> None:
         for ref, pred in zip(references, turn_predictions):
             target_items = self._extract_section_and_split_items_from_text(
                 ref,
@@ -93,20 +95,20 @@ class InformMetric(TodMetricsBase):
             )
             target_actions = [SimpleTodAction.from_string(t) for t in target_items]
             pred_actions = [SimpleTodAction.from_string(p) for p in pred_items]
-            batch_inform = []
+            # batch_inform = []
             for t in target_actions:
                 if not t.is_inform():
                     continue
                 # if t in pred_actions:
                 if self._check(t, pred_actions):
-                    batch_inform.append(1)
+                    self.all_inform.append(1)
                     self._log_prediction(ref=t, is_correct=True)
                 else:
-                    batch_inform.append(0)
+                    self.all_inform.append(0)
                     self._log_prediction(ref=t, is_correct=False)
-            if not len(batch_inform):
-                continue
-            self.all_inform.append(np.mean(batch_inform))
+            # if not len(batch_inform):
+            #     continue
+            # self.all_inform.append(np.mean(batch_inform))
 
     def _compute(self) -> float:
         return np.mean(self.all_inform)
@@ -128,7 +130,7 @@ class CombinedMetric(TodMetricsBase):
         self.success = success
         self.response_bleu = response_bleu
 
-    def _add_batch(self, turn_predictions: list[str], references: list[str]) -> None:
+    def _update(self, turn_predictions: list[str], references: list[str]) -> None:
         return
 
     def _compute(self) -> float:

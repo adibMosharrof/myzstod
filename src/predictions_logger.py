@@ -126,7 +126,7 @@ class PredictionsLoggerBase(abc.ABC):
         plt.style.use("ggplot")
         sns.set(style="darkgrid")
 
-        plt.figure(figsize=(10, 15), dpi=200)
+        fig = plt.figure(figsize=(10, 15), dpi=200)
         data.proportions.plot(
             kind="barh",
             stacked=True,
