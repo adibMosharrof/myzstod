@@ -11,4 +11,4 @@
 #module load ccs/Miniconda3
 source ~/miniconda3/etc/profile.d/conda.sh
 conda activate ./envs
-time python src/contrastive.py --config-name contrastive 
+time python src/contrastive.py --config-name lcc_contrastive 
