@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 
 import torch
-from dstc_dataclasses import DstcRequestedSlot, DstcSchema
+from dstc_dataclasses import DstcRequestedSlot, DstcSchema, DstcServiceCall
 
 from my_enums import ContextType, DstcSystemActions, SimpleTodConstants, SpecialTokens
 import dstc_utils
@@ -72,6 +72,8 @@ class SimpleTodAction:
         return self(domain, action_type, slot_name, values)
 
     def __eq__(self, other: "SimpleTodAction") -> bool:
+        if isinstance(other, DstcRequestedSlot):
+            return self.domain == other.domain and self.slot_name == other.slot_name
         return (
             self.domain == other.domain
             and self.action_type == other.action_type
@@ -110,6 +112,7 @@ class SimpleTodContext:
     current_user_utterance: str = None
     should_add_sys_actions: bool = None
     prev_tod_turn: Optional["SimpleTodTurn"] = None
+    service_results: Optional[list[dict[str, str]]] = None
 
     def __init__(self, max_length: int = 10):
         self.user_utterances = deque(maxlen=max_length)
@@ -123,10 +126,41 @@ class SimpleTodContext:
             [
                 SpecialTokens.begin_context,
                 self.prev_tod_turn.target.get_dst() if self.prev_tod_turn else "",
+                self._get_service_results(),
+                self._get_sys_actions(),
+                self._get_last_user_utterance(),
+                SpecialTokens.end_context,
+            ]
+        )
+
+    def _get_service_results(self) -> str:
+        out = ""
+        if self.service_results:
+            for service_result in self.service_results[:2]:
+                out += "".join(
+                    [
+                        SpecialTokens.begin_service_results,
+                        " ".join([" ".join([k, v]) for k, v in service_result.items()]),
+                        SpecialTokens.end_service_results,
+                    ]
+                )
+        return out
+
+    def _get_sys_actions(self) -> str:
+        if not self.should_add_sys_actions:
+            return ""
+        return "".join(
+            [
                 SpecialTokens.begin_last_user_utterance,
                 self.current_user_utterance,
                 SpecialTokens.end_last_user_utterance,
-                SpecialTokens.end_context,
+            ]
+        )
+
+    def _get_last_user_utterance(self) -> str:
+        return "".join(
+            [
+                SpecialTokens.begin_last_user_utterance,
             ]
         )
 
@@ -140,18 +174,10 @@ class SimpleTodContext:
             if system:
                 out += SpecialTokens.system + system
 
-        out += (
-            SpecialTokens.begin_last_user_utterance
-            + self.current_user_utterance
-            + SpecialTokens.end_last_user_utterance
-        )
-        if self.should_add_sys_actions:
-            out += "".join(
-                [
-                    SpecialTokens.sys_actions,
-                    " ".join(DstcSystemActions.list()),
-                ]
-            )
+        out += self._get_service_results()
+
+        out += self._get_sys_actions()
+        out += self._get_last_user_utterance()
         out += SpecialTokens.end_context
         return out
 
@@ -273,7 +299,7 @@ class SimpleTodTurn:
             context_str = self.context.get_short_repr()
         elif context_type == ContextType.DEFAULT:
             context_str = str(self.context)
-            
+
         context_str += self.prompt_token if self.prompt_token else ""
         if self.schema_str:
             return [

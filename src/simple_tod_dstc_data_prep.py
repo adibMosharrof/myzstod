@@ -52,8 +52,7 @@ class SimpleTODDSTCDataPrep:
     ):
         if not prev_tod_turn:
             context = SimpleTodContext(max_length=self.cfg.num_turns)
-            if self.cfg.should_add_sys_actions:
-                context.should_add_sys_actions = True
+            context.should_add_sys_actions = self.cfg.should_add_sys_actions
         else:
             context = copy.deepcopy(prev_tod_turn.context)
             context.system_utterances.append(
@@ -72,6 +71,12 @@ class SimpleTODDSTCDataPrep:
             if self.cfg.delexicalize:
                 utterance = self._delexicalize_utterance(system_turn, schemas)
             context.next_system_utterance = utterance
+            if self.cfg.should_add_service_results:
+                if len(system_turn.frames) > 1:
+                    raise ValueError("More than one frame in system turn")
+                for frame in system_turn.frames:
+                    context.service_results = frame.service_results
+                    # context.service_call = frame.service_call
         return context
 
     def _prepare_dst(self, user_turn: DstcTurn) -> List[SimpleTodBelief]:
@@ -118,19 +123,6 @@ class SimpleTODDSTCDataPrep:
                 SimpleTodDst(beliefs, active_intent, requested_slots, actions=actions)
             )
         return dsts
-
-    def _create_user_action(
-        self, actions: list[SimpleTodAction], frames: List[DstcFrame]
-    ):
-        for frame in frames:
-            for action in frame.actions:
-                actions.append(
-                    SimpleTodAction(
-                        frame.short_service,
-                        action.act,
-                        SimpleTodConstants.ACTION_VALUE_SEPARATOR.join(action.values),
-                    )
-                )
 
     def _create_system_action(
         self, actions: list[SimpleTodAction], frames: List[DstcFrame]

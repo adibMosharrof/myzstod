@@ -8,6 +8,12 @@ from my_enums import Speaker, SpecialTokens, SimpleTodConstants
 
 
 @dataclass
+class DstcServiceCall:
+    method: str
+    parameters: Dict[str, str]
+
+
+@dataclass
 class DstcState:
     active_intent: str
     slot_values: Dict[str, list[str]]
@@ -20,8 +26,6 @@ class DstcAction:
     canonical_values: List[str]
     slot: str
     values: List[str]
-    service_call: Optional[any] = None
-    service_results: Optional[any] = None
 
 
 @dataclass
@@ -30,6 +34,8 @@ class DstcFrame:
     slots: List[any]
     service: str
     state: Optional[DstcState] = None
+    service_call: Optional[DstcServiceCall] = None
+    service_results: Optional[list[Dict[str, str]]] = None
 
     def __init__(
         self,
@@ -37,12 +43,16 @@ class DstcFrame:
         slots: List[any],
         service: str,
         state: Optional[DstcState] = None,
+        service_call: Optional[DstcServiceCall] = None,
+        service_results: Optional[list[Dict[str, str]]] = None,
     ):
         self.actions = actions
         self.slots = slots
         self.state = state
         self.short_service = dstc_utils.get_dstc_service_name(service)
         self.service = service
+        self.service_call = service_call
+        self.service_results = service_results
 
 
 @dataclass

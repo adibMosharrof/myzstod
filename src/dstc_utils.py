@@ -55,6 +55,8 @@ def get_csv_data_path(
                 str(cfg.should_add_sys_actions),
                 "turns",
                 str(cfg.num_turns),
+                "service_results",
+                str(cfg.should_add_service_results),
                 "dialogs",
                 str(num_dialogs),
                 "delexicalize",

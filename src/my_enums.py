@@ -120,6 +120,9 @@ class SpecialTokens(str, Enum):
     end_schema_slot = "<|endschemaslot|>"
     schema_slot_values = "<|schemaslotvalues|>"
 
+    begin_service_results = "<|beginserviceresults|>"
+    end_service_results = "<|endserviceresults|>"
+
     @classmethod
     def list(cls):
         return [c.value for c in cls]

@@ -56,6 +56,7 @@ class TrainerConfig:
         contrast_with: str = None,
         contrastive_max_token_len: int = 150,
         context_type: str = ContextType.SHORT_REPR,
+        should_add_service_results: bool = False,
     ) -> None:
         self.project_root = Path(project_root)
         self.data_prep_out_root = Path(data_prep_out_root)
@@ -85,7 +86,9 @@ class TrainerConfig:
         self.test_prompt_max_len = test_prompt_max_len
         self.eval_accumulation_steps = eval_accumulation_steps
         self.is_multi_task = is_multi_task
-        self.multi_tasks = multi_tasks or [1, 1, 1]
+        self.multi_tasks = (
+            multi_tasks if self.is_multi_task and multi_tasks else [1, 1, 1]
+        )
         self.tokenizer = dstc_utils.get_tokenizer(model_name)
         self.should_add_schema = should_add_schema
         self.should_add_sys_actions = should_add_sys_actions
@@ -96,6 +99,7 @@ class TrainerConfig:
         self.contrast_with = contrast_with
         self.contrastive_max_token_len = contrastive_max_token_len
         self.context_type = context_type
+        self.should_add_service_results = should_add_service_results
 
 
 class InferenceConfig:
@@ -110,7 +114,7 @@ class InferenceConfig:
         project_root: str = "/mounts/u-amo-d0/grad/adibm/projects/generative_tod/",
         data_prep_out_root: str = "processed_data/simple_tod",
         predictions_log_dir: str = "predictions_logs",
-        num_test_dialogs: int = 1,
+        num_test_dialogs: int = 17,
         delexicalize: bool = False,
         model: str = "outputs/2022-07-26/22-28-09/results/train/checkpoint-7067",
         model_name: str = "gpt2",
@@ -127,6 +131,7 @@ class InferenceConfig:
         should_add_user_actions: bool = False,
         should_add_sys_actions: bool = False,
         context_type: str = ContextType.SHORT_REPR,
+        should_add_service_results: bool = False,
     ) -> None:
         self.num_workers = num_workers
         self.data_split_percent = data_split_percent or [1, 1, 1]
@@ -150,7 +155,9 @@ class InferenceConfig:
         self.predictions_log_dir = Path(predictions_log_dir)
         self.predictions_log_dir.mkdir(parents=True, exist_ok=True)
         self.is_multi_task = is_multi_task
-        self.multi_tasks = multi_tasks or [1, 1, 1]
+        self.multi_tasks = (
+            multi_tasks if self.is_multi_task and multi_tasks else [1, 1, 1]
+        )
         self.should_add_schema = should_add_schema
         self.should_add_sys_actions = should_add_sys_actions
         self.should_add_user_actions = should_add_user_actions
@@ -160,6 +167,7 @@ class InferenceConfig:
         )
         self.padding_regexp = re.compile(re.escape(SpecialTokens.pad_token))
         self.context_type = context_type
+        self.should_add_service_results = should_add_service_results
         # self.contrastive_model = contrastive_model
 
     def _get_tokenizer(self, model_path_str: str):
@@ -210,6 +218,7 @@ class InferenceConfig:
             should_add_sys_actions=trainer_config.should_add_sys_actions,
             should_add_user_actions=trainer_config.should_add_user_actions,
             context_type=trainer_config.context_type,
+            should_add_service_results=trainer_config.should_add_service_results,
             # contrastive_model=trainer_config.contrastive_model,
         )
 
@@ -343,6 +352,7 @@ class DataModuleConfig:
         contrast_with: str = None,
         contrastive_max_token_len: int = 150,
         context_type: str = ContextType.SHORT_REPR,
+        should_add_service_results: bool = False,
     ):
         self.num_workers = num_workers
         self.preprocessing_model_name = preprocessing_model_name
@@ -363,7 +373,9 @@ class DataModuleConfig:
         self.overwrite = overwrite or [False] * len(Steps)
         self.num_turns = num_turns
         self.is_multi_task = is_multi_task
-        self.multi_tasks = multi_tasks or [1, 1, 1]
+        self.multi_tasks = (
+            multi_tasks if self.is_multi_task and multi_tasks else [1, 1, 1]
+        )
         self.should_add_schema = should_add_schema
         self.should_add_sys_actions = should_add_sys_actions
         self.should_add_user_actions = should_add_user_actions
@@ -375,6 +387,7 @@ class DataModuleConfig:
         self.contrast_with = contrast_with
         self.contrastive_max_token_len = contrastive_max_token_len
         self.context_type = context_type
+        self.should_add_service_results = should_add_service_results
 
     @classmethod
     def from_trainer_config(self, trainer_config: TrainerConfig) -> "DataModuleConfig":
@@ -403,6 +416,7 @@ class DataModuleConfig:
             contrast_with=trainer_config.contrast_with,
             contrastive_max_token_len=trainer_config.contrastive_max_token_len,
             context_type=trainer_config.context_type,
+            should_add_service_results=trainer_config.should_add_service_results,
         )
 
     @classmethod
@@ -434,6 +448,7 @@ class DataModuleConfig:
             should_add_user_actions=inf_config.should_add_user_actions,
             should_add_sys_actions=inf_config.should_add_sys_actions,
             context_type=inf_config.context_type,
+            should_add_service_results=inf_config.should_add_service_results,
         )
 
     @classmethod
@@ -496,6 +511,7 @@ class DataPrepConfig:
         should_add_sys_actions: bool = False,
         should_add_user_actions: bool = False,
         context_type: str = ContextType.SHORT_REPR,
+        should_add_service_results: bool = False,
     ):
         self.project_root = Path(project_root)
         self.data_root = self.project_root / data_root
@@ -508,11 +524,14 @@ class DataPrepConfig:
         self.domains = DstcDomains[domain_setting.upper()].value
         self.num_turns = num_turns
         self.is_multi_task = is_multi_task
-        self.multi_tasks = multi_tasks or [1, 1, 1]
+        self.multi_tasks = (
+            multi_tasks if self.is_multi_task and multi_tasks else [1, 1, 1]
+        )
         self.should_add_schema = should_add_schema
         self.should_add_sys_actions = should_add_sys_actions
         self.should_add_user_actions = should_add_user_actions
         self.context_type = context_type
+        self.should_add_service_results = should_add_service_results
 
     @classmethod
     def from_dm_config(self, dm_config: DataModuleConfig) -> "DataPrepConfig":
@@ -531,6 +550,7 @@ class DataPrepConfig:
             should_add_user_actions=dm_config.should_add_user_actions,
             domain_setting=dm_config.domain_setting,
             context_type=dm_config.context_type,
+            should_add_service_results=dm_config.should_add_service_results,
         )
 
 

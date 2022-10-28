@@ -35,7 +35,6 @@ class Inference:
     ):
         self.cfg = cfg
         self._set_metrics()
-        self.prompt_token_map = {}
 
     def test(self):
         self.cfg.logger.info(self.cfg.out_dir)
