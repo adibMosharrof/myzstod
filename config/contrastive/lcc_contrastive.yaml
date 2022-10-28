@@ -1,0 +1,19 @@
+num_dialogs:
+  - 20
+  - 10
+  - 17
+data_split_percent:
+  - 1
+  - 1
+  - 1
+train_batch_size: 70
+train_epochs: 4
+contrast_with: user_act
+single_action_neg_samples: 10
+raw_data_root: data/dstc8-schema-guided-dialogue/
+project_root: /project/msi290_uksr/generative_tod
+# model: outputs/2022-10-18/11-37-13/results
+# overwrite:
+#   - 1
+#   - 1
+#   - 1
