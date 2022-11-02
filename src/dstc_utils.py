@@ -3,7 +3,7 @@ import re
 from pathlib import Path
 from typing import List, Optional, Union, Dict
 from transformers import AutoTokenizer, PreTrainedTokenizerFast
-
+import os
 from tokenizers.processors import TemplateProcessing
 from dstc_dataclasses import DstcSchema
 from hydra_configs import DataModuleConfig, DataPrepConfig
@@ -17,8 +17,10 @@ def get_dstc_service_name(service_name: str) -> str:
 
 
 def get_dialog_file_paths(data_root, step):
-    pattern = "dialogues_*"
-    file_paths = glob.glob(str(data_root / step / pattern))
+    pattern = "dialogues"
+    # file_paths = glob.glob(str(data_root / step / pattern))
+    files = sorted(os.listdir(data_root / step))
+    file_paths = [data_root/step/f for f in files if pattern in f]
     return file_paths
 
 
