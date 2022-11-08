@@ -6,9 +6,11 @@ data_split_percent:
   - 1
   - 1
   - 1
-train_batch_size: 70
+train_batch_size: 200
 train_epochs: 4
-contrast_with: user_act
+contrast_with: 
+  - user_act
+  - nlg
 single_action_neg_samples: 10
 raw_data_root: data/dstc8-schema-guided-dialogue/
 project_root: /project/msi290_uksr/generative_tod
@@ -17,3 +19,6 @@ project_root: /project/msi290_uksr/generative_tod
 #   - 1
 #   - 1
 #   - 1
+contrastive_model_name: sentence-transformers/stsb-roberta-base-v2
+tokenizer_name: gpt2
+should_add_dsts: false

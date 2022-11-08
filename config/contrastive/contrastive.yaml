@@ -1,17 +1,24 @@
 num_dialogs:
-  - 10
+  - 20
+  - 5
   - 1
-  - 3
 data_split_percent:
   - 1
   - 1
   - 1
 train_batch_size: 100
-train_epochs: 3
-contrast_with: user_act
+train_epochs: 4
+contrast_with: 
+  - user_act
+  # - nlg
 single_action_neg_samples: 10
 # model: outputs/2022-10-18/11-37-13/results
 # overwrite:
 #   - 1
 #   - 1
 #   - 1
+# model_name: sentence-transformers/msmarco-roberta-base-v2
+# model_name: all-mpnet-base-v2
+contrastive_model_name: sentence-transformers/stsb-roberta-base-v2
+tokenizer_name: gpt2
+should_add_dsts: false

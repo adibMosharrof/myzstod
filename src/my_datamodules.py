@@ -34,7 +34,6 @@ class TodDataModule(BaseDataModule):
         attention_masks = []
         labels = []
         targets_text = []
-        contrast_tokens = []
         for item in batch:
             context_tokens = self.train_tokenizer(item.context)[0]
             target_tokens = self.train_tokenizer(item.target)[0]
@@ -70,10 +69,6 @@ class TodDataModule(BaseDataModule):
                         torch.full([unused_len], self._huggingface_ignore_label_id),
                     ]
                 )
-                if self.cfg.contrast_with:
-                    contrast_tokens.append(
-                        self._get_contrast_tokens(item.target, self.cfg.contrast_with)
-                    )
             attention_mask = torch.cat(
                 [
                     torch.full([context_len + schema_len + target_len], 1),
@@ -90,8 +85,6 @@ class TodDataModule(BaseDataModule):
             "attention_mask": torch.stack(attention_masks),
             "labels": torch.stack(labels),
         }
-        if not is_pretrain and self.cfg.contrast_with:
-            out["contrastive_tokens"] = torch.stack(contrast_tokens)
 
         return out
 

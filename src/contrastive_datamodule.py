@@ -1,5 +1,6 @@
 import numpy as np
 from sentence_transformers import InputExample
+import torch
 from base_datamodule import BaseDataModule
 
 from hydra_configs import DataModuleConfig
@@ -18,6 +19,7 @@ import random
 class ContrastiveDataModule(BaseDataModule):
     steps = Steps.list()
     _huggingface_ignore_label_id = -100
+    contrastive_tokenizer = None
 
     def __init__(
         self,
@@ -37,14 +39,27 @@ class ContrastiveDataModule(BaseDataModule):
             sys_act_txt = dstc_utils.get_text_in_between(
                 item.target, SpecialTokens.begin_action, SpecialTokens.end_action, ""
             )
-            text_data = dstc_utils.get_text_in_between(
-                item.target,
-                start_token,
-                end_token,
-                default_value="",
-                multiple_values=True,
+            text_data = SimpleTodConstants.ITEM_SEPARATOR.join(
+                dstc_utils.get_text_in_between(
+                    item.target,
+                    start_token,
+                    end_token,
+                    default_value="",
+                    multiple_values=True,
+                )
             )
-            text_data = SimpleTodConstants.ITEM_SEPARATOR.join(text_data)
+            if self.cfg.should_add_dsts:
+                dsts_txt = "".join(
+                    dstc_utils.get_text_in_between(
+                        item.target,
+                        start_token,
+                        end_token,
+                        default_value="",
+                        multiple_values=True,
+                    )
+                )
+                text_data += dsts_txt
+
             contrastive_data.append(
                 InputExample(texts=[sys_act_txt, text_data], label=1.0)
             )
@@ -52,6 +67,8 @@ class ContrastiveDataModule(BaseDataModule):
             self.get_contrastive_negative_examples(
                 contrastive_data, sys_act_txt, act_splits, swap_neg_num
             )
+        if len(contrastive_data) == 0:
+            raise ValueError("No contrastive data found")
         return contrastive_data
 
     def get_contrastive_negative_examples(
@@ -113,4 +130,12 @@ class ContrastiveDataModule(BaseDataModule):
 
         contrastive_data.append(
             InputExample(texts=[str(action), sys_act_txt], label=0.0)
+        )
+
+    def contrastive_tokenize(self, text: str):
+        return self.contrastive_tokenizer(
+            text,
+            return_tensors="pt",
+            padding="max_length",
+            max_length=self.cfg.contrastive_max_token_len,
         )

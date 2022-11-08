@@ -30,7 +30,19 @@ class SimpleTODTrainer:
         model.resize_token_embeddings(len(self.cfg.tokenizer))
         model = model.cuda()
 
-        dm = TodDataModule(DataModuleConfig.from_trainer_config(self.cfg))
+        contrastive_tokenizer = None
+        if self.cfg.contrastive_model:
+            self.contrastive_helper = ContrastiveTrainerHelper(
+                self.cfg.project_root / self.cfg.contrastive_model,
+                self.cfg.tokenizer,
+                self.cfg.contrastive_max_token_len,
+            )
+            # self.contrastive_helper.max_token_len = self.cfg.max_token_len
+            contrastive_tokenizer = self.contrastive_helper.contrastive_model.tokenizer
+
+        dm = TodDataModule(
+            DataModuleConfig.from_trainer_config(self.cfg, contrastive_tokenizer)
+        )
         self.train(model, dm)
         print("Training done")
         print("-" * 80)
@@ -54,9 +66,7 @@ class SimpleTODTrainer:
                 eval_dataset=dm.cfg.datasets["dev"],
                 data_collator=dm.training_collator,
             )
-            trainer.contrastive_helper = ContrastiveTrainerHelper(
-                self.cfg.project_root / self.cfg.contrastive_model, self.cfg.tokenizer
-            )
+            trainer.contrastive_helper = self.contrastive_helper
             return trainer
         trainer = Trainer(
             model=model_train,

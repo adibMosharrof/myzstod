@@ -71,15 +71,15 @@ class BaseDataModule:
 
     def contrastive_tokenizer(self, item):
         try:
-            tokens = self.cfg.tokenizer.encode(
+            tokens = self.cfg.contrastive_tokenizer(
                 item,
                 return_tensors="pt",
                 padding="max_length",
-                max_length=self.cfg.contrastive_max_token_len,
+                max_length=self.cfg.max_token_len,
             )
         except TypeError as e:
-            tokens = torch.empty([1, 0], dtype=torch.int64)
-        return tokens[0]
+            raise ("Contrastive tokenizer failed")
+        return tokens
 
     def get_training_labels(self, context_len, unused_len, target_tokens):
         return torch.cat(

@@ -1,9 +1,8 @@
-from itertools import zip_longest
 from typing import Tuple
-from matplotlib.cbook import is_math_text
-from sentence_transformers import SentenceTransformer, losses, evaluation, InputExample
+from dataclasses import dataclass
+from sentence_transformers import SentenceTransformer, losses
 from transformers import AutoTokenizer, Trainer
-
+from torch.nn.utils.rnn import pad_sequence
 from my_enums import ContrastiveConstrants, SpecialTokens
 import dstc_utils
 import torch
@@ -14,23 +13,25 @@ class ContrastiveTrainerHelper:
     contrastive_model: SentenceTransformer
     token_map: dict[str, int]
     loss_model: None
+    max_token_len: int = None
 
-    def __init__(self, model_path, tokenizer):
-        self.contrastive_model = SentenceTransformer(model_path)
+    def __init__(self, model_path, tokenizer, max_token_len):
+        self.contrastive_model = SentenceTransformer(model_path).cuda()
         self.tod_tokenizer = tokenizer
         special_tokens = [
-            # SpecialTokens.begin_response,
-            # SpecialTokens.end_response,
-            # SpecialTokens.begin_user_action,
-            # SpecialTokens.end_user_action,
+            SpecialTokens.begin_response,
+            SpecialTokens.end_response,
+            SpecialTokens.begin_user_action,
+            SpecialTokens.end_user_action,
             SpecialTokens.begin_action,
             SpecialTokens.end_action,
         ]
+        self.max_token_len = max_token_len
 
         self.token_map = {}
         for token in special_tokens:
             self.token_map[token] = dstc_utils.get_token_id(tokenizer, token)
-        self.loss_model = losses.ContrastiveLoss(self.contrastive_model)
+        self.loss_model = losses.CosineSimilarityLoss(self.contrastive_model)
 
 
 class ContrastiveTrainer(Trainer):
@@ -40,37 +41,42 @@ class ContrastiveTrainer(Trainer):
         out = model(
             **dict((k, inputs[k]) for k in ["input_ids", "attention_mask", "labels"])
         )
-        c_model = self.contrastive_helper.contrastive_model
         # tok = c_model.tokenizer
         tok = self.contrastive_helper.tod_tokenizer
         preds = torch.argmax(out.logits, dim=-1)
 
-        sys_act_text = self._get_text_from_tokens(
+        # sys_act_tokens = self._get_text_from_tokens_qwe(
+        # sys_feats = self._get_sys_feats(
+        sys_feats = self._get_text_from_tokens_asd(
             preds,
             self.contrastive_helper.token_map[SpecialTokens.begin_action],
             self.contrastive_helper.token_map[SpecialTokens.end_action],
-            # SpecialTokens.begin_action,
-            # SpecialTokens.end_action,
-            # tok,
+            tok.pad_token_id,
         )
-        user_act_text = tok.batch_decode(
-            inputs["contrastive_tokens"], skip_special_tokens=True
-        )
-        c_inp = []
-        for sys, user in zip(sys_act_text, user_act_text):
-            c_inp.append(InputExample(texts=[sys, user], label=1.0))
-        features, labels = c_model.smart_batching_collate(c_inp)
 
-        contrastive_loss = self.contrastive_helper.loss_model(features, labels)
+        # user_feats = self._get_sys_feats(
+        user_feats = self._get_text_from_tokens_asd(
+            preds,
+            self.contrastive_helper.token_map[SpecialTokens.begin_user_action],
+            self.contrastive_helper.token_map[SpecialTokens.end_user_action],
+            tok.pad_token_id,
+        )
+
+        labels = torch.ones([inputs["input_ids"].shape[0]], device="cuda")
+        contrastive_loss = self.contrastive_helper.loss_model(
+            [sys_feats, user_feats], labels
+        )
         combined_loss = contrastive_loss + out.loss
         return (combined_loss, out.logits) if return_outputs else combined_loss
         # return (out.loss, out.logits) if return_outputs else out.loss
 
-    def _get_text_from_tokens(
-        self,
-        data: torch.Tensor,
-        s_id: int,
-        e_id: int,
+    def get_features(self, sys_acts, user_acts):
+        features = [[s, u] for s, u in zip(sys_acts, user_acts)]
+        labels = [1.0 for _ in range(len(features))]
+        return features, labels
+
+    def _get_sys_feats(
+        self, data: torch.Tensor, s_id: int, e_id: int, pad_id: int
     ) -> list[str]:
         input_ids = []
         for row in data:
@@ -85,70 +91,82 @@ class ContrastiveTrainer(Trainer):
                 continue
             ind = torch.arange(s_index + 1, e_index, device="cuda")
             input_ids.append(row.index_select(0, ind))
-        return input_ids
+        padded = pad_sequence(input_ids, batch_first=True, padding_value=pad_id).int()
+        fill = torch.full(
+            [padded.shape[0], self.contrastive_helper.max_token_len - padded.shape[1]],
+            pad_id,
+            device="cuda",
+            dtype=int,
+        )
+        out = torch.cat([padded, fill], dim=1)
+        mask = torch.cat(
+            [
+                torch.full_like(padded, 1, dtype=int),
+                torch.full_like(fill, 0, dtype=int),
+            ],
+            dim=1,
+        )
+        return {"input_ids": out, "attention_mask": mask}
+        # return input_ids
 
     def _get_text_from_tokens_asd(
         self,
         data: torch.Tensor,
-        start_token: SpecialTokens,
-        end_token: SpecialTokens,
-        tok: AutoTokenizer,
+        s_id: int,
+        e_id: int,
+        pad_id: int,
+    ) -> torch.Tensor:
+        # start_count = data == s_id
+        # end_count = data == e_id
+        # invalid = (start_count.sum(axis=1) - end_count.sum(axis=1)) != 0
+        # data[invalid] = pad_id
+        row_length = data.shape[1]
+        start_idx = (data == s_id).long().argmax(axis=1)
+        start_mask = (start_idx[:, None] - torch.arange(row_length, device="cuda")) >= 0
+        data[start_mask] = pad_id
+        end_idx = row_length - (data == e_id).long().argmax(axis=1)
+        end_mask = (
+            end_idx[:, None] + torch.arange(row_length, device="cuda")
+        ) >= row_length
+        data[end_mask] = pad_id
+        return self._pad_mask_data(data, pad_id)
+
+    def _pad_mask_data(self, data: torch.Tensor, pad_id: int) -> torch.Tensor:
+        input_ids = torch.full(
+            [data.shape[0], self.contrastive_helper.max_token_len],
+            pad_id,
+            device="cuda",
+        )
+        att_mask = torch.zeros_like(input_ids, dtype=int, device="cuda")
+        for i, r in enumerate(data):
+            row = r[r != pad_id]
+            input_ids[i, : len(row)] = row
+            att_mask[i, : len(row)] = 1
+        return {"input_ids": input_ids, "attention_mask": att_mask}
+
+    def _get_text_from_tokens_qwe(
+        self, data: torch.Tensor, s_id: int, e_id: int, pad_id: int
     ) -> list[str]:
-        # input_ids = []
-        # s_id = self.contrastive_helper.token_map[start_token]
-        # e_id = self.contrastive_helper.token_map[end_token]
-        # # try:
-        # s_indexes = (data == s_id).nonzero(as_tuple=True)[1]
-        # e_indexes = (data == e_id).nonzero(as_tuple=True)[1]
+        zeros = torch.full(data.shape, 0, device="cuda")
+        row_length = data.shape[1]
+        # start_idx = (data == s_id).long().argmax(axis=1)
+        start_mask = torch.where(data == s_id, data, zeros)
+        data[start_mask] = pad_id
+        end_idx = row_length - (data == e_id).long().argmax(axis=1)
+        end_mask = (
+            end_idx[:, None] + torch.arange(row_length, device="cuda")
+        ) >= row_length
+        data[end_mask] = pad_id
 
-        # # for item in data:
-        # # try:
-        # #     s_index = (data == s_id).nonzero(as_tuple=False)[0]
-        # #     e_index = (data == e_id).nonzero(as_tuple=False)[0]
-        # # except IndexError:
-        # # input_ids.append(torch.tensor([], device="cuda"))
-        # # return ""
-        # for s_index, e_index, row in zip_longest(
-        #     s_indexes, e_indexes, data
-        # ):  # need to work in this next
-        #     input_ids.append(row[s_index : e_index + 1])
-        #     if s_index is None or e_index is None or s_index > e_index:
-        #         input_ids.append(torch.tensor([], device="cuda"))
-        #         continue
-        #     ind = torch.arange(s_index, e_index, device="cuda")
-        #     input_ids.append(data.index_select(0, ind))
-        # return tok.batch_decode(input_ids)
-        # return {
-        #     "input_ids": torch.nn.utils.rnn.pad_sequence(
-        #         input_ids, batch_first=True, padding_value=tok.pad_token_id
-        #     ),
-        #     "attention_mask": torch.nn.utils.rnn.pad_sequence(
-        #         att_masks, batch_first=True, padding_value=0
-        #     ),
-        # }
-        input_ids = []
-        s_id = self.contrastive_helper.token_map[start_token]
-        e_id = self.contrastive_helper.token_map[end_token]
-        s_indexes = (data == s_id).nonzero(as_tuple=True)[1]
-        e_indexes = (data == e_id).nonzero(as_tuple=True)[1]
-
-        mask = []
-        for s_index, e_index, row in zip_longest(
-            s_indexes, e_indexes, data, fillvalue=None
-        ):
-            if s_index is None:
-                s_index = -1
-            if e_index is None:
-                e_index = 0
-
-        for s_index, e_index, row in zip_longest(s_indexes, e_indexes, data):
-            input_ids.append(row[s_index : e_index + 1])
-            if s_index is None or e_index is None or s_index > e_index:
-                input_ids.append(torch.tensor([], device="cuda"))
-                continue
-            ind = torch.arange(s_index, e_index, device="cuda")
-            input_ids.append(data.index_select(0, ind))
-        return tok.batch_decode(input_ids)
+        input_ids = torch.empty_like(data)
+        att_mask = torch.empty_like(data)
+        for i, r in enumerate(data):
+            row = r[r != pad_id]
+            input_ids[i] = torch.cat([row, torch.full([row_length - len(row)], pad_id)])
+            att_mask[i] = torch.cat(
+                [torch.full([len(row)], 1), torch.full([row_length - len(row)], 0)]
+            )
+        return {"input_ids": input_ids, "attention_mask": att_mask}
 
 
 class ContrastiveUtils:
@@ -165,3 +183,9 @@ class ContrastiveUtils:
             start_token = SpecialTokens.begin_response
             end_token = SpecialTokens.end_response
         return start_token, end_token, multiple_values
+
+
+@dataclass
+class ContrastiveTokens:
+    start_token: SpecialTokens
+    end_token: SpecialTokens

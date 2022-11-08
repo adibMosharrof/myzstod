@@ -20,7 +20,7 @@ def get_dialog_file_paths(data_root, step):
     pattern = "dialogues"
     # file_paths = glob.glob(str(data_root / step / pattern))
     files = sorted(os.listdir(data_root / step))
-    file_paths = [data_root/step/f for f in files if pattern in f]
+    file_paths = [data_root / step / f for f in files if pattern in f]
     return file_paths
 
 
@@ -69,30 +69,27 @@ def get_csv_data_path(
         )
         + ".csv"
     )
-    # / f"multi_task_{cfg.is_multi_task}_schema_{cfg.should_add_schema}_user_actions_{cfg.should_add_user_actions}_sys_actions_{cfg.should_add_sys_actions}_turns_{cfg.num_turns}_dialogs_{num_dialogs}{SimpleTodConstants.DELEXICALIZED if cfg.delexicalize else ''}_{cfg.domain_setting}.csv"    )
 
 
-def get_tokenizer(model_name: str = "gpt2") -> PreTrainedTokenizerFast:
+def get_tokenizer(
+    tokenizer_name: str = "gpt2", add_prefix_space: bool = False
+) -> PreTrainedTokenizerFast:
+    if tokenizer_name == "sentence-transformers/stsb-roberta-base-v2":
+        add_prefix_space = True
     tokenizer = AutoTokenizer.from_pretrained(
-        model_name,
+        tokenizer_name,
         pad_token=SpecialTokens.pad_token.value,
-        # bos_token=SpecialTokens.bos_token.value,
-        # eos_token=SpecialTokens.eos_token.value,
-        bos_token=SpecialTokens.begin_context.value,
+        bos_token=SpecialTokens.bos_token.value,
         eos_token=SpecialTokens.end_target.value,
         additional_special_tokens=SpecialTokens.list(),
+        add_prefix_space=add_prefix_space,
     )
-    # tokenizer._tokenizer.post_processor = TemplateProcessing(
-    #     single=f"{tokenizer.bos_token}:0 $A:0 {tokenizer.eos_token}:0",
-    #     special_tokens=[
-    #         (tokenizer.bos_token, tokenizer.bos_token_id),
-    #         (tokenizer.eos_token, tokenizer.eos_token_id),
-    #     ],
-    # )
     return tokenizer
 
 
 def get_token_id(tokenizer: AutoTokenizer, token_str: str) -> int:
+    if tokenizer.name_or_path == "sentence-transformers/stsb-roberta-base-v2":
+        return tokenizer(token_str)["input_ids"][1]
     return tokenizer(token_str)["input_ids"][0]
 
 
@@ -108,13 +105,15 @@ def get_text_in_between(
             idx1 = text.index(start_token)
             idx2 = text.index(end_token)
             res = text[idx1 + len(start_token) : idx2]
-            return res
+            # return res
+            return res.strip()
         except ValueError:
             return default_value
     try:
         if SimpleTodConstants.NEW_LINES in text:
             text = text.replace(SimpleTodConstants.NEW_LINES, "")
         items = re.findall(f"{re.escape(start_token)}(.+?){re.escape(end_token)}", text)
+        items = [item.strip() for item in items]
         if not items:
             return default_value
         return items

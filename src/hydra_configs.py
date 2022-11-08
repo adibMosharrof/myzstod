@@ -1,6 +1,5 @@
 import os
 import re
-from lib2to3.pgen2.tokenize import tokenize
 from pathlib import Path
 from typing import Dict
 
@@ -25,6 +24,7 @@ class TrainerConfig:
         data_prep_out_root: str = "processed_data/simple_tod",
         raw_data_root: str = "data/dstc8-schema-guided-dialogue/",
         model_name: str = "gpt2",
+        tokenizer_name: str = "gpt2",
         num_workers: int = 8,
         data_split_percent: list[float] = None,
         eval_batch_size: int = 6,
@@ -54,7 +54,7 @@ class TrainerConfig:
         should_add_sys_actions: bool = False,
         contrastive_model: str = None,
         contrast_with: str = None,
-        contrastive_max_token_len: int = 150,
+        contrastive_max_token_len: int = 250,
         context_type: str = ContextType.SHORT_REPR,
         should_add_service_results: bool = False,
     ) -> None:
@@ -89,7 +89,8 @@ class TrainerConfig:
         self.multi_tasks = (
             multi_tasks if self.is_multi_task and multi_tasks else [1, 1, 1]
         )
-        self.tokenizer = dstc_utils.get_tokenizer(model_name)
+        # self.tokenizer = dstc_utils.get_tokenizer(model_name)
+        self.tokenizer = dstc_utils.get_tokenizer(tokenizer_name)
         self.should_add_schema = should_add_schema
         self.should_add_sys_actions = should_add_sys_actions
         self.should_add_user_actions = should_add_user_actions
@@ -100,6 +101,7 @@ class TrainerConfig:
         self.contrastive_max_token_len = contrastive_max_token_len
         self.context_type = context_type
         self.should_add_service_results = should_add_service_results
+        self.tokenizer_name = tokenizer_name
 
 
 class InferenceConfig:
@@ -263,7 +265,8 @@ class ConstrastiveConfig:
         project_root: str = "/mounts/u-amo-d0/grad/adibm/projects/generative_tod/",
         data_prep_out_root: str = "processed_data/simple_tod",
         raw_data_root: str = "data/dstc8-schema-guided-dialogue/",
-        model_name: str = "bert-base-nli-mean-tokens",
+        contrastive_model_name: str = "sentence-transformers/stsb-roberta-base-v2",
+        tokenizer_name: str = "gpt2",
         model: str = None,
         num_workers: int = 8,
         data_split_percent: list[float] = None,
@@ -285,13 +288,14 @@ class ConstrastiveConfig:
         # should_add_user_actions: bool = False,
         should_add_sys_actions: bool = False,
         should_add_schema: bool = False,
-        contrast_with: str = ContrastiveConstrants.USER_ACT,
+        contrast_with: list[str] = None,
         single_action_neg_samples: int = 5,
+        should_add_dsts: bool = False,
     ):
         self.project_root = Path(project_root)
         self.data_prep_out_root = self.project_root / data_prep_out_root
         self.raw_data_root = Path(raw_data_root)
-        self.model_name = model_name
+        self.contrastive_model_name = contrastive_model_name
         self.model = self.project_root / model if model else None
         self.num_workers = num_workers
         self.data_split_percent = data_split_percent or [1, 1, 1]
@@ -314,11 +318,13 @@ class ConstrastiveConfig:
         self.multi_tasks = multi_tasks or [1, 1, 1]
         self.should_add_sys_actions = should_add_sys_actions
         self.should_add_schema = should_add_schema
-        self.contrast_with = contrast_with
+        self.contrast_with = contrast_with if contrast_with else [ContrastiveConstrants.USER_ACT]
         self.single_action_neg_samples = single_action_neg_samples
         self.should_add_user_actions = (
-            False if self.contrast_with == ContrastiveConstrants.NLG else True
+            True if ContrastiveConstrants.USER_ACT in self.contrast_with else False
         )
+        self.should_add_dsts = should_add_dsts
+        self.tokenizer_name = tokenizer_name
 
 
 class DataModuleConfig:
@@ -353,6 +359,8 @@ class DataModuleConfig:
         contrastive_max_token_len: int = 150,
         context_type: str = ContextType.SHORT_REPR,
         should_add_service_results: bool = False,
+        contrastive_tokenizer: AutoTokenizer = None,
+        should_add_dsts: bool = False,
     ):
         self.num_workers = num_workers
         self.preprocessing_model_name = preprocessing_model_name
@@ -388,9 +396,13 @@ class DataModuleConfig:
         self.contrastive_max_token_len = contrastive_max_token_len
         self.context_type = context_type
         self.should_add_service_results = should_add_service_results
+        self.contrastive_tokenizer = contrastive_tokenizer
+        self.should_add_dsts = should_add_dsts
 
     @classmethod
-    def from_trainer_config(self, trainer_config: TrainerConfig) -> "DataModuleConfig":
+    def from_trainer_config(
+        self, trainer_config: TrainerConfig, contrastive_tokenizer: AutoTokenizer = None
+    ) -> "DataModuleConfig":
         return self(
             num_workers=trainer_config.num_workers,
             project_root=trainer_config.project_root,
@@ -417,6 +429,7 @@ class DataModuleConfig:
             contrastive_max_token_len=trainer_config.contrastive_max_token_len,
             context_type=trainer_config.context_type,
             should_add_service_results=trainer_config.should_add_service_results,
+            contrastive_tokenizer=contrastive_tokenizer,
         )
 
     @classmethod
@@ -491,6 +504,7 @@ class DataModuleConfig:
             should_add_sys_actions=c_config.should_add_sys_actions,
             single_action_neg_samples=c_config.single_action_neg_samples,
             contrast_with=c_config.contrast_with,
+            should_add_dsts=c_config.should_add_dsts,
         )
 
 
