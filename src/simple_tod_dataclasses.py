@@ -149,18 +149,14 @@ class SimpleTodContext:
     def _get_sys_actions(self) -> str:
         if not self.should_add_sys_actions:
             return ""
-        return "".join(
-            [
-                SpecialTokens.begin_last_user_utterance,
-                self.current_user_utterance,
-                SpecialTokens.end_last_user_utterance,
-            ]
-        )
+        return "".join([SpecialTokens.sys_actions, " ".join(DstcSystemActions.list())])
 
     def _get_last_user_utterance(self) -> str:
         return "".join(
             [
                 SpecialTokens.begin_last_user_utterance,
+                self.current_user_utterance,
+                SpecialTokens.end_last_user_utterance,
             ]
         )
 
@@ -187,44 +183,45 @@ class SimpleTodDst:
     beliefs: List[SimpleTodBelief]
     active_intent: str
     requested_slots: Optional[List[DstcRequestedSlot]] = None
-    actions: List[SimpleTodAction] = None
 
     def __str__(self) -> str:
         out = SpecialTokens.begin_dst
         if self.active_intent:
-            out += SpecialTokens.begin_intent
-            out += self.active_intent
-            out += SpecialTokens.end_intent + SimpleTodConstants.NEW_LINES
-
-        if self.requested_slots:
-            out += SpecialTokens.begin_requested_slots
-            out += SimpleTodConstants.ITEM_SEPARATOR.join(
-                map(str, self.requested_slots)
-            )
-            out += SpecialTokens.end_requested_slots + SimpleTodConstants.NEW_LINES
-
-        out += SpecialTokens.begin_belief
-        out += SimpleTodConstants.ITEM_SEPARATOR.join(map(str, self.beliefs))
-        out += (
-            SpecialTokens.end_belief
-            + SpecialTokens.end_dst
-            + SimpleTodConstants.NEW_LINES
-        )
-        if self.actions:
             out += "".join(
                 [
-                    SpecialTokens.begin_user_action,
-                    SimpleTodConstants.ITEM_SEPARATOR.join(map(str, self.beliefs)),
-                    SpecialTokens.end_user_action,
+                    SpecialTokens.begin_intent,
+                    self.active_intent,
+                    SpecialTokens.end_intent,
+                    SimpleTodConstants.NEW_LINES,
                 ]
             )
-
+        if self.requested_slots:
+            out += "".join(
+                [
+                    SpecialTokens.begin_requested_slots,
+                    SimpleTodConstants.ITEM_SEPARATOR.join(
+                        map(str, self.requested_slots)
+                    ),
+                    SpecialTokens.end_requested_slots,
+                    SimpleTodConstants.NEW_LINES,
+                ]
+            )
+        out += "".join(
+            [
+                SpecialTokens.begin_belief,
+                SimpleTodConstants.ITEM_SEPARATOR.join(map(str, self.beliefs)),
+                SpecialTokens.end_belief,
+                SpecialTokens.end_dst,
+                SimpleTodConstants.NEW_LINES,
+            ]
+        )
         return out
 
 
 @dataclass
 class SimpleTodTarget:
     actions: List[SimpleTodAction]
+    user_actions: list[SimpleTodAction]
     response: str
     dsts: List[SimpleTodDst]
     requested_slots: Optional[List[DstcRequestedSlot]] = None
@@ -239,7 +236,6 @@ class SimpleTodTarget:
         )
 
     def __repr__(self) -> str:
-
         return self.__str__()
 
     def __str__(self) -> str:
@@ -250,18 +246,19 @@ class SimpleTodTarget:
                 "".join(map(str, self.dsts)),
                 SpecialTokens.end_dsts,
                 SimpleTodConstants.NEW_LINES,
+                SpecialTokens.begin_user_action,
+                SimpleTodConstants.ITEM_SEPARATOR.join(map(str, self.user_actions)),
+                SpecialTokens.end_user_action,
+                SpecialTokens.begin_action,
+                SimpleTodConstants.ITEM_SEPARATOR.join(map(str, self.actions)),
+                SpecialTokens.end_action,
+                SpecialTokens.begin_response,
+                self.response,
+                SpecialTokens.end_response,
+                SpecialTokens.end_target,
+                SimpleTodConstants.NEW_LINES,
             ]
         )
-
-        out += SpecialTokens.begin_action
-        out += SimpleTodConstants.ITEM_SEPARATOR.join(map(str, self.actions))
-        out += SpecialTokens.end_action + SimpleTodConstants.NEW_LINES
-
-        out += SpecialTokens.begin_response
-        out += self.response
-        out += SpecialTokens.end_response + SimpleTodConstants.NEW_LINES
-
-        out += SpecialTokens.end_target
         return out
 
 

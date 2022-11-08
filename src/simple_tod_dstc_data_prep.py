@@ -106,44 +106,23 @@ class SimpleTODDSTCDataPrep:
                         value,
                     )
                 )
-            if self.cfg.should_add_user_actions:
-                for action in frame.actions:
-                    actions.append(
-                        SimpleTodAction(
-                            frame.short_service,
-                            action.act,
-                            # humps.camelize(action.slot),
-                            action.slot,
-                            SimpleTodConstants.ACTION_VALUE_SEPARATOR.join(
-                                action.values
-                            ),
-                        )
-                    )
-            dsts.append(
-                SimpleTodDst(beliefs, active_intent, requested_slots, actions=actions)
-            )
+            dsts.append(SimpleTodDst(beliefs, active_intent, requested_slots))
         return dsts
 
-    def _create_system_action(
-        self, actions: list[SimpleTodAction], frames: List[DstcFrame]
-    ):
-        for frame in frames:
+    def _get_actions(self, turn: DstcTurn) -> list[SimpleTodAction]:
+        actions = []
+        for frame in turn.frames:
             for action in frame.actions:
                 actions.append(
                     SimpleTodAction(
                         frame.short_service,
                         action.act,
-                        # humps.camelize(action.slot),
                         action.slot,
                         SimpleTodConstants.ACTION_VALUE_SEPARATOR.join(action.values),
                     )
                 )
-
-    def _prepare_action(self, system_turn: DstcTurn) -> List[SimpleTodAction]:
-        actions = []
-        if system_turn:
-            self._create_system_action(actions, system_turn.frames)
         return actions
+
 
     def _delexicalize_utterance(
         self, turn: DstcTurn, schemas: Dict[str, DstcSchema]
@@ -184,9 +163,10 @@ class SimpleTODDSTCDataPrep:
         schemas: Dict[str, DstcSchema],
     ):
         dsts = self._prepare_dst(user_turn)
-        actions = self._prepare_action(system_turn)
+        actions = self._get_actions(system_turn)
+        user_actions = self._get_actions(user_turn)
         response = self._prepare_response(system_turn, schemas)
-        return SimpleTodTarget(dsts=dsts, actions=actions, response=response)
+        return SimpleTodTarget(dsts=dsts, actions=actions, user_actions=user_actions, response=response)
 
     def _prepare_turn(
         self,
