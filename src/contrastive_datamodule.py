@@ -52,8 +52,8 @@ class ContrastiveDataModule(BaseDataModule):
                 dsts_txt = "".join(
                     dstc_utils.get_text_in_between(
                         item.target,
-                        start_token,
-                        end_token,
+                        SpecialTokens.begin_dst,
+                        SpecialTokens.end_dst,
                         default_value="",
                         multiple_values=True,
                     )
