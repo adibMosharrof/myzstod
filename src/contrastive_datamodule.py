@@ -2,9 +2,11 @@ import numpy as np
 from sentence_transformers import InputExample
 import torch
 from base_datamodule import BaseDataModule
+from contrastive_dataclasses import ContrastiveTokens
 
 from hydra_configs import DataModuleConfig
 from my_enums import (
+    ContrastiveConstants,
     DstcSystemActions,
     SimpleTodActionAttributes,
     SimpleTodConstants,
@@ -28,7 +30,7 @@ class ContrastiveDataModule(BaseDataModule):
         super().__init__(cfg)
 
     def get_contrastive_data(
-        self, start_token: SpecialTokens, end_token: SpecialTokens, step=Steps.TRAIN
+        self, contrastive_tokens: ContrastiveTokens, step=Steps.TRAIN
     ) -> list[InputExample]:
         contrastive_data = []
         self.schemas = dstc_utils.get_schemas(
@@ -36,16 +38,20 @@ class ContrastiveDataModule(BaseDataModule):
         )
         swap_neg_num = self.cfg.single_action_neg_samples if step == Steps.TRAIN else 1
         for item in self.cfg.datasets[step]:
-            sys_act_txt = dstc_utils.get_text_in_between(
-                item.target, SpecialTokens.begin_action, SpecialTokens.end_action, ""
+            b_txt = dstc_utils.get_text_in_between(
+                item.target,
+                contrastive_tokens.b_start_token,
+                contrastive_tokens.b_end_token,
+                default_value="",
+                multiple_values=contrastive_tokens.b_multiple_values,
             )
-            text_data = SimpleTodConstants.ITEM_SEPARATOR.join(
+            a_txt = SimpleTodConstants.ITEM_SEPARATOR.join(
                 dstc_utils.get_text_in_between(
                     item.target,
-                    start_token,
-                    end_token,
+                    contrastive_tokens.a_start_token,
+                    contrastive_tokens.a_end_token,
                     default_value="",
-                    multiple_values=True,
+                    multiple_values=contrastive_tokens.a_multiple_values,
                 )
             )
             if self.cfg.should_add_dsts:
@@ -58,14 +64,16 @@ class ContrastiveDataModule(BaseDataModule):
                         multiple_values=True,
                     )
                 )
-                text_data += dsts_txt
+                a_txt += dsts_txt
 
-            contrastive_data.append(
-                InputExample(texts=[sys_act_txt, text_data], label=1.0)
+            contrastive_data.append(InputExample(texts=[b_txt, a_txt], label=1.0))
+            act_splits = (
+                b_txt.split(SimpleTodConstants.ITEM_SEPARATOR)
+                if contrastive_tokens.contrast_with == ContrastiveConstants.USER_ACT
+                else a_txt.split(SimpleTodConstants.ITEM_SEPARATOR)
             )
-            act_splits = sys_act_txt.split(SimpleTodConstants.ITEM_SEPARATOR)
             self.get_contrastive_negative_examples(
-                contrastive_data, sys_act_txt, act_splits, swap_neg_num
+                contrastive_data, b_txt, act_splits, swap_neg_num
             )
         if len(contrastive_data) == 0:
             raise ValueError("No contrastive data found")

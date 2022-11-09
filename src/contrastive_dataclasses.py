@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from sentence_transformers import SentenceTransformer, losses
 from transformers import AutoTokenizer, Trainer
 from torch.nn.utils.rnn import pad_sequence
-from my_enums import ContrastiveConstrants, SpecialTokens
+from my_enums import ContrastiveConstants, SpecialTokens
 import dstc_utils
 import torch
 
@@ -169,23 +169,12 @@ class ContrastiveTrainer(Trainer):
         return {"input_ids": input_ids, "attention_mask": att_mask}
 
 
-class ContrastiveUtils:
-    @classmethod
-    def _get_tokens_from_contrast_with(
-        self, contrast_with: str
-    ) -> Tuple[SpecialTokens, SpecialTokens, bool]:
-        multiple_values = False
-        if contrast_with == ContrastiveConstrants.USER_ACT:
-            start_token = SpecialTokens.begin_user_action
-            end_token = SpecialTokens.end_user_action
-            multiple_values = True
-        elif contrast_with == ContrastiveConstrants.NLG:
-            start_token = SpecialTokens.begin_response
-            end_token = SpecialTokens.end_response
-        return start_token, end_token, multiple_values
-
-
 @dataclass
 class ContrastiveTokens:
-    start_token: SpecialTokens
-    end_token: SpecialTokens
+    a_start_token: SpecialTokens
+    a_end_token: SpecialTokens
+    a_multiple_values: bool
+    b_start_token: SpecialTokens
+    b_end_token: SpecialTokens
+    b_multiple_values: bool
+    contrast_with: str

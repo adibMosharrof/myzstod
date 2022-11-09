@@ -177,7 +177,7 @@ class DstcSystemActions(str, Enum):
         return [c.value for c in cls]
 
 
-class ContrastiveConstrants(str, Enum):
+class ContrastiveConstants(str, Enum):
     NLG = "nlg"
     USER_ACT = "user_act"
 

@@ -5,7 +5,7 @@ from tqdm import tqdm
 from contrastive_dataclasses import ContrastiveTokens
 from contrastive_datamodule import ContrastiveDataModule
 from hydra_configs import ConstrastiveConfig, DataModuleConfig
-from my_enums import ContrastiveConstrants, SpecialTokens, Steps
+from my_enums import ContrastiveConstants, SpecialTokens, Steps
 from sentence_transformers import SentenceTransformer, losses, evaluation, util
 
 from torch.utils.data import DataLoader
@@ -29,7 +29,7 @@ class Contrastive:
             tokenizer_name=self.cfg.tokenizer_name
         )
         self.dm.contrastive_tokenizer = word_embedding_model.tokenizer
-        model.tokenize = self.dm.contrastive_tokenize
+        # model.tokenize = self.dm.contrastive_tokenize
         word_embedding_model.auto_model.resize_token_embeddings(
             len(word_embedding_model.tokenizer)
         )
@@ -40,12 +40,8 @@ class Contrastive:
         eval_data = []
         train_data = []
         for tok in contrastive_tokens:
-            eval_data.append(
-                self.dm.get_contrastive_data(tok.start_token, tok.end_token, Steps.DEV)
-            )
-            train_data.append(
-                self.dm.get_contrastive_data(tok.start_token, tok.end_token)
-            )
+            eval_data.append(self.dm.get_contrastive_data(tok, Steps.DEV))
+            train_data.append(self.dm.get_contrastive_data(tok, Steps.TRAIN))
         eval_data_all = np.concatenate(eval_data, axis=0)
         train_data_all = np.concatenate(train_data, axis=0)
 
@@ -77,13 +73,30 @@ class Contrastive:
     def _get_start_end_tokens(self) -> list[ContrastiveTokens]:
         tokens = []
         for contrast in self.cfg.contrast_with:
-            if contrast == ContrastiveConstrants.NLG:
-                start_token = SpecialTokens.begin_response
-                end_token = SpecialTokens.end_response
-            elif contrast == ContrastiveConstrants.USER_ACT:
-                start_token = SpecialTokens.begin_user_action
-                end_token = SpecialTokens.end_user_action
-            tokens.append(ContrastiveTokens(start_token, end_token))
+            if contrast == ContrastiveConstants.NLG:
+                tokens.append(
+                    ContrastiveTokens(
+                        a_start_token=SpecialTokens.begin_action,
+                        a_end_token=SpecialTokens.end_action,
+                        a_multiple_values=False,
+                        b_start_token=SpecialTokens.begin_response,
+                        b_end_token=SpecialTokens.end_response,
+                        b_multiple_values=False,
+                        contrast_with=contrast,
+                    )
+                )
+            elif contrast == ContrastiveConstants.USER_ACT:
+                tokens.append(
+                    ContrastiveTokens(
+                        b_start_token=SpecialTokens.begin_action,
+                        b_end_token=SpecialTokens.end_action,
+                        b_multiple_values=False,
+                        a_start_token=SpecialTokens.begin_user_action,
+                        a_end_token=SpecialTokens.end_user_action,
+                        a_multiple_values=False,
+                        contrast_with=contrast,
+                    )
+                )
         return tokens
 
 

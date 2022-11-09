@@ -152,17 +152,3 @@ class TodDataModule(BaseDataModule):
             dialog_ids=data.dialog_ids,
             turn_ids=data.turn_ids,
         )
-
-    def _get_contrast_tokens(self, target: str, contrast_with: str) -> list[int]:
-        (
-            start_token,
-            end_token,
-            multiple_values,
-        ) = ContrastiveUtils._get_tokens_from_contrast_with(contrast_with)
-        text = dstc_utils.get_text_in_between(
-            target, start_token, end_token, multiple_values=multiple_values
-        )
-        if isinstance(text, list):
-            text = SimpleTodConstants.ITEM_SEPARATOR.join(text)
-        tokens = self.contrastive_tokenizer(text)
-        return tokens

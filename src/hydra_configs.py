@@ -10,7 +10,7 @@ import dstc_utils
 import utils
 from my_enums import (
     ContextType,
-    ContrastiveConstrants,
+    ContrastiveConstants,
     DstcDomains,
     SpecialTokens,
     Steps,
@@ -291,6 +291,7 @@ class ConstrastiveConfig:
         contrast_with: list[str] = None,
         single_action_neg_samples: int = 5,
         should_add_dsts: bool = False,
+        contrastive_max_token_len: int = 512,
     ):
         self.project_root = Path(project_root)
         self.data_prep_out_root = self.project_root / data_prep_out_root
@@ -318,13 +319,16 @@ class ConstrastiveConfig:
         self.multi_tasks = multi_tasks or [1, 1, 1]
         self.should_add_sys_actions = should_add_sys_actions
         self.should_add_schema = should_add_schema
-        self.contrast_with = contrast_with if contrast_with else [ContrastiveConstrants.USER_ACT]
+        self.contrast_with = (
+            contrast_with if contrast_with else [ContrastiveConstants.USER_ACT]
+        )
         self.single_action_neg_samples = single_action_neg_samples
         self.should_add_user_actions = (
-            True if ContrastiveConstrants.USER_ACT in self.contrast_with else False
+            True if ContrastiveConstants.USER_ACT in self.contrast_with else False
         )
         self.should_add_dsts = should_add_dsts
         self.tokenizer_name = tokenizer_name
+        self.contrastive_max_token_len = contrastive_max_token_len
 
 
 class DataModuleConfig:
@@ -356,7 +360,7 @@ class DataModuleConfig:
         should_add_user_actions: bool = False,
         single_action_neg_samples: int = 5,
         contrast_with: str = None,
-        contrastive_max_token_len: int = 150,
+        contrastive_max_token_len: int = 512,
         context_type: str = ContextType.SHORT_REPR,
         should_add_service_results: bool = False,
         contrastive_tokenizer: AutoTokenizer = None,
@@ -505,6 +509,7 @@ class DataModuleConfig:
             single_action_neg_samples=c_config.single_action_neg_samples,
             contrast_with=c_config.contrast_with,
             should_add_dsts=c_config.should_add_dsts,
+            contrastive_max_token_len=c_config.contrastive_max_token_len,
         )
 
 
