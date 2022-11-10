@@ -1,9 +1,7 @@
 from dotmap import DotMap
 
 import torch
-from sentence_transformers import InputExample
 from base_datamodule import BaseDataModule
-from contrastive_dataclasses import ContrastiveUtils
 
 from hydra_configs import DataModuleConfig
 from my_enums import (
