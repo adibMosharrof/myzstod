@@ -1,10 +1,12 @@
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import List, Dict, Optional
 from dataclasses_json import dataclass_json
 from enum import Enum
 import humps
 import dstc_utils
 from my_enums import Speaker, SpecialTokens, SimpleTodConstants
+import utils
 
 
 @dataclass
@@ -228,3 +230,14 @@ class DstcSchema:
 
     def __str__(self):
         return self.get_full_repr()
+
+
+def get_schemas(data_root: Path, step: str) -> Dict[str, DstcSchema]:
+    schemas = {}
+    path = data_root / step / "schema.json"
+    schema_json = utils.read_json(path)
+    for s in schema_json:
+        schema: DstcSchema = DstcSchema.from_dict(s)
+        schema.step = step
+        schemas[schema.service_name] = schema
+    return schemas

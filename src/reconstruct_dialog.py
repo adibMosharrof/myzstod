@@ -153,7 +153,7 @@ class ReconstructDialog:
     def run(self):
         for f_name in self.cfg.csv_file_names:
             # df = pd.read_csv(self.cfg.csv_file_names, keep_default_na=False)
-            df = pd.read_csv(self.cfg.model_path / f_name, keep_default_na=False)
+            df = pd.read_csv(self.cfg.predictions_dir / f_name, keep_default_na=False)
             df_dialogs = df.groupby("dialog_id").agg(list)
             out_dict = {}
             for id, dialog in tqdm(df_dialogs.iterrows()):
@@ -176,7 +176,7 @@ class ReconstructDialog:
                     dstc_dialog.turns.append(sys_turn)
                 out_dict[id] = dstc_dialog.to_dict()
 
-                utils.write_json(out_dict, self.cfg.out_dir / f"{id}.json")
+            utils.write_json(out_dict, self.cfg.out_dir / f"{f_name}.json")
 
 
 @hydra.main(config_path="../config/reconstruct/", config_name="reconstruct")

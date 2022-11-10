@@ -15,8 +15,11 @@ class ContrastiveTrainerHelper:
     loss_model: None
     max_token_len: int = None
 
-    def __init__(self, model_path, tokenizer, max_token_len):
-        self.contrastive_model = SentenceTransformer(model_path).cuda()
+    def __init__(self, model_or_path, tokenizer, max_token_len):
+        if isinstance(model_or_path, str):
+            self.contrastive_model = SentenceTransformer(model_or_path)
+        else:
+            self.contrastive_model = model_or_path
         self.tod_tokenizer = tokenizer
         special_tokens = [
             SpecialTokens.begin_response,

@@ -16,6 +16,7 @@ from my_enums import (
 from simple_tod_dataclasses import SimpleTodAction
 import dstc_utils
 import random
+from dstc_dataclasses import get_schemas
 
 
 class ContrastiveDataModule(BaseDataModule):
@@ -33,7 +34,7 @@ class ContrastiveDataModule(BaseDataModule):
         self, contrastive_tokens: ContrastiveTokens, step=Steps.TRAIN
     ) -> list[InputExample]:
         contrastive_data = []
-        self.schemas = dstc_utils.get_schemas(
+        self.schemas = get_schemas(
             self.cfg.project_root / self.cfg.raw_data_root, step.value
         )
         swap_neg_num = self.cfg.single_action_neg_samples if step == Steps.TRAIN else 1
@@ -45,15 +46,14 @@ class ContrastiveDataModule(BaseDataModule):
                 default_value="",
                 multiple_values=contrastive_tokens.b_multiple_values,
             )
-            a_txt = SimpleTodConstants.ITEM_SEPARATOR.join(
-                dstc_utils.get_text_in_between(
-                    item.target,
-                    contrastive_tokens.a_start_token,
-                    contrastive_tokens.a_end_token,
-                    default_value="",
-                    multiple_values=contrastive_tokens.a_multiple_values,
-                )
+            a_txt = dstc_utils.get_text_in_between(
+                item.target,
+                contrastive_tokens.a_start_token,
+                contrastive_tokens.a_end_token,
+                default_value="",
+                multiple_values=contrastive_tokens.a_multiple_values,
             )
+            a_dst_txt = a_txt
             if self.cfg.should_add_dsts:
                 dsts_txt = "".join(
                     dstc_utils.get_text_in_between(
@@ -64,16 +64,11 @@ class ContrastiveDataModule(BaseDataModule):
                         multiple_values=True,
                     )
                 )
-                a_txt += dsts_txt
+                a_dst_txt += dsts_txt
 
-            contrastive_data.append(InputExample(texts=[b_txt, a_txt], label=1.0))
-            act_splits = (
-                b_txt.split(SimpleTodConstants.ITEM_SEPARATOR)
-                if contrastive_tokens.contrast_with == ContrastiveConstants.USER_ACT
-                else a_txt.split(SimpleTodConstants.ITEM_SEPARATOR)
-            )
+            contrastive_data.append(InputExample(texts=[a_dst_txt, b_txt], label=1.0))
             self.get_contrastive_negative_examples(
-                contrastive_data, b_txt, act_splits, swap_neg_num
+                contrastive_data, a_txt, b_txt, contrastive_tokens, swap_neg_num
             )
         if len(contrastive_data) == 0:
             raise ValueError("No contrastive data found")
@@ -82,22 +77,41 @@ class ContrastiveDataModule(BaseDataModule):
     def get_contrastive_negative_examples(
         self,
         contrastive_data: list[InputExample],
-        sys_act_txt: str,
-        act_splits: list[str],
+        a_txt: str,
+        b_txt: list[str],
+        contrastive_tokens: ContrastiveTokens,
         swap_neg_num: int = 5,
     ):
+        act_txt, other_txt = self._get_act_and_other(a_txt, b_txt, contrastive_tokens)
+        act_splits = act_txt.split(SimpleTodConstants.ITEM_SEPARATOR)
         if len(act_splits) > 1:
             self.get_contrastive_incomplete_negative(
-                contrastive_data, sys_act_txt, act_splits
+                contrastive_data, other_txt, act_splits
             )
             self.get_contrastive_negative_swap_data(
-                contrastive_data, sys_act_txt, act_splits
+                contrastive_data, other_txt, act_splits
             )
         else:
             for _ in range(swap_neg_num):
                 self.get_contrastive_negative_swap_data(
-                    contrastive_data, sys_act_txt, act_splits
+                    contrastive_data, other_txt, act_splits
                 )
+
+    def _get_act_and_other(
+        self, a_txt: str, b_txt: str, contrastive_tokens: ContrastiveTokens
+    ) -> tuple[str, str]:
+        """
+        If contrast with user act,
+            randomly select UA/SA for action splitting and creating negative examples
+            bool random get true, split SA, false split UA
+        If contrast with system act, always split on SA
+        """
+        if contrastive_tokens.contrast_with == ContrastiveConstants.USER_ACT:
+            if bool(random.getrandbits(1)):
+                return b_txt, a_txt
+        return a_txt, b_txt
+        # else:
+        #     return a_txt, b_txt
 
     def get_contrastive_incomplete_negative(
         self,

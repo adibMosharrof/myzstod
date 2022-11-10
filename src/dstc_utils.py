@@ -5,7 +5,6 @@ from typing import List, Optional, Union, Dict
 from transformers import AutoTokenizer, PreTrainedTokenizerFast
 import os
 from tokenizers.processors import TemplateProcessing
-from dstc_dataclasses import DstcSchema
 from hydra_configs import DataModuleConfig, DataPrepConfig
 
 from my_enums import SimpleTodConstants, SpecialTokens
@@ -22,17 +21,6 @@ def get_dialog_file_paths(data_root, step):
     files = sorted(os.listdir(data_root / step))
     file_paths = [data_root / step / f for f in files if pattern in f]
     return file_paths
-
-
-def get_schemas(data_root: Path, step: str) -> Dict[str, DstcSchema]:
-    schemas = {}
-    path = data_root / step / "schema.json"
-    schema_json = utils.read_json(path)
-    for s in schema_json:
-        schema: DstcSchema = DstcSchema.from_dict(s)
-        schema.step = step
-        schemas[schema.service_name] = schema
-    return schemas
 
 
 def get_csv_data_path(

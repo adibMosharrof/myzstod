@@ -12,9 +12,9 @@ from tqdm import tqdm
 import dstc_utils
 from hydra_configs import DataModelExplorationConfig, DataModuleConfig
 from my_enums import DstcDomains, Steps
-from my_datamodules import SimpleTodDataModule
+from my_datamodules import TodDataModule
 from simple_tod_dataclasses import (
-    SimpleTodTurnCsvRow,
+    TodTurnCsvRow,
 )
 from utils import read_csv_dataclass
 
@@ -22,18 +22,18 @@ from utils import read_csv_dataclass
 class DataModelExploration:
     def __init__(self, cfg: DataModelExplorationConfig):
         self.cfg = cfg
-        self.dm = SimpleTodDataModule(DataModuleConfig.from_data_model_exploration(cfg))
+        self.dm = TodDataModule(DataModuleConfig.from_data_model_exploration(cfg))
 
-    def _get_simple_tod_rows(self) -> list[SimpleTodTurnCsvRow]:
+    def _get_simple_tod_rows(self) -> list[TodTurnCsvRow]:
         steps = Steps.list()
         rows = []
         for step, num_dialog in tqdm(zip(steps, self.cfg.num_dialogs)):
             csv_file_path = dstc_utils.get_csv_data_path(
                 step,
                 num_dialog,
-                cfg = self.cfg,
+                cfg=self.cfg,
             )
-            rows.append(read_csv_dataclass(csv_file_path, SimpleTodTurnCsvRow))
+            rows.append(read_csv_dataclass(csv_file_path, TodTurnCsvRow))
         return np.concatenate(rows, axis=0)
 
     def plot_model_size(self):

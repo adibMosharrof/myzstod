@@ -1,18 +1,29 @@
+from typing import Optional
 from omegaconf import DictConfig
 import hydra
 from transformers import (
     AutoModel,
+    AutoTokenizer,
     GPT2LMHeadModel,
     Trainer,
     TrainingArguments,
     logging,
 )
+from contrastive import Contrastive
 from contrastive_dataclasses import ContrastiveTrainerHelper, ContrastiveTrainer
-from hydra_configs import DataModuleConfig, InferenceConfig, TrainerConfig
+from hydra_configs import (
+    ContrastiveConfig,
+    DataModuleConfig,
+    InferenceConfig,
+    ReconstructDialogConfig,
+    TrainerConfig,
+)
 from inference import Inference
 from my_datamodules import TodDataModule
 import os
 import warnings
+
+from reconstruct_dialog import ReconstructDialog
 
 warnings.filterwarnings("ignore")
 
@@ -30,15 +41,7 @@ class SimpleTODTrainer:
         model.resize_token_embeddings(len(self.cfg.tokenizer))
         model = model.cuda()
 
-        contrastive_tokenizer = None
-        if self.cfg.contrastive_model:
-            self.contrastive_helper = ContrastiveTrainerHelper(
-                self.cfg.project_root / self.cfg.contrastive_model,
-                self.cfg.tokenizer,
-                self.cfg.contrastive_max_token_len,
-            )
-            # self.contrastive_helper.max_token_len = self.cfg.max_token_len
-            contrastive_tokenizer = self.contrastive_helper.contrastive_model.tokenizer
+        contrastive_tokenizer = self._setup_contrastive()
 
         dm = TodDataModule(
             DataModuleConfig.from_trainer_config(self.cfg, contrastive_tokenizer)
@@ -51,6 +54,23 @@ class SimpleTODTrainer:
                 InferenceConfig.from_trainer_config(self.cfg, model),
             )
             inf.test()
+            r = ReconstructDialog(ReconstructDialogConfig.from_trainer_config(self.cfg))
+            r.run()
+
+    def _setup_contrastive(self) -> Optional[AutoTokenizer]:
+        if not self.cfg.contrast_with:
+            return None
+        if self.cfg.contrastive_model:
+            model_or_path = self.cfg.project_root / self.cfg.contrastive_model
+        else:
+            c = Contrastive(ContrastiveConfig.from_trainer_config(self.cfg))
+            model_or_path = c.run()
+        self.contrastive_helper = ContrastiveTrainerHelper(
+            model_or_path,
+            self.cfg.tokenizer,
+            self.cfg.contrastive_max_token_len,
+        )
+        return self.contrastive_helper.contrastive_model.tokenizer
 
     def _get_trainer(
         self,
@@ -58,7 +78,7 @@ class SimpleTODTrainer:
         dm: TodDataModule,
         training_args: TrainingArguments,
     ) -> Trainer:
-        if self.cfg.contrastive_model:
+        if self.cfg.contrast_with:
             trainer = ContrastiveTrainer(
                 model=model_train,
                 args=training_args,

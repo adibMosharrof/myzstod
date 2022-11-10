@@ -4,7 +4,7 @@ from omegaconf import DictConfig
 from tqdm import tqdm
 from contrastive_dataclasses import ContrastiveTokens
 from contrastive_datamodule import ContrastiveDataModule
-from hydra_configs import ConstrastiveConfig, DataModuleConfig
+from hydra_configs import ContrastiveConfig, DataModuleConfig
 from my_enums import ContrastiveConstants, SpecialTokens, Steps
 from sentence_transformers import SentenceTransformer, losses, evaluation, util
 
@@ -13,13 +13,13 @@ import dstc_utils
 
 
 class Contrastive:
-    def __init__(self, cfg: ConstrastiveConfig):
+    def __init__(self, cfg: ContrastiveConfig):
         self.cfg = cfg
         self.dm = ContrastiveDataModule(
             DataModuleConfig.from_contrastive_config(self.cfg)
         )
 
-    def run(self):
+    def run(self) -> SentenceTransformer:
         model = SentenceTransformer(self.cfg.contrastive_model_name)
         if self.cfg.contrastive_model_name == "gpt2":
             model.tokenizer.pad_token = model.tokenizer.eos_token
@@ -69,6 +69,7 @@ class Contrastive:
             use_amp=True,
             checkpoint_path=str(self.cfg.out_dir),
         )
+        return model
 
     def _get_start_end_tokens(self) -> list[ContrastiveTokens]:
         tokens = []
@@ -102,7 +103,7 @@ class Contrastive:
 
 @hydra.main(config_path="../config/contrastive/", config_name="contrastive")
 def hydra_start(cfg: DictConfig) -> None:
-    c = Contrastive(ConstrastiveConfig(**cfg))
+    c = Contrastive(ContrastiveConfig(**cfg))
     c.run()
 
 
