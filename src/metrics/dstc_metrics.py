@@ -10,9 +10,10 @@ from dstc_dataclasses import DstcRequestedSlot
 
 
 class SuccessMetric(TodMetricsBase):
-    def __init__(self) -> None:
+    def __init__(self, slot_categories: dict[str, bool]) -> None:
         super().__init__()
         # self.all_success = []
+        self.slot_categories = slot_categories
         self.prediction_logger = PredictionLoggerFactory.create(TodMetricsEnum.SUCCESS)
         self.add_state("all_success", [], dist_reduce_fx="cat")
 
@@ -35,7 +36,8 @@ class SuccessMetric(TodMetricsBase):
                 SpecialTokens.end_action,
             )
             target_actions = [
-                SimpleTodAction.from_string(t) for t in target_actions_txt
+                SimpleTodAction.from_string(t, self.slot_categories)
+                for t in target_actions_txt
             ]
             target_items = [act for act in target_actions if act in requested_slots]
             pred_items_txt = self._extract_section_and_split_items_from_text(
@@ -43,7 +45,10 @@ class SuccessMetric(TodMetricsBase):
                 SpecialTokens.begin_action,
                 SpecialTokens.end_action,
             )
-            pred_items = [SimpleTodAction.from_string(t) for t in pred_items_txt]
+            pred_items = [
+                SimpleTodAction.from_string(t, self.slot_categories)
+                for t in pred_items_txt
+            ]
 
             # batch_success = []
             for t in target_items:

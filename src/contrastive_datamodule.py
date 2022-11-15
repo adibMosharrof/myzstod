@@ -17,6 +17,7 @@ from simple_tod_dataclasses import SimpleTodAction
 import dstc_utils
 import random
 from dstc_dataclasses import get_schemas
+from itertools import combinations
 
 
 class ContrastiveDataModule(BaseDataModule):
@@ -84,18 +85,18 @@ class ContrastiveDataModule(BaseDataModule):
     ):
         act_txt, other_txt = self._get_act_and_other(a_txt, b_txt, contrastive_tokens)
         act_splits = act_txt.split(SimpleTodConstants.ITEM_SEPARATOR)
-        if len(act_splits) > 1:
-            self.get_contrastive_incomplete_negative(
-                contrastive_data, other_txt, act_splits
-            )
+        # if len(act_splits) > 1:
+        #     self.get_contrastive_incomplete_negative_old(
+        #         contrastive_data, other_txt, act_splits
+        #     )
+        #     self.get_contrastive_negative_swap_data(
+        #         contrastive_data, other_txt, act_splits
+        #     )
+        # else:
+        for _ in range(swap_neg_num):
             self.get_contrastive_negative_swap_data(
                 contrastive_data, other_txt, act_splits
             )
-        else:
-            for _ in range(swap_neg_num):
-                self.get_contrastive_negative_swap_data(
-                    contrastive_data, other_txt, act_splits
-                )
 
     def _get_act_and_other(
         self, a_txt: str, b_txt: str, contrastive_tokens: ContrastiveTokens
@@ -113,22 +114,42 @@ class ContrastiveDataModule(BaseDataModule):
         # else:
         #     return a_txt, b_txt
 
+    def get_contrastive_incomplete_negative_old(
+        self,
+        contrastive_data: list[InputExample],
+        sys_act_txt: str,
+        act_splits: list[str],
+    ):
+        # used_acts = set()
+
+        num_actions = random.randint(1, len(act_splits) - 1)
+        wrong_sys_acts = random.choices(act_splits, k=num_actions)
+        # wrong_sys_acts_tuple = tuple(wrong_sys_acts)
+        # if wrong_sys_acts_tuple in used_acts:
+        #     continue
+        # used_acts.add(wrong_sys_acts_tuple)
+        label = num_actions / len(act_splits)
+        wrong_act_texts = SimpleTodConstants.ITEM_SEPARATOR.join(wrong_sys_acts)
+        contrastive_data.append(
+            InputExample(texts=[wrong_act_texts, sys_act_txt], label=label)
+        )
+
     def get_contrastive_incomplete_negative(
         self,
         contrastive_data: list[InputExample],
         sys_act_txt: str,
         act_splits: list[str],
     ):
-        num_actions = random.randint(1, len(act_splits) - 1)
-        wrong_sys_acts = random.choices(act_splits, k=num_actions)
-        label = num_actions / len(act_splits)
-        wrong_act_texts = SimpleTodConstants.ITEM_SEPARATOR.join(wrong_sys_acts)
-        contrastive_data.append(
-            InputExample(texts=[wrong_act_texts, sys_act_txt], label=label)
-            # InputExample(texts=[wrong_act_texts, sys_act_txt], label=0.0)
-        )
+        for i in range(1, len(act_splits) - 1):
+            comb = list(combinations(act_splits, i))
+            for wrong_sys_acts in comb:
+                label = len(wrong_sys_acts) / len(act_splits)
+                wrong_act_texts = SimpleTodConstants.ITEM_SEPARATOR.join(wrong_sys_acts)
+                contrastive_data.append(
+                    InputExample(texts=[wrong_act_texts, sys_act_txt], label=label)
+                )
 
-    def get_contrastive_negative_swap_data(
+    def get_contrastive_negative_swap_data_old(
         self,
         contrastive_data: list[InputExample],
         sys_act_txt: str,
@@ -153,6 +174,34 @@ class ContrastiveDataModule(BaseDataModule):
         contrastive_data.append(
             InputExample(texts=[str(action), sys_act_txt], label=0.0)
         )
+
+    def get_contrastive_negative_swap_data(
+        self,
+        contrastive_data: list[InputExample],
+        sys_act_txt: str,
+        act_splits: list[str],
+    ):
+        for i, action_txt in enumerate(act_splits):
+            action = SimpleTodAction.from_string(action_txt)
+            attr = random.choice(SimpleTodActionAttributes.list())
+            if attr == SimpleTodActionAttributes.domain:
+                action.domain = dstc_utils.get_dstc_service_name(
+                    random.choice([*self.schemas])
+                )
+            elif attr == SimpleTodActionAttributes.action_type:
+                action.action_type = random.choice(
+                    [x for x in DstcSystemActions.list() if x != action.action_type]
+                )
+            elif attr == SimpleTodActionAttributes.slot_name:
+                schema = self.schemas[random.choice([*self.schemas])]
+                action.slot_name = random.choice(
+                    [s for s in schema.slots if s.name != action.slot_name]
+                ).name
+            actions = act_splits.copy()
+            actions[i] = str(action)
+            contrastive_data.append(
+                InputExample(texts=[str(actions), sys_act_txt], label=0.0)
+            )
 
     def contrastive_tokenize(self, text: str):
         return self.contrastive_tokenizer(

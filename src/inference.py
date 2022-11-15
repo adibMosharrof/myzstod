@@ -18,14 +18,16 @@ from metrics.goal_metric import GoalMetric, GoalMetricConfigFactory
 from metrics.requested_slots_metric import RequestedSlotsMetric
 from metrics.dstc_metrics import InformMetric, SuccessMetric, CombinedMetric
 from my_enums import DstcDomains, GoalMetricConfigType, SpecialTokens, TestSettings
+from reconstruct_dialog import ReconstructDialog
 import utils
-from hydra_configs import DataModuleConfig, InferenceConfig
+from hydra_configs import DataModuleConfig, InferenceConfig, ReconstructDialogConfig
 from my_datamodules import TodDataModule
 from simple_tod_dataclasses import (
     InferenceRecords,
     SimpleTodConstants,
     TodTestDataBatch,
 )
+from dstc_dataclasses import get_slot_categories
 
 
 class Inference:
@@ -93,6 +95,8 @@ class Inference:
                 self.tod_metrics[m].visualize(Path(self.cfg.predictions_log_dir))
                 for m in self.tod_metrics
             ]
+        r = ReconstructDialog(ReconstructDialogConfig.from_inference_config(self.cfg))
+        r.run()
 
     def run(self):
         print("begin inference")
@@ -149,6 +153,7 @@ class Inference:
         self.cfg.logger.info(f"|{'|'.join(values)}|")
 
     def _set_metrics(self):
+        slot_categories = get_slot_categories(self.cfg.raw_data_root)
         dst, action, response = (
             self.cfg.multi_tasks if self.cfg.is_multi_task else [1, 1, 1]
         )
@@ -158,10 +163,12 @@ class Inference:
             tod_metrics.update(
                 {
                     "goal_accuracy": GoalMetric(
-                        GoalMetricConfigFactory.create(GoalMetricConfigType.BELIEF)
+                        GoalMetricConfigFactory.create(GoalMetricConfigType.BELIEF),
+                        slot_categories,
                     ),
                     "action_accuracy": GoalMetric(
-                        GoalMetricConfigFactory.create(GoalMetricConfigType.ACTION)
+                        GoalMetricConfigFactory.create(GoalMetricConfigType.ACTION),
+                        slot_categories,
                     ),
                     "intent_accuracy": IntentAccuracyMetric(),
                     "requested_slots": RequestedSlotsMetric(),
@@ -171,7 +178,7 @@ class Inference:
             tod_metrics.update(
                 {
                     "inform": InformMetric(),
-                    "success": SuccessMetric(),
+                    "success": SuccessMetric(slot_categories),
                 }
             )
         if response:

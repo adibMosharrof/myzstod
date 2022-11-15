@@ -57,8 +57,11 @@ class GoalMetric(TodMetricsBase):
             * SimpleTodBelief: it will calculate belief accuracy
     """
 
-    def __init__(self, config: GoalMetricConfig) -> None:
+    def __init__(
+        self, config: GoalMetricConfig, slot_categories: dict[str, bool]
+    ) -> None:
         super().__init__()
+        self.slot_categories = slot_categories
         self.all_accuracies = []
         self.joint_accuracies = []
         self.wrong_preds = {}
@@ -81,7 +84,8 @@ class GoalMetric(TodMetricsBase):
             if not len(target_txt_items):
                 continue
             target_items = [
-                self.config.tod_class.from_string(t) for t in target_txt_items
+                self.config.tod_class.from_string(t, self.slot_categories)
+                for t in target_txt_items
             ]
             if self.config.tod_class is SimpleTodBelief:
                 target_items = [t for t in target_items if t.values]
@@ -94,11 +98,11 @@ class GoalMetric(TodMetricsBase):
                 multiple_values=multiple_values,
             )
             pred_beliefs = [
-                self.config.tod_class.from_string(t) for t in pred_belief_txt_items
+                self.config.tod_class.from_string(t, self.slot_categories)
+                for t in pred_belief_txt_items
             ]
 
             turn_predictions = []
-            any_wrong_preds = False
             for t in target_items:
                 if t in pred_beliefs:
                     turn_predictions.append(1)
@@ -106,11 +110,12 @@ class GoalMetric(TodMetricsBase):
                 else:
                     turn_predictions.append(0)
                     self._log_prediction(ref=t, is_correct=False)
-                    any_wrong_preds = True
             self.joint_accuracies.append(
-                torch.tensor(0) if any_wrong_preds else torch.tensor(1)
+                torch.tensor(np.prod(turn_predictions)) if len(turn_predictions) else torch.tensor(0)
             )
-            self.all_accuracies.append(np.mean(turn_predictions))
+            self.all_accuracies.append(
+                np.mean(turn_predictions) if len(turn_predictions) else 0
+            )
 
     def _compute(self) -> float:
         return np.mean(self.all_accuracies), np.mean(self.joint_accuracies)

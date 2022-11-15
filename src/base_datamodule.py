@@ -71,7 +71,7 @@ class BaseDataModule:
 
     def contrastive_tokenizer(self, item):
         try:
-            tokens = self.cfg.contrastive_tokenizer(
+            tokens = self.cfg.tokenizer(
                 item,
                 return_tensors="pt",
                 padding="max_length",

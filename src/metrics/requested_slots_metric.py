@@ -1,3 +1,4 @@
+import random
 from sklearn.metrics import f1_score
 from dstc_dataclasses import DstcRequestedSlot
 from metrics.tod_metrics_base import TodMetricsBase
@@ -37,16 +38,20 @@ class RequestedSlotsMetric(TodMetricsBase):
             )
             pred_slots = [DstcRequestedSlot.from_string(t) for t in pred_txt_items]
 
-            if len(pred_slots) < len(target_slots):
-                diff = len(target_slots) - len(pred_slots)
-                pred_slots.extend(
-                    [
-                        DstcRequestedSlot(
-                            SpecialPredictions.DUMMY, SpecialPredictions.DUMMY
-                        )
-                        for _ in range(diff)
-                    ]
-                )
+            # if len(pred_slots) < len(target_slots):
+            #     diff = len(target_slots) - len(pred_slots)
+            #     pred_slots
+            #     pred_slots.extend(
+            #         [
+            #             DstcRequestedSlot(
+            #                 SpecialPredictions.DUMMY, SpecialPredictions.DUMMY
+            #             )
+            #             for _ in range(diff)
+            #         ]
+            #     )
+            if len(pred_slots) == 0 and len(target_slots) == 0:
+                self.all_preds.append(SpecialPredictions.DUMMY)
+                self.all_refs.append(SpecialPredictions.DUMMY)
 
             for i, slot in enumerate(target_slots):
                 if slot in pred_slots:
@@ -54,9 +59,15 @@ class RequestedSlotsMetric(TodMetricsBase):
                     self.all_refs.append(str(slot))
                     self._log_prediction(ref=slot, pred=slot, is_correct=True)
                 else:
-                    self.all_preds.append(str(pred_slots[i]))
+                    if not len(pred_slots):
+                        rand_pred = SpecialPredictions.DUMMY
+                    elif len(pred_slots) < i:
+                        rand_pred = str(pred_slots[i])
+                    else:
+                        rand_pred = str(random.choice(pred_slots))
+                    self.all_preds.append(rand_pred)
                     self.all_refs.append(str(slot))
-                    self._log_prediction(ref=slot, pred=pred_slots[i], is_correct=False)
+                    self._log_prediction(ref=slot, pred=rand_pred, is_correct=False)
 
     def _compute(self) -> float:
         return (

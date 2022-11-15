@@ -90,7 +90,7 @@ class TrainerConfig:
         self.train_batch_size = train_batch_size
         self.contrastive_train_batch_size = contrastive_train_batch_size
 
-        self.raw_data_root = raw_data_root
+        self.raw_data_root = self.project_root / raw_data_root
         self.test_prompt_max_len = test_prompt_max_len
         self.eval_accumulation_steps = eval_accumulation_steps
         self.is_multi_task = is_multi_task
@@ -151,8 +151,8 @@ class InferenceConfig:
         self.eval_batch_size = eval_batch_size
         self.test_batch_size = test_batch_size
         self.max_token_len = max_token_len
-        self.raw_data_root = raw_data_root
         self.project_root = Path(project_root)
+        self.raw_data_root = self.project_root / raw_data_root
         self.data_prep_out_root = data_prep_out_root
         self.num_test_dialogs = num_test_dialogs
         self.delexicalize = delexicalize
@@ -163,7 +163,6 @@ class InferenceConfig:
         self.num_turns = num_turns
         self.overwrite = overwrite or [False, False, False]
         self.out_dir = out_dir
-        self.tokenizer = tokenizer
         self.test_prompt_max_len = test_prompt_max_len
         self.predictions_log_dir = Path(predictions_log_dir)
         self.predictions_log_dir.mkdir(parents=True, exist_ok=True)
@@ -175,9 +174,7 @@ class InferenceConfig:
         self.should_add_sys_actions = should_add_sys_actions
         self.should_add_user_actions = should_add_user_actions
         self.logger = utils.get_logger()
-        self.tokenizer = (
-            self.tokenizer if self.tokenizer else self._get_tokenizer(model)
-        )
+        self.tokenizer = tokenizer if tokenizer else self._get_tokenizer(model)
         self.padding_regexp = re.compile(re.escape(SpecialTokens.pad_token))
         self.context_type = context_type
         self.should_add_service_results = should_add_service_results
@@ -186,7 +183,9 @@ class InferenceConfig:
     def _get_tokenizer(self, model_path_str: str):
         model_path: Path = self.project_root / model_path_str
         try:
-            tokenizer = AutoTokenizer.from_pretrained(model_path.parent.parent)
+            tokenizer = AutoTokenizer.from_pretrained(
+                model_path.parent.parent.parent / "tokenizer"
+            )
         except OSError:
             self.logger.info(
                 'Could not find tokenizer for model "{}"'.format(model_path)
@@ -392,7 +391,6 @@ class DataModuleConfig:
         contrastive_max_token_len: int = 512,
         context_type: str = ContextType.SHORT_REPR,
         should_add_service_results: bool = False,
-        contrastive_tokenizer: AutoTokenizer = None,
         should_add_dsts: bool = False,
     ):
         self.num_workers = num_workers
@@ -429,12 +427,12 @@ class DataModuleConfig:
         self.contrastive_max_token_len = contrastive_max_token_len
         self.context_type = context_type
         self.should_add_service_results = should_add_service_results
-        self.contrastive_tokenizer = contrastive_tokenizer
         self.should_add_dsts = should_add_dsts
 
     @classmethod
     def from_trainer_config(
-        self, trainer_config: TrainerConfig, contrastive_tokenizer: AutoTokenizer = None
+        self,
+        trainer_config: TrainerConfig,
     ) -> "DataModuleConfig":
         return self(
             num_workers=trainer_config.num_workers,
@@ -462,7 +460,6 @@ class DataModuleConfig:
             contrastive_max_token_len=trainer_config.contrastive_max_token_len,
             context_type=trainer_config.context_type,
             should_add_service_results=trainer_config.should_add_service_results,
-            contrastive_tokenizer=contrastive_tokenizer,
         )
 
     @classmethod
@@ -627,7 +624,9 @@ class ReconstructDialogConfig:
         self.csv_file_names = files
 
     @classmethod
-    def from_trainer_config(self, t_config: TrainerConfig) -> "ReconstructDialogConfig":
+    def from_inference_config(
+        self, t_config: InferenceConfig
+    ) -> "ReconstructDialogConfig":
         return self(
             project_root=t_config.project_root,
             raw_data_root=t_config.raw_data_root,

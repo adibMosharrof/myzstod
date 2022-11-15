@@ -18,9 +18,12 @@ class SimpleTodBelief:
     slot_name: str
     values: any
     prediction: Optional[str] = ""
+    is_categorical: Optional[bool] = None
 
     @classmethod
-    def from_string(self, text: str):
+    def from_string(
+        self, text: str, slot_categories: dict[str, bool] = None
+    ) -> "SimpleTodBelief":
         try:
             dom_slot, values_str = text.split(SimpleTodConstants.SLOT_VALUE_SEPARATOR)
             values = values_str.split(SimpleTodConstants.VALUE_SEPARATOR)
@@ -30,7 +33,10 @@ class SimpleTodBelief:
             domain, slot_name = dom_slot.split(SimpleTodConstants.DOMAIN_SLOT_SEPARATOR)
         except ValueError:
             return self("", "", values, text)
-        return self(domain, slot_name, values)
+        is_categorical = None
+        if slot_categories:
+            is_categorical = slot_categories[slot_name]
+        return self(domain, slot_name, values, is_categorical=is_categorical)
 
     def __repr__(self) -> str:
         return self.__str__()
@@ -46,6 +52,15 @@ class SimpleTodBelief:
             ]
         )
 
+    def __eq__(self, other: "SimpleTodBelief") -> bool:
+        return (
+            self.domain == other.domain
+            and self.slot_name == other.slot_name
+            and dstc_utils.get_slot_value_match_score(
+                self.values, other.values, self.is_categorical
+            )
+        )
+
 
 @dataclass
 class SimpleTodAction:
@@ -54,9 +69,12 @@ class SimpleTodAction:
     slot_name: Optional[str] = ""
     values: Optional[str] = ""
     prediction: Optional[str] = ""
+    is_categorical: Optional[bool] = None
 
     @classmethod
-    def from_string(self, text: str):
+    def from_string(
+        self, text: str, slot_categories: dict[str, bool] = None
+    ) -> "SimpleTodAction":
         try:
             action_type, rest = text.split(SimpleTodConstants.SLOT_VALUE_SEPARATOR)
         except ValueError:
@@ -69,7 +87,12 @@ class SimpleTodAction:
             domain, slot_name = dom_slot.split(SimpleTodConstants.DOMAIN_SLOT_SEPARATOR)
         except ValueError:
             return self("", action_type, values, text)
-        return self(domain, action_type, slot_name, values)
+        is_categorical = None
+        if slot_categories:
+            is_categorical = slot_categories[slot_name]
+        return self(
+            domain, action_type, slot_name, values, is_categorical=is_categorical
+        )
 
     def __eq__(self, other: "SimpleTodAction") -> bool:
         if isinstance(other, DstcRequestedSlot):
@@ -78,7 +101,9 @@ class SimpleTodAction:
             self.domain == other.domain
             and self.action_type == other.action_type
             and self.slot_name == other.slot_name
-            and self.values == other.values
+            and dstc_utils.get_slot_value_match_score(
+                self.values, other.values, self.is_categorical
+            )
         )
 
     def is_inform(self) -> bool:

@@ -1,3 +1,4 @@
+from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import List, Dict, Optional
@@ -5,7 +6,7 @@ from dataclasses_json import dataclass_json
 from enum import Enum
 import humps
 import dstc_utils
-from my_enums import Speaker, SpecialTokens, SimpleTodConstants
+from my_enums import Speaker, SpecialTokens, SimpleTodConstants, Steps
 import utils
 
 
@@ -241,3 +242,12 @@ def get_schemas(data_root: Path, step: str) -> Dict[str, DstcSchema]:
         schema.step = step
         schemas[schema.service_name] = schema
     return schemas
+
+
+def get_slot_categories(data_root: Path) -> dict[str, bool]:
+    schemas = get_schemas(data_root, Steps.TEST.value)
+    out = defaultdict(bool)
+    for s in schemas.values():
+        for slot in s.slots:
+            out[slot.name] = slot.is_categorical
+    return out

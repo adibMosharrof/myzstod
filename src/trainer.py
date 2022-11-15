@@ -14,16 +14,15 @@ from contrastive_dataclasses import ContrastiveTrainerHelper, ContrastiveTrainer
 from hydra_configs import (
     ContrastiveConfig,
     DataModuleConfig,
-    InferenceConfig,
-    ReconstructDialogConfig,
     TrainerConfig,
+    InferenceConfig,
 )
 from inference import Inference
 from my_datamodules import TodDataModule
 import os
 import warnings
-
-from reconstruct_dialog import ReconstructDialog
+import my_enums
+import dstc_utils
 
 warnings.filterwarnings("ignore")
 
@@ -41,11 +40,9 @@ class SimpleTODTrainer:
         model.resize_token_embeddings(len(self.cfg.tokenizer))
         model = model.cuda()
 
-        contrastive_tokenizer = self._setup_contrastive()
-
-        dm = TodDataModule(
-            DataModuleConfig.from_trainer_config(self.cfg, contrastive_tokenizer)
-        )
+        dm = TodDataModule(DataModuleConfig.from_trainer_config(self.cfg))
+        # self.cfg.tokenizer = dstc_utils.get_trained_tokenizer(self.cfg)
+        self._setup_contrastive()
         self.train(model, dm)
         print("Training done")
         print("-" * 80)
@@ -54,8 +51,6 @@ class SimpleTODTrainer:
                 InferenceConfig.from_trainer_config(self.cfg, model),
             )
             inf.test()
-            r = ReconstructDialog(ReconstructDialogConfig.from_trainer_config(self.cfg))
-            r.run()
 
     def _setup_contrastive(self) -> Optional[AutoTokenizer]:
         if not self.cfg.contrast_with:
@@ -137,7 +132,7 @@ class SimpleTODTrainer:
         trainer.train()
         trainer.save_model()
 
-        self.cfg.tokenizer.save_pretrained(self.cfg.out_dir)
+        # self.cfg.tokenizer.save_pretrained(self.cfg.out_dir)
         print("output_dir: ", os.getcwd())
 
 
