@@ -23,6 +23,7 @@ import os
 import warnings
 import my_enums
 import dstc_utils
+from sentence_transformers import SentenceTransformer
 
 warnings.filterwarnings("ignore")
 
@@ -56,7 +57,9 @@ class SimpleTODTrainer:
         if not self.cfg.contrast_with:
             return None
         if self.cfg.contrastive_model:
-            model_or_path = self.cfg.project_root / self.cfg.contrastive_model
+            model_or_path = SentenceTransformer(
+                self.cfg.project_root / self.cfg.contrastive_model
+            ).cuda()
         else:
             c = Contrastive(ContrastiveConfig.from_trainer_config(self.cfg))
             model_or_path = c.run()

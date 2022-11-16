@@ -142,9 +142,13 @@ class ContrastiveTrainer(Trainer):
         )
         att_mask = torch.zeros_like(input_ids, dtype=int, device="cuda")
         for i, r in enumerate(data):
-            row = r[r != pad_id]
-            input_ids[i, : len(row)] = row
-            att_mask[i, : len(row)] = 1
+            try:
+                row = r[r != pad_id]
+                input_ids[i, : len(row)] = row
+                att_mask[i, : len(row)] = 1
+            except:
+                input_ids[i] = pad_id
+                att_mask[i] = 0
         return {"input_ids": input_ids, "attention_mask": att_mask}
 
     def _get_text_from_tokens_qwe(
