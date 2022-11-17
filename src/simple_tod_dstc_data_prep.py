@@ -13,8 +13,8 @@ from my_enums import Steps, SimpleTodConstants
 import utils
 from pathos.multiprocessing import ProcessingPool as Pool
 
-from dstc_dataclasses import DstcDialog, DstcFrame, DstcSchema, DstcTurn,get_schemas
-from dstc_utils import get_csv_data_path, get_dialog_file_paths 
+from dstc_dataclasses import DstcDialog, DstcFrame, DstcSchema, DstcTurn, get_schemas
+from dstc_utils import get_csv_data_path, get_dialog_file_paths
 
 from simple_tod_dataclasses import (
     MultiTaskSpecialToken,
@@ -123,7 +123,6 @@ class SimpleTODDSTCDataPrep:
                 )
         return actions
 
-
     def _delexicalize_utterance(
         self, turn: DstcTurn, schemas: Dict[str, DstcSchema]
     ) -> str:
@@ -166,7 +165,9 @@ class SimpleTODDSTCDataPrep:
         actions = self._get_actions(system_turn)
         user_actions = self._get_actions(user_turn)
         response = self._prepare_response(system_turn, schemas)
-        return SimpleTodTarget(dsts=dsts, actions=actions, user_actions=user_actions, response=response)
+        return SimpleTodTarget(
+            dsts=dsts, actions=actions, user_actions=user_actions, response=response
+        )
 
     def _prepare_turn(
         self,
@@ -177,11 +178,13 @@ class SimpleTODDSTCDataPrep:
         services: list[str],
     ) -> SimpleTodTurn:
         turn_schemas = None
+        turn_schema_str = None
         if self.cfg.should_add_schema:
             turn_schemas = [schemas[s] for s in services]
+            turn_schema_str = "".join([str(s) for s in turn_schemas])
         context = self._prepare_context(user_turn, system_turn, prev_tod_turn, schemas)
         target = self._prepare_target(user_turn, system_turn, schemas)
-        return SimpleTodTurn(context, target, schemas=turn_schemas)
+        return SimpleTodTurn(context, target, schemas=turn_schemas, schema_str=turn_schema_str)
 
     def _is_dialogue_in_domain(self, dialogue_services: List[str]) -> bool:
         return all(ds in self.cfg.domains for ds in dialogue_services)
@@ -206,27 +209,17 @@ class SimpleTODDSTCDataPrep:
         self,
         schemas: list[DstcSchema],
         turn: SimpleTodTurn,
-        mtst: MultiTaskSpecialToken,
+        mtst: MultiTaskSpecialToken = None,
     ) -> str:
         if not schemas:
             return ""
-        # schema_str_list = [
-        #     SpecialTokens.schema_description + schema.description for schema in schemas
-        # ]
         schema_str = None
-        if mtst.prompt_token == SpecialTokens.prompt_dst:
-            # intents = [
-            #     intent
-            #     for schema in schemas
-            #     for intent in schema.intents
-            #     if intent.name == turn.active_intent
-            # ]
-            schema_str = "".join([schema.get_full_repr() for schema in turn.schemas])
-        elif mtst.prompt_token in [
+        if mtst and mtst.prompt_token in [
             SpecialTokens.prompt_action,
             SpecialTokens.prompt_response,
         ]:
             schema_str = "".join([schema.get_slot_repr() for schema in turn.schemas])
+        schema_str = "".join([schema.get_full_repr() for schema in turn.schemas])
         return schema_str
 
     def _prepare_multitask_dialog(self, turn: SimpleTodTurn) -> list[str]:
