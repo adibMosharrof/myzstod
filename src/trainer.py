@@ -8,6 +8,9 @@ from transformers import (
     Trainer,
     TrainingArguments,
     logging,
+    EarlyStoppingCallback,
+    IntervalStrategy,
+    GPT2Config,
 )
 from contrastive import Contrastive
 from contrastive_dataclasses import ContrastiveTrainerHelper, ContrastiveTrainer
@@ -36,8 +39,9 @@ class SimpleTODTrainer:
         self.cfg = trainer_config
 
     def run(self):
-
-        model = GPT2LMHeadModel.from_pretrained(self.cfg.model_name)
+        model_config = GPT2Config(n_layer=self.cfg.n_layer, n_head=self.cfg.n_head)
+        model = GPT2LMHeadModel(model_config).from_pretrained(self.cfg.model_name)
+        # model = GPT2LMHeadModel.from_pretrained(self.cfg.model_name)
         model.resize_token_embeddings(len(self.cfg.tokenizer))
         model = model.cuda()
 
@@ -93,6 +97,11 @@ class SimpleTODTrainer:
             train_dataset=dm.cfg.datasets["train"],
             eval_dataset=dm.cfg.datasets["dev"],
             data_collator=dm.training_collator,
+            callbacks=[
+                EarlyStoppingCallback(
+                    early_stopping_patience=self.cfg.early_stopping_patience
+                )
+            ],
         )
         return trainer
 
@@ -103,9 +112,11 @@ class SimpleTODTrainer:
             num_train_epochs=self.cfg.pretrain_epochs,
             logging_steps=self.cfg.logging_steps,
             load_best_model_at_end=True,
-            save_strategy="epoch",
-            save_total_limit=2,
-            evaluation_strategy="epoch",
+            save_strategy=IntervalStrategy.STEPS,
+            save_total_limit=5,
+            evaluation_strategy=IntervalStrategy.STEPS,
+            eval_steps=self.cfg.eval_steps,
+            metric_for_best_model="eval_loss",
             eval_accumulation_steps=self.cfg.eval_accumulation_steps,
             per_device_train_batch_size=self.cfg.train_batch_size,
             per_device_eval_batch_size=self.cfg.eval_batch_size,
@@ -123,6 +134,11 @@ class SimpleTODTrainer:
             train_dataset=dm.cfg.datasets["train"],
             eval_dataset=dm.cfg.datasets["dev"],
             data_collator=dm.pretraining_collator,
+            callbacks=[
+                EarlyStoppingCallback(
+                    early_stopping_patience=self.cfg.early_stopping_patience
+                )
+            ],
         )
         if not self.cfg.pretrain_model_path:
             pre_trainer.train()
