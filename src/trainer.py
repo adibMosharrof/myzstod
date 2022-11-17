@@ -2,6 +2,7 @@ from collections import defaultdict
 from typing import Optional
 from omegaconf import DictConfig
 import hydra
+import torch
 from transformers import (
     AutoModel,
     AutoTokenizer,
@@ -161,6 +162,7 @@ class SimpleTODTrainer:
         training_args.num_train_epochs = self.cfg.train_epochs
         # trainer = self._get_trainer(model_train, dm, training_args)
         trainer = self._get_trainer(model, dm, training_args)
+        torch.cuda.empty_cache()
         trainer.train()
         trainer.save_model()
 
