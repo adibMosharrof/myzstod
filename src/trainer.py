@@ -1,3 +1,4 @@
+from collections import defaultdict
 from typing import Optional
 from omegaconf import DictConfig
 import hydra
@@ -39,10 +40,20 @@ class SimpleTODTrainer:
         self.cfg = trainer_config
 
     def run(self):
-        model_config = GPT2Config(n_layer=self.cfg.n_layer, n_head=self.cfg.n_head)
-        model = GPT2LMHeadModel(model_config).from_pretrained(self.cfg.model_name)
-        # model = GPT2LMHeadModel.from_pretrained(self.cfg.model_name)
+        model_config = GPT2Config.from_pretrained(
+            self.cfg.model_name, output_hidden_states=True
+        )
+        model = GPT2LMHeadModel.from_pretrained(
+            self.cfg.model_name, config=model_config
+        )
         model.resize_token_embeddings(len(self.cfg.tokenizer))
+        heads_to_prune = defaultdict(list)
+        for layer in range(12):
+            for head in range(12):
+                if head < self.cfg.n_head and layer < self.cfg.n_layer:
+                    continue
+                heads_to_prune[layer].append(head)
+        model.prune_heads(heads_to_prune)
         model = model.cuda()
 
         dm = TodDataModule(DataModuleConfig.from_trainer_config(self.cfg))
