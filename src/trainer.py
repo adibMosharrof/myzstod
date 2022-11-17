@@ -156,10 +156,11 @@ class SimpleTODTrainer:
             pre_trainer.save_model()
         else:
             pretrain_out = self.cfg.project_root / self.cfg.pretrain_model_path
-        model_train = GPT2LMHeadModel.from_pretrained(pretrain_out)
+        # model_train = GPT2LMHeadModel.from_pretrained(pretrain_out)
         training_args.output_dir = str(self.cfg.out_dir / "train")
         training_args.num_train_epochs = self.cfg.train_epochs
-        trainer = self._get_trainer(model_train, dm, training_args)
+        # trainer = self._get_trainer(model_train, dm, training_args)
+        trainer = self._get_trainer(model, dm, training_args)
         trainer.train()
         trainer.save_model()
 
