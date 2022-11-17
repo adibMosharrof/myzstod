@@ -11,4 +11,11 @@
 #module load ccs/Miniconda3
 source ~/miniconda3/etc/profile.d/conda.sh
 conda activate ./envs
-time python src/trainer.py --config-name lcc_simple_tod_trainer 
+outdir=`time python src/trainer.py --config-name lcc_simple_tod_trainer`
+cd ../google-research
+
+conda activate schema_guided_dst/envs
+python -m schema_guided_dst.evaluate \
+--dstc8_data_dir /project/msi290_uksr/generative_tod/data/dstc8-schema-guided-dialogue \
+--prediction_dir $outdir/reconstruct/ --eval_set test \
+--output_metric_file $outdir/sgd_results.json

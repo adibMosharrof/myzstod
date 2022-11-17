@@ -44,7 +44,7 @@ class SimpleTODTrainer:
         dm = TodDataModule(DataModuleConfig.from_trainer_config(self.cfg))
         # self.cfg.tokenizer = dstc_utils.get_trained_tokenizer(self.cfg)
         self._setup_contrastive()
-        self.train(model, dm)
+        out_dir = self.train(model, dm)
         print("Training done")
         print("-" * 80)
         if self.cfg.should_test:
@@ -52,6 +52,7 @@ class SimpleTODTrainer:
                 InferenceConfig.from_trainer_config(self.cfg, model),
             )
             inf.test()
+        print(out_dir)
 
     def _setup_contrastive(self) -> Optional[AutoTokenizer]:
         if not self.cfg.contrast_with:
@@ -136,7 +137,9 @@ class SimpleTODTrainer:
         trainer.save_model()
 
         # self.cfg.tokenizer.save_pretrained(self.cfg.out_dir)
-        print("output_dir: ", os.getcwd())
+        out_dir = os.getcwd()
+        print("output_dir: ", out_dir)
+        return out_dir
 
 
 @hydra.main(config_path="../config/trainer/", config_name="simple_tod_trainer")

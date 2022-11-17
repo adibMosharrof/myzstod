@@ -103,7 +103,8 @@ class Inference:
         self.test()
         print("end inference")
         print("-" * 80)
-        print("output_dir: ", os.getcwd())
+        print("output_dir: ")
+        print(os.getcwd())
 
     def _get_generation(self, batch):
         # gen = self.cfg.model.generate(
