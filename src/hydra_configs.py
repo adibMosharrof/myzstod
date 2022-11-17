@@ -28,9 +28,13 @@ class TrainerConfig:
         tokenizer_name: str = "gpt2",
         num_workers: int = 8,
         data_split_percent: list[float] = None,
+        early_stopping_patience: int = 3,
+        eval_steps: int = 500,
         eval_batch_size: int = 6,
         test_batch_size: int = 32,
         train_batch_size: int = 8,
+        n_layer: int = 12,
+        n_head: int = 12,
         contrastive_train_batch_size: int = 100,
         num_dialogs: list[int] = None,
         delexicalize: bool = False,
@@ -68,8 +72,12 @@ class TrainerConfig:
         self.model_name = model_name
         self.num_workers = num_workers
         self.data_split_percent = data_split_percent or [1, 1, 1]
+        self.early_stopping_patience = early_stopping_patience
+        self.eval_steps = eval_steps
         self.eval_batch_size = eval_batch_size
         self.test_batch_size = test_batch_size
+        self.n_layer = n_layer
+        self.n_head = n_head
         self.max_token_len = max_token_len
         self.num_dialogs = num_dialogs or [20, 10, 17]
         self.delexicalize = delexicalize
