@@ -36,7 +36,7 @@ class Contrastive:
 
         contrastive_loss = losses.ContrastiveLoss(model)
         # cosine_loss = losses.CosineSimilarityLoss(model)
-        contrastive_tokens = self._get_start_end_tokens()
+        contrastive_tokens = self.get_start_end_tokens(self.cfg.contrast_with)
         eval_data = []
         train_data = []
         for tok in contrastive_tokens:
@@ -71,9 +71,10 @@ class Contrastive:
         )
         return model
 
-    def _get_start_end_tokens(self) -> list[ContrastiveTokens]:
+    @classmethod
+    def get_start_end_tokens(self, contrast_with) -> list[ContrastiveTokens]:
         tokens = []
-        for contrast in self.cfg.contrast_with:
+        for contrast in contrast_with:
             if contrast == ContrastiveConstants.NLG:
                 tokens.append(
                     ContrastiveTokens(

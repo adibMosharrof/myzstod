@@ -8,14 +8,26 @@ import dstc_utils
 import torch
 
 
+@dataclass
+class ContrastiveTokens:
+    a_start_token: SpecialTokens
+    a_end_token: SpecialTokens
+    a_multiple_values: bool
+    b_start_token: SpecialTokens
+    b_end_token: SpecialTokens
+    b_multiple_values: bool
+    contrast_with: str
+
+
 class ContrastiveTrainerHelper:
     tod_tokenizer: AutoTokenizer
     contrastive_model: SentenceTransformer
     token_map: dict[str, int]
     loss_model: None
     max_token_len: int = None
+    contrastive_tokens: list[ContrastiveTokens] = None
 
-    def __init__(self, model_or_path, tokenizer, max_token_len):
+    def __init__(self, model_or_path, tokenizer, max_token_len, contrastive_tokens):
         if isinstance(model_or_path, str):
             self.contrastive_model = SentenceTransformer(model_or_path)
         else:
@@ -35,6 +47,7 @@ class ContrastiveTrainerHelper:
         for token in special_tokens:
             self.token_map[token] = dstc_utils.get_token_id(tokenizer, token)
         self.loss_model = losses.CosineSimilarityLoss(self.contrastive_model)
+        self.contrastive_tokens = contrastive_tokens
 
 
 class ContrastiveTrainer(Trainer):
@@ -50,25 +63,27 @@ class ContrastiveTrainer(Trainer):
 
         # sys_act_tokens = self._get_text_from_tokens_qwe(
         # sys_feats = self._get_sys_feats(
-        sys_feats = self._get_text_from_tokens_asd(
-            preds,
-            self.contrastive_helper.token_map[SpecialTokens.begin_action],
-            self.contrastive_helper.token_map[SpecialTokens.end_action],
-            tok.pad_token_id,
-        )
+        contrastive_loss = 0
+        for contrast_tokens in self.contrastive_helper.contrastive_tokens:
+            sys_feats = self._get_text_from_tokens_asd(
+                preds,
+                self.contrastive_helper.token_map[contrast_tokens.a_start_token],
+                self.contrastive_helper.token_map[contrast_tokens.a_end_token],
+                tok.pad_token_id,
+            )
 
-        # user_feats = self._get_sys_feats(
-        user_feats = self._get_text_from_tokens_asd(
-            preds,
-            self.contrastive_helper.token_map[SpecialTokens.begin_user_action],
-            self.contrastive_helper.token_map[SpecialTokens.end_user_action],
-            tok.pad_token_id,
-        )
+            # user_feats = self._get_sys_feats(
+            user_feats = self._get_text_from_tokens_asd(
+                preds,
+                self.contrastive_helper.token_map[contrast_tokens.b_start_token],
+                self.contrastive_helper.token_map[contrast_tokens.b_end_token],
+                tok.pad_token_id,
+            )
 
-        labels = torch.ones([inputs["input_ids"].shape[0]], device="cuda")
-        contrastive_loss = self.contrastive_helper.loss_model(
-            [sys_feats, user_feats], labels
-        )
+            labels = torch.ones([inputs["input_ids"].shape[0]], device="cuda")
+            contrastive_loss += self.contrastive_helper.loss_model(
+                [sys_feats, user_feats], labels
+            )
         combined_loss = contrastive_loss + out.loss
         return (combined_loss, out.logits) if return_outputs else combined_loss
         # return (out.loss, out.logits) if return_outputs else out.loss
@@ -174,14 +189,3 @@ class ContrastiveTrainer(Trainer):
                 [torch.full([len(row)], 1), torch.full([row_length - len(row)], 0)]
             )
         return {"input_ids": input_ids, "attention_mask": att_mask}
-
-
-@dataclass
-class ContrastiveTokens:
-    a_start_token: SpecialTokens
-    a_end_token: SpecialTokens
-    a_multiple_values: bool
-    b_start_token: SpecialTokens
-    b_end_token: SpecialTokens
-    b_multiple_values: bool
-    contrast_with: str
