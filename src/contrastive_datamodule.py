@@ -40,6 +40,9 @@ class ContrastiveDataModule(BaseDataModule):
         )
         swap_neg_num = self.cfg.single_action_neg_samples if step == Steps.TRAIN else 1
         for item in self.cfg.datasets[step]:
+            if self.cfg.is_multi_task:
+                if SpecialTokens.prompt_action not in item.context:
+                    continue
             b_txt = dstc_utils.get_text_in_between(
                 item.target,
                 contrastive_tokens.b_start_token,

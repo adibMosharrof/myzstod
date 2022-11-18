@@ -32,6 +32,7 @@ class TodDataModule(BaseDataModule):
         attention_masks = []
         labels = []
         targets_text = []
+        mt_prompt_ids = []
         for item in batch:
             context_tokens = self.train_tokenizer(item.context)[0]
             target_tokens = self.train_tokenizer(item.target)[0]
@@ -49,7 +50,8 @@ class TodDataModule(BaseDataModule):
                 )
                 context_len = len(context_tokens)
                 unused_len = 0
-
+            if self.cfg.is_multi_task:
+                mt_prompt_ids.append(context_tokens[-1])
             pad = torch.full([unused_len], self.cfg.tokenizer.pad_token_id)
             input_tokens = torch.cat(
                 [schema_tokens, context_tokens, target_tokens, pad]
@@ -74,7 +76,7 @@ class TodDataModule(BaseDataModule):
                 ]
             )
             input_ids.append(input_tokens)
-            attention_masks.append(torch.tensor(attention_mask))
+            attention_masks.append(attention_mask)
             labels.append(label)
             targets_text.append(item.target)
 
@@ -83,6 +85,9 @@ class TodDataModule(BaseDataModule):
             "attention_mask": torch.stack(attention_masks),
             "labels": torch.stack(labels),
         }
+
+        if not is_pretrain and self.cfg.contrast_with and self.cfg.is_multi_task:
+            out["mt_prompt_token_ids"] = torch.tensor(mt_prompt_ids)
 
         return out
 

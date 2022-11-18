@@ -26,8 +26,11 @@ class ContrastiveTrainerHelper:
     loss_model: None
     max_token_len: int = None
     contrastive_tokens: list[ContrastiveTokens] = None
+    is_multitask = False
 
-    def __init__(self, model_or_path, tokenizer, max_token_len, contrastive_tokens):
+    def __init__(
+        self, model_or_path, tokenizer, max_token_len, contrastive_tokens, is_multitask
+    ):
         if isinstance(model_or_path, str):
             self.contrastive_model = SentenceTransformer(model_or_path)
         else:
@@ -40,6 +43,9 @@ class ContrastiveTrainerHelper:
             SpecialTokens.end_user_action,
             SpecialTokens.begin_action,
             SpecialTokens.end_action,
+            SpecialTokens.prompt_action,
+            SpecialTokens.prompt_response,
+            SpecialTokens.prompt_dst,
         ]
         self.max_token_len = max_token_len
 
@@ -48,10 +54,46 @@ class ContrastiveTrainerHelper:
             self.token_map[token] = dstc_utils.get_token_id(tokenizer, token)
         self.loss_model = losses.CosineSimilarityLoss(self.contrastive_model)
         self.contrastive_tokens = contrastive_tokens
+        self.is_multitask = is_multitask
 
 
 class ContrastiveTrainer(Trainer):
     contrastive_helper: ContrastiveTrainerHelper = None
+
+    def _get_contrastive_loss(
+        self,
+        preds: torch.IntTensor,
+        inputs: torch.IntTensor,
+        pad_id: int,
+    ) -> torch.FloatTensor:
+        contrastive_loss = 0
+        if self.contrastive_helper.is_multitask:
+            mt_tokens = inputs["mt_prompt_token_ids"]
+            act_indx = (
+                mt_tokens
+                == self.contrastive_helper.token_map[SpecialTokens.prompt_action]
+            )
+            preds = preds[act_indx]
+        for contrast_tokens in self.contrastive_helper.contrastive_tokens:
+            feats_a = self._get_text_from_tokens_asd(
+                preds,
+                self.contrastive_helper.token_map[contrast_tokens.a_start_token],
+                self.contrastive_helper.token_map[contrast_tokens.a_end_token],
+                pad_id,
+            )
+
+            feats_b = self._get_text_from_tokens_asd(
+                preds,
+                self.contrastive_helper.token_map[contrast_tokens.b_start_token],
+                self.contrastive_helper.token_map[contrast_tokens.b_end_token],
+                pad_id,
+            )
+
+            labels = torch.ones([preds.shape[0]], device="cuda")
+            contrastive_loss += self.contrastive_helper.loss_model(
+                [feats_a, feats_b], labels
+            )
+        return contrastive_loss
 
     def compute_loss(self, model, inputs, return_outputs=False):
         out = model(
@@ -63,27 +105,8 @@ class ContrastiveTrainer(Trainer):
 
         # sys_act_tokens = self._get_text_from_tokens_qwe(
         # sys_feats = self._get_sys_feats(
-        contrastive_loss = 0
-        for contrast_tokens in self.contrastive_helper.contrastive_tokens:
-            sys_feats = self._get_text_from_tokens_asd(
-                preds,
-                self.contrastive_helper.token_map[contrast_tokens.a_start_token],
-                self.contrastive_helper.token_map[contrast_tokens.a_end_token],
-                tok.pad_token_id,
-            )
+        contrastive_loss = self._get_contrastive_loss(preds, inputs, tok.pad_token_id)
 
-            # user_feats = self._get_sys_feats(
-            user_feats = self._get_text_from_tokens_asd(
-                preds,
-                self.contrastive_helper.token_map[contrast_tokens.b_start_token],
-                self.contrastive_helper.token_map[contrast_tokens.b_end_token],
-                tok.pad_token_id,
-            )
-
-            labels = torch.ones([inputs["input_ids"].shape[0]], device="cuda")
-            contrastive_loss += self.contrastive_helper.loss_model(
-                [sys_feats, user_feats], labels
-            )
         combined_loss = contrastive_loss + out.loss
         return (combined_loss, out.logits) if return_outputs else combined_loss
         # return (out.loss, out.logits) if return_outputs else out.loss

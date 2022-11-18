@@ -85,6 +85,7 @@ class SimpleTODTrainer:
             self.cfg.tokenizer,
             self.cfg.contrastive_max_token_len,
             Contrastive.get_start_end_tokens(self.cfg.contrast_with),
+            self.cfg.is_multi_task,
         )
         return self.contrastive_helper.contrastive_model.tokenizer
 

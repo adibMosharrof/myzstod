@@ -298,8 +298,8 @@ class TodTurnCsvRow:
 
 @dataclass
 class MultiTaskSpecialToken:
-    start_token: SpecialTokens
-    end_token: SpecialTokens
+    start_tokens: list[SpecialTokens]
+    end_tokens: list[SpecialTokens]
     prompt_token: SpecialTokens
 
 
@@ -438,18 +438,18 @@ class InferenceRecords:
 def get_multi_task_special_tokens() -> list[MultiTaskSpecialToken]:
     return [
         MultiTaskSpecialToken(
-            SpecialTokens.begin_dsts,
-            SpecialTokens.end_dsts,
+            [SpecialTokens.begin_dsts],
+            [SpecialTokens.end_dsts],
             SpecialTokens.prompt_dst,
         ),
         MultiTaskSpecialToken(
-            SpecialTokens.begin_action,
-            SpecialTokens.end_action,
+            [SpecialTokens.begin_action, SpecialTokens.begin_user_action],
+            [SpecialTokens.end_action, SpecialTokens.end_user_action],
             SpecialTokens.prompt_action,
         ),
         MultiTaskSpecialToken(
-            SpecialTokens.begin_response,
-            SpecialTokens.end_response,
+            [SpecialTokens.begin_response],
+            [SpecialTokens.end_response],
             SpecialTokens.prompt_response,
         ),
     ]

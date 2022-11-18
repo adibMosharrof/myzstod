@@ -184,23 +184,28 @@ class SimpleTODDSTCDataPrep:
             turn_schema_str = "".join([str(s) for s in turn_schemas])
         context = self._prepare_context(user_turn, system_turn, prev_tod_turn, schemas)
         target = self._prepare_target(user_turn, system_turn, schemas)
-        return SimpleTodTurn(context, target, schemas=turn_schemas, schema_str=turn_schema_str)
+        return SimpleTodTurn(
+            context, target, schemas=turn_schemas, schema_str=turn_schema_str
+        )
 
     def _is_dialogue_in_domain(self, dialogue_services: List[str]) -> bool:
         return all(ds in self.cfg.domains for ds in dialogue_services)
 
-    def _extract_from_target(self, target: str, start_token: str, end_token: str):
-        try:
-            start_index = target.index(start_token)
-            end_index = target.index(end_token)
-        except ValueError:
-            raise ValueError(
-                f"could not find start or end token in target, {start_token}, {end_token}"
-            )
+    def _extract_from_target(
+        self, target: str, start_tokens: list[str], end_tokens: list[str]
+    ):
+        texts = []
+        for start_token, end_token in zip(start_tokens, end_tokens):
+            try:
+                start_index = target.index(start_token)
+                end_index = target.index(end_token)
+                texts.append(target[start_index : end_index + len(end_token)]),
+            except ValueError:
+                texts.append("")
         return "".join(
             [
                 SpecialTokens.begin_target,
-                target[start_index : end_index + len(end_token)],
+                "".join(texts),
                 SpecialTokens.end_target,
             ]
         )
@@ -231,12 +236,9 @@ class SimpleTODDSTCDataPrep:
         ):
             if not should_perform_task:
                 continue
-            try:
-                text = self._extract_from_target(
-                    str(turn.target), mtst.start_token, mtst.end_token
-                )
-            except ValueError:
-                continue
+            text = self._extract_from_target(
+                str(turn.target), mtst.start_tokens, mtst.end_tokens
+            )
             row = SimpleTodTurn(
                 dialog_id=turn.dialog_id,
                 turn_id=turn.turn_id,
