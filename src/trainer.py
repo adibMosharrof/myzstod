@@ -31,6 +31,7 @@ import dstc_utils
 from sentence_transformers import SentenceTransformer
 
 warnings.filterwarnings("ignore")
+os.environ["NCCL_DEBUG"] = "INFO"
 
 
 class SimpleTODTrainer:
