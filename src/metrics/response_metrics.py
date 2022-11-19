@@ -4,13 +4,14 @@ import evaluate
 from torchmetrics.text.rouge import ROUGEScore
 from torchmetrics import BLEUScore
 import torch
+import uuid
 
 
 class ResponseMetric(TodMetricsBase):
     def __init__(self, metric_name="bleu", metric_key_name=None) -> None:
         super().__init__()
         self.metric_name = metric_name
-        self.metric = evaluate.load(metric_name, experiment_id=metric_name)
+        self.metric = evaluate.load(metric_name, experiment_id=str(uuid.uuid4()))
         # self.metric = (
         #     ROUGEScore() if metric_name == ResponseMetricType.ROUGE else BLEUScore()
         # )
