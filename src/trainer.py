@@ -63,10 +63,10 @@ class SimpleTODTrainer:
         current_dir = os.getcwd()
         dm = TodDataModule(DataModuleConfig.from_trainer_config(self.cfg))
         # self.cfg.tokenizer = dstc_utils.get_trained_tokenizer(self.cfg)
-        self._setup_contrastive()
-        self.print_cuda_info("contrastive model created")
         pretrained_model_path = self.pretrain_model(dm)
         self.print_cuda_info("after pretrain")
+        self._setup_contrastive()
+        self.print_cuda_info("contrastive model created")
         out_dir = self.train_model(pretrained_model_path, dm)
         full_out_dir = str(Path(current_dir) / out_dir)
         self.print_cuda_info("after train")
@@ -130,7 +130,9 @@ class SimpleTODTrainer:
         )
         return trainer
 
-    def _get_training_args(self, step_name: str, epochs: int) -> TrainingArguments:
+    def _get_training_args(
+        self, step_name: str, epochs: int, train_batch_size: int
+    ) -> TrainingArguments:
         return TrainingArguments(
             output_dir=str(self.cfg.out_dir / step_name),
             num_train_epochs=epochs,
@@ -142,7 +144,7 @@ class SimpleTODTrainer:
             eval_steps=self.cfg.eval_steps,
             metric_for_best_model="eval_loss",
             eval_accumulation_steps=self.cfg.eval_accumulation_steps,
-            per_device_train_batch_size=self.cfg.train_batch_size,
+            per_device_train_batch_size=train_batch_size,
             per_device_eval_batch_size=self.cfg.eval_batch_size,
             warmup_steps=100,
             weight_decay=0.01,
@@ -154,7 +156,9 @@ class SimpleTODTrainer:
     def pretrain_model(self, dm: TodDataModule) -> str:
         if self.cfg.pretrain_model_path:
             return GPT2LMHeadModel.from_pretrained(self.cfg.pretrain_model_path)
-        training_args = self._get_training_args("pretrain", self.cfg.pretrain_epochs)
+        training_args = self._get_training_args(
+            "pretrain", self.cfg.pretrain_epochs, self.cfg.pretrain_batch_size
+        )
         model = GPT2LMHeadModel.from_pretrained(self.cfg.model_name)
         model.resize_token_embeddings(len(self.cfg.tokenizer))
         pre_trainer = Trainer(
@@ -175,7 +179,9 @@ class SimpleTODTrainer:
 
     def train_model(self, path, dm) -> str:
         model = GPT2LMHeadModel.from_pretrained(path)
-        training_args = self._get_training_args("train", self.cfg.train_epochs)
+        training_args = self._get_training_args(
+            "train", self.cfg.train_epochs, self.cfg.train_batch_size
+        )
         trainer = self._get_trainer(model, dm, training_args)
         trainer.train()
         trainer.save_model()

@@ -50,7 +50,7 @@ class Contrastive:
         )
         train_dl = DataLoader(
             train_data_all,
-            batch_size=self.cfg.train_batch_size,
+            batch_size=self.cfg.contrastive_train_batch_size,
             shuffle=True,
             pin_memory=True,
             num_workers=self.cfg.num_workers,

@@ -34,6 +34,7 @@ class TrainerConfig:
         eval_batch_size: int = 6,
         test_batch_size: int = 32,
         train_batch_size: int = 8,
+        pretrain_batch_size: int = 8,
         n_layer: int = 12,
         n_head: int = 12,
         contrastive_train_batch_size: int = 100,
@@ -98,7 +99,7 @@ class TrainerConfig:
         self.logging_steps = logging_steps
         self.train_batch_size = train_batch_size
         self.contrastive_train_batch_size = contrastive_train_batch_size
-
+        self.pretrain_batch_size = pretrain_batch_size
         self.raw_data_root = self.project_root / raw_data_root
         self.test_prompt_max_len = test_prompt_max_len
         self.eval_accumulation_steps = eval_accumulation_steps
@@ -290,7 +291,7 @@ class ContrastiveConfig:
         data_split_percent: list[float] = None,
         eval_batch_size: int = 6,
         test_batch_size: int = 32,
-        train_batch_size: int = 8,
+        contrastive_train_batch_size: int = 8,
         num_dialogs: list[int] = None,
         num_turns: int = 10,
         num_workers: int = 8,
@@ -317,7 +318,7 @@ class ContrastiveConfig:
         self.data_split_percent = data_split_percent or [1, 1, 1]
         self.eval_batch_size = eval_batch_size
         self.test_batch_size = test_batch_size
-        self.train_batch_size = train_batch_size
+        self.contrastive_train_batch_size = contrastive_train_batch_size
         self.num_dialogs = num_dialogs or [20, 5, 10]
         self.num_turns = num_turns
         self.num_workers = num_workers
@@ -364,7 +365,7 @@ class ContrastiveConfig:
             contrast_with=trainer_cfg.contrast_with,
             single_action_neg_samples=trainer_cfg.single_action_neg_samples,
             train_epochs=trainer_cfg.contrastive_train_epochs,
-            train_batch_size=trainer_cfg.contrastive_train_batch_size,
+            contrastive_train_batch_size=trainer_cfg.contrastive_train_batch_size,
         )
 
 
@@ -528,7 +529,7 @@ class DataModuleConfig:
             project_root=c_config.project_root,
             data_prep_out_root=c_config.data_prep_out_root,
             raw_data_root=c_config.raw_data_root,
-            batch_size=c_config.train_batch_size,
+            batch_size=c_config.contrastive_train_batch_size,
             eval_batch_size=c_config.eval_batch_size,
             test_batch_size=c_config.test_batch_size,
             num_dialogs=c_config.num_dialogs,
