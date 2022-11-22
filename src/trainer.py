@@ -1,4 +1,5 @@
 from collections import defaultdict
+from pathlib import Path
 from typing import Optional
 from omegaconf import DictConfig
 import hydra
@@ -41,35 +42,44 @@ class SimpleTODTrainer:
     ) -> None:
         self.cfg = trainer_config
 
-    def run(self):
-        model_config = GPT2Config.from_pretrained(
-            self.cfg.model_name, output_hidden_states=True
-        )
-        model = GPT2LMHeadModel.from_pretrained(
-            self.cfg.model_name, config=model_config
-        )
-        model.resize_token_embeddings(len(self.cfg.tokenizer))
-        heads_to_prune = defaultdict(list)
-        for layer in range(12):
-            for head in range(12):
-                if head < self.cfg.n_head and layer < self.cfg.n_layer:
-                    continue
-                heads_to_prune[layer].append(head)
-        model.prune_heads(heads_to_prune)
-        model = model.cuda()
+    def print_cuda_info(self, step=""):
+        if step:
+            print(f"Step: {step}")
+        print(torch.cuda.memory_allocated() / 1024**2)
+        print(torch.cuda.memory_cached() / 1024**2)
 
+    def run(self):
+        self.print_cuda_info("init")
+        # model = GPT2LMHeadModel.from_pretrained(self.cfg.model_name)
+        # model.resize_token_embeddings(len(self.cfg.tokenizer))
+        # heads_to_prune = defaultdict(list)
+        # for layer in range(12):
+        #     for head in range(12):
+        #         if head < self.cfg.n_head and layer < self.cfg.n_layer:
+        #             continue
+        #         heads_to_prune[layer].append(head)
+        # model.prune_heads(heads_to_prune)
+        # model = model.cuda()
+        current_dir = os.getcwd()
         dm = TodDataModule(DataModuleConfig.from_trainer_config(self.cfg))
         # self.cfg.tokenizer = dstc_utils.get_trained_tokenizer(self.cfg)
         self._setup_contrastive()
-        out_dir = self.train(model, dm)
+        self.print_cuda_info("contrastive model created")
+        pretrained_model_path = self.pretrain_model(dm)
+        self.print_cuda_info("after pretrain")
+        out_dir = self.train_model(pretrained_model_path, dm)
+        full_out_dir = str(Path(current_dir) / out_dir)
+        self.print_cuda_info("after train")
+        # out_dir = self.train(model, dm)
         print("Training done")
         print("-" * 80)
         if self.cfg.should_test:
             inf = Inference(
-                InferenceConfig.from_trainer_config(self.cfg, model),
+                # InferenceConfig.from_trainer_config(self.cfg, model),
+                InferenceConfig.from_trainer_config(self.cfg, full_out_dir),
             )
             inf.test()
-        print(out_dir)
+        print(full_out_dir)
 
     def _setup_contrastive(self) -> Optional[AutoTokenizer]:
         if not self.cfg.contrast_with:
@@ -120,6 +130,59 @@ class SimpleTODTrainer:
         )
         return trainer
 
+    def _get_training_args(self, step_name: str, epochs: int) -> TrainingArguments:
+        return TrainingArguments(
+            output_dir=str(self.cfg.out_dir / step_name),
+            num_train_epochs=epochs,
+            logging_steps=self.cfg.logging_steps,
+            load_best_model_at_end=True,
+            save_strategy=IntervalStrategy.STEPS,
+            save_total_limit=5,
+            evaluation_strategy=IntervalStrategy.STEPS,
+            eval_steps=self.cfg.eval_steps,
+            metric_for_best_model="eval_loss",
+            eval_accumulation_steps=self.cfg.eval_accumulation_steps,
+            per_device_train_batch_size=self.cfg.train_batch_size,
+            per_device_eval_batch_size=self.cfg.eval_batch_size,
+            warmup_steps=100,
+            weight_decay=0.01,
+            logging_dir=self.cfg.logging_dir,
+            dataloader_num_workers=self.cfg.num_workers,
+            dataloader_pin_memory=True,
+        )
+
+    def pretrain_model(self, dm: TodDataModule) -> str:
+        if self.cfg.pretrain_model_path:
+            return GPT2LMHeadModel.from_pretrained(self.cfg.pretrain_model_path)
+        training_args = self._get_training_args("pretrain", self.cfg.pretrain_epochs)
+        model = GPT2LMHeadModel.from_pretrained(self.cfg.model_name)
+        model.resize_token_embeddings(len(self.cfg.tokenizer))
+        pre_trainer = Trainer(
+            model=model,
+            args=training_args,
+            train_dataset=dm.cfg.datasets["train"],
+            eval_dataset=dm.cfg.datasets["dev"],
+            data_collator=dm.pretraining_collator,
+            callbacks=[
+                EarlyStoppingCallback(
+                    early_stopping_patience=self.cfg.early_stopping_patience
+                )
+            ],
+        )
+        pre_trainer.train()
+        pre_trainer.save_model()
+        return training_args.output_dir
+
+    def train_model(self, path, dm) -> str:
+        model = GPT2LMHeadModel.from_pretrained(path)
+        training_args = self._get_training_args("train", self.cfg.train_epochs)
+        trainer = self._get_trainer(model, dm, training_args)
+        trainer.train()
+        trainer.save_model()
+        out_dir = os.getcwd()
+        print("training output_dir: ", out_dir)
+        return training_args.output_dir
+
     def train(self, model: GPT2LMHeadModel, dm: TodDataModule):
         pretrain_out = str(self.cfg.out_dir / "pretrain")
         training_args = TrainingArguments(
@@ -161,14 +224,15 @@ class SimpleTODTrainer:
         else:
             pretrain_out = self.cfg.project_root / self.cfg.pretrain_model_path
         # model_train = GPT2LMHeadModel.from_pretrained(pretrain_out)
+        self.print_cuda_info("pretrained model created")
         training_args.output_dir = str(self.cfg.out_dir / "train")
         training_args.num_train_epochs = self.cfg.train_epochs
         # trainer = self._get_trainer(model_train, dm, training_args)
         trainer = self._get_trainer(model, dm, training_args)
-        torch.cuda.empty_cache()
+        # torch.cuda.empty_cache()
         trainer.train()
         trainer.save_model()
-
+        self.print_cuda_info("trained model created")
         # self.cfg.tokenizer.save_pretrained(self.cfg.out_dir)
         out_dir = os.getcwd()
         print("output_dir: ", out_dir)
