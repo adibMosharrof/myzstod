@@ -32,7 +32,7 @@ import dstc_utils
 from sentence_transformers import SentenceTransformer
 
 warnings.filterwarnings("ignore")
-os.environ["NCCL_DEBUG"] = "INFO"
+# os.environ["NCCL_DEBUG"] = "INFO"
 
 
 class SimpleTODTrainer:
@@ -67,6 +67,8 @@ class SimpleTODTrainer:
         self.print_cuda_info("after pretrain")
         self._setup_contrastive()
         self.print_cuda_info("contrastive model created")
+        torch.cuda.empty_cache()
+        self.print_cuda_info("empty cache before training")
         out_dir = self.train_model(pretrained_model_path, dm)
         full_out_dir = str(Path(current_dir) / out_dir)
         self.print_cuda_info("after train")
@@ -155,7 +157,7 @@ class SimpleTODTrainer:
 
     def pretrain_model(self, dm: TodDataModule) -> str:
         if self.cfg.pretrain_model_path:
-            return GPT2LMHeadModel.from_pretrained(self.cfg.pretrain_model_path)
+            return GPT2LMHeadModel.from_pretrained(str(self.cfg.project_root/self.cfg.pretrain_model_path))
         training_args = self._get_training_args(
             "pretrain", self.cfg.pretrain_epochs, self.cfg.pretrain_batch_size
         )
