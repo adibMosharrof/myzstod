@@ -2,6 +2,7 @@ import glob
 import re
 from pathlib import Path
 from typing import List, Optional, Union, Dict
+import numpy as np
 import pandas as pd
 from transformers import AutoTokenizer, PreTrainedTokenizerFast
 import os
@@ -146,6 +147,25 @@ def get_text_in_between(
         return items
     except ValueError:
         return default_value
+
+
+def extract_section_and_split_items_from_text(
+    text: str,
+    start_token: str,
+    end_token: str,
+    separator: str = SimpleTodConstants.ITEM_SEPARATOR,
+    default_value: any = [],
+    multiple_values: bool = False,
+) -> np.ndarray:
+    section_txts = get_text_in_between(
+        text, start_token, end_token, default_value, multiple_values=multiple_values
+    )
+    if not section_txts:
+        return default_value
+    if type(section_txts) == list:
+        out = [st.split(separator) for st in section_txts]
+        return np.concatenate(out, axis=0, dtype=str)
+    return np.array(section_txts.split(separator), dtype=str)
 
 
 def remove_tokens_from_text(text: str, tokens: List[str]) -> str:
