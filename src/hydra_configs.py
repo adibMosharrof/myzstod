@@ -193,9 +193,12 @@ class InferenceConfig:
     def _get_tokenizer(self, model_path_str: str):
         model_path: Path = self.project_root / model_path_str
         try:
-            tokenizer = AutoTokenizer.from_pretrained(
-                model_path.parent.parent.parent / "tokenizer"
-            )
+            # with specifig checkpoint number (results/train/checkpoint-1000)
+            tok_path = model_path.parent.parent.parent / "tokenizer"
+            # checkpoint not provided (results/train)
+            if not tok_path.exists():
+                tok_path = model_path.parent.parent / "tokenizer"
+            tokenizer = AutoTokenizer.from_pretrained(tok_path)
         except OSError:
             self.logger.info(
                 'Could not find tokenizer for model "{}"'.format(model_path)
