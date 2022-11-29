@@ -41,7 +41,7 @@ class DstcDomains(list[str], Enum):
         "Alarm",
         "Messaging",
         "Payment",
-        "Train",
+        "Trains",
     ]
     ALL = SEEN + UNSEEN
 

@@ -3,14 +3,25 @@ from typing import Optional
 import hydra
 from omegaconf import DictConfig
 from tqdm import tqdm
-from dstc_dataclasses import DstcAction, DstcDialog, DstcFrame, DstcState, DstcTurn
+from dstc_dataclasses import (
+    DstcAction,
+    DstcDialog,
+    DstcFrame,
+    DstcRequestedSlot,
+    DstcState,
+    DstcTurn,
+)
 from hydra_configs import ReconstructDialogConfig
 import pandas as pd
 from simple_tod_dataclasses import SimpleTodAction, SimpleTodBelief
 import utils
 from my_enums import SimpleTodConstants, Speaker, SpecialTokens, Steps
 import json
-from dstc_utils import get_text_in_between
+from dstc_utils import (
+    extract_section_and_split_items_from_text,
+    get_text_in_between,
+    get_dstc_service_name,
+)
 import humps
 from itertools import cycle
 
@@ -53,17 +64,18 @@ class ReconstructDialog:
         active_intent = get_text_in_between(
             dst, SpecialTokens.begin_intent, SpecialTokens.end_intent, default_value=""
         )
-        requested_slots_txt = get_text_in_between(
+        requested_slots_txt_items = extract_section_and_split_items_from_text(
             dst,
             SpecialTokens.begin_requested_slots,
             SpecialTokens.end_requested_slots,
             default_value="",
         )
         requested_slots = []
-        if requested_slots_txt:
-            requested_slots = requested_slots_txt.split(
-                SimpleTodConstants.ITEM_SEPARATOR
-            )
+        if len(requested_slots_txt_items) > 0:
+            requested_slots = [
+                DstcRequestedSlot.from_string(t).slot_name
+                for t in requested_slots_txt_items
+            ]
 
         beliefs_str = get_text_in_between(
             dst, SpecialTokens.begin_belief, SpecialTokens.end_belief, default_value=""
@@ -95,10 +107,12 @@ class ReconstructDialog:
         frames = []
         for i, gt_frame in enumerate(gt_user_turn.frames):
             # for dst, gt_frame in zip(cycle(dsts), gt_user_turn.frames):
-            try:
-                dst = dsts[i]
-            except IndexError:
-                dst = ""
+            dst = ""
+            for d in dsts:
+                if get_dstc_service_name(gt_frame.service) in d:
+                    dst = d
+                    break
+
             frame = DstcFrame(
                 state=self._get_user_state(dst),
                 actions=[],
