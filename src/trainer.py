@@ -157,7 +157,9 @@ class SimpleTODTrainer:
 
     def pretrain_model(self, dm: TodDataModule) -> str:
         if self.cfg.pretrain_model_path:
-            return GPT2LMHeadModel.from_pretrained(str(self.cfg.project_root/self.cfg.pretrain_model_path))
+            path = self.cfg.project_root/self.cfg.pretrain_model_path
+            if path.exists():
+                return str(path)
         training_args = self._get_training_args(
             "pretrain", self.cfg.pretrain_epochs, self.cfg.pretrain_batch_size
         )
@@ -177,7 +179,7 @@ class SimpleTODTrainer:
         )
         pre_trainer.train()
         pre_trainer.save_model()
-        return training_args.output_dir
+        return str(self.cfg.project_root/training_args.output_dir)
 
     def train_model(self, path, dm) -> str:
         model = GPT2LMHeadModel.from_pretrained(path)
