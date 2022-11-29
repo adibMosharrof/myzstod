@@ -285,7 +285,7 @@ class ContrastiveConfig:
         project_root: str = "/mounts/u-amo-d0/grad/adibm/projects/generative_tod/",
         data_prep_out_root: str = "processed_data/simple_tod",
         raw_data_root: str = "data/dstc8-schema-guided-dialogue/",
-        contrastive_model_name: str = "sentence-transformers/stsb-roberta-base-v2",
+        contrastive_model_name: str = "sentence-transformers/stsb-distilroberta-base-v2",
         tokenizer_name: str = "gpt2",
         model: str = None,
         data_split_percent: list[float] = None,
