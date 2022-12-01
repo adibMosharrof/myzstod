@@ -13,7 +13,10 @@ class ResponseMetric(TodMetricsBase):
         self.metric_name = metric_name
         # self.metric = evaluate.load(metric_name, experiment_id=str(uuid.uuid4()))
         self.metric = (
-            ROUGEScore() if metric_name == ResponseMetricType.ROUGE else BLEUScore()
+            # ROUGEScore() if metric_name == ResponseMetricType.ROUGE else BLEUScore()
+            ROUGEScore()
+            if metric_name == ResponseMetricType.ROUGE
+            else evaluate.load(metric_name)
         )
         self.metric_key_name = metric_key_name or metric_name
         # self.add_state("pred_responses", [], dist_reduce_fx="cat")
@@ -41,25 +44,26 @@ class ResponseMetric(TodMetricsBase):
             # target_responses_batch.append(target_response)
             pred_responses_batch.append(pred_response)
             target_responses_batch.append([target_response])
-            # self.metric.add_batch(
-            #     predictions=pred_responses_batch, references=target_responses_batch
-            # )
-        self.metric.update(pred_response, target_response)
+        if self.metric_name == ResponseMetricType.BLEU:
+            self.metric.add_batch(
+                predictions=pred_responses_batch, references=target_responses_batch
+            )
+        else:
+            self.metric.update(pred_response, target_response)
 
     def _compute(self) -> float:
-        # try:
-        #     res = self.metric.compute(
-        #         # predictions=self.pred_responses, references=self.target_responses
-        #     )[self.metric_key_name]
-        # except ZeroDivisionError:
-        #     res = 0.0
-        # if self.metric_name == "rouge":
-        #     return res.mid.fmeasure
-        # return res
+        try:
+            res = self.metric.compute(
+                # predictions=self.pred_responses, references=self.target_responses
+            )[self.metric_key_name]
+        except ZeroDivisionError:
+            res = 0.0
+        return res
         out = self.metric.compute()
         if self.metric_name == ResponseMetricType.ROUGE:
-            return out["rouge1_fmeasure"]
-        return out
+            return out["rouge2_fmeasure"]
+        return out[self.metric_key_name]
+        # return out
 
     def __str__(self) -> str:
         score = self.compute()
