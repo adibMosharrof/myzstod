@@ -187,7 +187,7 @@ class Inference:
                 {
                     "response_bleu": ResponseMetric(metric_name="bleu"),
                     "response_rouge": ResponseMetric(
-                        metric_name="rouge", metric_key_name="rouge2"
+                        metric_name="rouge", metric_key_name="rouge2_fmeasure"
                     ),
                 }
             )

@@ -7,7 +7,6 @@ from datasets import Dataset
 from transformers import AutoTokenizer, GPT2LMHeadModel, GPT2PreTrainedModel
 
 import dstc_utils
-from simple_tod_dataclasses import TodTurnCsvRow
 import utils
 from my_enums import (
     ContextType,
@@ -419,7 +418,7 @@ class DataModuleConfig:
         self.test_prompt_max_len = test_prompt_max_len
         self.num_dialogs = num_dialogs
         self.dataset_name = dataset_name
-        self.datasets: Dict[str, list[TodTurnCsvRow]] = {}
+        self.datasets: any = {}
         self.tokenizer = tokenizer or dstc_utils.get_tokenizer()
         self.delexicalize = delexicalize
         self.overwrite = overwrite or [False] * len(Steps)
