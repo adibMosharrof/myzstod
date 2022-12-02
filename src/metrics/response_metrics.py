@@ -1,3 +1,4 @@
+import numpy as np
 from metrics.tod_metrics_base import TodMetricsBase
 from my_enums import ResponseMetricType, SpecialTokens
 import evaluate
@@ -5,6 +6,7 @@ from torchmetrics.text.rouge import ROUGEScore
 from torchmetrics import BLEUScore
 import torch
 import uuid
+from sacrebleu.metrics import BLEU
 
 
 class ResponseMetric(TodMetricsBase):
@@ -16,11 +18,13 @@ class ResponseMetric(TodMetricsBase):
             # ROUGEScore() if metric_name == ResponseMetricType.ROUGE else BLEUScore()
             ROUGEScore()
             if metric_name == ResponseMetricType.ROUGE
-            else evaluate.load(metric_name)
+            else evaluate.load("google_bleu")
+            # else BLEU()
+            # else BLEUScore()
         )
         self.metric_key_name = metric_key_name or metric_name
-        # self.add_state("pred_responses", [], dist_reduce_fx="cat")
-        # self.add_state("target_responses", [], dist_reduce_fx="cat")
+        self.add_state("pred_responses", [], dist_reduce_fx="cat")
+        self.add_state("target_responses", [], dist_reduce_fx="cat")
 
     def _update(self, predictions: list[str], references: list[str]) -> None:
         pred_responses_batch = []
@@ -48,9 +52,13 @@ class ResponseMetric(TodMetricsBase):
             self.metric.add_batch(
                 predictions=pred_responses_batch, references=target_responses_batch
             )
+            # self.pred_responses.append(pred_responses_batch)
+            # self.target_responses.append(target_responses_batch)
+            # self.metric.update(pred_response, target_response)
         else:
             self.metric.update(pred_response, target_response)
 
+    # def _compute_old(self) -> float:
     def _compute(self) -> float:
         try:
             res = self.metric.compute(
@@ -64,6 +72,14 @@ class ResponseMetric(TodMetricsBase):
             return out["rouge2_fmeasure"]
         return out[self.metric_key_name]
         # return out
+
+    def _compute_new(self):
+        if self.metric_name == ResponseMetricType.ROUGE:
+            out = self.metric.compute()
+            return out[self.metric_key_name]
+        preds = np.concatenate(self.pred_responses, axis=0).tolist()
+        out = self.metric.corpus_score(preds, self.target_responses)
+        return out.score
 
     def __str__(self) -> str:
         score = self.compute()
