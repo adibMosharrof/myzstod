@@ -1,10 +1,12 @@
 import os
 import re
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Union
 
 from datasets import Dataset
+import numpy as np
 from transformers import AutoTokenizer, GPT2LMHeadModel, GPT2PreTrainedModel
+from dstc_dataclasses import DstcSchema
 
 import dstc_utils
 import utils
@@ -575,8 +577,9 @@ class DataPrepConfig:
         self.num_dialogs = num_dialogs
         self.delexicalize = delexicalize
         self.overwrite = overwrite or [False, False, False]
-        self.domain_setting = domain_setting
-        self.domains = DstcDomains[domain_setting.upper()].value
+        self.domain_setting = domain_setting.upper()
+        # self.domains = DstcDomains[domain_setting.upper()].value
+        self.domains = self._get_domains(self.domain_setting)
         self.num_turns = num_turns
         self.is_multi_task = is_multi_task
         self.multi_tasks = (
@@ -587,6 +590,29 @@ class DataPrepConfig:
         self.should_add_user_actions = should_add_user_actions
         self.context_type = context_type
         self.should_add_service_results = should_add_service_results
+
+    def _get_domains(self, domain_setting: str) -> list[str]:
+        domain_to_step_map = {
+            DstcDomains.SEEN.name: [Steps.TRAIN.value],
+            DstcDomains.UNSEEN.name: [Steps.DEV.value, Steps.TEST.value],
+            DstcDomains.ALL.name: [
+                Steps.TRAIN.value,
+                Steps.DEV.value,
+                Steps.TEST.value,
+            ],
+        }
+
+        step_names = domain_to_step_map[domain_setting]
+        schema_strs = np.concatenate(
+            [
+                utils.read_json(self.data_root / step / "schema.json")
+                for step in step_names
+            ],
+            axis=0,
+        )
+
+        schemas = set([DstcSchema.from_dict(schema_str) for schema_str in schema_strs])
+        return [schema.service_name for schema in schemas]
 
     @classmethod
     def from_dm_config(self, dm_config: DataModuleConfig) -> "DataPrepConfig":
