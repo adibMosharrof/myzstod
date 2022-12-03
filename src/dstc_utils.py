@@ -31,12 +31,17 @@ def get_csv_data_path(
     data_root: Optional[Path] = None,
     domain_setting: Optional[str] = None,
 ):
+    sgdx_versions = ["v1", "v2", "v3", "v4", "v5"]
+    version = "v0"
+    if cfg.raw_data_root.stem in sgdx_versions:
+        version = cfg.raw_data_root.stem
     dom_sett = domain_setting if domain_setting else str(cfg.domain_setting)
     base = data_root if data_root else cfg.processed_data_root
     step_dir = base / step
     return step_dir / (
         "_".join(
             [
+                version,
                 "context_type",
                 cfg.context_type,
                 "multi_task",
@@ -57,7 +62,7 @@ def get_csv_data_path(
                 "delexicalize",
                 str(cfg.delexicalize),
                 "domain_setting",
-                dom_sett,
+                dom_sett.upper(),
             ]
         )
         + ".csv"
