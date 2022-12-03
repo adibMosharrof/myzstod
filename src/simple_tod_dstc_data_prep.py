@@ -312,9 +312,9 @@ class SimpleTODDSTCDataPrep:
         ):
             step_dir = Path(self.cfg.processed_data_root / step)
             step_dir.mkdir(parents=True, exist_ok=True)
-            dialog_paths = get_dialog_file_paths(self.cfg.data_root, step)
+            dialog_paths = get_dialog_file_paths(self.cfg.raw_data_root, step)
             # schemas = self._get_schemas(step)
-            schemas = get_schemas(self.cfg.data_root, step)
+            schemas = get_schemas(self.cfg.raw_data_root, step)
             out_data = []
             if num_dialog == "None":
                 num_dialog = len(dialog_paths)

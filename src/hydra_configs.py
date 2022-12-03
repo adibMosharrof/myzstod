@@ -555,7 +555,7 @@ class DataPrepConfig:
     def __init__(
         self,
         project_root: str,
-        data_root: str,
+        raw_data_root: str,
         processed_data_root: str,
         num_dialogs: list[int] = None,
         delexicalize: bool = True,
@@ -571,7 +571,7 @@ class DataPrepConfig:
         should_add_service_results: bool = False,
     ):
         self.project_root = Path(project_root)
-        self.data_root = self.project_root / data_root
+        self.raw_data_root = self.project_root / raw_data_root
         self.processed_data_root = self.project_root / processed_data_root
         self.processed_data_root.mkdir(parents=True, exist_ok=True)
         self.num_dialogs = num_dialogs
@@ -605,7 +605,7 @@ class DataPrepConfig:
         step_names = domain_to_step_map[domain_setting]
         schema_strs = np.concatenate(
             [
-                utils.read_json(self.data_root / step / "schema.json")
+                utils.read_json(self.raw_data_root / step / "schema.json")
                 for step in step_names
             ],
             axis=0,
@@ -618,7 +618,7 @@ class DataPrepConfig:
     def from_dm_config(self, dm_config: DataModuleConfig) -> "DataPrepConfig":
         return self(
             project_root=dm_config.project_root,
-            data_root=dm_config.raw_data_root,
+            raw_data_root=dm_config.raw_data_root,
             processed_data_root=dm_config.processed_data_root,
             num_dialogs=dm_config.num_dialogs,
             delexicalize=dm_config.delexicalize,
