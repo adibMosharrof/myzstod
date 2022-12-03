@@ -6,7 +6,6 @@ from torchmetrics.text.rouge import ROUGEScore
 from torchmetrics import BLEUScore
 import torch
 import uuid
-from sacrebleu.metrics import BLEU
 
 
 class ResponseMetric(TodMetricsBase):
