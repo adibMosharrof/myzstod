@@ -1,4 +1,5 @@
 import os
+from random import shuffle
 import re
 from pathlib import Path
 from typing import Dict, Union
@@ -43,7 +44,8 @@ class TrainerConfig:
         delexicalize: bool = False,
         num_turns: int = 10,
         overwrite: list[bool] = None,
-        train_domain_setting: str = "SEEN",
+        train_domain_setting: str = None,
+        train_domain_percentage: float = 1.0,
         test_domain_settings: list[str] = None,
         out_dir: str = "results",
         pretrain_epochs: int = 1,
@@ -92,6 +94,7 @@ class TrainerConfig:
         self.train_epochs = train_epochs
         self.contrastive_train_epochs = contrastive_train_epochs
         self.train_domain_setting = train_domain_setting
+        self.train_domain_percentage = train_domain_percentage
         self.pretrain_model_path = pretrain_model_path
         self.logging_dir = Path(logging_dir)
         self.generate_max_len = generate_max_len
@@ -145,6 +148,7 @@ class InferenceConfig:
         generate_max_len: int = 1024,
         num_turns: int = 10,
         overwrite: list[bool] = None,
+        train_domain_percentage: float = 1.0,
         test_domain_settings: list[str] = None,
         out_dir: str = "results",
         tokenizer: AutoTokenizer = None,
@@ -170,6 +174,7 @@ class InferenceConfig:
         self.model = self._get_model(model)
         self.model_name = model_name
         self.generate_max_len = generate_max_len
+        self.train_domain_percentage = train_domain_percentage
         self.test_domain_settings = test_domain_settings or ["all", "seen", "unseen"]
         self.num_turns = num_turns
         self.overwrite = overwrite or [False, False, False]
@@ -395,6 +400,7 @@ class DataModuleConfig:
         overwrite: list[bool] = None,
         num_turns: int = 26,
         domain_setting: str = None,
+        train_domain_percentage: float = 1.0,
         is_multi_task: bool = False,
         multi_tasks: list[int] = None,
         should_add_schema: bool = False,
@@ -432,6 +438,7 @@ class DataModuleConfig:
         self.should_add_schema = should_add_schema
         self.should_add_sys_actions = should_add_sys_actions
         self.should_add_user_actions = should_add_user_actions
+        self.train_domain_percentage = train_domain_percentage
         self.domain_setting = domain_setting
         self.domains = DstcDomains[domain_setting.upper()].value
         self.single_action_neg_samples = (
@@ -463,6 +470,7 @@ class DataModuleConfig:
             multi_tasks=trainer_config.multi_tasks,
             should_add_schema=trainer_config.should_add_schema,
             domain_setting=trainer_config.train_domain_setting,
+            train_domain_percentage=trainer_config.train_domain_percentage,
             tokenizer=trainer_config.tokenizer,
             batch_size=trainer_config.train_batch_size,
             eval_batch_size=trainer_config.eval_batch_size,
@@ -494,6 +502,7 @@ class DataModuleConfig:
             overwrite=inf_config.overwrite,
             num_turns=inf_config.num_turns,
             domain_setting=domain_setting,
+            train_domain_percentage=inf_config.train_domain_percentage,
             is_multi_task=inf_config.is_multi_task,
             multi_tasks=inf_config.multi_tasks,
             should_add_schema=inf_config.should_add_schema,
@@ -561,6 +570,7 @@ class DataPrepConfig:
         delexicalize: bool = True,
         overwrite: list[bool] = None,
         domain_setting: str = None,
+        train_domain_percentage: float = 1.0,
         num_turns: int = 26,
         is_multi_task: bool = False,
         multi_tasks: list[int] = None,
@@ -577,6 +587,7 @@ class DataPrepConfig:
         self.num_dialogs = num_dialogs
         self.delexicalize = delexicalize
         self.overwrite = overwrite or [False, False, False]
+        self.train_domain_percentage = train_domain_percentage
         self.domain_setting = domain_setting.upper()
         # self.domains = DstcDomains[domain_setting.upper()].value
         self.domains = self._get_domains(self.domain_setting)
@@ -601,8 +612,28 @@ class DataPrepConfig:
                 Steps.TEST.value,
             ],
         }
-
         step_names = domain_to_step_map[domain_setting]
+        if domain_setting == DstcDomains.ALL.name:
+
+            return self._get_domains_from_step_names(step_names)
+
+        used_train_domains, unused_train_domains = self._get_train_domains()
+        if domain_setting == DstcDomains.SEEN.name:
+            return used_train_domains
+
+        unseen_domains = self._get_domains_from_step_names(step_names)
+        return unseen_domains + unused_train_domains
+
+    def _get_train_domains(self):
+        domains = self._get_domains_from_step_names(Steps.TRAIN.value)
+        domains_to_keep = int(len(domains) * self.train_domain_percentage)
+        return domains[:domains_to_keep], domains[domains_to_keep:]
+
+    def _get_domains_from_step_names(
+        self, step_names: Union[str, list[str]]
+    ) -> list[DstcSchema]:
+        if isinstance(step_names, str):
+            step_names = [step_names]
         schema_strs = np.concatenate(
             [
                 utils.read_json(self.raw_data_root / step / "schema.json")
@@ -612,7 +643,9 @@ class DataPrepConfig:
         )
 
         schemas = set([DstcSchema.from_dict(schema_str) for schema_str in schema_strs])
-        return [schema.service_name for schema in schemas]
+        domains = [schema.service_name for schema in schemas]
+        shuffle(domains)
+        return domains
 
     @classmethod
     def from_dm_config(self, dm_config: DataModuleConfig) -> "DataPrepConfig":
@@ -630,6 +663,7 @@ class DataPrepConfig:
             should_add_sys_actions=dm_config.should_add_sys_actions,
             should_add_user_actions=dm_config.should_add_user_actions,
             domain_setting=dm_config.domain_setting,
+            train_domain_percentage=dm_config.train_domain_percentage,
             context_type=dm_config.context_type,
             should_add_service_results=dm_config.should_add_service_results,
         )

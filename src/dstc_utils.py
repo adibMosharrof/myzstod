@@ -63,6 +63,8 @@ def get_csv_data_path(
                 str(cfg.delexicalize),
                 "domain_setting",
                 dom_sett.upper(),
+                'train_domains',
+                str(cfg.train_domain_percentage),
             ]
         )
         + ".csv"
