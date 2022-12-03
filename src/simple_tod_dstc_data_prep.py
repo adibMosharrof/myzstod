@@ -256,7 +256,7 @@ class SimpleTODDSTCDataPrep:
     ) -> Optional[List[SimpleTodTurn]]:
         tod_turns = []
         tod_turn = None
-        if not self._is_dialogue_in_domain(dstc_dialog.short_services):
+        if not self._is_dialogue_in_domain(dstc_dialog.services):
             return None
 
         for i, (user_turn, system_turn) in enumerate(

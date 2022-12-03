@@ -229,6 +229,12 @@ class DstcSchema:
             ]
         )
 
+    def __eq__(self, other: any) -> bool:
+        return self.service_name == other.service_name
+
+    def __hash__(self) -> str:
+        return hash(self.service_name)
+
     def __str__(self):
         return self.get_full_repr()
 
