@@ -17,7 +17,7 @@ class ResponseMetric(TodMetricsBase):
             # ROUGEScore() if metric_name == ResponseMetricType.ROUGE else BLEUScore()
             ROUGEScore()
             if metric_name == ResponseMetricType.ROUGE
-            else evaluate.load("google_bleu")
+            else evaluate.load("google_bleu",experiment_id=str(uuid.uuid4()))
             # else BLEU()
             # else BLEUScore()
         )
