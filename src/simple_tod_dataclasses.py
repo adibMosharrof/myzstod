@@ -217,7 +217,7 @@ class SimpleTodDst:
                     SpecialTokens.begin_intent,
                     self.active_intent,
                     SpecialTokens.end_intent,
-                    SimpleTodConstants.NEW_LINES,
+                    # SimpleTodConstants.NEW_LINES,
                 ]
             )
         if self.requested_slots:
@@ -228,7 +228,7 @@ class SimpleTodDst:
                         map(str, self.requested_slots)
                     ),
                     SpecialTokens.end_requested_slots,
-                    SimpleTodConstants.NEW_LINES,
+                    # SimpleTodConstants.NEW_LINES,
                 ]
             )
         out += "".join(
@@ -237,7 +237,7 @@ class SimpleTodDst:
                 SimpleTodConstants.ITEM_SEPARATOR.join(map(str, self.beliefs)),
                 SpecialTokens.end_belief,
                 SpecialTokens.end_dst,
-                SimpleTodConstants.NEW_LINES,
+                # SimpleTodConstants.NEW_LINES,
             ]
         )
         return out
@@ -270,7 +270,7 @@ class SimpleTodTarget:
                 SpecialTokens.begin_dsts,
                 "".join(map(str, self.dsts)),
                 SpecialTokens.end_dsts,
-                SimpleTodConstants.NEW_LINES,
+                # SimpleTodConstants.NEW_LINES,
                 SpecialTokens.begin_user_action,
                 SimpleTodConstants.ITEM_SEPARATOR.join(map(str, self.user_actions)),
                 SpecialTokens.end_user_action,
@@ -281,7 +281,7 @@ class SimpleTodTarget:
                 self.response,
                 SpecialTokens.end_response,
                 SpecialTokens.end_target,
-                SimpleTodConstants.NEW_LINES,
+                # SimpleTodConstants.NEW_LINES,
             ]
         )
         return out
