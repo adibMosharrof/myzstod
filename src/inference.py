@@ -5,6 +5,7 @@ from pathlib import Path
 import hydra
 import numpy as np
 from omegaconf import DictConfig
+import torch
 from tqdm import tqdm
 from transformers import AutoTokenizer, GPT2LMHeadModel, GPT2PreTrainedModel
 from torch.utils.data import DataLoader
@@ -40,6 +41,18 @@ class Inference:
 
     def test(self):
         self.cfg.logger.info(self.cfg.out_dir)
+        target_start_txt = "".join(
+            [
+                SpecialTokens.begin_target,
+                SpecialTokens.begin_dsts,
+                SpecialTokens.begin_dst,
+            ]
+        )
+        target_start_tokens = (
+            self.cfg.tokenizer.encode(target_start_txt, return_tensors="pt")
+            .expand([self.cfg.test_batch_size, -1])
+            .cuda()
+        )
         for domain_setting in self.cfg.test_domain_settings:
 
             domains = DstcDomains[domain_setting.upper()].value
@@ -53,8 +66,16 @@ class Inference:
             for batch in tqdm(test_dataloader):
                 gen = self._get_generation(batch)
                 gen_without_context = gen[:, self.cfg.test_prompt_max_len :]
+                # if gen_without_context[0][0] not in target_start_tokens[0]:
+                #     gen_without_context = torch.column_stack(
+                #         [target_start_tokens, gen_without_context]
+                #     )
+                gen_with_start_tokens = torch.column_stack(
+                    [target_start_tokens, gen_without_context]
+                )
                 pred_text = self.cfg.tokenizer.batch_decode(
-                    gen_without_context, skip_special_tokens=False
+                    # gen_without_context, skip_special_tokens=False
+                    gen_with_start_tokens, skip_special_tokens=False
                 )
                 pred_text_no_pad = [self._remove_padding(text) for text in pred_text]
                 if not self.cfg.is_multi_task:

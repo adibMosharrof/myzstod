@@ -113,7 +113,7 @@ class TodDataModule(BaseDataModule):
             data.targets.append(item.target)
             data.schemas.append(item.schema)
             context_tokens = self.train_tokenizer(
-                item.context + SpecialTokens.begin_target
+                "".join([item.context, SpecialTokens.begin_target,SpecialTokens.begin_dsts, SpecialTokens.begin_dst])
             )[0]
             # context_tokens = self.train_tokenizer(item.context)[0]
             if self.cfg.is_multi_task:

@@ -18,7 +18,7 @@ class TestSettings(str, Enum):
     CUSTOM = "custom"
 
 
-class DstcDomains(list[str], Enum):
+class DstcDomains(str, Enum):
     SEEN = "SEEN"
     UNSEEN = "UNSEEN"
     ALL = "ALL"
