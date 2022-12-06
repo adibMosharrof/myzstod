@@ -144,6 +144,7 @@ class SimpleTODTrainer:
             save_total_limit=5,
             evaluation_strategy=IntervalStrategy.STEPS,
             eval_steps=self.cfg.eval_steps,
+            gradient_accumulation_steps=self.cfg.gradient_accumulation_steps,
             metric_for_best_model="eval_loss",
             eval_accumulation_steps=self.cfg.eval_accumulation_steps,
             per_device_train_batch_size=train_batch_size,
@@ -193,7 +194,8 @@ class SimpleTODTrainer:
         out_dir = os.getcwd()
         print("training output_dir: ", out_dir)
         return training_args.output_dir
-
+    
+    #not used anymore
     def train(self, model: GPT2LMHeadModel, dm: TodDataModule):
         pretrain_out = str(self.cfg.out_dir / "pretrain")
         training_args = TrainingArguments(
@@ -205,6 +207,7 @@ class SimpleTODTrainer:
             save_total_limit=5,
             evaluation_strategy=IntervalStrategy.STEPS,
             eval_steps=self.cfg.eval_steps,
+            gradient_accumulation_steps=self.cfg.gradient_accumulation_steps,
             metric_for_best_model="eval_loss",
             eval_accumulation_steps=self.cfg.eval_accumulation_steps,
             per_device_train_batch_size=self.cfg.train_batch_size,

@@ -37,6 +37,7 @@ class TrainerConfig:
         test_batch_size: int = 32,
         train_batch_size: int = 8,
         pretrain_batch_size: int = 8,
+        gradient_accumulation_steps: int = 4,
         n_layer: int = 12,
         n_head: int = 12,
         contrastive_train_batch_size: int = 100,
@@ -58,7 +59,7 @@ class TrainerConfig:
         logging_steps: int = 50,
         test_prompt_max_len: int = 799,
         max_token_len: int = 1022,
-        eval_accumulation_steps: int = 5,
+        eval_accumulation_steps: int = 16,
         is_multi_task: bool = False,
         multi_tasks: list[int] = None,
         should_add_schema: bool = False,
@@ -81,6 +82,7 @@ class TrainerConfig:
         self.eval_steps = eval_steps
         self.eval_batch_size = eval_batch_size
         self.test_batch_size = test_batch_size
+        self.gradient_accumulation_steps = gradient_accumulation_steps
         self.n_layer = n_layer
         self.n_head = n_head
         self.max_token_len = max_token_len
