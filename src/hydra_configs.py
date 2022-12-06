@@ -1,5 +1,5 @@
 import os
-from random import shuffle
+import random
 import re
 from pathlib import Path
 from typing import Dict, Union
@@ -616,7 +616,6 @@ class DataPrepConfig:
         }
         step_names = domain_to_step_map[domain_setting]
         if domain_setting == DstcDomains.ALL.name:
-
             return self._get_domains_from_step_names(step_names)
 
         used_train_domains, unused_train_domains = self._get_train_domains()
@@ -624,12 +623,18 @@ class DataPrepConfig:
             return used_train_domains
 
         unseen_domains = self._get_domains_from_step_names(step_names)
-        return unseen_domains + unused_train_domains
+        return np.concatenate([unseen_domains, unused_train_domains])
 
     def _get_train_domains(self):
-        domains = self._get_domains_from_step_names(Steps.TRAIN.value)
-        domains_to_keep = int(len(domains) * self.train_domain_percentage)
-        return domains[:domains_to_keep], domains[domains_to_keep:]
+        domains = np.array(self._get_domains_from_step_names(Steps.TRAIN.value))
+        num_choices = int(len(domains) * self.train_domain_percentage)
+        random.seed(os.getcwd())
+        train_indices = random.sample(range(len(domains)), num_choices)
+        mask = np.zeros(len(domains), dtype=bool)
+        mask[train_indices] = True
+        used_domains = domains[mask]
+        unused_domains = domains[~mask]
+        return used_domains, unused_domains
 
     def _get_domains_from_step_names(
         self, step_names: Union[str, list[str]]
@@ -645,8 +650,8 @@ class DataPrepConfig:
         )
 
         schemas = set([DstcSchema.from_dict(schema_str) for schema_str in schema_strs])
-        domains = [schema.service_name for schema in schemas]
-        shuffle(domains)
+        domains = sorted([schema.service_name for schema in schemas])
+        # shuffle(domains)
         return domains
 
     @classmethod
