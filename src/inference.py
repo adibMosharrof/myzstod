@@ -50,7 +50,7 @@ class Inference:
         )
         target_start_tokens = (
             self.cfg.tokenizer.encode(target_start_txt, return_tensors="pt")
-            .expand([self.cfg.test_batch_size, -1])
+            # .expand([self.cfg.test_batch_size, -1])
             .cuda()
         )
         for domain_setting in self.cfg.test_domain_settings:
@@ -71,11 +71,15 @@ class Inference:
                 #         [target_start_tokens, gen_without_context]
                 #     )
                 gen_with_start_tokens = torch.column_stack(
-                    [target_start_tokens, gen_without_context]
+                    [
+                        target_start_tokens.expand([gen.shape[0], -1]),
+                        gen_without_context,
+                    ]
                 )
                 pred_text = self.cfg.tokenizer.batch_decode(
                     # gen_without_context, skip_special_tokens=False
-                    gen_with_start_tokens, skip_special_tokens=False
+                    gen_with_start_tokens,
+                    skip_special_tokens=False,
                 )
                 pred_text_no_pad = [self._remove_padding(text) for text in pred_text]
                 if not self.cfg.is_multi_task:
