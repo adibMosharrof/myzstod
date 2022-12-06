@@ -190,7 +190,15 @@ class DstcSchemaSlot:
         return self.name == slot_name
 
     def __str__(self):
-        return self.name
+        # return self.name
+        return "".join(
+            [
+                self.name,
+                SpecialTokens.possible_values if self.possible_values else "",
+                " ".join(self.possible_values),
+                SpecialTokens.end_possible_values if self.possible_values else "",
+            ]
+        )
 
 
 @dataclass_json

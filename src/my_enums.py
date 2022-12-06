@@ -97,6 +97,8 @@ class SpecialTokens(str, Enum):
     intent_required_slots = "<|intentrequiredslots|>"
     intent_result_slots = "<|intentresultslots|>"
     intent_optional_slots = "<|intentoptionalslots|>"
+    possible_values = "<|possiblevalues|>"
+    end_possible_values = "<|endpossiblevalues|>"
 
     begin_schema_slot = "<|beginschemaslot|>"
     end_schema_slot = "<|endschemaslot|>"
