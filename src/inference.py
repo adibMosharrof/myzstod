@@ -57,7 +57,7 @@ class Inference:
 
             domains = DstcDomains[domain_setting.upper()].value
             test_csv_out_data = []
-            text_csv_out_path = f"simple_tod_dstc_predictions_{domain_setting}_{self.cfg.num_turns}_dialogs_{self.cfg.num_test_dialogs}{SimpleTodConstants.DELEXICALIZED if self.cfg.delexicalize else ''}_{'_'.join(domains)}.csv"
+            text_csv_out_path = f"simple_tod_dstc_predictions_{domain_setting}_{self.cfg.num_turns}_dialogs_{self.cfg.num_test_dialogs}{SimpleTodConstants.DELEXICALIZED if self.cfg.delexicalize else ''}_{domains}.csv"
             test_dataloader = self._get_dataloader(domain_setting)
             if not len(test_dataloader):
                 self.cfg.logger.info(f"No data to test for {domain_setting}")
