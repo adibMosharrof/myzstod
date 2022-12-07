@@ -622,7 +622,8 @@ class DataPrepConfig:
         if domain_setting == DstcDomains.SEEN.name:
             return used_train_domains
 
-        unseen_domains = self._get_domains_from_step_names(step_names)
+        dev_test_domains = self._get_domains_from_step_names(step_names)
+        unseen_domains = np.setdiff1d(dev_test_domains, used_train_domains)
         return np.concatenate([unseen_domains, unused_train_domains])
 
     def _get_train_domains(self):
