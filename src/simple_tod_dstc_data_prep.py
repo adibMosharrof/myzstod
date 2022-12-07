@@ -307,6 +307,9 @@ class SimpleTODDSTCDataPrep:
 
     def run(self):
         steps = Steps.list()
+        schemas = {}
+        for d in [get_schemas(self.cfg.raw_data_root, step) for step in steps]:
+            schemas.update(d)
         for step, num_dialog, should_overwrite in tqdm(
             zip(steps, self.cfg.num_dialogs, self.cfg.overwrite)
         ):
@@ -314,7 +317,6 @@ class SimpleTODDSTCDataPrep:
             step_dir.mkdir(parents=True, exist_ok=True)
             dialog_paths = get_dialog_file_paths(self.cfg.raw_data_root, step)
             # schemas = self._get_schemas(step)
-            schemas = get_schemas(self.cfg.raw_data_root, step)
             out_data = []
             if num_dialog == "None":
                 num_dialog = len(dialog_paths)
