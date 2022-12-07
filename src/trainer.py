@@ -154,6 +154,7 @@ class SimpleTODTrainer:
             logging_dir=self.cfg.logging_dir,
             dataloader_num_workers=self.cfg.num_workers,
             dataloader_pin_memory=True,
+            report_to="all",
         )
 
     def pretrain_model(self, dm: TodDataModule) -> str:
@@ -194,8 +195,8 @@ class SimpleTODTrainer:
         out_dir = os.getcwd()
         print("training output_dir: ", out_dir)
         return training_args.output_dir
-    
-    #not used anymore
+
+    # not used anymore
     def train(self, model: GPT2LMHeadModel, dm: TodDataModule):
         pretrain_out = str(self.cfg.out_dir / "pretrain")
         training_args = TrainingArguments(
