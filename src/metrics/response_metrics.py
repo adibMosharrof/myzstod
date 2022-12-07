@@ -14,10 +14,10 @@ class ResponseMetric(TodMetricsBase):
         self.metric_name = metric_name
         # self.metric = evaluate.load(metric_name, experiment_id=str(uuid.uuid4()))
         self.metric = (
-            # ROUGEScore() if metric_name == ResponseMetricType.ROUGE else BLEUScore()
-            ROUGEScore()
+            evaluate.load("rouge", experiment_id=str(uuid.uuid4()))
+            # if metric_name == ResponseMetricType.ROUGE else BLEUScore()
             if metric_name == ResponseMetricType.ROUGE
-            else evaluate.load("google_bleu",experiment_id=str(uuid.uuid4()))
+            else evaluate.load("google_bleu", experiment_id=str(uuid.uuid4()))
             # else BLEU()
             # else BLEUScore()
         )
@@ -46,19 +46,22 @@ class ResponseMetric(TodMetricsBase):
             # pred_responses_batch.append(pred_response)
             # target_responses_batch.append(target_response)
             pred_responses_batch.append(pred_response)
-            target_responses_batch.append([target_response])
-        if self.metric_name == ResponseMetricType.BLEU:
-            self.metric.add_batch(
-                predictions=pred_responses_batch, references=target_responses_batch
-            )
-            # self.pred_responses.append(pred_responses_batch)
-            # self.target_responses.append(target_responses_batch)
-            # self.metric.update(pred_response, target_response)
-        else:
-            self.metric.update(pred_response, target_response)
+            if self.metric_name == ResponseMetricType.ROUGE:
+                target_responses_batch.append(target_response)
+            elif self.metric_name == ResponseMetricType.BLEU:
+                target_responses_batch.append([target_response])
+        # if self.metric_name == ResponseMetricType.BLEU:
+        self.metric.add_batch(
+            predictions=pred_responses_batch, references=target_responses_batch
+        )
+        # self.pred_responses.append(pred_responses_batch)
+        # self.target_responses.append(target_responses_batch)
+        # self.metric.update(pred_response, target_response)
+        # else:
+        #     self.metric.update(pred_response, target_response)
 
-    # def _compute_old(self) -> float:
-    def _compute(self) -> float:
+    def _compute_old(self) -> float:
+        # def _compute(self) -> float:
         try:
             res = self.metric.compute(
                 # predictions=self.pred_responses, references=self.target_responses
@@ -72,13 +75,15 @@ class ResponseMetric(TodMetricsBase):
         return out[self.metric_key_name]
         # return out
 
-    def _compute_new(self):
-        if self.metric_name == ResponseMetricType.ROUGE:
+    def _compute(self) -> float:
+        try:
             out = self.metric.compute()
-            return out[self.metric_key_name]
-        preds = np.concatenate(self.pred_responses, axis=0).tolist()
-        out = self.metric.corpus_score(preds, self.target_responses)
-        return out.score
+            res = out[self.metric_key_name]
+        except ZeroDivisionError:
+            res = 0.0
+        if self.metric_name == ResponseMetricType.ROUGE:
+            return res.mid.fmeasure
+        return res
 
     def __str__(self) -> str:
         score = self.compute()

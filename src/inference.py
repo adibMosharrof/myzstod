@@ -215,7 +215,9 @@ class Inference:
                         metric_name="bleu", metric_key_name="google_bleu"
                     ),
                     "response_rouge": ResponseMetric(
-                        metric_name="rouge", metric_key_name="rouge2_fmeasure"
+                        # metric_name="rouge", metric_key_name="rouge2_fmeasure"
+                        metric_name="rouge",
+                        metric_key_name="rouge2",
                     ),
                 }
             )
