@@ -63,13 +63,16 @@ class SimpleTODTrainer:
         current_dir = os.getcwd()
         dm = TodDataModule(DataModuleConfig.from_trainer_config(self.cfg))
         # self.cfg.tokenizer = dstc_utils.get_trained_tokenizer(self.cfg)
-        pretrained_model_path = self.pretrain_model(dm)
+        if self.cfg.train_model_path:
+            pretrained_model_path = str(self.cfg.project_root/self.cfg.train_model_path)
+        else:
+            pretrained_model_path = self.pretrain_model(dm)
         self.print_cuda_info("after pretrain")
         self._setup_contrastive()
         self.print_cuda_info("contrastive model created")
         torch.cuda.empty_cache()
         self.print_cuda_info("empty cache before training")
-        out_dir = self.train_model(pretrained_model_path, dm)
+        out_dir = self.train_model(pretrained_model_path, dm)            
         full_out_dir = str(Path(current_dir) / out_dir)
         self.print_cuda_info("after train")
         # out_dir = self.train(model, dm)
@@ -99,6 +102,8 @@ class SimpleTODTrainer:
             self.cfg.contrastive_max_token_len,
             Contrastive.get_start_end_tokens(self.cfg.contrast_with),
             self.cfg.is_multi_task,
+            self.cfg.ce_loss_weight,
+            self.cfg.contrastive_loss_weight
         )
         return self.contrastive_helper.contrastive_model.tokenizer
 
@@ -115,6 +120,11 @@ class SimpleTODTrainer:
                 train_dataset=dm.cfg.datasets["train"],
                 eval_dataset=dm.cfg.datasets["dev"],
                 data_collator=dm.training_collator,
+                callbacks=[
+                EarlyStoppingCallback(
+                    early_stopping_patience=self.cfg.early_stopping_patience
+                )
+            ],
             )
             trainer.contrastive_helper = self.contrastive_helper
             return trainer

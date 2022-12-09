@@ -26,10 +26,12 @@ class ContrastiveTrainerHelper:
     loss_model: None
     max_token_len: int = None
     contrastive_tokens: list[ContrastiveTokens] = None
-    is_multitask = False
+    is_multitask:bool = False
+    ce_loss_weight:float = None
+    contrastive_loss_weight:float = None
 
     def __init__(
-        self, model_or_path, tokenizer, max_token_len, contrastive_tokens, is_multitask
+        self, model_or_path, tokenizer, max_token_len, contrastive_tokens, is_multitask, ce_loss_weight, contrastive_loss_weight
     ):
         if isinstance(model_or_path, str):
             self.contrastive_model = SentenceTransformer(model_or_path)
@@ -55,6 +57,8 @@ class ContrastiveTrainerHelper:
         self.loss_model = losses.CosineSimilarityLoss(self.contrastive_model)
         self.contrastive_tokens = contrastive_tokens
         self.is_multitask = is_multitask
+        self.ce_loss_weight = ce_loss_weight
+        self.contrastive_loss_weight = contrastive_loss_weight
 
 
 class ContrastiveTrainer(Trainer):
@@ -107,7 +111,7 @@ class ContrastiveTrainer(Trainer):
         # sys_feats = self._get_sys_feats(
         contrastive_loss = self._get_contrastive_loss(preds, inputs, tok.pad_token_id)
 
-        combined_loss = contrastive_loss + out.loss
+        combined_loss = self.contrastive_helper.contrastive_loss_weight * contrastive_loss + self.contrastive_helper.ce_loss_weight*out.loss
         return (combined_loss, out.logits) if return_outputs else combined_loss
         # return (out.loss, out.logits) if return_outputs else out.loss
 

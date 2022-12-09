@@ -51,6 +51,7 @@ class TrainerConfig:
         out_dir: str = "results",
         pretrain_epochs: int = 1,
         pretrain_model_path: str = None,
+        train_model_path: str = None,
         train_epochs: int = 1,
         contrastive_train_epochs: int = 3,
         logging_dir: str = "logs",
@@ -65,6 +66,8 @@ class TrainerConfig:
         should_add_schema: bool = False,
         should_add_user_actions: bool = False,
         should_add_sys_actions: bool = False,
+        ce_loss_weight: float = 0.50,
+        contrastive_loss_weight: float = 0.50,
         contrastive_model: str = None,
         contrast_with: list[str] = None,
         contrastive_max_token_len: int = 250,
@@ -98,6 +101,7 @@ class TrainerConfig:
         self.train_domain_setting = train_domain_setting
         self.train_domain_percentage = train_domain_percentage
         self.pretrain_model_path = pretrain_model_path
+        self.train_model_path = train_model_path
         self.logging_dir = Path(logging_dir)
         self.generate_max_len = generate_max_len
         self.should_test = should_test
@@ -120,6 +124,8 @@ class TrainerConfig:
         self.should_add_user_actions = should_add_user_actions
         if test_prompt_max_len > max_token_len:
             raise ValueError("context_max_len must be less than max_token_len")
+        self.ce_loss_weight = ce_loss_weight
+        self.contrastive_loss_weight = contrastive_loss_weight
         self.contrastive_model = contrastive_model
         self.contrast_with = contrast_with or []
         self.contrastive_max_token_len = contrastive_max_token_len
