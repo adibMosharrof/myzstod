@@ -12,7 +12,7 @@ from torch.utils.data import DataLoader
 import dstc_utils
 from metrics.intent_accuracy_metric import IntentAccuracyMetric
 from metrics.response_metrics import ResponseMetric
-
+from collections import Counter
 # from metrics.tod_metrics_base import MetricCollection
 from torchmetrics import MetricCollection
 from metrics.goal_metric import GoalMetric, GoalMetricConfigFactory
@@ -53,6 +53,7 @@ class Inference:
             # .expand([self.cfg.test_batch_size, -1])
             .cuda()
         )
+        start_tokens = []
         for domain_setting in self.cfg.test_domain_settings:
 
             domains = DstcDomains[domain_setting.upper()].value
@@ -70,17 +71,19 @@ class Inference:
                 #     gen_without_context = torch.column_stack(
                 #         [target_start_tokens, gen_without_context]
                 #     )
-                gen_with_start_tokens = torch.column_stack(
-                    [
-                        target_start_tokens.expand([gen.shape[0], -1]),
-                        gen_without_context,
-                    ]
-                )
+                # gen_with_start_tokens = torch.column_stack(
+                #     [
+                #         target_start_tokens.expand([gen.shape[0], -1]),
+                #         gen_without_context,
+                #     ]
+                # )
                 pred_text = self.cfg.tokenizer.batch_decode(
-                    # gen_without_context, skip_special_tokens=False
-                    gen_with_start_tokens,
+                    gen_without_context, 
+                    # gen_with_start_tokens,
                     skip_special_tokens=False,
                 )
+                for s in pred_text:
+                    start_tokens.append(s[:15])
                 pred_text_no_pad = [self._remove_padding(text) for text in pred_text]
                 if not self.cfg.is_multi_task:
                     self.tod_metrics.update(
@@ -120,6 +123,9 @@ class Inference:
                 self.tod_metrics[m].visualize(Path(self.cfg.predictions_log_dir))
                 for m in self.tod_metrics
             ]
+        self.cfg.logger.info("Start token counts")
+        for token, count in Counter(start_tokens).items():
+            self.cfg.logger.info(f'{token}:{count}')
         r = ReconstructDialog(ReconstructDialogConfig.from_inference_config(self.cfg))
         r.run()
 
