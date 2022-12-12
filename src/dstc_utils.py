@@ -5,7 +5,6 @@ import numpy as np
 import pandas as pd
 from transformers import AutoTokenizer, PreTrainedTokenizerFast
 import os
-from hydra_configs import DataModuleConfig, DataPrepConfig, TrainerConfig
 
 from my_enums import SimpleTodConstants, SpecialTokens, Steps
 import utils
@@ -27,7 +26,7 @@ def get_dialog_file_paths(data_root, step):
 def get_csv_data_path(
     step: str = "train",
     num_dialogs: int = 1,
-    cfg: Union[DataPrepConfig, DataModuleConfig] = None,
+    cfg: any = None,
     data_root: Optional[Path] = None,
     domain_setting: Optional[str] = None,
 ):
@@ -44,6 +43,8 @@ def get_csv_data_path(
                 version,
                 "context_type",
                 cfg.context_type,
+                "multi_head",
+                str(cfg.is_multi_head),
                 "multi_task",
                 str(cfg.is_multi_task),
                 "_".join(map(str, cfg.multi_tasks)),
@@ -63,7 +64,7 @@ def get_csv_data_path(
                 str(cfg.delexicalize),
                 "domain_setting",
                 dom_sett.upper(),
-                'train_domains',
+                "train_domains",
                 str(cfg.train_domain_percentage),
             ]
         )
@@ -71,7 +72,7 @@ def get_csv_data_path(
     )
 
 
-def get_corpus(cfg: TrainerConfig) -> List[str]:
+def get_corpus(cfg) -> List[str]:
     # root = cfg.project_root / cfg.data_prep_out_root / Steps.DEV.value
     # file = root / os.listdir(root)[0]
     file = get_csv_data_path(
@@ -86,9 +87,7 @@ def get_corpus(cfg: TrainerConfig) -> List[str]:
         yield row["context"] + " " + row["target"]
 
 
-def get_trained_tokenizer(
-    cfg: TrainerConfig, save_path: str = "tokenizer"
-) -> PreTrainedTokenizerFast:
+def get_trained_tokenizer(cfg, save_path: str = "tokenizer") -> PreTrainedTokenizerFast:
     tokenizer = get_tokenizer(cfg.tokenizer_name)
     # new_tok = tokenizer.train_new_from_iterator(get_corpus(cfg), 52000, new_special_tokens=SpecialTokens.list())
     new_tok = tokenizer.train_new_from_iterator(get_corpus(cfg), 52000)

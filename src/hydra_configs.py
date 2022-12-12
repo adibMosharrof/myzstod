@@ -61,6 +61,7 @@ class TrainerConfig:
         test_prompt_max_len: int = 799,
         max_token_len: int = 1022,
         eval_accumulation_steps: int = 16,
+        is_multi_head: bool = False,
         is_multi_task: bool = False,
         multi_tasks: list[int] = None,
         should_add_schema: bool = False,
@@ -113,6 +114,7 @@ class TrainerConfig:
         self.raw_data_root = self.project_root / raw_data_root
         self.test_prompt_max_len = test_prompt_max_len
         self.eval_accumulation_steps = eval_accumulation_steps
+        self.is_multi_head = is_multi_head
         self.is_multi_task = is_multi_task
         self.multi_tasks = (
             multi_tasks if self.is_multi_task and multi_tasks else [1, 1, 1]
@@ -162,6 +164,7 @@ class InferenceConfig:
         tokenizer: AutoTokenizer = None,
         test_prompt_max_len: int = 799,
         is_multi_task: bool = False,
+        is_multi_head: bool = False,
         multi_tasks: list[int] = None,
         should_add_schema: bool = False,
         should_add_user_actions: bool = False,
@@ -190,6 +193,7 @@ class InferenceConfig:
         self.test_prompt_max_len = test_prompt_max_len
         self.predictions_log_dir = Path(predictions_log_dir)
         self.predictions_log_dir.mkdir(parents=True, exist_ok=True)
+        self.is_multi_head = is_multi_head
         self.is_multi_task = is_multi_task
         self.multi_tasks = (
             multi_tasks if self.is_multi_task and multi_tasks else [1, 1, 1]
@@ -410,6 +414,7 @@ class DataModuleConfig:
         domain_setting: str = None,
         train_domain_percentage: float = 1.0,
         is_multi_task: bool = False,
+        is_multi_head: bool = False,
         multi_tasks: list[int] = None,
         should_add_schema: bool = False,
         should_add_sys_actions: bool = False,
@@ -440,6 +445,7 @@ class DataModuleConfig:
         self.overwrite = overwrite or [False] * len(Steps)
         self.num_turns = num_turns
         self.is_multi_task = is_multi_task
+        self.is_multi_head = is_multi_head
         self.multi_tasks = (
             multi_tasks if self.is_multi_task and multi_tasks else [1, 1, 1]
         )
@@ -474,6 +480,7 @@ class DataModuleConfig:
             delexicalize=trainer_config.delexicalize,
             overwrite=trainer_config.overwrite,
             num_turns=trainer_config.num_turns,
+            is_multi_head=trainer_config.is_multi_head,
             is_multi_task=trainer_config.is_multi_task,
             multi_tasks=trainer_config.multi_tasks,
             should_add_schema=trainer_config.should_add_schema,
@@ -511,6 +518,7 @@ class DataModuleConfig:
             num_turns=inf_config.num_turns,
             domain_setting=domain_setting,
             train_domain_percentage=inf_config.train_domain_percentage,
+            is_multi_head=inf_config.is_multi_head,
             is_multi_task=inf_config.is_multi_task,
             multi_tasks=inf_config.multi_tasks,
             should_add_schema=inf_config.should_add_schema,
@@ -581,6 +589,7 @@ class DataPrepConfig:
         train_domain_percentage: float = 1.0,
         num_turns: int = 26,
         is_multi_task: bool = False,
+        is_multi_head: bool = False,
         multi_tasks: list[int] = None,
         should_add_schema: bool = False,
         should_add_sys_actions: bool = False,
@@ -601,6 +610,7 @@ class DataPrepConfig:
         self.domains = self._get_domains(self.domain_setting)
         self.num_turns = num_turns
         self.is_multi_task = is_multi_task
+        self.is_multi_head = is_multi_head
         self.multi_tasks = (
             multi_tasks if self.is_multi_task and multi_tasks else [1, 1, 1]
         )
@@ -671,6 +681,7 @@ class DataPrepConfig:
             delexicalize=dm_config.delexicalize,
             overwrite=dm_config.overwrite,
             num_turns=dm_config.num_turns,
+            is_multi_head=dm_config.is_multi_head,
             is_multi_task=dm_config.is_multi_task,
             multi_tasks=dm_config.multi_tasks,
             should_add_schema=dm_config.should_add_schema,

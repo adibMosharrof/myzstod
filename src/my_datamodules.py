@@ -18,7 +18,6 @@ import random
 
 
 class TodDataModule(BaseDataModule):
-    steps = Steps.list()
     _huggingface_ignore_label_id = -100
 
     def __init__(

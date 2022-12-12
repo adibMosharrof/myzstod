@@ -15,6 +15,7 @@ from transformers import (
     IntervalStrategy,
     GPT2Config,
 )
+from base_datamodule import BaseDataModule
 from contrastive import Contrastive
 from contrastive_dataclasses import ContrastiveTrainerHelper, ContrastiveTrainer
 from hydra_configs import (
@@ -24,6 +25,8 @@ from hydra_configs import (
     InferenceConfig,
 )
 from inference import Inference
+from multi_head.mh_datamodule import MultiLMHeadDatamodule
+from multi_head.mh_model import GPT2MultiLMHeadModel
 from my_datamodules import TodDataModule
 import os
 import warnings
@@ -61,10 +64,12 @@ class SimpleTODTrainer:
         # model.prune_heads(heads_to_prune)
         # model = model.cuda()
         current_dir = os.getcwd()
-        dm = TodDataModule(DataModuleConfig.from_trainer_config(self.cfg))
+        dm = self._get_dm()
         # self.cfg.tokenizer = dstc_utils.get_trained_tokenizer(self.cfg)
         if self.cfg.train_model_path:
-            pretrained_model_path = str(self.cfg.project_root/self.cfg.train_model_path)
+            pretrained_model_path = str(
+                self.cfg.project_root / self.cfg.train_model_path
+            )
         else:
             pretrained_model_path = self.pretrain_model(dm)
         self.print_cuda_info("after pretrain")
@@ -72,7 +77,7 @@ class SimpleTODTrainer:
         self.print_cuda_info("contrastive model created")
         torch.cuda.empty_cache()
         self.print_cuda_info("empty cache before training")
-        out_dir = self.train_model(pretrained_model_path, dm)            
+        out_dir = self.train_model(pretrained_model_path, dm)
         full_out_dir = str(Path(current_dir) / out_dir)
         self.print_cuda_info("after train")
         # out_dir = self.train(model, dm)
@@ -85,6 +90,13 @@ class SimpleTODTrainer:
             )
             inf.test()
         print(full_out_dir)
+
+    def _get_dm(self) -> BaseDataModule:
+        return (
+            TodDataModule(DataModuleConfig.from_trainer_config(self.cfg))
+            if not self.cfg.is_multi_head
+            else MultiLMHeadDatamodule(DataModuleConfig.from_trainer_config(self.cfg))
+        )
 
     def _setup_contrastive(self) -> Optional[AutoTokenizer]:
         if not self.cfg.contrast_with:
@@ -103,7 +115,7 @@ class SimpleTODTrainer:
             Contrastive.get_start_end_tokens(self.cfg.contrast_with),
             self.cfg.is_multi_task,
             self.cfg.ce_loss_weight,
-            self.cfg.contrastive_loss_weight
+            self.cfg.contrastive_loss_weight,
         )
         return self.contrastive_helper.contrastive_model.tokenizer
 
@@ -121,10 +133,10 @@ class SimpleTODTrainer:
                 eval_dataset=dm.cfg.datasets["dev"],
                 data_collator=dm.training_collator,
                 callbacks=[
-                EarlyStoppingCallback(
-                    early_stopping_patience=self.cfg.early_stopping_patience
-                )
-            ],
+                    EarlyStoppingCallback(
+                        early_stopping_patience=self.cfg.early_stopping_patience
+                    )
+                ],
             )
             trainer.contrastive_helper = self.contrastive_helper
             return trainer
@@ -175,7 +187,10 @@ class SimpleTODTrainer:
         training_args = self._get_training_args(
             "pretrain", self.cfg.pretrain_epochs, self.cfg.pretrain_batch_size
         )
-        model = GPT2LMHeadModel.from_pretrained(self.cfg.model_name)
+        if self.cfg.is_multi_head:
+            model = GPT2MultiLMHeadModel.from_pretrained(self.cfg.model_name)
+        else:
+            model = GPT2LMHeadModel.from_pretrained(self.cfg.model_name)
         model.resize_token_embeddings(len(self.cfg.tokenizer))
         pre_trainer = Trainer(
             model=model,

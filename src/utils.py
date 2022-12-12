@@ -3,6 +3,7 @@ import json
 from collections import deque
 from itertools import zip_longest
 from pathlib import Path
+from typing import Tuple
 
 from dataclass_csv import DataclassReader
 
@@ -40,7 +41,7 @@ def read_json(path: str):
     return data
 
 
-def read_csv(path: str):
+def read_csv(path: str) -> Tuple[list[list[str]], list[str]]:
     fields = []
     rows = []
     with open(path, "r") as f:
@@ -48,7 +49,7 @@ def read_csv(path: str):
         fields = next(reader)
         for r in reader:
             rows.append(r)
-    return rows
+    return rows, fields
 
 
 def read_csv_dataclass(path: str, d_class):

@@ -14,14 +14,15 @@ from simple_tod_dstc_data_prep import SimpleTODDSTCDataPrep
 
 
 class BaseDataModule:
-    steps = Steps.list()
     _huggingface_ignore_label_id = -100
 
     def __init__(
         self,
         cfg: DataModuleConfig,
+        tod_turn_row_cls=TodTurnCsvRow,
     ):
         self.cfg = cfg
+        self.tod_turn_row_cls = tod_turn_row_cls
         self.setup()
         self.prompt_token_map = {}
 
@@ -35,7 +36,7 @@ class BaseDataModule:
     def setup(self):
         self.prepare_data()
         for step, split_percent, num_dialog in zip(
-            self.steps, self.cfg.data_split_percent, self.cfg.num_dialogs
+            Steps.list(), self.cfg.data_split_percent, self.cfg.num_dialogs
         ):
             csv_path = dstc_utils.get_csv_data_path(
                 step,
@@ -43,7 +44,7 @@ class BaseDataModule:
                 cfg=self.cfg,
             )
             try:
-                data = utils.read_csv_dataclass(csv_path, TodTurnCsvRow)
+                data = utils.read_csv_dataclass(csv_path, self.tod_turn_row_cls)
                 data = data[: int(len(data) * split_percent)]
             except FileNotFoundError:
                 data = []

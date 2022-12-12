@@ -1,4 +1,5 @@
 import copy
+import itertools
 import json
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -8,6 +9,7 @@ from omegaconf import DictConfig, ListConfig, OmegaConf
 from tqdm import tqdm
 import humps
 from hydra_configs import DataPrepConfig
+from multi_head.mh_dataclasses import MultiHeadDict
 from my_enums import Steps, SimpleTodConstants
 
 import utils
@@ -270,9 +272,13 @@ class SimpleTODDSTCDataPrep:
             tod_turn.turn_id = i + 1
             tod_turn.active_intent = user_turn.get_active_intent()
             if self.cfg.is_multi_task:
-                tod_turns.append(self._prepare_multitask_dialog(tod_turn))
+                tod_turns.append(
+                    self._prepare_multitask_dialog(tod_turn, self.cfg.is_multi_head)
+                )
             else:
-                tod_turns.append(tod_turn.to_csv_row(self.cfg.context_type))
+                tod_turns.append(
+                    tod_turn.to_csv_row(self.cfg.context_type, self.cfg.is_multi_head)
+                )
         if not self.cfg.is_multi_task:
             return tod_turns
         out = np.concatenate(tod_turns, axis=0)
@@ -294,16 +300,6 @@ class SimpleTODDSTCDataPrep:
         if not len(data):
             return np.array(data)
         return np.concatenate(data, axis=0)
-
-    # def _get_schemas(self, step: str) -> Dict[str, DstcSchema]:
-    #     path = self.cfg.data_root / step / "schema.json"
-    #     schema_json = utils.read_json(path)
-    #     schemas = {}
-    #     for s in schema_json:
-    #         schema: DstcSchema = DstcSchema.from_json(json.dumps(s))
-    #         schema.step = step
-    #         schemas[schema.service_name] = schema
-    #     return schemas
 
     def run(self):
         steps = Steps.list()
@@ -331,27 +327,24 @@ class SimpleTODDSTCDataPrep:
                 )
                 continue
 
-            # res = list(
-            #     tqdm(
-            #         Pool().imap(
-            #             self._prepare_dialog_file,
-            #             dialog_paths[:num_dialog],
-            #
-            #            itertools.repeat(schemas),
-            #         ),
-            #         total=num_dialog,
-            #     )
-            # )
-            res = []
-            for d in tqdm(dialog_paths[:num_dialog]):
-                output = self._prepare_dialog_file(d, schemas)
-                if res is not None:
-                    res.append(output)
+            res = list(
+                tqdm(
+                    Pool().imap(
+                        self._prepare_dialog_file,
+                        dialog_paths[:num_dialog],
+                        itertools.repeat(schemas),
+                    ),
+                    total=num_dialog,
+                )
+            )
+            # res = []
+            # for d in tqdm(dialog_paths[:num_dialog]):
+            #     output = self._prepare_dialog_file(d, schemas)
+            #     if res is not None:
+            #         res.append(output)
             out_data = [d for d in res if len(d)]
-            headers = (
-                ["dialog_id", "turn_id", "context", "target", "schema"]
-                if self.cfg.should_add_schema
-                else ["dialog_id", "turn_id", "context", "target"]
+            headers = SimpleTodTurn.get_csv_headers(
+                self.cfg.should_add_schema, self.cfg.is_multi_head
             )
             if len(out_data) == 0:
                 print(f"No data for {step}")

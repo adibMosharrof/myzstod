@@ -2,11 +2,13 @@ from collections import defaultdict, deque
 from dataclasses import dataclass, field
 from itertools import zip_longest
 from typing import DefaultDict, Dict, List, Optional, Tuple, Union
+from dotmap import DotMap
 import numpy as np
 import pandas as pd
 
-import torch
+from torch import nn
 from dstc_dataclasses import DstcRequestedSlot, DstcSchema, DstcServiceCall
+from multi_head.mh_dataclasses import MultiHeadDict
 
 from my_enums import ContextType, DstcSystemActions, SimpleTodConstants, SpecialTokens
 import dstc_utils
@@ -209,35 +211,45 @@ class SimpleTodDst:
     active_intent: str
     requested_slots: Optional[List[DstcRequestedSlot]] = None
 
+    def get_belief_repr(self) -> str:
+        return SimpleTodConstants.ITEM_SEPARATOR.join(map(str, self.beliefs))
+
+    def get_req_slots_str(self) -> str:
+        return SimpleTodConstants.ITEM_SEPARATOR.join(map(str, self.requested_slots))
+
     def __str__(self) -> str:
-        out = SpecialTokens.begin_dst
-        if self.active_intent:
-            out += "".join(
+        intents_str = (
+            "".join(
                 [
                     SpecialTokens.begin_intent,
                     self.active_intent,
                     SpecialTokens.end_intent,
-                    # SimpleTodConstants.NEW_LINES,
                 ]
             )
-        if self.requested_slots:
-            out += "".join(
+            if self.active_intent
+            else ""
+        )
+
+        slots_str = (
+            "".join(
                 [
                     SpecialTokens.begin_requested_slots,
-                    SimpleTodConstants.ITEM_SEPARATOR.join(
-                        map(str, self.requested_slots)
-                    ),
+                    self.get_req_slots_str(),
                     SpecialTokens.end_requested_slots,
-                    # SimpleTodConstants.NEW_LINES,
                 ]
             )
-        out += "".join(
+            if self.requested_slots
+            else ""
+        )
+        out = "".join(
             [
+                SpecialTokens.begin_dst,
+                intents_str,
+                slots_str,
                 SpecialTokens.begin_belief,
-                SimpleTodConstants.ITEM_SEPARATOR.join(map(str, self.beliefs)),
+                self.get_belief_repr(),
                 SpecialTokens.end_belief,
                 SpecialTokens.end_dst,
-                # SimpleTodConstants.NEW_LINES,
             ]
         )
         return out
@@ -262,6 +274,27 @@ class SimpleTodTarget:
 
     def __repr__(self) -> str:
         return self.__str__()
+
+    def get_multihead_dict(self) -> MultiHeadDict:
+        mh_dict = MultiHeadDict(
+            intents=SimpleTodConstants.ITEM_SEPARATOR.join(
+                [dst.active_intent for dst in self.dsts]
+            ),
+            nlg=self.response,
+            beliefs=SimpleTodConstants.ITEM_SEPARATOR.join(
+                [dst.get_belief_repr() for dst in self.dsts]
+            ),
+            requested_slots=SimpleTodConstants.ITEM_SEPARATOR.join(
+                [dst.get_req_slots_str() for dst in self.dsts]
+            ),
+            system_actions=SimpleTodConstants.ITEM_SEPARATOR.join(
+                map(str, self.actions)
+            ),
+            user_actions=SimpleTodConstants.ITEM_SEPARATOR.join(
+                map(str, self.user_actions)
+            ),
+        )
+        return mh_dict
 
     def __str__(self) -> str:
         out = "".join(
@@ -297,6 +330,23 @@ class TodTurnCsvRow:
 
 
 @dataclass
+class TodTurnMultiHeadCsvRow:
+    dialog_id: str
+    turn_id: str
+    context: str
+    intents: str
+    beliefs: Optional[str] = ""
+    requested_slots: Optional[str] = ""
+    user_actions: Optional[str] = ""
+    system_actions: Optional[str] = ""
+    nlg: Optional[str] = ""
+    schema: Optional[str] = ""
+
+    def __getitem__(self, item):
+        return getattr(self, item)
+
+
+@dataclass
 class MultiTaskSpecialToken:
     start_tokens: list[SpecialTokens]
     end_tokens: list[SpecialTokens]
@@ -315,29 +365,44 @@ class SimpleTodTurn:
     schema_str: Optional[str] = None
     prompt_token: Optional[SpecialTokens] = None
 
-    def to_csv_row(self, context_type: ContextType) -> List[any]:
-        context_str = ""
-        if context_type == ContextType.SHORT_REPR:
-            context_str = self.context.get_short_repr()
-        elif context_type == ContextType.DEFAULT:
-            context_str = str(self.context)
+    @classmethod
+    def get_csv_headers(
+        self, should_add_schema: False, is_multi_head: bool = False
+    ) -> List[str]:
+        headers = ["dialog_id", "turn_id", "context"]
+        if should_add_schema:
+            headers.append("schema_str")
+        if not is_multi_head:
+            headers.append("target")
+        else:
+            headers = np.concatenate([headers, MultiHeadDict.head_names()], axis=0)
+        return headers
 
+    def to_csv_row(
+        self, context_type: ContextType, is_multi_head: bool = False
+    ) -> List[any]:
+        context_str = (
+            str(self.context)
+            if context_type == ContextType.DEFAULT
+            else self.context.get_short_repr()
+        )
         context_str += self.prompt_token if self.prompt_token else ""
+        out = [self.dialog_id, self.turn_id, context_str]
         if self.schema_str:
-            return [
-                self.dialog_id,
-                self.turn_id,
-                context_str,
-                str(self.target),
-                self.schema_str,
-            ]
-
-        return [
-            self.dialog_id,
-            self.turn_id,
-            context_str,
-            str(self.target),
-        ]
+            out.append(self.schema_str)
+        if not is_multi_head:
+            target_str = str(self.target)
+            out.append(target_str)
+        else:
+            target_mhdict = self.target.get_multihead_dict()
+            out = np.concatenate(
+                [
+                    out,
+                    target_mhdict.get_values(),
+                ],
+                axis=0,
+            )
+        return out
 
 
 # Datamodule classes
