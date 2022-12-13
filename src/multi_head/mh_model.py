@@ -116,17 +116,19 @@ class GPT2MultiLMHeadModel(GPT2LMHeadModel):
         )
         assert_device_map(self.device_map, len(self.transformer.h))
         self.transformer.parallelize(self.device_map)
-        self.lm_head = self.lm_head.to(self.transformer.first_device)
+        # self.lm_head = self.lm_head.to(self.transformer.first_device)
         for key, value in self.lm_heads.items():
-            self.lm_heads[key] = value.to(self.transformer.first_device)
+            # self.lm_heads[key] = value.to(self.transformer.first_device)
+            self.lm_heads[key] = self.lm_heads[key].to(self.transformer.first_device)
         self.model_parallel = True
 
     def deparallelize(self):
         self.transformer.deparallelize()
         self.transformer = self.transformer.to("cpu")
-        self.lm_head = self.lm_head.to("cpu")
+        # self.lm_head = self.lm_head.to("cpu")
         for key, value in self.lm_heads.items():
-            self.lm_heads[key] = value.to("cpu")
+            # self.lm_heads[key] = value.to("cpu")
+            self.lm_heads[key] = self.lm_heads[key].to("cpu")
         self.model_parallel = False
         torch.cuda.empty_cache()
 
