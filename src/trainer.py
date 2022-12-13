@@ -36,6 +36,7 @@ from sentence_transformers import SentenceTransformer
 
 warnings.filterwarnings("ignore")
 # os.environ["NCCL_DEBUG"] = "INFO"
+import argparse
 
 
 class SimpleTODTrainer:
@@ -284,9 +285,15 @@ class SimpleTODTrainer:
 
 @hydra.main(config_path="../config/trainer/", config_name="simple_tod_trainer")
 def hydra_start(cfg: DictConfig) -> None:
-    stt = SimpleTODTrainer(TrainerConfig(**cfg))
+    local_rank = os.getenv("LOCAL_RANK") or 0
+    all_cfg = {**cfg, **{"local_rank": local_rank}}
+    stt = SimpleTODTrainer(TrainerConfig(**all_cfg))
+    # stt = SimpleTODTrainer(TrainerConfig(**cfg))
     stt.run()
 
 
 if __name__ == "__main__":
+    # parser = argparse.ArgumentParser()
+    # parser.add_argument("--local_rank", type=int, default=-1)
+    # args = parser.parse_args()
     hydra_start()

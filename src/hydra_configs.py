@@ -77,6 +77,7 @@ class TrainerConfig:
         should_add_service_results: bool = False,
         should_add_dsts: bool = False,
         single_action_neg_samples: int = 10,
+        local_rank: int = 0,
     ) -> None:
         self.project_root = Path(project_root)
         self.data_prep_out_root = Path(data_prep_out_root)
@@ -138,6 +139,7 @@ class TrainerConfig:
         self.contrastive_model_name = contrastive_model_name
         self.should_add_dsts = should_add_dsts
         self.single_action_neg_samples = single_action_neg_samples
+        self.local_rank = local_rank
 
 
 class InferenceConfig:
