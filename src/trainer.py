@@ -176,8 +176,9 @@ class SimpleTODTrainer:
             weight_decay=0.01,
             logging_dir=self.cfg.logging_dir,
             dataloader_num_workers=self.cfg.num_workers,
-            dataloader_pin_memory=True,
             report_to="all",
+            fp16=True,
+            sharded_ddp="simple",
         )
 
     def pretrain_model(self, dm: TodDataModule) -> str:
@@ -247,6 +248,7 @@ class SimpleTODTrainer:
             logging_dir=self.cfg.logging_dir,
             dataloader_num_workers=self.cfg.num_workers,
             dataloader_pin_memory=True,
+            fp16=True,
         )
 
         # start training
