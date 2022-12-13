@@ -9,17 +9,21 @@ from transformers.utils.model_parallel_utils import get_device_map, assert_devic
 
 from multi_head.mh_dataclasses import MultiHeadDict
 from dataclasses import asdict
+from transformers.utils import logging
+
+logger = logging.get_logger(__name__)
 
 
 class GPT2MultiLMHeadModel(GPT2LMHeadModel):
+    head_names = MultiHeadDict.head_names()
+
     def __init__(self, config):
         super().__init__(config)
         self.lm_heads = {
             k: nn.Linear(config.n_embd, config.vocab_size, bias=False)
             for k in MultiHeadDict.head_names()
         }
-
-        # print(self.get_memory_footprint())
+        self.lm_head = None
 
     def forward(
         self,
@@ -41,11 +45,10 @@ class GPT2MultiLMHeadModel(GPT2LMHeadModel):
         return_dict = (
             return_dict if return_dict is not None else self.config.use_return_dict
         )
-        all_head_names = MultiHeadDict.head_names()
-        loss = dict.fromkeys(all_head_names, None)
-        all_transformer_outputs = dict.fromkeys(all_head_names, None)
-        lm_logits = dict.fromkeys(all_head_names, None)
-        for head_name in all_head_names:
+        all_loss = dict.fromkeys(self.head_names, None)
+        all_transformer_outputs = dict.fromkeys(self.head_names, None)
+        lm_logits = dict.fromkeys(self.head_names, None)
+        for head_name in self.head_names:
             transformer_outputs = self.transformer(
                 input_ids[head_name],
                 past_key_values=past_key_values,
@@ -76,32 +79,32 @@ class GPT2MultiLMHeadModel(GPT2LMHeadModel):
                 shift_labels = labels[head_name][..., 1:].contiguous()
                 # Flatten the tokens
                 loss_fct = CrossEntropyLoss()
-                loss[head_name] = loss_fct(
+                all_loss[head_name] = loss_fct(
                     shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1)
                 )
 
         if not return_dict:
             output = (lm_logits,) + transformer_outputs[1:]
-            return ((loss,) + output) if loss is not None else output
-
+            return ((all_loss,) + output) if all_loss is not None else output
+        total_loss = sum(all_loss.values())
         return CausalLMOutputWithCrossAttentions(
-            loss={loss[head_name] for head_name in all_head_names},
-            logits={lm_logits[head_name] for head_name in all_head_names},
+            loss=total_loss,
+            logits={lm_logits[head_name] for head_name in self.head_names},
             past_key_values={
                 all_transformer_outputs[head_name].past_key_values
-                for head_name in all_head_names
+                for head_name in self.head_names
             },
             hidden_states={
                 all_transformer_outputs[head_name].hidden_states
-                for head_name in all_head_names
+                for head_name in self.head_names
             },
             attentions={
                 all_transformer_outputs[head_name].attentions
-                for head_name in all_head_names
+                for head_name in self.head_names
             },
             cross_attentions={
                 all_transformer_outputs[head_name].cross_attentions
-                for head_name in all_head_names
+                for head_name in self.head_names
             },
         )
 
@@ -128,7 +131,6 @@ class GPT2MultiLMHeadModel(GPT2LMHeadModel):
         torch.cuda.empty_cache()
 
     def get_output_embeddings(self):
-        # return [value for key, value in self.lm_heads.items()]
         return self.lm_heads
 
     def tie_weights(self):
@@ -168,3 +170,20 @@ class GPT2MultiLMHeadModel(GPT2LMHeadModel):
 
     def set_output_embeddings(self, new_embeddings, key):
         self.lm_heads[key] = new_embeddings
+
+    def estimate_tokens(self, input_dict: dict[dict[str, torch.Tensor]]) -> int:
+        if not hasattr(self, "warnings_issued"):
+            self.warnings_issued = {}
+
+        if self.main_input_name in input_dict:
+            elements = [
+                input_dict[self.main_input_name][head_name].numel()
+                for head_name in self.head_names
+            ]
+            return sum(elements)
+        elif "estimate_tokens" not in self.warnings_issued:
+            logger.warning(
+                "Could not estimate the number of tokens of the input, floating-point operations will not be computed"
+            )
+            self.warnings_issued["estimate_tokens"] = True
+        return 0

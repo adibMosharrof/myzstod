@@ -210,7 +210,10 @@ class SimpleTODTrainer:
         return training_args.output_dir
 
     def train_model(self, path, dm) -> str:
-        model = GPT2LMHeadModel.from_pretrained(path)
+        if self.cfg.is_multi_head:
+            model = GPT2MultiLMHeadModel.from_pretrained(path)
+        else:
+            model = GPT2LMHeadModel.from_pretrained(path)
         training_args = self._get_training_args(
             "train", self.cfg.train_epochs, self.cfg.train_batch_size
         )

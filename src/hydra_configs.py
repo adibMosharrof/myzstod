@@ -18,6 +18,7 @@ from my_enums import (
     SpecialTokens,
     Steps,
 )
+from multi_head.mh_model import GPT2MultiLMHeadModel
 
 
 class TrainerConfig:
@@ -182,6 +183,7 @@ class InferenceConfig:
         self.data_prep_out_root = data_prep_out_root
         self.num_test_dialogs = num_test_dialogs
         self.delexicalize = delexicalize
+        self.is_multi_head = is_multi_head
         self.model = self._get_model(model)
         self.model_name = model_name
         self.generate_max_len = generate_max_len
@@ -193,7 +195,6 @@ class InferenceConfig:
         self.test_prompt_max_len = test_prompt_max_len
         self.predictions_log_dir = Path(predictions_log_dir)
         self.predictions_log_dir.mkdir(parents=True, exist_ok=True)
-        self.is_multi_head = is_multi_head
         self.is_multi_task = is_multi_task
         self.multi_tasks = (
             multi_tasks if self.is_multi_task and multi_tasks else [1, 1, 1]
@@ -227,6 +228,8 @@ class InferenceConfig:
     def _get_model(self, model):
         if isinstance(model, str):
             model_path = self.project_root / model
+            if self.is_multi_head:
+                return GPT2MultiLMHeadModel.from_pretrained(model_path).cuda()
             return GPT2LMHeadModel.from_pretrained(model_path).cuda()
         if isinstance(model, GPT2PreTrainedModel):
             return model.cuda()
