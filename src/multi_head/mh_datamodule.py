@@ -38,7 +38,7 @@ class MultiLMHeadDatamodule(BaseDataModule):
                 "nlg": 105,
             }
         )
-        context_max_length = 700
+        context_max_length = 400
         all_head_names = MultiHeadDict.head_names()
         mh_tokens = dict.fromkeys(all_head_names, [])
         input_tokens = dict.fromkeys(all_head_names, [])
@@ -47,7 +47,10 @@ class MultiLMHeadDatamodule(BaseDataModule):
         for item in batch:
             for head_name in all_head_names:
                 unused_len = (
-                    self.cfg.max_token_len - lengths[head_name] - context_max_length
+                    # self.cfg.max_token_len - lengths[head_name] - context_max_length
+                    700
+                    - lengths[head_name]
+                    - context_max_length
                 )
                 pad = torch.full([unused_len], self.cfg.tokenizer.pad_token_id)
                 head_target_tokens, head_target_masks = self.mh_tokenizer(
