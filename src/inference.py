@@ -13,6 +13,7 @@ import dstc_utils
 from metrics.intent_accuracy_metric import IntentAccuracyMetric
 from metrics.response_metrics import ResponseMetric
 from collections import Counter
+
 # from metrics.tod_metrics_base import MetricCollection
 from torchmetrics import MetricCollection
 from metrics.goal_metric import GoalMetric, GoalMetricConfigFactory
@@ -64,6 +65,7 @@ class Inference:
                 self.cfg.logger.info(f"No data to test for {domain_setting}")
                 continue
             inf_records = InferenceRecords()
+
             for batch in tqdm(test_dataloader):
                 gen = self._get_generation(batch)
                 gen_without_context = gen[:, self.cfg.test_prompt_max_len :]
@@ -78,13 +80,15 @@ class Inference:
                 #     ]
                 # )
                 pred_text = self.cfg.tokenizer.batch_decode(
-                    gen_without_context, 
+                    gen_without_context,
                     # gen_with_start_tokens,
                     skip_special_tokens=False,
                 )
                 for s in pred_text:
                     start_tokens.append(s[:15])
                 pred_text_no_pad = [self._remove_padding(text) for text in pred_text]
+                processed_gen = self._postprocess_generation(pred_text_no_pad)
+                pred_text_no_pad = processed_gen
                 if not self.cfg.is_multi_task:
                     self.tod_metrics.update(
                         references=batch.targets_text, predictions=pred_text_no_pad
@@ -99,6 +103,7 @@ class Inference:
                     batch.turn_ids,
                     batch.contexts_text,
                 )
+
             inf_records.concat_data()
             test_csv_out_data = np.column_stack(
                 [
@@ -118,14 +123,13 @@ class Inference:
             self.cfg.logger.info(f"Testing {domain_setting}")
             self._print_metrics()
             self.cfg.logger.info(str(self.cfg.out_dir))
-            # self.tod_metrics.visualize(self.cfg.predictions_log_dir)
             [
                 self.tod_metrics[m].visualize(Path(self.cfg.predictions_log_dir))
                 for m in self.tod_metrics
             ]
         self.cfg.logger.info("Start token counts")
         for token, count in Counter(start_tokens).items():
-            self.cfg.logger.info(f'{token}:{count}')
+            self.cfg.logger.info(f"{token}:{count}")
         r = ReconstructDialog(ReconstructDialogConfig.from_inference_config(self.cfg))
         r.run()
 
@@ -159,6 +163,20 @@ class Inference:
             bos_token_id=self.cfg.tokenizer.bos_token_id,
         )
         return gen
+
+    def _postprocess_generation(self, batch: list[str]) -> list[str]:
+        out = []
+        required_tokens = [
+            SpecialTokens.begin_target,
+            SpecialTokens.begin_dsts,
+            SpecialTokens.begin_dst,
+            SpecialTokens.begin_intent,
+        ]
+        for item in batch:
+            text_to_add = [rt for rt in required_tokens if rt not in item]
+            out_text = "".join(["".join(text_to_add), item])
+            out.append(out_text)
+        return out
 
     def _print_metrics(self):
         tod_metrics_str = [str(self.tod_metrics[m]) for m in self.tod_metrics]
