@@ -163,7 +163,7 @@ class SimpleTodContext:
     def _get_service_results(self) -> str:
         out = ""
         if self.service_results:
-            for service_result in self.service_results[:2]:
+            for service_result in self.service_results[:1]:
                 out += "".join(
                     [
                         SpecialTokens.begin_service_results,
