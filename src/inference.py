@@ -87,8 +87,9 @@ class Inference:
                 for s in pred_text:
                     start_tokens.append(s[:15])
                 pred_text_no_pad = [self._remove_padding(text) for text in pred_text]
-                processed_gen = self._postprocess_generation(pred_text_no_pad)
-                pred_text_no_pad = processed_gen
+                if self.cfg.postprocess_generation:
+                    processed_gen = self._postprocess_generation(pred_text_no_pad)
+                    pred_text_no_pad = processed_gen
                 if not self.cfg.is_multi_task:
                     self.tod_metrics.update(
                         references=batch.targets_text, predictions=pred_text_no_pad

@@ -78,6 +78,7 @@ class TrainerConfig:
         should_add_dsts: bool = False,
         single_action_neg_samples: int = 10,
         local_rank: int = 0,
+        postprocess_generation: bool = False,
     ) -> None:
         self.project_root = Path(project_root)
         self.data_prep_out_root = Path(data_prep_out_root)
@@ -140,6 +141,7 @@ class TrainerConfig:
         self.should_add_dsts = should_add_dsts
         self.single_action_neg_samples = single_action_neg_samples
         self.local_rank = local_rank
+        self.postprocess_generation = postprocess_generation
 
 
 class InferenceConfig:
@@ -174,6 +176,7 @@ class InferenceConfig:
         should_add_sys_actions: bool = False,
         context_type: str = ContextType.SHORT_REPR,
         should_add_service_results: bool = False,
+        postprocess_generation: bool = True,
     ) -> None:
         self.num_workers = num_workers
         self.data_split_percent = data_split_percent or [1, 1, 1]
@@ -209,6 +212,7 @@ class InferenceConfig:
         self.padding_regexp = re.compile(re.escape(SpecialTokens.pad_token))
         self.context_type = context_type
         self.should_add_service_results = should_add_service_results
+        self.postprocess_generation = postprocess_generation
         # self.contrastive_model = contrastive_model
 
     def _get_tokenizer(self, model_path_str: str):
@@ -267,6 +271,7 @@ class InferenceConfig:
             should_add_user_actions=trainer_config.should_add_user_actions,
             context_type=trainer_config.context_type,
             should_add_service_results=trainer_config.should_add_service_results,
+            postprocess_generation=trainer_config.postprocess_generation,
             # contrastive_model=trainer_config.contrastive_model,
         )
 
