@@ -371,7 +371,7 @@ class SimpleTodTurn:
     ) -> List[str]:
         headers = ["dialog_id", "turn_id", "context"]
         if should_add_schema:
-            headers.append("schema_str")
+            headers.append("schema")
         if not is_multi_head:
             headers.append("target")
         else:

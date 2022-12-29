@@ -337,11 +337,14 @@ class SimpleTODDSTCDataPrep:
                     total=num_dialog,
                 )
             )
+            # start no mp code
             # res = []
             # for d in tqdm(dialog_paths[:num_dialog]):
             #     output = self._prepare_dialog_file(d, schemas)
             #     if res is not None:
             #         res.append(output)
+            # end no mp code
+
             out_data = [d for d in res if len(d)]
             headers = SimpleTodTurn.get_csv_headers(
                 self.cfg.should_add_schema, self.cfg.is_multi_head
