@@ -177,7 +177,7 @@ class SimpleTODTrainer:
             logging_dir=self.cfg.logging_dir,
             dataloader_num_workers=self.cfg.num_workers,
             report_to="all",
-            fp16=True,
+            fp16=self.cfg.fp16,
             # sharded_ddp="simple",
         )
 

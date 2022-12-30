@@ -78,6 +78,7 @@ class TrainerConfig:
         should_add_dsts: bool = False,
         single_action_neg_samples: int = 10,
         local_rank: int = 0,
+        fp16: int = False,
     ) -> None:
         self.project_root = Path(project_root)
         self.data_prep_out_root = Path(data_prep_out_root)
@@ -116,6 +117,7 @@ class TrainerConfig:
         self.raw_data_root = self.project_root / raw_data_root
         self.test_prompt_max_len = test_prompt_max_len
         self.eval_accumulation_steps = eval_accumulation_steps
+        self.fp16 = fp16
         self.is_multi_head = is_multi_head
         self.is_multi_task = is_multi_task
         self.multi_tasks = (
