@@ -65,6 +65,7 @@ class SimpleTODTrainer:
         # model.prune_heads(heads_to_prune)
         # model = model.cuda()
         current_dir = os.getcwd()
+        print(current_dir)
         dm = self._get_dm()
         # self.cfg.tokenizer = dstc_utils.get_trained_tokenizer(self.cfg)
         if self.cfg.train_model_path:

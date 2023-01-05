@@ -134,6 +134,7 @@ class TodDataModule(BaseDataModule):
                 )
                 context_len = len(context_tokens)
                 unused_len = 0
+                print("unused length < 0")
 
             pad = torch.full([unused_len], self.cfg.tokenizer.pad_token_id)
             input_tokens = torch.cat([schema_tokens, context_tokens, pad])
