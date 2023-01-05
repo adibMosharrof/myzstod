@@ -194,9 +194,9 @@ class DstcSchemaSlot:
         return "".join(
             [
                 self.name,
-                # SpecialTokens.possible_values if self.possible_values else "",
-                # " ".join(self.possible_values),
-                # SpecialTokens.end_possible_values if self.possible_values else "",
+                SpecialTokens.possible_values if self.possible_values else "",
+                " ".join(self.possible_values),
+                SpecialTokens.end_possible_values if self.possible_values else "",
             ]
         )
 
