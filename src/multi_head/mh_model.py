@@ -19,10 +19,10 @@ class GPT2MultiLMHeadModel(GPT2LMHeadModel):
 
     def __init__(self, config):
         super().__init__(config)
-        self.lm_heads = {
+        self.lm_heads = nn.ModuleDict({
             k: nn.Linear(config.n_embd, config.vocab_size, bias=False)
             for k in MultiHeadDict.head_names()
-        }
+        })
         self.lm_head = None
 
     def forward(
