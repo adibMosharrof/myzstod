@@ -30,6 +30,7 @@ class MultiLMHeadDatamodule(BaseDataModule):
     ):
         lengths = MultiHeadDict.from_dict(
             {
+                "dsts":200,
                 "intents": 11,
                 "beliefs": 188,
                 "requested_slots": 21,
@@ -84,14 +85,6 @@ class MultiLMHeadDatamodule(BaseDataModule):
 
                 labels[head_name].append(label)
 
-        # out = {
-        #     head_name: {
-        #         "input_ids": torch.stack(input_tokens[head_name]),
-        #         "attention_mask": torch.stack(attention_masks[head_name]),
-        #         "labels": torch.stack(labels[head_name]),
-        #     }
-        #     for head_name in all_head_names
-        # }
         out = {
             "input_ids": {
                 head_name: torch.stack(input_tokens[head_name])

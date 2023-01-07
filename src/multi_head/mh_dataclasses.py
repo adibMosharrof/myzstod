@@ -7,12 +7,15 @@ from typing import Union
 @dataclass_json
 @dataclass
 class MultiHeadDict:
-    intents: Union[nn.Linear, str, int]
-    beliefs: Union[nn.Linear, str, int]
-    requested_slots: Union[nn.Linear, str, int]
-    system_actions: Union[nn.Linear, str, int]
-    user_actions: Union[nn.Linear, str, int]
+    # intents: Union[nn.Linear, str, int]
+    # beliefs: Union[nn.Linear, str, int]
+    # requested_slots: Union[nn.Linear, str, int]
+    # system_actions: Union[nn.Linear, str, int]
+    # user_actions: Union[nn.Linear, str, int]
+    # nlg: Union[nn.Linear, str, int]
     nlg: Union[nn.Linear, str, int]
+    system_actions: Union[nn.Linear, str, int]
+    dsts: Union[nn.Linear, str, int]
 
     @classmethod
     def head_names(self):

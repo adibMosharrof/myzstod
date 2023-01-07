@@ -276,24 +276,35 @@ class SimpleTodTarget:
         return self.__str__()
 
     def get_multihead_dict(self) -> MultiHeadDict:
+        # mh_dict = MultiHeadDict(
+        #     intents=SimpleTodConstants.ITEM_SEPARATOR.join(
+        #         [dst.active_intent for dst in self.dsts]
+        #     ),
+        #     nlg=self.response,
+        #     beliefs=SimpleTodConstants.ITEM_SEPARATOR.join(
+        #         [dst.get_belief_repr() for dst in self.dsts]
+        #     ),
+        #     requested_slots=SimpleTodConstants.ITEM_SEPARATOR.join(
+        #         [dst.get_req_slots_str() for dst in self.dsts]
+        #     ),
+        #     system_actions=SimpleTodConstants.ITEM_SEPARATOR.join(
+        #         map(str, self.actions)
+        #     ),
+        #     user_actions=SimpleTodConstants.ITEM_SEPARATOR.join(
+        #         map(str, self.user_actions)
+        #     ),
+        # )
         mh_dict = MultiHeadDict(
-            intents=SimpleTodConstants.ITEM_SEPARATOR.join(
-                [dst.active_intent for dst in self.dsts]
-            ),
             nlg=self.response,
-            beliefs=SimpleTodConstants.ITEM_SEPARATOR.join(
-                [dst.get_belief_repr() for dst in self.dsts]
-            ),
-            requested_slots=SimpleTodConstants.ITEM_SEPARATOR.join(
-                [dst.get_req_slots_str() for dst in self.dsts]
+            dsts=SimpleTodConstants.ITEM_SEPARATOR.join(
+                map(str, self.dsts)
             ),
             system_actions=SimpleTodConstants.ITEM_SEPARATOR.join(
                 map(str, self.actions)
             ),
-            user_actions=SimpleTodConstants.ITEM_SEPARATOR.join(
-                map(str, self.user_actions)
-            ),
         )
+
+
         return mh_dict
 
     def __str__(self) -> str:
@@ -334,11 +345,13 @@ class TodTurnMultiHeadCsvRow:
     dialog_id: str
     turn_id: str
     context: str
-    intents: str
-    beliefs: Optional[str] = ""
-    requested_slots: Optional[str] = ""
+    # intents: str
+    # beliefs: Optional[str] = ""
+    # requested_slots: Optional[str] = ""
     user_actions: Optional[str] = ""
     system_actions: Optional[str] = ""
+    dsts:Optional[str] = ""
+    # actions:Optional[str] =""
     nlg: Optional[str] = ""
     schema: Optional[str] = ""
 

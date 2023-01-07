@@ -184,7 +184,7 @@ class SimpleTODTrainer:
         )
 
     def pretrain_model(self, dm: TodDataModule) -> str:
-        model_class = dstc_utils.get_model_class(self.cfg.model_name)
+        model_class = dstc_utils.get_model_class(self.cfg.model_name, self.cfg.is_multi_head)
         if self.cfg.pretrain_model_path:
             path = self.cfg.project_root / self.cfg.pretrain_model_path
             if path.exists():
@@ -216,7 +216,7 @@ class SimpleTODTrainer:
         return training_args.output_dir
 
     def train_model(self, path, dm) -> str:
-        model_class = dstc_utils.get_model_class(self.cfg.model_name)
+        model_class = dstc_utils.get_model_class(self.cfg.model_name,self.cfg.is_multi_head)
         if self.cfg.is_multi_head:
             model = model_class.from_pretrained(path)
         else:
