@@ -16,3 +16,4 @@ google_sgd/schema_guided_dst/baseline/test_data
 data_exploration/*.csv
 tokenizer/
 transformers/
+GenTodPaper/.olauth

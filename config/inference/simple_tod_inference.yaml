@@ -3,12 +3,13 @@ data_split_percent:
   - 1
   - 1
 eval_batch_size: 6
-test_batch_size: 30
+test_batch_size: 70
 max_token_len: 1024
 test_prompt_max_len: 750
-num_test_dialogs: 17
-# model: outputs/2022-10-12/18-43-31/results/train/checkpoint-10849
-model: outputs/2022-10-19/22-16-52/results/train/checkpoint-9041
+num_test_dialogs: 34
+# raw_data_root: data/dstc8-schema-guided-dialogue/sgd_x/data/
+# model: outputs/2022-10-27/11-46-33/results/train/checkpoint-387
+model: outputs/2022-12-31/16-12-57/results/train
 num_turns: 26
 # overwrite:
 #   - true
@@ -23,5 +24,9 @@ multi_tasks:
   - 1
   - 1
   - 0
-# should_add_schema: true
+should_add_schema: true
 should_add_user_actions: true
+should_add_sys_actions: true
+# context_type: default
+should_add_service_results: true
+postprocess_generation: true

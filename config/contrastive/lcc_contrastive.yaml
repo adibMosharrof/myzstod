@@ -1,6 +1,6 @@
 num_dialogs:
   - 20
-  - 10
+  - 5
   - 17
 data_split_percent:
   - 1

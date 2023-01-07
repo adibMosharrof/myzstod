@@ -1,15 +1,23 @@
-pretrain_epochs: 3
-pretrain_model_path: outputs/2022-10-19/22-16-52/results/pretrain/checkpoint-9041
-train_epochs: 1
-train_batch_size: 3
+pretrain_epochs: 2
+pretrain_model_path: outputs/2022-12-31/16-12-57/results/train
+train_epochs: 2
+pretrain_batch_size: 1
+train_batch_size: 1
+# raw_data_root: data/dstc8-schema-guided-dialogue/sgd_x/data/v1/
+# tokenizer_name: sentence-transformers/stsb-roberta-base-v2
 data_split_percent:
   - .1
-  - 1
-  - 1
-eval_batch_size: 10
+  - .1
+  - .1
+eval_batch_size: 20
+eval_steps: 500
 test_batch_size: 60
 test_prompt_max_len: 750
 max_token_len: 1024
+# num_dialogs: 
+#   - 127
+#   - 20
+#   - 34
 num_dialogs: 
   - 1
   - 1
@@ -18,21 +26,30 @@ num_dialogs:
 #   - true
 #   - true
 #   - true
-# should_test: true
+should_test: true
 test_domain_settings:
   - all
-  - seen
-  - unseen
+  # - seen
+  # - unseen
 num_turns: 26
-train_domain_setting: all
+train_domain_setting: seen
+# train_domain_percentage: .75
+# context_type: default
+# is_multi_head: true
 # is_multi_task: true
 multi_tasks:
   - 1
   - 1
   - 1
 # should_add_schema: true
-# should_add_sys_actions: true
+should_add_sys_actions: true
 should_add_user_actions: true
-contrastive_model: outputs/2022-10-19/15-33-22/results
-contrast_with: user_act
-contrastive_max_token_len: 150
+contrastive_model: outputs/2023-01-04/09-19-41/results
+# contrast_with: 
+#   - user_act
+#   - nlg
+contrastive_max_token_len: 512
+contrastive_train_epochs: 1
+contrastive_train_batch_size: 275
+should_add_service_results: true
+# model_name: distilgpt2

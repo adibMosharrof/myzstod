@@ -1,17 +1,17 @@
 num_dialogs:
-  - 20
-  - 5
+  - 1
+  - 1
   - 1
 data_split_percent:
   - 1
   - 1
   - 1
-train_batch_size: 100
-train_epochs: 4
+contrastive_train_batch_size: 200
+train_epochs: 3
 contrast_with: 
-  - user_act
-  # - nlg
-single_action_neg_samples: 10
+  # - user_act
+  - nlg
+single_action_neg_samples: 5
 # model: outputs/2022-10-18/11-37-13/results
 # overwrite:
 #   - 1
@@ -21,4 +21,4 @@ single_action_neg_samples: 10
 # model_name: all-mpnet-base-v2
 contrastive_model_name: sentence-transformers/stsb-roberta-base-v2
 tokenizer_name: gpt2
-should_add_dsts: false
+should_add_dsts: true
