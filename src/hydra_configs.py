@@ -191,8 +191,8 @@ class InferenceConfig:
         self.num_test_dialogs = num_test_dialogs
         self.delexicalize = delexicalize
         self.is_multi_head = is_multi_head
-        self.model = self._get_model(model)
         self.model_name = model_name
+        self.model = self._get_model(model)
         self.generate_max_len = generate_max_len
         self.train_domain_percentage = train_domain_percentage
         self.test_domain_settings = test_domain_settings or ["all", "seen", "unseen"]
@@ -234,13 +234,15 @@ class InferenceConfig:
         return tokenizer
 
     def _get_model(self, model):
+        model_class = dstc_utils.get_model_class(self.model_name)
         if isinstance(model, str):
             model_path = self.project_root / model
             if self.is_multi_head:
-                return GPT2MultiLMHeadModel.from_pretrained(model_path).cuda()
-            return GPT2LMHeadModel.from_pretrained(model_path).cuda()
-        if isinstance(model, GPT2PreTrainedModel):
+                return model_class.from_pretrained(model_path).cuda()
+            return model_class.from_pretrained(model_path).cuda()
+        if isinstance(model, model_class):
             return model.cuda()
+        
 
     @classmethod
     def from_trainer_config(

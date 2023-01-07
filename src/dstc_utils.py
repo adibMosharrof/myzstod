@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import List, Optional, Union, Dict
 import numpy as np
 import pandas as pd
-from transformers import AutoTokenizer, PreTrainedTokenizerFast
+from transformers import AutoTokenizer, PreTrainedTokenizerFast, GPT2LMHeadModel, T5ForConditionalGeneration
 import os
 
 from my_enums import SimpleTodConstants, SpecialTokens, Steps
@@ -199,3 +199,9 @@ def get_slot_value_match_score(
 
 def fuzzy_string_match(ref: str, hyp: str) -> float:
     return fuzz.token_set_ratio(ref, hyp) / 100.0
+
+def get_model_class(model_name:str):
+    if model_name == "gpt2":
+        return GPT2LMHeadModel
+    elif model_name == "t5-base":
+        return T5ForConditionalGeneration

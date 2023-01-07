@@ -14,6 +14,7 @@ from transformers import (
     EarlyStoppingCallback,
     IntervalStrategy,
     GPT2Config,
+    T5ForConditionalGeneration
 )
 from base_datamodule import BaseDataModule
 from contrastive import Contrastive
@@ -183,6 +184,7 @@ class SimpleTODTrainer:
         )
 
     def pretrain_model(self, dm: TodDataModule) -> str:
+        model_class = dstc_utils.get_model_class(self.cfg.model_name)
         if self.cfg.pretrain_model_path:
             path = self.cfg.project_root / self.cfg.pretrain_model_path
             if path.exists():
@@ -191,9 +193,10 @@ class SimpleTODTrainer:
             "pretrain", self.cfg.pretrain_epochs, self.cfg.pretrain_batch_size
         )
         if self.cfg.is_multi_head:
-            model = GPT2MultiLMHeadModel.from_pretrained(self.cfg.model_name)
+            model = model_class.from_pretrained(self.cfg.model_name)
         else:
-            model = GPT2LMHeadModel.from_pretrained(self.cfg.model_name)
+            # model = GPT2LMHeadModel.from_pretrained(self.cfg.model_name)
+            model = model_class.from_pretrained(self.cfg.model_name)
         model.resize_token_embeddings(len(self.cfg.tokenizer))
         pre_trainer = Trainer(
             model=model,
@@ -213,10 +216,12 @@ class SimpleTODTrainer:
         return training_args.output_dir
 
     def train_model(self, path, dm) -> str:
+        model_class = dstc_utils.get_model_class(self.cfg.model_name)
         if self.cfg.is_multi_head:
-            model = GPT2MultiLMHeadModel.from_pretrained(path)
+            model = model_class.from_pretrained(path)
         else:
-            model = GPT2LMHeadModel.from_pretrained(path)
+            # model = GPT2LMHeadModel.from_pretrained(path)
+            model = model_class.from_pretrained(path)
         training_args = self._get_training_args(
             "train", self.cfg.train_epochs, self.cfg.train_batch_size
         )
@@ -227,63 +232,6 @@ class SimpleTODTrainer:
         print("training output_dir: ", out_dir)
         return training_args.output_dir
 
-    # not used anymore
-    def train(self, model: GPT2LMHeadModel, dm: TodDataModule):
-        pretrain_out = str(self.cfg.out_dir / "pretrain")
-        training_args = TrainingArguments(
-            output_dir=pretrain_out,
-            num_train_epochs=self.cfg.pretrain_epochs,
-            logging_steps=self.cfg.logging_steps,
-            load_best_model_at_end=True,
-            save_strategy=IntervalStrategy.STEPS,
-            save_total_limit=5,
-            evaluation_strategy=IntervalStrategy.STEPS,
-            eval_steps=self.cfg.eval_steps,
-            gradient_accumulation_steps=self.cfg.gradient_accumulation_steps,
-            metric_for_best_model="eval_loss",
-            eval_accumulation_steps=self.cfg.eval_accumulation_steps,
-            per_device_train_batch_size=self.cfg.train_batch_size,
-            per_device_eval_batch_size=self.cfg.eval_batch_size,
-            warmup_steps=100,
-            weight_decay=0.01,
-            logging_dir=self.cfg.logging_dir,
-            dataloader_num_workers=self.cfg.num_workers,
-            dataloader_pin_memory=True,
-            fp16=True,
-        )
-
-        # start training
-        pre_trainer = Trainer(
-            model=model,
-            args=training_args,
-            train_dataset=dm.cfg.datasets["train"],
-            eval_dataset=dm.cfg.datasets["dev"],
-            data_collator=dm.pretraining_collator,
-            callbacks=[
-                EarlyStoppingCallback(
-                    early_stopping_patience=self.cfg.early_stopping_patience
-                )
-            ],
-        )
-        if not self.cfg.pretrain_model_path:
-            pre_trainer.train()
-            pre_trainer.save_model()
-        else:
-            pretrain_out = self.cfg.project_root / self.cfg.pretrain_model_path
-        # model_train = GPT2LMHeadModel.from_pretrained(pretrain_out)
-        self.print_cuda_info("pretrained model created")
-        training_args.output_dir = str(self.cfg.out_dir / "train")
-        training_args.num_train_epochs = self.cfg.train_epochs
-        # trainer = self._get_trainer(model_train, dm, training_args)
-        trainer = self._get_trainer(model, dm, training_args)
-        # torch.cuda.empty_cache()
-        trainer.train()
-        trainer.save_model()
-        self.print_cuda_info("trained model created")
-        # self.cfg.tokenizer.save_pretrained(self.cfg.out_dir)
-        out_dir = os.getcwd()
-        print("output_dir: ", out_dir)
-        return out_dir
 
 
 @hydra.main(config_path="../config/trainer/", config_name="simple_tod_trainer")
