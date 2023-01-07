@@ -1,0 +1,56 @@
+This is BibTeX, Version 0.99d (TeX Live 2019/Debian)
+Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
+The top-level auxiliary file: acl2023.aux
+The style file: acl_natbib.bst
+Reallocated glb_str_ptr (elt_size=4) to 20 items from 10.
+Reallocated global_strs (elt_size=200001) to 20 items from 10.
+Reallocated glb_str_end (elt_size=4) to 20 items from 10.
+Reallocated singl_function (elt_size=4) to 100 items from 50.
+Database file #1: anthology.bib
+Database file #2: custom.bib
+Reallocated wiz_functions (elt_size=4) to 6000 items from 3000.
+Warning--can't use both volume and number fields in lee2022sgd
+Warning--empty booktitle in Radford2019LanguageMA
+Warning--can't use both volume and number fields in rastogi2020towards
+You've used 19 entries,
+            3571 wiz_defined-function locations,
+            799 strings with 9802 characters,
+and the built_in function-call counts, 16069 in all, are:
+= -- 1217
+> -- 1131
+< -- 8
++ -- 367
+- -- 342
+* -- 1172
+:= -- 2449
+add.period$ -- 74
+call.type$ -- 19
+change.case$ -- 223
+chr.to.int$ -- 19
+cite$ -- 22
+duplicate$ -- 1067
+empty$ -- 983
+format.name$ -- 403
+if$ -- 3382
+int.to.chr$ -- 1
+int.to.str$ -- 1
+missing$ -- 243
+newline$ -- 97
+num.names$ -- 76
+pop$ -- 556
+preamble$ -- 1
+purify$ -- 190
+quote$ -- 0
+skip$ -- 640
+stack$ -- 0
+substring$ -- 374
+swap$ -- 522
+text.length$ -- 6
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 171
+warning$ -- 3
+while$ -- 68
+width$ -- 0
+write$ -- 242
+(There were 3 warnings)

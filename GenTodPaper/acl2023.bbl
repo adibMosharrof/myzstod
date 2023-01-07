@@ -1,0 +1,138 @@
+\begin{thebibliography}{19}
+\expandafter\ifx\csname natexlab\endcsname\relax\def\natexlab#1{#1}\fi
+
+\bibitem[{Devlin et~al.(2019)Devlin, Chang, Lee, and
+  Toutanova}]{Devlin2019BERTPO}
+Jacob Devlin, Ming-Wei Chang, Kenton Lee, and Kristina Toutanova. 2019.
+\newblock Bert: Pre-training of deep bidirectional transformers for language
+  understanding.
+\newblock \emph{ArXiv}, abs/1810.04805.
+
+\bibitem[{Feng et~al.(2020)Feng, Wang, and Li}]{Feng2020ASA}
+Yue Feng, Yang Wang, and Hang Li. 2020.
+\newblock A sequence-to-sequence approach to dialogue state tracking.
+\newblock In \emph{Annual Meeting of the Association for Computational
+  Linguistics}.
+
+\bibitem[{Hosseini-Asl et~al.(2020)Hosseini-Asl, McCann, Wu, Yavuz, and
+  Socher}]{HosseiniAsl2020ASL}
+Ehsan Hosseini-Asl, Bryan McCann, Chien-Sheng Wu, Semih Yavuz, and Richard
+  Socher. 2020.
+\newblock A simple language model for task-oriented dialogue.
+\newblock \emph{ArXiv}, abs/2005.00796.
+
+\bibitem[{Jeon and Lee(2021)}]{Jeon2021DORATP}
+Hyunmin Jeon and Gary~Geunbae Lee. 2021.
+\newblock Dora: Toward policy optimization for task-oriented dialogue system
+  with efficient context.
+\newblock \emph{Comput. Speech Lang.}, 72:101310.
+
+\bibitem[{Lee et~al.(2022)Lee, Gupta, Rastogi, Cao, Zhang, and Wu}]{lee2022sgd}
+Harrison Lee, Raghav Gupta, Abhinav Rastogi, Yuan Cao, Bin Zhang, and Yonghui
+  Wu. 2022.
+\newblock Sgd-x: A benchmark for robust generalization in schema-guided
+  dialogue systems.
+\newblock In \emph{Proceedings of the AAAI Conference on Artificial
+  Intelligence}, volume~36, pages 10938--10946.
+
+\bibitem[{Lee et~al.(2020)Lee, Jo, Kim, Jung, and Kim}]{Lee2020SUMBTLaRLEN}
+Hwaran Lee, Seokhwan Jo, Hyungjun Kim, Sangkeun Jung, and Tae-Yoon Kim. 2020.
+\newblock Sumbt+larl: End-to-end neural task-oriented dialog system with
+  reinforcement learning.
+\newblock \emph{ArXiv}, abs/2009.10447.
+
+\bibitem[{Lin and Och(2004)}]{lin2004looking}
+Chin-Yew Lin and FJ~Och. 2004.
+\newblock Looking for a few good metrics: Rouge and its evaluation.
+\newblock In \emph{Ntcir workshop}.
+
+\bibitem[{Mehri et~al.(2019)Mehri, Srinivasan, and
+  Eskenazi}]{mehri2019structured}
+Shikib Mehri, Tejas Srinivasan, and Maxine Eskenazi. 2019.
+\newblock Structured fusion networks for dialog.
+\newblock \emph{arXiv preprint arXiv:1907.10016}.
+
+\bibitem[{Noroozi et~al.(2020)Noroozi, Zhang, Bakhturina, and
+  Kornuta}]{Noroozi2020AFA}
+Vahid Noroozi, Yang Zhang, Evelina Bakhturina, and Tomasz Kornuta. 2020.
+\newblock A fast and robust bert-based dialogue state tracker for schema guided
+  dialogue dataset.
+\newblock \emph{ArXiv}, abs/2008.12335.
+
+\bibitem[{Peng et~al.(2021)Peng, Li, Li, Shayandeh, Lid{\'e}n, and
+  Gao}]{Peng2021SoloistBT}
+Baolin Peng, Chunyuan Li, Jinchao Li, Shahin Shayandeh, Lars Lid{\'e}n, and
+  Jianfeng Gao. 2021.
+\newblock Soloist: Building task bots at scale with transfer learning and
+  machine teaching.
+\newblock \emph{Transactions of the Association for Computational Linguistics},
+  9:807--824.
+
+\bibitem[{Radford et~al.(2019)Radford, Wu, Child, Luan, Amodei, and
+  Sutskever}]{Radford2019LanguageMA}
+Alec Radford, Jeff Wu, Rewon Child, David Luan, Dario Amodei, and Ilya
+  Sutskever. 2019.
+\newblock Language models are unsupervised multitask learners.
+
+\bibitem[{Raffel et~al.(2019)Raffel, Shazeer, Roberts, Lee, Narang, Matena,
+  Zhou, Li, and Liu}]{Raffel2019ExploringTL}
+Colin Raffel, Noam~M. Shazeer, Adam Roberts, Katherine Lee, Sharan Narang,
+  Michael Matena, Yanqi Zhou, Wei Li, and Peter~J. Liu. 2019.
+\newblock Exploring the limits of transfer learning with a unified text-to-text
+  transformer.
+\newblock \emph{ArXiv}, abs/1910.10683.
+
+\bibitem[{Ramadan et~al.(2018)Ramadan, Budzianowski, and
+  Gasic}]{ramadan2018large}
+Osman Ramadan, Pawe{\l} Budzianowski, and Milica Gasic. 2018.
+\newblock Large-scale multi-domain belief tracking with knowledge sharing.
+\newblock In \emph{Proceedings of the 56th Annual Meeting of the Association
+  for Computational Linguistics}, volume~2, pages 432--437.
+
+\bibitem[{Rastogi et~al.(2020)Rastogi, Zang, Sunkara, Gupta, and
+  Khaitan}]{rastogi2020towards}
+Abhinav Rastogi, Xiaoxue Zang, Srinivas Sunkara, Raghav Gupta, and Pranav
+  Khaitan. 2020.
+\newblock Towards scalable multi-domain conversational agents: The
+  schema-guided dialogue dataset.
+\newblock In \emph{Proceedings of the AAAI Conference on Artificial
+  Intelligence}, volume~34, pages 8689--8696.
+
+\bibitem[{Sun et~al.(2022)Sun, Bao, Wu, and He}]{Sun2022BORTBA}
+Haipeng Sun, Junwei Bao, Youzheng Wu, and Xiaodong He. 2022.
+\newblock Bort: Back and denoising reconstruction for end-to-end task-oriented
+  dialog.
+\newblock In \emph{NAACL-HLT}.
+
+\bibitem[{Wu et~al.(2016)Wu, Schuster, Chen, Le, Norouzi, Macherey, Krikun,
+  Cao, Gao, Macherey, Klingner, Shah, Johnson, Liu, Łukasz Kaiser, Gouws,
+  Kato, Kudo, Kazawa, Stevens, Kurian, Patil, Wang, Young, Smith, Riesa,
+  Rudnick, Vinyals, Corrado, Hughes, and Dean}]{wu2016googles}
+Yonghui Wu, Mike Schuster, Zhifeng Chen, Quoc~V. Le, Mohammad Norouzi, Wolfgang
+  Macherey, Maxim Krikun, Yuan Cao, Qin Gao, Klaus Macherey, Jeff Klingner,
+  Apurva Shah, Melvin Johnson, Xiaobing Liu, Łukasz Kaiser, Stephan Gouws,
+  Yoshikiyo Kato, Taku Kudo, Hideto Kazawa, Keith Stevens, George Kurian,
+  Nishant Patil, Wei Wang, Cliff Young, Jason Smith, Jason Riesa, Alex Rudnick,
+  Oriol Vinyals, Greg Corrado, Macduff Hughes, and Jeffrey Dean. 2016.
+\newblock \href {http://arxiv.org/abs/1609.08144} {Google's neural machine
+  translation system: Bridging the gap between human and machine translation}.
+
+\bibitem[{Yang et~al.(2022)Yang, Ding, Liu, and Quan}]{Yang2022UBARv2TM}
+Yunyi Yang, Hong Ding, Qing Liu, and Xiaojun Quan. 2022.
+\newblock Ubarv2: Towards mitigating exposure bias in task-oriented dialogs.
+\newblock \emph{ArXiv}, abs/2209.07239.
+
+\bibitem[{Yang et~al.(2020)Yang, Li, and Quan}]{Yang2020UBARTF}
+Yunyi Yang, Yunhao Li, and Xiaojun Quan. 2020.
+\newblock Ubar: Towards fully end-to-end task-oriented dialog systems with
+  gpt-2.
+\newblock In \emph{AAAI Conference on Artificial Intelligence}.
+
+\bibitem[{Zhao et~al.(2022)Zhao, Gupta, Cao, Yu, Wang, Lee, Rastogi, Shafran,
+  and Wu}]{Zhao2022DescriptionDrivenTD}
+Jeffrey Zhao, Raghav Gupta, Yuanbin Cao, Dian Yu, Mingqiu Wang, Harrison Lee,
+  Abhinav Rastogi, Izhak Shafran, and Yonghui Wu. 2022.
+\newblock Description-driven task-oriented dialog modeling.
+\newblock \emph{ArXiv}, abs/2201.08904.
+
+\end{thebibliography}
