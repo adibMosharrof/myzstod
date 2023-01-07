@@ -1,12 +1,15 @@
 pretrain_epochs: 2
-pretrain_model_path: outputs/2022-10-17/21-28-42/results/pretrain/checkpoint-2596
-train_epochs: 3
+# pretrain_model_path: outputs/2022-10-17/21-28-42/results/pretrain/checkpoint-2596
+train_epochs: 2
+pretrain_batch_size: 6
 train_batch_size: 5
+# tokenizer_name: sentence-transformers/stsb-roberta-base-v2
+raw_data_root: data/dstc8-schema-guided-dialogue/sgd_x/data/v1/
 data_split_percent:
   - 1
   - 1
   - 1
-eval_batch_size: 10
+eval_batch_size: 20
 test_batch_size: 70
 max_token_len: 1024
 test_prompt_max_len: 750
@@ -17,14 +20,20 @@ num_dialogs:
 should_test: true
 num_turns: 26
 train_domain_setting: all
-test_domain_settings:
-  - seen
+# test_domain_settings:
+#   - all
 # is_multi_task: true
-# multi_tasks:
-#   - 1
-#   - 1
-#   - 0
+multi_tasks:
+  - 1
+  - 1
+  - 0
 # should_add_schema: true
 # should_add_sys_actions: true
-should_add_user_actions: true
-contrastive_model: outputs/2022-10-19/15-33-22/results
+# should_add_user_actions: true
+# contrastive_model: outputs/2022-10-19/15-33-22/results
+# context_type: default
+# overwrite:
+#   - true
+#   - true
+#   - true
+# should_add_service_results: true

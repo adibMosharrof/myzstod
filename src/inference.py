@@ -129,7 +129,7 @@ class Inference:
                 for m in self.tod_metrics
             ]
         self.cfg.logger.info("Start token counts")
-        for token, count in Counter(start_tokens).items():
+        for token, count in sorted(Counter(start_tokens).items()):
             self.cfg.logger.info(f"{token}:{count}")
         r = ReconstructDialog(ReconstructDialogConfig.from_inference_config(self.cfg))
         r.run()
@@ -277,6 +277,7 @@ class Inference:
 
 @hydra.main(config_path="../config/inference/", config_name="simple_tod_inference")
 def hydra_start(cfg: DictConfig) -> None:
+    torch.cuda.set_device(1)
     inf = Inference(InferenceConfig(**cfg))
     inf.run()
 
