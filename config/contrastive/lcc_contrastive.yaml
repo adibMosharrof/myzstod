@@ -1,17 +1,17 @@
 num_dialogs:
+  - 127
   - 20
-  - 10
-  - 17
+  - 34
 data_split_percent:
   - 1
   - 1
   - 1
-train_batch_size: 200
-train_epochs: 4
+contrastive_train_batch_size: 100
+train_epochs: 2
 contrast_with: 
   - user_act
-  - nlg
-single_action_neg_samples: 10
+  # - nlg
+single_action_neg_samples: 5
 raw_data_root: data/dstc8-schema-guided-dialogue/
 project_root: /project/msi290_uksr/generative_tod
 # model: outputs/2022-10-18/11-37-13/results
@@ -21,4 +21,4 @@ project_root: /project/msi290_uksr/generative_tod
 #   - 1
 contrastive_model_name: sentence-transformers/stsb-roberta-base-v2
 tokenizer_name: gpt2
-should_add_dsts: false
+# should_add_dsts: true

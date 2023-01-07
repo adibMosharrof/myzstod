@@ -1,12 +1,14 @@
-pretrain_epochs: 3
-# pretrain_model_path: outputs/2022-11-22/15-49-15/results/pretrain
-train_epochs: 4
+pretrain_epochs: 30
+train_epochs: 40
 pretrain_batch_size: 6
 train_batch_size: 3
 eval_batch_size: 6
-test_batch_size: 100
+test_batch_size: 80
 max_token_len: 1024
 test_prompt_max_len: 750
+pretrain_model_path: outputs/2022-12-31/16-12-57/results/train
+# train_model_path: outputs/2022-12-06/18-38-04/results/train
+# raw_data_root: data/dstc8-schema-guided-dialogue/sgd_x/data/v2/
 raw_data_root: data/dstc8-schema-guided-dialogue/
 project_root: /project/msi290_uksr/generative_tod
 num_dialogs: 
@@ -14,29 +16,35 @@ num_dialogs:
   - 20
   - 34
 # num_dialogs: 
-#   - 1
-#   - 1
-#   - 1
+#   - 5
+#   - 5
+#   - 10
 # overwrite:
 #   - true
 #   - true
 #   - true
 should_test: true
-train_domain_setting: all
+train_domain_setting: seen
+# is_multi_head: true
 is_multi_task: false
-# should_add_schema: true
-# should_add_sys_actions: true
-#multi_tasks:
-#  - 1
-#  - 1
-#  - 0
-# should_add_user_actions: true
-#context_type: default
-# should_add_service_results: true
-# contrast_with: 
-#   - user_act
-#   - nlg
-# contrastive_model: outputs/2022-11-22/16-00-52/results
+should_add_schema: false
+should_add_sys_actions: true
+should_add_user_actions: true
+# context_type: default
+should_add_service_results: true
+contrastive_model: outputs/2023-01-04/09-19-41/results
+contrast_with: 
+  - user_act
+  # - nlg
+# should_add_dsts: true
 contrastive_max_token_len: 512
 contrastive_train_epochs: 1
 contrastive_train_batch_size: 360
+single_action_neg_samples: 5
+contrastive_loss_weight: 0.1
+ce_loss_weight: 0.9
+model_name: gpt2
+gradient_accumulation_steps: 4
+fp16: false
+postprocess_generation: true
+# train_domain_percentage: 0.5

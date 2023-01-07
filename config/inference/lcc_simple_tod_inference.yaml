@@ -8,18 +8,20 @@ max_token_len: 1024
 test_prompt_max_len: 750
 num_test_dialogs: 34
 project_root: /project/msi290_uksr/generative_tod/
-model: outputs/2022-10-17/21-28-11/results/train/checkpoint-3893/
+model: outputs/2022-11-29/09-47-54/results/train/
 num_turns: 26
+#test_domain_settings
+#  - unseen
 #overwrite:
 #  - true
 #  - true
 #  - true
-is_multi_task: True
+#is_multi_task: true
 #multi_task:
 #   - 1
 #   - 1
 #   - 0
 should_add_schema: true
-#should_add_sys_actions: true
+should_add_sys_actions: true
 should_add_user_actions: true
-
+should_add_service_results: true
