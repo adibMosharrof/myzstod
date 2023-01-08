@@ -68,7 +68,7 @@ class BaseDataModule:
             )
         except TypeError as e:
             tokens = torch.empty([1, 0], dtype=torch.int64)
-        return tokens
+        return tokens.to(dtype=torch.int32)
 
     def contrastive_tokenizer(self, item):
         try:
