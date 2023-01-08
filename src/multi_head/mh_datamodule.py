@@ -39,7 +39,6 @@ class MultiLMHeadDatamodule(BaseDataModule):
                 "nlg": 105,
             }
         )
-        context_max_length = 400
         all_head_names = MultiHeadDict.head_names()
         mh_tokens = dict.fromkeys(all_head_names, [])
         input_tokens = dict.fromkeys(all_head_names, [])
@@ -47,28 +46,28 @@ class MultiLMHeadDatamodule(BaseDataModule):
         labels = dict.fromkeys(all_head_names, [])
         for item in batch:
             for head_name in all_head_names:
-                unused_len = (
-                    # self.cfg.max_token_len - lengths[head_name] - context_max_length
-                    700
-                    - lengths[head_name]
-                    - context_max_length
-                )
+                head_target_tokens= self.train_tokenizer(
+                    item[head_name]
+                )[0]
+                context_tokens= self.train_tokenizer(
+                    "".join([item.context, item.schema])
+                )[0]
+                target_len = len(head_target_tokens)
+                context_len = len(context_tokens)
+                unused_len = self.cfg.max_token_len - context_len - target_len
+                if unused_len < 0:
+                    ValueError('unused length < 0')
                 pad = torch.full([unused_len], self.cfg.tokenizer.pad_token_id)
-                head_target_tokens, head_target_masks = self.mh_tokenizer(
-                    item[head_name], max_length=lengths[head_name]
-                )
                 mh_tokens[head_name].append(head_target_tokens)
-                context_tokens, context_masks = self.mh_tokenizer(
-                    "".join([item.context, item.schema]), max_length=context_max_length
-                )
                 current_input_token = torch.cat(
                     [context_tokens, head_target_tokens, pad]
                 )
                 input_tokens[head_name].append(current_input_token)
                 attention_masks[head_name].append(
-                    torch.cat(
-                        [context_masks, head_target_masks, torch.full([unused_len], 0)]
-                    )
+                    torch.cat([
+                        torch.full([context_len + target_len], 1),
+                        torch.full([unused_len], 0),
+                    ])
                 )
                 if is_pretrain:
                     label = current_input_token
@@ -76,7 +75,7 @@ class MultiLMHeadDatamodule(BaseDataModule):
                     label = torch.cat(
                         [
                             torch.full(
-                                [context_max_length], self._huggingface_ignore_label_id
+                                [context_len], self._huggingface_ignore_label_id
                             ),
                             head_target_tokens,
                             torch.full([unused_len], self._huggingface_ignore_label_id),
