@@ -277,7 +277,7 @@ class Inference:
 
 @hydra.main(config_path="../config/inference/", config_name="simple_tod_inference")
 def hydra_start(cfg: DictConfig) -> None:
-    torch.cuda.set_device(1)
+    # torch.cuda.set_device(1)
     inf = Inference(InferenceConfig(**cfg))
     inf.run()
 

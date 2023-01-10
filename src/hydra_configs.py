@@ -64,6 +64,7 @@ class TrainerConfig:
         eval_accumulation_steps: int = 16,
         is_multi_head: bool = False,
         is_multi_task: bool = False,
+        is_multi_decoder: bool = True,
         multi_tasks: list[int] = None,
         should_add_schema: bool = False,
         should_add_user_actions: bool = False,
@@ -121,6 +122,7 @@ class TrainerConfig:
         self.fp16 = fp16
         self.is_multi_head = is_multi_head
         self.is_multi_task = is_multi_task
+        self.is_multi_decoder = is_multi_decoder
         self.multi_tasks = (
             multi_tasks if self.is_multi_task and multi_tasks else [1, 1, 1]
         )
@@ -172,6 +174,7 @@ class InferenceConfig:
         test_prompt_max_len: int = 799,
         is_multi_task: bool = False,
         is_multi_head: bool = False,
+        is_multi_decoder: bool = False,
         multi_tasks: list[int] = None,
         should_add_schema: bool = False,
         should_add_user_actions: bool = False,
@@ -206,6 +209,7 @@ class InferenceConfig:
         self.multi_tasks = (
             multi_tasks if self.is_multi_task and multi_tasks else [1, 1, 1]
         )
+        self.is_multi_decoder = is_multi_decoder
         self.should_add_schema = should_add_schema
         self.should_add_sys_actions = should_add_sys_actions
         self.should_add_user_actions = should_add_user_actions
@@ -242,7 +246,6 @@ class InferenceConfig:
             return model_class.from_pretrained(model_path).cuda()
         if isinstance(model, model_class):
             return model.cuda()
-        
 
     @classmethod
     def from_trainer_config(
@@ -269,6 +272,8 @@ class InferenceConfig:
             tokenizer=trainer_config.tokenizer,
             test_prompt_max_len=trainer_config.test_prompt_max_len,
             is_multi_task=trainer_config.is_multi_task,
+            is_multi_head=trainer_config.is_multi_head,
+            is_multi_decoder=trainer_config.is_multi_decoder,
             multi_tasks=trainer_config.multi_tasks,
             should_add_schema=trainer_config.should_add_schema,
             should_add_sys_actions=trainer_config.should_add_sys_actions,

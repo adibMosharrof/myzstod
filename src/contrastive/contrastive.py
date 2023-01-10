@@ -1,9 +1,13 @@
+import sys
+import os
+
+sys.path.insert(0, os.path.abspath("./src"))
 import hydra
 import numpy as np
 from omegaconf import DictConfig
 from tqdm import tqdm
-from contrastive_dataclasses import ContrastiveTokens
-from contrastive_datamodule import ContrastiveDataModule
+from contrastive.contrastive_datamodule import ContrastiveDataModule
+from contrastive.contrastive_utils import ContrastiveTokens
 from hydra_configs import ContrastiveConfig, DataModuleConfig
 from my_enums import ContrastiveConstants, SpecialTokens, Steps
 from sentence_transformers import SentenceTransformer, losses, evaluation, util
@@ -95,6 +99,18 @@ class Contrastive:
                         b_multiple_values=False,
                         a_start_token=SpecialTokens.begin_user_action,
                         a_end_token=SpecialTokens.end_user_action,
+                        a_multiple_values=False,
+                        contrast_with=contrast,
+                    )
+                )
+            elif contrast == ContrastiveConstants.LAST_UTTERANCE:
+                tokens.append(
+                    ContrastiveTokens(
+                        a_start_token=SpecialTokens.begin_last_user_utterance,
+                        a_end_token=SpecialTokens.end_last_user_utterance,
+                        b_multiple_values=False,
+                        b_start_token=SpecialTokens.begin_action,
+                        b_end_token=SpecialTokens.end_action,
                         a_multiple_values=False,
                         contrast_with=contrast,
                     )

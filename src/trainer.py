@@ -14,11 +14,15 @@ from transformers import (
     EarlyStoppingCallback,
     IntervalStrategy,
     GPT2Config,
-    T5ForConditionalGeneration
+    T5ForConditionalGeneration,
 )
 from base_datamodule import BaseDataModule
-from contrastive import Contrastive
-from contrastive_dataclasses import ContrastiveTrainerHelper, ContrastiveTrainer
+from contrastive.contrastive import Contrastive
+from contrastive.contrastive_datamodule import ContrastiveDataModule
+from contrastive.contrastive_trainer import (
+    ContrastiveTrainerHelper,
+    ContrastiveTrainer,
+)
 from hydra_configs import (
     ContrastiveConfig,
     DataModuleConfig,
@@ -95,11 +99,11 @@ class SimpleTODTrainer:
         print(full_out_dir)
 
     def _get_dm(self) -> BaseDataModule:
-        return (
-            TodDataModule(DataModuleConfig.from_trainer_config(self.cfg))
-            if not self.cfg.is_multi_head
-            else MultiLMHeadDatamodule(DataModuleConfig.from_trainer_config(self.cfg))
-        )
+        if self.cfg.is_multi_head:
+            return MultiLMHeadDatamodule(DataModuleConfig.from_trainer_config(self.cfg))
+        if self.cfg.contrast_with:
+            return ContrastiveDataModule(DataModuleConfig.from_trainer_config(self.cfg))
+        return TodDataModule(DataModuleConfig.from_trainer_config(self.cfg))
 
     def _setup_contrastive(self) -> Optional[AutoTokenizer]:
         if not self.cfg.contrast_with:
@@ -184,7 +188,9 @@ class SimpleTODTrainer:
         )
 
     def pretrain_model(self, dm: TodDataModule) -> str:
-        model_class = dstc_utils.get_model_class(self.cfg.model_name, self.cfg.is_multi_head)
+        model_class = dstc_utils.get_model_class(
+            self.cfg.model_name, self.cfg.is_multi_head
+        )
         if self.cfg.pretrain_model_path:
             path = self.cfg.project_root / self.cfg.pretrain_model_path
             if path.exists():
@@ -198,6 +204,7 @@ class SimpleTODTrainer:
             # model = GPT2LMHeadModel.from_pretrained(self.cfg.model_name)
             model = model_class.from_pretrained(self.cfg.model_name)
         model.resize_token_embeddings(len(self.cfg.tokenizer))
+        print(f"Model Size of {type(model)}: {dstc_utils.get_model_size(model)}")
         pre_trainer = Trainer(
             model=model,
             args=training_args,
@@ -216,7 +223,9 @@ class SimpleTODTrainer:
         return training_args.output_dir
 
     def train_model(self, path, dm) -> str:
-        model_class = dstc_utils.get_model_class(self.cfg.model_name,self.cfg.is_multi_head)
+        model_class = dstc_utils.get_model_class(
+            self.cfg.model_name, self.cfg.is_multi_head
+        )
         if self.cfg.is_multi_head:
             model = model_class.from_pretrained(path)
         else:
@@ -231,7 +240,6 @@ class SimpleTODTrainer:
         out_dir = os.getcwd()
         print("training output_dir: ", out_dir)
         return training_args.output_dir
-
 
 
 @hydra.main(config_path="../config/trainer/", config_name="simple_tod_trainer")

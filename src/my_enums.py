@@ -164,6 +164,7 @@ class DstcSystemActions(str, Enum):
 class ContrastiveConstants(str, Enum):
     NLG = "nlg"
     USER_ACT = "user_act"
+    LAST_UTTERANCE = "last_utt"
 
 
 class ContextType(str, Enum):

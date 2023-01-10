@@ -3,7 +3,13 @@ from pathlib import Path
 from typing import List, Optional, Union, Dict
 import numpy as np
 import pandas as pd
-from transformers import AutoTokenizer, PreTrainedTokenizerFast, GPT2LMHeadModel, T5ForConditionalGeneration
+from transformers import (
+    AutoTokenizer,
+    AutoModel,
+    PreTrainedTokenizerFast,
+    GPT2LMHeadModel,
+    T5ForConditionalGeneration,
+)
 import os
 from multi_head.mh_model import GPT2MultiLMHeadModel
 
@@ -201,10 +207,15 @@ def get_slot_value_match_score(
 def fuzzy_string_match(ref: str, hyp: str) -> float:
     return fuzz.token_set_ratio(ref, hyp) / 100.0
 
-def get_model_class(model_name:str, is_mh_head:bool=False):
+
+def get_model_class(model_name: str, is_mh_head: bool = False):
     if is_mh_head:
         return GPT2MultiLMHeadModel
     if model_name in ["gpt2", "distilgpt2"]:
         return GPT2LMHeadModel
     elif model_name == "t5-base":
         return T5ForConditionalGeneration
+
+
+def get_model_size(model: AutoModel) -> int:
+    return sum(p.numel() for p in model.parameters())

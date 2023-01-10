@@ -80,7 +80,7 @@ class BaseDataModule:
             )
         except TypeError as e:
             raise ("Contrastive tokenizer failed")
-        return tokens
+        return tokens.to(dtype=torch.int32)
 
     def get_training_labels(self, context_len, unused_len, target_tokens):
         return torch.cat(

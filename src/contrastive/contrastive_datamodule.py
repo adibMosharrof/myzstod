@@ -2,9 +2,10 @@ import numpy as np
 from sentence_transformers import InputExample
 import torch
 from base_datamodule import BaseDataModule
-from contrastive_dataclasses import ContrastiveTokens
+from contrastive.contrastive_utils import ContrastiveTokens
 
 from hydra_configs import DataModuleConfig
+from my_datamodules import TodDataModule
 from my_enums import (
     ContrastiveConstants,
     DstcSystemActions,
@@ -13,14 +14,14 @@ from my_enums import (
     SpecialTokens,
     Steps,
 )
-from simple_tod_dataclasses import SimpleTodAction
+from simple_tod_dataclasses import SimpleTodAction, TodTurnCsvRow
 import dstc_utils
 import random
 from dstc_dataclasses import get_schemas
 from itertools import combinations
 
 
-class ContrastiveDataModule(BaseDataModule):
+class ContrastiveDataModule(TodDataModule):
     steps = Steps.list()
     _huggingface_ignore_label_id = -100
     contrastive_tokenizer = None
@@ -30,6 +31,83 @@ class ContrastiveDataModule(BaseDataModule):
         cfg: DataModuleConfig,
     ):
         super().__init__(cfg)
+
+    def training_collator(self, batch: list[TodTurnCsvRow], is_pretrain: bool = False):
+        input_ids = []
+        attention_masks = []
+        labels = []
+        targets_text = []
+        context_token_ids = []
+        context_att_masks = []
+        mt_prompt_ids = []
+        context_max_len = self.cfg.contrastive_max_token_len
+        for item in batch:
+            context_tokens = self.train_tokenizer(item.context)[0]
+            target_tokens = self.train_tokenizer(item.target)[0]
+            schema_tokens = self.train_tokenizer(item.schema)[0]
+            context_len = len(context_tokens)
+            target_len = len(target_tokens)
+            schema_len = len(schema_tokens)
+            unused_len = self.cfg.max_token_len - context_len - target_len - schema_len
+
+            pad = torch.full([unused_len], self.cfg.tokenizer.pad_token_id)
+            input_tokens = torch.cat(
+                [schema_tokens, context_tokens, target_tokens, pad]
+            )
+            if is_pretrain:
+                label = input_tokens
+            else:
+                label = torch.cat(
+                    [
+                        torch.full(
+                            [context_len + schema_len],
+                            self._huggingface_ignore_label_id,
+                        ),
+                        target_tokens,
+                        torch.full([unused_len], self._huggingface_ignore_label_id),
+                    ]
+                )
+            attention_mask = torch.cat(
+                [
+                    torch.full([context_len + schema_len + target_len], 1),
+                    torch.full([unused_len], 0),
+                ]
+            )
+            context_token_id = torch.cat(
+                [
+                    context_tokens,
+                    torch.full(
+                        [context_max_len - len(context_tokens)],
+                        self.cfg.tokenizer.pad_token_id,
+                    ),
+                ]
+            )
+            context_att_mask = torch.cat(
+                [
+                    torch.full([len(context_tokens)], 1),
+                    torch.full([context_max_len - len(context_tokens)], 0),
+                ]
+            )
+
+            input_ids.append(input_tokens)
+            attention_masks.append(attention_mask)
+            labels.append(label)
+            targets_text.append(item.target)
+            context_token_ids.append(context_token_id)
+            context_att_masks.append(context_att_mask)
+
+        out = {
+            "input_ids": torch.stack(input_ids),
+            "attention_mask": torch.stack(attention_masks),
+            "labels": torch.stack(labels),
+            "context_ids": torch.stack(context_token_ids),
+            "context_attention_mask": torch.stack(context_att_masks),
+        }
+
+        if not is_pretrain and self.cfg.contrast_with and self.cfg.is_multi_task:
+            out["mt_prompt_token_ids"] = torch.tensor(mt_prompt_ids)
+
+        return out
 
     def get_contrastive_data(
         self, contrastive_tokens: ContrastiveTokens, step=Steps.TRAIN
@@ -50,8 +128,14 @@ class ContrastiveDataModule(BaseDataModule):
                 default_value="",
                 multiple_values=contrastive_tokens.b_multiple_values,
             )
+            source_txt = (
+                item.context
+                if contrastive_tokens.a_start_token
+                == SpecialTokens.begin_last_user_utterance
+                else item.target
+            )
             a_txt = dstc_utils.get_text_in_between(
-                item.target,
+                source_txt,
                 contrastive_tokens.a_start_token,
                 contrastive_tokens.a_end_token,
                 default_value="",
@@ -61,7 +145,7 @@ class ContrastiveDataModule(BaseDataModule):
             if self.cfg.should_add_dsts:
                 dsts_txt = "".join(
                     dstc_utils.get_text_in_between(
-                        item.target,
+                        item.context,
                         SpecialTokens.begin_dst,
                         SpecialTokens.end_dst,
                         default_value="",
