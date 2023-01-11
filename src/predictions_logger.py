@@ -265,5 +265,7 @@ class PredictionLoggerFactory:
             columns = ["domain", "action_type", "slot_name"]
         elif metric == TodMetricsEnum.BELIEF:
             columns = ["domain", "slot_name"]
+        elif metric == TodMetricsEnum.USER_ACTION:
+            columns = ["domain", "slot_name"]
 
         return GenericPredictionLogger(metric_name=metric.value, columns=columns)

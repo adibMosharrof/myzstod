@@ -125,8 +125,9 @@ class SimpleTodConstants(str, Enum):
 
 
 class GoalMetricConfigType(str, Enum):
-    ACTION = "action"
-    BELIEF = "belief"
+    ACTION = "act"
+    BELIEF = "goal"
+    USER_ACTION = "u_act"
 
     def __repr__(self) -> str:
         return self.value
@@ -139,6 +140,7 @@ class SpecialPredictions(str, Enum):
 class TodMetricsEnum(str, Enum):
     BELIEF = "belief"
     ACTION = "action"
+    USER_ACTION = "user_action"
     INFORM = "inform"
     REQUESTED_SLOTS = "requested_slots"
     SUCCESS = "success"

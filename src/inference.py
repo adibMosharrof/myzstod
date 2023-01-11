@@ -221,6 +221,12 @@ class Inference:
                         GoalMetricConfigFactory.create(GoalMetricConfigType.ACTION),
                         slot_categories,
                     ),
+                    "user_action_accuracy": GoalMetric(
+                        GoalMetricConfigFactory.create(
+                            GoalMetricConfigType.USER_ACTION
+                        ),
+                        slot_categories,
+                    ),
                     "intent_accuracy": IntentAccuracyMetric(),
                     "requested_slots": RequestedSlotsMetric(),
                 }

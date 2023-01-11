@@ -44,6 +44,14 @@ class GoalMetricConfigFactory:
                 PredictionLoggerFactory.create(TodMetricsEnum.BELIEF),
                 SimpleTodBelief,
             )
+        elif step == GoalMetricConfigType.USER_ACTION:
+            return GoalMetricConfig(
+                SpecialTokens.begin_user_action,
+                SpecialTokens.end_user_action,
+                GoalMetricConfigType.USER_ACTION,
+                PredictionLoggerFactory.create(TodMetricsEnum.USER_ACTION),
+                SimpleTodAction,
+            )
         else:
             raise ValueError(f"Unknown step name: {step}")
 
@@ -111,7 +119,9 @@ class GoalMetric(TodMetricsBase):
                     turn_predictions.append(0)
                     self._log_prediction(ref=t, is_correct=False)
             self.joint_accuracies.append(
-                torch.tensor(np.prod(turn_predictions)) if len(turn_predictions) else torch.tensor(0)
+                torch.tensor(np.prod(turn_predictions))
+                if len(turn_predictions)
+                else torch.tensor(0)
             )
             self.all_accuracies.append(
                 np.mean(turn_predictions) if len(turn_predictions) else 0
