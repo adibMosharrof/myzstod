@@ -1,0 +1,98 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "simple_tod_trainer",
+            "type": "python",
+            "request": "launch",
+            "program": "${cwd}/src/trainer.py",
+            "cwd": "/u/amo-d0/grad/adibm/projects/generative_tod",
+            "console": "integratedTerminal",
+            "args": []
+        },
+        {
+            "name": "simple_tod_inference",
+            "type": "python",
+            "request": "launch",
+            "program": "${cwd}/src/inference.py",
+            "cwd": "/u/amo-d0/grad/adibm/projects/generative_tod",
+            "console": "integratedTerminal",
+            "args": []
+        },
+        {
+            "name": "gpt_finetune",
+            "type": "python",
+            "request": "launch",
+            "program": "${cwd}/gpt_finetune.py",
+            "cwd": "/u/amo-d0/grad/adibm/projects/generative_tod",
+            "console": "integratedTerminal",
+            "args": []
+        },
+        {
+            "name": "simple_tod_dstc_data_prep",
+            "type": "python",
+            "request": "launch",
+            "program": "${cwd}/src/simple_tod_dstc_data_prep.py",
+            "cwd": "/u/amo-d0/grad/adibm/projects/generative_tod",
+            "console": "integratedTerminal",
+            "args": []
+        },
+        {
+            "name": "data_model_exploration",
+            "type": "python",
+            "request": "launch",
+            "program": "${cwd}/src/data_model_exploration.py",
+            "cwd": "/u/amo-d0/grad/adibm/projects/generative_tod",
+            "console": "integratedTerminal",
+            "args": []
+        },
+        {
+            "name": "reconstruct",
+            "type": "python",
+            "request": "launch",
+            "program": "${cwd}/src/reconstruct_dialog.py",
+            "cwd": "/u/amo-d0/grad/adibm/projects/generative_tod",
+            "console": "integratedTerminal",
+            "args": []
+        },
+        {
+            "name": "contrastive",
+            "type": "python",
+            "request": "launch",
+            "program": "${cwd}/src/contrastive/contrastive.py",
+            "cwd": "/u/amo-d0/grad/adibm/projects/generative_tod",
+            "console": "integratedTerminal",
+            "args": []
+        },
+        {
+            "name": "dialog_domains",
+            "type": "python",
+            "request": "launch",
+            "program": "${cwd}/src/data_exploration/dialog_domains.py",
+            "cwd": "/u/amo-d0/grad/adibm/projects/generative_tod",
+            "console": "integratedTerminal",
+            "args": []
+        },
+        {
+            "name": "multi_domain_dialogs",
+            "type": "python",
+            "request": "launch",
+            "program": "${cwd}/src/data_exploration/multi_domain_dialogs.py",
+            "cwd": "/u/amo-d0/grad/adibm/projects/generative_tod",
+            "console": "integratedTerminal",
+            "args": []
+        },
+        {
+            "name": "mh_lengths",
+            "type": "python",
+            "request": "launch",
+            "program": "${cwd}/src/data_exploration/mh_lengths.py",
+            "cwd": "/u/amo-d0/grad/adibm/projects/generative_tod",
+            "console": "integratedTerminal",
+            "args": []
+        },
+    ]
+}
