@@ -77,7 +77,7 @@ class MultiDomainDialogs:
 
 
 if __name__ == "__main__":
-    dd = MultiDomainDialogs(
+    mdd = MultiDomainDialogs(
         DotMap(
             raw_data_root="data/dstc8-schema-guided-dialogue/",
             processed_data_root="data/processed_data/",
@@ -87,4 +87,4 @@ if __name__ == "__main__":
             out_file_path="data_exploration/multi_domain_dialogs",
         )
     )
-    dd.run()
+    mdd.run()
