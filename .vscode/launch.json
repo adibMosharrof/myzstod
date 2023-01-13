@@ -94,5 +94,14 @@
             "console": "integratedTerminal",
             "args": []
         },
+        {
+            "name": "contrast_viz",
+            "type": "python",
+            "request": "launch",
+            "program": "${cwd}/src/data_exploration/contrast_viz.py",
+            "cwd": "/u/amo-d0/grad/adibm/projects/generative_tod",
+            "console": "integratedTerminal",
+            "args": []
+        },
     ]
 }
