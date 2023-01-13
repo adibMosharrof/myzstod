@@ -3,9 +3,10 @@ data_split_percent:
   - 1
   - 1
 eval_batch_size: 6
-test_batch_size: 70
+test_batch_size: 50
 max_token_len: 1024
 test_prompt_max_len: 750
+# num_test_dialogs: 34
 num_test_dialogs: 34
 # raw_data_root: data/dstc8-schema-guided-dialogue/sgd_x/data/
 # model: outputs/2022-10-27/11-46-33/results/train/checkpoint-387
@@ -30,3 +31,4 @@ should_add_sys_actions: true
 # context_type: default
 should_add_service_results: true
 postprocess_generation: true
+# model_name: t5-base
