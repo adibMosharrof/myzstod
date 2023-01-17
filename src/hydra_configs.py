@@ -5,11 +5,13 @@ from pathlib import Path
 from typing import Dict, Union
 
 from datasets import Dataset
+from dotmap import DotMap
 import numpy as np
 from transformers import AutoTokenizer, GPT2LMHeadModel, GPT2PreTrainedModel
 from dstc_dataclasses import DstcSchema
 
 import dstc_utils
+from multi_head.mh_dataclasses import MultiHeadDictFactory
 import utils
 from my_enums import (
     ContextType,
@@ -24,7 +26,7 @@ from multi_head.mh_model import GPT2MultiLMHeadModel
 class TrainerConfig:
     def __init__(
         self,
-        project_root: str = "/mounts/u-amo-d0/grad/adibm/projects/generative_tod/",
+        project_root: str = "/mounts/u-amo-d0/grad/adibm/data/projects/ZSToD/",
         data_prep_out_root: str = "processed_data/simple_tod",
         raw_data_root: str = "data/dstc8-schema-guided-dialogue/",
         model_name: str = "gpt2",
@@ -146,6 +148,9 @@ class TrainerConfig:
         self.single_action_neg_samples = single_action_neg_samples
         self.local_rank = local_rank
         self.postprocess_generation = postprocess_generation
+        self.mh_fact = (
+            MultiHeadDictFactory(self.tokenizer) if self.is_multi_head else None
+        )
 
 
 class InferenceConfig:
@@ -157,7 +162,7 @@ class InferenceConfig:
         test_batch_size: int = 100,
         max_token_len: int = 512,
         raw_data_root: str = "data/dstc8-schema-guided-dialogue/",
-        project_root: str = "/mounts/u-amo-d0/grad/adibm/projects/generative_tod/",
+        project_root: str = "/mounts/u-amo-d0/grad/adibm/data/projects/ZSToD",
         data_prep_out_root: str = "processed_data/simple_tod",
         predictions_log_dir: str = "predictions_logs",
         num_test_dialogs: int = 17,
@@ -182,6 +187,7 @@ class InferenceConfig:
         context_type: str = ContextType.SHORT_REPR,
         should_add_service_results: bool = False,
         postprocess_generation: bool = True,
+        mh_fact: MultiHeadDictFactory = None,
     ) -> None:
         self.num_workers = num_workers
         self.data_split_percent = data_split_percent or [1, 1, 1]
@@ -195,6 +201,14 @@ class InferenceConfig:
         self.delexicalize = delexicalize
         self.is_multi_head = is_multi_head
         self.model_name = model_name
+        self.tokenizer = tokenizer if tokenizer else self._get_tokenizer(model)
+        self.mh_fact = (
+            mh_fact
+            if mh_fact
+            else MultiHeadDictFactory(self.tokenizer)
+            if is_multi_head
+            else None
+        )
         self.model = self._get_model(model)
         self.generate_max_len = generate_max_len
         self.train_domain_percentage = train_domain_percentage
@@ -214,7 +228,6 @@ class InferenceConfig:
         self.should_add_sys_actions = should_add_sys_actions
         self.should_add_user_actions = should_add_user_actions
         self.logger = utils.get_logger()
-        self.tokenizer = tokenizer if tokenizer else self._get_tokenizer(model)
         self.padding_regexp = re.compile(re.escape(SpecialTokens.pad_token))
         self.context_type = context_type
         self.should_add_service_results = should_add_service_results
@@ -238,14 +251,26 @@ class InferenceConfig:
         return tokenizer
 
     def _get_model(self, model):
-        model_class = dstc_utils.get_model_class(self.model_name)
+        model_class = dstc_utils.get_model_class(self.model_name, self.is_multi_head)
         if isinstance(model, str):
             model_path = self.project_root / model
-            if self.is_multi_head:
-                return model_class.from_pretrained(model_path).cuda()
-            return model_class.from_pretrained(model_path).cuda()
+            model_args = self.mh_fact if model_class == GPT2MultiLMHeadModel else {}
+            model_kwargs = (
+                {"tok": self.tokenizer, "is_inference": True}
+                if model_class == GPT2MultiLMHeadModel
+                else {}
+            )
+            return model_class.from_pretrained(
+                model_path, model_args, model_kwargs
+            ).cuda()
         if isinstance(model, model_class):
+            if isinstance(model, GPT2MultiLMHeadModel):
+                model.tok = self.tokenizer
+                model.is_inference = True
             return model.cuda()
+        raise ValueError(
+            "model must be either a string or a model class, but model is:{model}"
+        )
 
     @classmethod
     def from_trainer_config(
@@ -273,6 +298,7 @@ class InferenceConfig:
             test_prompt_max_len=trainer_config.test_prompt_max_len,
             is_multi_task=trainer_config.is_multi_task,
             is_multi_head=trainer_config.is_multi_head,
+            mh_fact=trainer_config.mh_fact,
             is_multi_decoder=trainer_config.is_multi_decoder,
             multi_tasks=trainer_config.multi_tasks,
             should_add_schema=trainer_config.should_add_schema,
@@ -322,7 +348,7 @@ class DataModelExplorationConfig:
 class ContrastiveConfig:
     def __init__(
         self,
-        project_root: str = "/mounts/u-amo-d0/grad/adibm/projects/generative_tod/",
+        project_root: str = "/mounts/u-amo-d0/grad/adibm/data/projects/ZSToD",
         data_prep_out_root: str = "processed_data/simple_tod",
         raw_data_root: str = "data/dstc8-schema-guided-dialogue/",
         contrastive_model_name: str = "sentence-transformers/stsb-distilroberta-base-v2",
@@ -444,6 +470,7 @@ class DataModuleConfig:
         context_type: str = ContextType.SHORT_REPR,
         should_add_service_results: bool = False,
         should_add_dsts: bool = False,
+        mh_fact: MultiHeadDictFactory = None,
     ):
         self.num_workers = num_workers
         self.preprocessing_model_name = preprocessing_model_name
@@ -482,6 +509,13 @@ class DataModuleConfig:
         self.context_type = context_type
         self.should_add_service_results = should_add_service_results
         self.should_add_dsts = should_add_dsts
+        self.mh_fact = (
+            mh_fact
+            if mh_fact
+            else MultiHeadDictFactory(self.tokenizer)
+            if is_multi_head
+            else None
+        )
 
     @classmethod
     def from_trainer_config(
@@ -516,6 +550,7 @@ class DataModuleConfig:
             contrastive_max_token_len=trainer_config.contrastive_max_token_len,
             context_type=trainer_config.context_type,
             should_add_service_results=trainer_config.should_add_service_results,
+            mh_fact=trainer_config.mh_fact,
         )
 
     @classmethod
@@ -550,6 +585,7 @@ class DataModuleConfig:
             should_add_sys_actions=inf_config.should_add_sys_actions,
             context_type=inf_config.context_type,
             should_add_service_results=inf_config.should_add_service_results,
+            mh_fact=inf_config.mh_fact,
         )
 
     @classmethod
@@ -615,6 +651,7 @@ class DataPrepConfig:
         should_add_user_actions: bool = False,
         context_type: str = ContextType.SHORT_REPR,
         should_add_service_results: bool = False,
+        mh_fact: MultiHeadDictFactory = None,
     ):
         self.project_root = Path(project_root)
         self.raw_data_root = self.project_root / raw_data_root
@@ -638,6 +675,7 @@ class DataPrepConfig:
         self.should_add_user_actions = should_add_user_actions
         self.context_type = context_type
         self.should_add_service_results = should_add_service_results
+        self.mh_fact = mh_fact if mh_fact else None
 
     def _get_domains(self, domain_setting: str) -> list[str]:
         domain_to_step_map = {
@@ -710,13 +748,14 @@ class DataPrepConfig:
             train_domain_percentage=dm_config.train_domain_percentage,
             context_type=dm_config.context_type,
             should_add_service_results=dm_config.should_add_service_results,
+            mh_fact=dm_config.mh_fact,
         )
 
 
 class ReconstructDialogConfig:
     def __init__(
         self,
-        project_root: str = "/mounts/u-amo-d0/grad/adibm/projects/generative_tod/",
+        project_root: str = "/mounts/u-amo-d0/grad/adibm/data/projects/ZSToD",
         raw_data_root: str = "data/dstc8-schema-guided-dialogue/",
         out_dir: str = "reconstruct",
         model_path: str = None,

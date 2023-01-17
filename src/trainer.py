@@ -30,6 +30,7 @@ from hydra_configs import (
     InferenceConfig,
 )
 from inference import Inference
+from multi_head.mh_dataclasses import MultiHeadDictFactory
 from multi_head.mh_datamodule import MultiLMHeadDatamodule
 from multi_head.mh_model import GPT2MultiLMHeadModel
 from my_datamodules import TodDataModule
@@ -100,7 +101,10 @@ class SimpleTODTrainer:
 
     def _get_dm(self) -> BaseDataModule:
         if self.cfg.is_multi_head:
-            return MultiLMHeadDatamodule(DataModuleConfig.from_trainer_config(self.cfg))
+            return MultiLMHeadDatamodule(
+                DataModuleConfig.from_trainer_config(self.cfg),
+                MultiHeadDictFactory(self.cfg.tokenizer),
+            )
         if self.cfg.contrast_with:
             return ContrastiveDataModule(DataModuleConfig.from_trainer_config(self.cfg))
         return TodDataModule(DataModuleConfig.from_trainer_config(self.cfg))
@@ -187,10 +191,22 @@ class SimpleTODTrainer:
             # sharded_ddp="simple",
         )
 
-    def pretrain_model(self, dm: TodDataModule) -> str:
+    def get_model_instance(self, path: str = None) -> AutoModel:
+
         model_class = dstc_utils.get_model_class(
             self.cfg.model_name, self.cfg.is_multi_head
         )
+        if self.cfg.is_multi_head:
+            model = model_class.from_pretrained(
+                path or self.cfg.model_name,
+                self.cfg.mh_fact,
+                {"tok": self.cfg.tokenizer},
+            )
+        else:
+            model = model_class.from_pretrained(path or self.cfg.model_name)
+        return model
+
+    def pretrain_model(self, dm: TodDataModule) -> str:
         if self.cfg.pretrain_model_path:
             path = self.cfg.project_root / self.cfg.pretrain_model_path
             if path.exists():
@@ -198,11 +214,7 @@ class SimpleTODTrainer:
         training_args = self._get_training_args(
             "pretrain", self.cfg.pretrain_epochs, self.cfg.pretrain_batch_size
         )
-        if self.cfg.is_multi_head:
-            model = model_class.from_pretrained(self.cfg.model_name)
-        else:
-            # model = GPT2LMHeadModel.from_pretrained(self.cfg.model_name)
-            model = model_class.from_pretrained(self.cfg.model_name)
+        model = self.get_model_instance()
         model.resize_token_embeddings(len(self.cfg.tokenizer))
         print(f"Model Size of {type(model)}: {dstc_utils.get_model_size(model)}")
         pre_trainer = Trainer(
@@ -223,14 +235,7 @@ class SimpleTODTrainer:
         return training_args.output_dir
 
     def train_model(self, path, dm) -> str:
-        model_class = dstc_utils.get_model_class(
-            self.cfg.model_name, self.cfg.is_multi_head
-        )
-        if self.cfg.is_multi_head:
-            model = model_class.from_pretrained(path)
-        else:
-            # model = GPT2LMHeadModel.from_pretrained(path)
-            model = model_class.from_pretrained(path)
+        model = self.get_model_instance(path)
         training_args = self._get_training_args(
             "train", self.cfg.train_epochs, self.cfg.train_batch_size
         )

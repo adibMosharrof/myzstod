@@ -8,7 +8,7 @@ import pandas as pd
 
 from torch import nn
 from dstc_dataclasses import DstcRequestedSlot, DstcSchema, DstcServiceCall
-from multi_head.mh_dataclasses import MultiHeadDict
+from multi_head.mh_dataclasses import MultiHeadDictFactory, MultiHeadInstance
 
 from my_enums import ContextType, DstcSystemActions, SimpleTodConstants, SpecialTokens
 import dstc_utils
@@ -152,7 +152,7 @@ class SimpleTodContext:
         return "".join(
             [
                 SpecialTokens.begin_context,
-                self.prev_tod_turn.target.get_dst() if self.prev_tod_turn else "",
+                self.prev_tod_turn.target.get_dsts() if self.prev_tod_turn else "",
                 self._get_service_results(),
                 self._get_sys_actions(),
                 self._get_last_user_utterance(),
@@ -263,7 +263,8 @@ class SimpleTodTarget:
     dsts: List[SimpleTodDst]
     requested_slots: Optional[List[DstcRequestedSlot]] = None
 
-    def get_dst(self) -> str:
+    # these three methods are used in mh dataclasses, so be careful when renaming them
+    def get_dsts(self) -> str:
         return "".join(
             [
                 SpecialTokens.begin_dsts,
@@ -272,40 +273,26 @@ class SimpleTodTarget:
             ]
         )
 
-    def __repr__(self) -> str:
-        return self.__str__()
-
-    def get_multihead_dict(self) -> MultiHeadDict:
-        # mh_dict = MultiHeadDict(
-        #     intents=SimpleTodConstants.ITEM_SEPARATOR.join(
-        #         [dst.active_intent for dst in self.dsts]
-        #     ),
-        #     nlg=self.response,
-        #     beliefs=SimpleTodConstants.ITEM_SEPARATOR.join(
-        #         [dst.get_belief_repr() for dst in self.dsts]
-        #     ),
-        #     requested_slots=SimpleTodConstants.ITEM_SEPARATOR.join(
-        #         [dst.get_req_slots_str() for dst in self.dsts]
-        #     ),
-        #     system_actions=SimpleTodConstants.ITEM_SEPARATOR.join(
-        #         map(str, self.actions)
-        #     ),
-        #     user_actions=SimpleTodConstants.ITEM_SEPARATOR.join(
-        #         map(str, self.user_actions)
-        #     ),
-        # )
-        mh_dict = MultiHeadDict(
-            nlg=self.response,
-            dsts=SimpleTodConstants.ITEM_SEPARATOR.join(
-                map(str, self.dsts)
-            ),
-            system_actions=SimpleTodConstants.ITEM_SEPARATOR.join(
-                map(str, self.actions)
-            ),
+    def get_actions(self) -> str:
+        return "".join(
+            [
+                SpecialTokens.begin_action,
+                SimpleTodConstants.ITEM_SEPARATOR.join(map(str, self.actions)),
+                SpecialTokens.end_action,
+            ]
         )
 
+    def get_response(self) -> str:
+        return "".join(
+            [
+                SpecialTokens.begin_response,
+                self.response,
+                SpecialTokens.end_response,
+            ]
+        )
 
-        return mh_dict
+    def __repr__(self) -> str:
+        return self.__str__()
 
     def __str__(self) -> str:
         out = "".join(
@@ -350,7 +337,7 @@ class TodTurnMultiHeadCsvRow:
     # requested_slots: Optional[str] = ""
     user_actions: Optional[str] = ""
     system_actions: Optional[str] = ""
-    dsts:Optional[str] = ""
+    dsts: Optional[str] = ""
     # actions:Optional[str] =""
     nlg: Optional[str] = ""
     schema: Optional[str] = ""
@@ -380,7 +367,10 @@ class SimpleTodTurn:
 
     @classmethod
     def get_csv_headers(
-        self, should_add_schema: False, is_multi_head: bool = False
+        self,
+        should_add_schema: False,
+        is_multi_head: bool = False,
+        mh_fact: MultiHeadDictFactory = None,
     ) -> List[str]:
         headers = ["dialog_id", "turn_id", "context"]
         if should_add_schema:
@@ -388,11 +378,14 @@ class SimpleTodTurn:
         if not is_multi_head:
             headers.append("target")
         else:
-            headers = np.concatenate([headers, MultiHeadDict.head_names()], axis=0)
+            headers = np.concatenate([headers, mh_fact.get_head_names()], axis=0)
         return headers
 
     def to_csv_row(
-        self, context_type: ContextType, is_multi_head: bool = False
+        self,
+        context_type: ContextType,
+        is_multi_head: bool = False,
+        mh_instances: Optional[list[MultiHeadInstance]] = None,
     ) -> List[any]:
         context_str = (
             str(self.context)
@@ -407,11 +400,13 @@ class SimpleTodTurn:
             target_str = str(self.target)
             out.append(target_str)
         else:
-            target_mhdict = self.target.get_multihead_dict()
+            mh_target = [
+                getattr(self.target, mhi.target_attr)() for mhi in mh_instances
+            ]
             out = np.concatenate(
                 [
                     out,
-                    target_mhdict.get_values(),
+                    mh_target,
                 ],
                 axis=0,
             )
@@ -430,6 +425,13 @@ class TodTestDataBatch:
     targets_text: list[str]
     dialog_ids: list[int]
     turn_ids: list[int]
+
+
+@dataclass
+class MHTodTestDataBatch:
+    input_ids: dict[list[int]]
+    attention_masks: dict[list[int]]
+    targets_text: list[str]
 
 
 @dataclass

@@ -10,7 +10,7 @@ from dotmap import DotMap
 import pandas as pd
 from tqdm import tqdm
 
-from multi_head.mh_dataclasses import MultiHeadDict
+from multi_head.mh_dataclasses import MultiHeadDictFactory
 
 from dstc_dataclasses import DstcDialog, DstcSchema
 from my_enums import Steps

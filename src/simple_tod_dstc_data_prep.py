@@ -9,7 +9,7 @@ from omegaconf import DictConfig, ListConfig, OmegaConf
 from tqdm import tqdm
 import humps
 from hydra_configs import DataPrepConfig
-from multi_head.mh_dataclasses import MultiHeadDict
+from multi_head.mh_dataclasses import MultiHeadDictFactory
 from my_enums import Steps, SimpleTodConstants
 
 import utils
@@ -277,7 +277,11 @@ class SimpleTODDSTCDataPrep:
                 )
             else:
                 tod_turns.append(
-                    tod_turn.to_csv_row(self.cfg.context_type, self.cfg.is_multi_head)
+                    tod_turn.to_csv_row(
+                        self.cfg.context_type,
+                        self.cfg.is_multi_head,
+                        self.cfg.mh_fact.get_head_instances(),
+                    )
                 )
         if not self.cfg.is_multi_task:
             return tod_turns
@@ -347,7 +351,9 @@ class SimpleTODDSTCDataPrep:
 
             out_data = [d for d in res if len(d)]
             headers = SimpleTodTurn.get_csv_headers(
-                self.cfg.should_add_schema, self.cfg.is_multi_head
+                self.cfg.should_add_schema,
+                self.cfg.is_multi_head,
+                self.cfg.mh_fact,
             )
             if len(out_data) == 0:
                 print(f"No data for {step}")

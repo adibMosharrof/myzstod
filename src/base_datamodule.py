@@ -1,5 +1,6 @@
+from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Dict, Iterable, List
+from typing import Dict, Iterable, List, Union
 
 import torch
 from responses import target
@@ -9,11 +10,15 @@ import dstc_utils
 import utils
 from hydra_configs import DataModuleConfig, DataPrepConfig
 from my_enums import SpecialTokens, Steps
-from simple_tod_dataclasses import TodTestDataBatch, TodTurnCsvRow
+from simple_tod_dataclasses import (
+    TodTestDataBatch,
+    TodTurnCsvRow,
+    TodTurnMultiHeadCsvRow,
+)
 from simple_tod_dstc_data_prep import SimpleTODDSTCDataPrep
 
 
-class BaseDataModule:
+class BaseDataModule(ABC):
     _huggingface_ignore_label_id = -100
 
     def __init__(
@@ -25,6 +30,20 @@ class BaseDataModule:
         self.tod_turn_row_cls = tod_turn_row_cls
         self.setup()
         self.prompt_token_map = {}
+
+    @abstractmethod
+    def training_collator(
+        self,
+        batch: list[Union[TodTurnCsvRow, TodTurnMultiHeadCsvRow]],
+        is_pretrain=False,
+    ):
+        return ValueError("Not implemented")
+
+    @abstractmethod
+    def my_test_collate(
+        self, batch: list[Union[TodTurnCsvRow, TodTurnMultiHeadCsvRow]]
+    ):
+        return ValueError("Not implemented")
 
     def _get_token_id(self, text: str) -> int:
         return self.cfg.tokenizer.encode(text)[0]

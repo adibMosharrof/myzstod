@@ -1,6 +1,8 @@
 import os
 import re
 from pathlib import Path
+from typing import Union
+from dotmap import DotMap
 
 import hydra
 import numpy as np
@@ -19,6 +21,7 @@ from torchmetrics import MetricCollection
 from metrics.goal_metric import GoalMetric, GoalMetricConfigFactory
 from metrics.requested_slots_metric import RequestedSlotsMetric
 from metrics.dstc_metrics import InformMetric, SuccessMetric, CombinedMetric
+from multi_head.mh_datamodule import MultiLMHeadDatamodule
 from my_enums import DstcDomains, GoalMetricConfigType, SpecialTokens, TestSettings
 from reconstruct_dialog import ReconstructDialog
 import utils
@@ -26,6 +29,7 @@ from hydra_configs import DataModuleConfig, InferenceConfig, ReconstructDialogCo
 from my_datamodules import TodDataModule
 from simple_tod_dataclasses import (
     InferenceRecords,
+    MHTodTestDataBatch,
     SimpleTodConstants,
     TodTestDataBatch,
 )
@@ -154,16 +158,29 @@ class Inference:
         #     eos_token_id=self._get_token_id(SpecialTokens.end_response),
         #     pad_token_id=self._get_token_id(TokenizerTokens.pad_token),
         # )
-
+        batch_gpu = self._move_to_gpu(batch)
         gen = self.cfg.model.generate(
-            inputs=batch.input_ids.cuda(),
-            attention_mask=batch.attention_masks.cuda(),
-            max_length=self.cfg.generate_max_len,
-            eos_token_id=self.cfg.tokenizer.eos_token_id,
+            inputs=batch_gpu.input_ids,
+            attention_mask=batch_gpu.attention_masks,
+            # max_length=self.cfg.generate_max_len,
+            max_length=800,
+            # eos_token_id=self.cfg.tokenizer.eos_token_id,
             pad_token_id=self.cfg.tokenizer.pad_token_id,
             bos_token_id=self.cfg.tokenizer.bos_token_id,
         )
         return gen
+
+    def _move_to_gpu(self, batch: Union[MHTodTestDataBatch, TodTestDataBatch]):
+        batch_gpu = DotMap()
+        if isinstance(batch.input_ids, torch.Tensor):
+            batch_gpu.input_ids = batch.input_ids.cuda()
+            batch_gpu.attention_masks = batch.attention_masks.cuda()
+            return batch
+        field_names = ["attention_masks", "input_ids"]
+        for name in field_names:
+            for head_name, value in getattr(batch, name).items():
+                batch_gpu[name][head_name] = value.cuda()
+        return batch_gpu
 
     def _postprocess_generation(self, batch: list[str]) -> list[str]:
         out = []
@@ -266,12 +283,20 @@ class Inference:
         self.combined_metrics = MetricCollection(combined_metrics)
 
     def _get_dataloader(self, test_setting: str) -> TodTestDataBatch:
-        dm = TodDataModule(
-            DataModuleConfig.from_inference_config(
-                self.cfg,
-                domain_setting=test_setting,
+        if self.cfg.is_multi_head:
+            dm = MultiLMHeadDatamodule(
+                DataModuleConfig.from_inference_config(
+                    self.cfg, domain_setting=test_setting
+                ),
+                self.cfg.mh_fact,
             )
-        )
+        else:
+            dm = TodDataModule(
+                DataModuleConfig.from_inference_config(
+                    self.cfg,
+                    domain_setting=test_setting,
+                )
+            )
         return dm.test_dataloader()
 
     def _remove_padding(self, text):
