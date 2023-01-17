@@ -9,16 +9,17 @@
             "type": "python",
             "request": "launch",
             "program": "${cwd}/src/trainer.py",
-            "cwd": "/u/amo-d0/grad/adibm/projects/generative_tod",
+            "cwd": "/u/amo-d0/grad/adibm/data/projects/ZSToD",
             "console": "integratedTerminal",
-            "args": []
+            "args": [],
+            "justMyCode": false
         },
         {
             "name": "simple_tod_inference",
             "type": "python",
             "request": "launch",
             "program": "${cwd}/src/inference.py",
-            "cwd": "/u/amo-d0/grad/adibm/projects/generative_tod",
+            "cwd": "/u/amo-d0/grad/adibm/data/projects/ZSToD",
             "console": "integratedTerminal",
             "args": []
         },
@@ -27,7 +28,7 @@
             "type": "python",
             "request": "launch",
             "program": "${cwd}/gpt_finetune.py",
-            "cwd": "/u/amo-d0/grad/adibm/projects/generative_tod",
+            "cwd": "/u/amo-d0/grad/adibm/data/projects/ZSToD",
             "console": "integratedTerminal",
             "args": []
         },
@@ -36,7 +37,7 @@
             "type": "python",
             "request": "launch",
             "program": "${cwd}/src/simple_tod_dstc_data_prep.py",
-            "cwd": "/u/amo-d0/grad/adibm/projects/generative_tod",
+            "cwd": "/u/amo-d0/grad/adibm/data/projects/ZSToD",
             "console": "integratedTerminal",
             "args": []
         },
@@ -45,7 +46,7 @@
             "type": "python",
             "request": "launch",
             "program": "${cwd}/src/data_model_exploration.py",
-            "cwd": "/u/amo-d0/grad/adibm/projects/generative_tod",
+            "cwd": "/u/amo-d0/grad/adibm/data/projects/ZSToD",
             "console": "integratedTerminal",
             "args": []
         },
@@ -54,7 +55,7 @@
             "type": "python",
             "request": "launch",
             "program": "${cwd}/src/reconstruct_dialog.py",
-            "cwd": "/u/amo-d0/grad/adibm/projects/generative_tod",
+            "cwd": "/u/amo-d0/grad/adibm/data/projects/ZSToD",
             "console": "integratedTerminal",
             "args": []
         },
@@ -63,7 +64,7 @@
             "type": "python",
             "request": "launch",
             "program": "${cwd}/src/contrastive/contrastive.py",
-            "cwd": "/u/amo-d0/grad/adibm/projects/generative_tod",
+            "cwd": "/u/amo-d0/grad/adibm/data/projects/ZSToD",
             "console": "integratedTerminal",
             "args": []
         },
@@ -72,7 +73,7 @@
             "type": "python",
             "request": "launch",
             "program": "${cwd}/src/data_exploration/dialog_domains.py",
-            "cwd": "/u/amo-d0/grad/adibm/projects/generative_tod",
+            "cwd": "/u/amo-d0/grad/adibm/data/projects/ZSToD",
             "console": "integratedTerminal",
             "args": []
         },
@@ -81,7 +82,7 @@
             "type": "python",
             "request": "launch",
             "program": "${cwd}/src/data_exploration/multi_domain_dialogs.py",
-            "cwd": "/u/amo-d0/grad/adibm/projects/generative_tod",
+            "cwd": "/u/amo-d0/grad/adibm/data/projects/ZSToD",
             "console": "integratedTerminal",
             "args": []
         },
@@ -90,7 +91,7 @@
             "type": "python",
             "request": "launch",
             "program": "${cwd}/src/data_exploration/mh_lengths.py",
-            "cwd": "/u/amo-d0/grad/adibm/projects/generative_tod",
+            "cwd": "/u/amo-d0/grad/adibm/data/projects/ZSToD",
             "console": "integratedTerminal",
             "args": []
         },
@@ -99,7 +100,7 @@
             "type": "python",
             "request": "launch",
             "program": "${cwd}/src/data_exploration/contrast_viz.py",
-            "cwd": "/u/amo-d0/grad/adibm/projects/generative_tod",
+            "cwd": "/u/amo-d0/grad/adibm/data/projects/ZSToD",
             "console": "integratedTerminal",
             "args": []
         },
