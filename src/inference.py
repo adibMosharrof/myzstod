@@ -162,8 +162,8 @@ class Inference:
         gen = self.cfg.model.generate(
             inputs=batch_gpu.input_ids,
             attention_mask=batch_gpu.attention_masks,
-            # max_length=self.cfg.generate_max_len,
-            max_length=800,
+            max_length=self.cfg.generate_max_len,
+            # max_length=800,
             # eos_token_id=self.cfg.tokenizer.eos_token_id,
             pad_token_id=self.cfg.tokenizer.pad_token_id,
             bos_token_id=self.cfg.tokenizer.bos_token_id,
