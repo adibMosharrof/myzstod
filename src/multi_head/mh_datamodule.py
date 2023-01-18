@@ -44,8 +44,10 @@ class MultiLMHeadDatamodule(BaseDataModule):
         for item in batch:
             for head_name in all_head_names:
                 head_target_tokens = self.train_tokenizer(item[head_name])[0]
+                head_dependencies = self.mh_fact.get_dependencies_of_head(head_name)
+                head_dep_texts = "".join([item[dep.name] for dep in head_dependencies])
                 context_tokens = self.train_tokenizer(
-                    "".join([item.context, item.schema])
+                    "".join([item.schema, item.context, head_dep_texts])
                 )[0]
                 target_len = len(head_target_tokens)
                 context_len = len(context_tokens)
@@ -114,7 +116,7 @@ class MultiLMHeadDatamodule(BaseDataModule):
             item_target_txts = []
             for head_name, prompt_token in self.mh_fact.get_head_prompt_token_pairs():
                 context_tokens = self.train_tokenizer(
-                    "".join([item.context, item.schema, prompt_token])
+                    "".join([item.schema, item.context, prompt_token])
                     # "".join([item.context, item.schema])
                 )[0]
                 context_len = len(context_tokens)
@@ -133,7 +135,7 @@ class MultiLMHeadDatamodule(BaseDataModule):
                     )
                 )
                 item_target_txts.append(item[head_name])
-            
+
             all_target_txts.append("".join(item_target_txts))
             turn_ids.append(item.turn_id)
             all_context_txts.append(item.context)

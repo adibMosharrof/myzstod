@@ -76,7 +76,12 @@ class Inference:
                 #     gen_without_context,
                 #     skip_special_tokens=False,
                 # )
-                pred_text_no_pad = self.cfg.generation_handler.get_generation(batch, self.cfg.max_token_len, self.cfg.test_prompt_max_len, self.cfg.postprocess_generation)
+                pred_text_no_pad = self.cfg.generation_handler.get_generation(
+                    batch,
+                    self.cfg.max_token_len,
+                    self.cfg.test_prompt_max_len,
+                    self.cfg.postprocess_generation,
+                )
                 # for s in pred_text:
                 #     start_tokens.append(s[:15])
                 # pred_text_no_pad = [self._remove_padding(text) for text in pred_text]

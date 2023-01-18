@@ -177,3 +177,9 @@ class ContextType(str, Enum):
 class ResponseMetricType(str, Enum):
     BLEU = "bleu"
     ROUGE = "rouge"
+
+
+class MultiHeadName(str, Enum):
+    DSTS = "dsts"
+    SYSTEM_ACTIONS = "system_actions"
+    NLG = "nlg"

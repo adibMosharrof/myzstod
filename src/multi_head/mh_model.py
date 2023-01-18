@@ -96,7 +96,7 @@ class GPT2MultiLMHeadModel(GPT2LMHeadModel):
                 synced_gpus=synced_gpus,
                 max_length=max_length,
                 head_name=head_instance.name,
-                # head_eos_token_id=head_instance.eos_token_id,
+                bad_words_ids=self.tok(head_instance.bad_word_tokens)["input_ids"],
             )
             if out.shape[1] < max_length:
                 out = torch.cat(
@@ -114,7 +114,7 @@ class GPT2MultiLMHeadModel(GPT2LMHeadModel):
             all_out.append(out)
         return all_out
         # return torch.cat(all_out, dim=0)
-    
+
     def forward_single_head(
         self,
         input_ids: Optional[torch.LongTensor] = None,
