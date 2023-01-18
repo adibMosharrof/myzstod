@@ -84,7 +84,7 @@ class TodMetricsBase(Metric):
         if not len(references):
             raise ValueError("You must provide at least one reference.")
         if not len(predictions) == len(references):
-            raise ValueError("Predictions and references must have the same length")
+            raise ValueError(f"Predictions {len(predictions)} and references {len(references)} must have the same length")
         self.is_cached = False
         return self._update(predictions, references)
 
