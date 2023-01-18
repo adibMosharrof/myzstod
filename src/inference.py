@@ -29,7 +29,6 @@ from hydra_configs import DataModuleConfig, InferenceConfig, ReconstructDialogCo
 from my_datamodules import TodDataModule
 from simple_tod_dataclasses import (
     InferenceRecords,
-    MHTodTestDataBatch,
     SimpleTodConstants,
     TodTestDataBatch,
 )
@@ -71,29 +70,19 @@ class Inference:
             inf_records = InferenceRecords()
 
             for batch in tqdm(test_dataloader):
-                gen = self._get_generation(batch)
-                gen_without_context = gen[:, self.cfg.test_prompt_max_len :]
-                # if gen_without_context[0][0] not in target_start_tokens[0]:
-                #     gen_without_context = torch.column_stack(
-                #         [target_start_tokens, gen_without_context]
-                #     )
-                # gen_with_start_tokens = torch.column_stack(
-                #     [
-                #         target_start_tokens.expand([gen.shape[0], -1]),
-                #         gen_without_context,
-                #     ]
+                # gen = self.cfg.generation_handler.get_generation(batch, self.cfg.max_token_len)
+                # gen_without_context = self.cfg.generation_handler.remove_context(gen, self.cfg.test_prompt_max_len)
+                # pred_text = self.cfg.tokenizer.batch_decode(
+                #     gen_without_context,
+                #     skip_special_tokens=False,
                 # )
-                pred_text = self.cfg.tokenizer.batch_decode(
-                    gen_without_context,
-                    # gen_with_start_tokens,
-                    skip_special_tokens=False,
-                )
-                for s in pred_text:
-                    start_tokens.append(s[:15])
-                pred_text_no_pad = [self._remove_padding(text) for text in pred_text]
-                if self.cfg.postprocess_generation:
-                    processed_gen = self._postprocess_generation(pred_text_no_pad)
-                    pred_text_no_pad = processed_gen
+                pred_text_no_pad = self.cfg.generation_handler.get_generation(batch, self.cfg.max_token_len, self.cfg.test_prompt_max_len, self.cfg.postprocess_generation)
+                # for s in pred_text:
+                #     start_tokens.append(s[:15])
+                # pred_text_no_pad = [self._remove_padding(text) for text in pred_text]
+                # if self.cfg.postprocess_generation:
+                #     processed_gen = self.cfg.generation_handler.postprocess_generation(pred_text_no_pad)
+                #     pred_text_no_pad = processed_gen
                 if not self.cfg.is_multi_task:
                     self.tod_metrics.update(
                         references=batch.targets_text, predictions=pred_text_no_pad
@@ -145,56 +134,6 @@ class Inference:
         print("-" * 80)
         print("output_dir: ")
         print(os.getcwd())
-
-    def _get_generation(self, batch):
-        # gen = self.cfg.model.generate(
-        #     inputs=batch.context_tokens.to(self.device),
-        #     attention_mask=batch.context_attention_masks.to(self.device),
-        #     do_sample=True,
-        #     top_k=50,
-        #     top_p=0.94,
-        #     max_length=self.generate_max_len,
-        #     temperature=0.5,
-        #     eos_token_id=self._get_token_id(SpecialTokens.end_response),
-        #     pad_token_id=self._get_token_id(TokenizerTokens.pad_token),
-        # )
-        batch_gpu = self._move_to_gpu(batch)
-        gen = self.cfg.model.generate(
-            inputs=batch_gpu.input_ids,
-            attention_mask=batch_gpu.attention_masks,
-            max_length=self.cfg.generate_max_len,
-            # max_length=800,
-            # eos_token_id=self.cfg.tokenizer.eos_token_id,
-            pad_token_id=self.cfg.tokenizer.pad_token_id,
-            bos_token_id=self.cfg.tokenizer.bos_token_id,
-        )
-        return gen
-
-    def _move_to_gpu(self, batch: Union[MHTodTestDataBatch, TodTestDataBatch]):
-        batch_gpu = DotMap()
-        if isinstance(batch.input_ids, torch.Tensor):
-            batch_gpu.input_ids = batch.input_ids.cuda()
-            batch_gpu.attention_masks = batch.attention_masks.cuda()
-            return batch
-        field_names = ["attention_masks", "input_ids"]
-        for name in field_names:
-            for head_name, value in getattr(batch, name).items():
-                batch_gpu[name][head_name] = value.cuda()
-        return batch_gpu
-
-    def _postprocess_generation(self, batch: list[str]) -> list[str]:
-        out = []
-        required_tokens = [
-            SpecialTokens.begin_target,
-            SpecialTokens.begin_dsts,
-            SpecialTokens.begin_dst,
-            SpecialTokens.begin_intent,
-        ]
-        for item in batch:
-            text_to_add = [rt for rt in required_tokens if rt not in item]
-            out_text = "".join(["".join(text_to_add), item])
-            out.append(out_text)
-        return out
 
     def _print_metrics(self):
         tod_metrics_str = [str(self.tod_metrics[m]) for m in self.tod_metrics]

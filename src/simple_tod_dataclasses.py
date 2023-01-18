@@ -427,12 +427,6 @@ class TodTestDataBatch:
     turn_ids: list[int]
 
 
-@dataclass
-class MHTodTestDataBatch:
-    input_ids: dict[list[int]]
-    attention_masks: dict[list[int]]
-    targets_text: list[str]
-
 
 @dataclass
 class PredRef:

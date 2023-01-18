@@ -1,0 +1,30 @@
+from typing import Union
+
+from dotmap import DotMap
+import torch
+from generation.generation_base import GenerationBase
+
+from simple_tod_dataclasses import TodTestDataBatch
+
+
+class SimpleGeneration(GenerationBase):
+
+    def move_to_gpu(self, batch: TodTestDataBatch):
+        batch_gpu = DotMap()
+        batch_gpu.input_ids = batch.input_ids.cuda()
+        batch_gpu.attention_masks = batch.attention_masks.cuda()
+        return batch
+    
+    def _get_generation(self, batch):
+        gen = self.model.generate(
+            inputs=batch.input_ids,
+            attention_mask=batch.attention_masks,
+            max_length=self.cfg.generate_max_len,
+            eos_token_id=self.cfg.tokenizer.eos_token_id,
+            pad_token_id=self.cfg.tokenizer.pad_token_id,
+            bos_token_id=self.cfg.tokenizer.bos_token_id,
+        )
+        return gen
+    
+    def remove_context(self, gen, context_len:int):
+       return  gen[:, context_len:]

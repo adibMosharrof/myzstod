@@ -11,6 +11,8 @@ from transformers import AutoTokenizer, GPT2LMHeadModel, GPT2PreTrainedModel
 from dstc_dataclasses import DstcSchema
 
 import dstc_utils
+from generation.multi_head_generation import MultiHeadGeneration
+from generation.simple_generation import SimpleGeneration
 from multi_head.mh_dataclasses import MultiHeadDictFactory
 import utils
 from my_enums import (
@@ -21,7 +23,7 @@ from my_enums import (
     Steps,
 )
 from multi_head.mh_model import GPT2MultiLMHeadModel
-
+from generation.generation_base import GenerationBase
 
 class TrainerConfig:
     def __init__(
@@ -232,6 +234,8 @@ class InferenceConfig:
         self.context_type = context_type
         self.should_add_service_results = should_add_service_results
         self.postprocess_generation = postprocess_generation
+        
+        self.generation_handler:GenerationBase = MultiHeadGeneration(self.model, self.tokenizer) if is_multi_head else SimpleGeneration(self.model, self.tokenizer)
         # self.contrastive_model = contrastive_model
 
     def _get_tokenizer(self, model_path_str: str):

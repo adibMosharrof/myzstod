@@ -96,12 +96,25 @@ class GPT2MultiLMHeadModel(GPT2LMHeadModel):
                 synced_gpus=synced_gpus,
                 max_length=max_length,
                 head_name=head_instance.name,
-                head_eos_token_id=head_instance.eos_token_id,
+                # head_eos_token_id=head_instance.eos_token_id,
             )
+            if out.shape[1] < max_length:
+                out = torch.cat(
+                    [
+                        out,
+                        torch.full(
+                            (out.shape[0], max_length - out.shape[1]),
+                            pad_token_id,
+                            dtype=out.dtype,
+                            device=out.device,
+                        ),
+                    ],
+                    dim=1,
+                )
             all_out.append(out)
-
-        return torch.cat(all_out, dim=0)
-
+        return all_out
+        # return torch.cat(all_out, dim=0)
+    
     def forward_single_head(
         self,
         input_ids: Optional[torch.LongTensor] = None,
