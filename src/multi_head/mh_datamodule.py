@@ -2,7 +2,7 @@ import torch
 from base_datamodule import BaseDataModule
 from hydra_configs import DataModuleConfig
 from multi_head.mh_dataclasses import MultiHeadDictFactory
-from simple_tod_dataclasses import MHTodTestDataBatch, TodTurnMultiHeadCsvRow
+from simple_tod_dataclasses import TodTurnMultiHeadCsvRow, TodTestDataBatch
 
 
 class MultiLMHeadDatamodule(BaseDataModule):
@@ -103,13 +103,19 @@ class MultiLMHeadDatamodule(BaseDataModule):
         max_token_len=None,
     ):
         all_head_names = self.mh_fact.get_head_names()
-        input_tokens = dict.fromkeys(all_head_names, [])
-        attention_masks = dict.fromkeys(all_head_names, [])
-        target_txts = dict.fromkeys(all_head_names, [])
+        input_tokens = {key: [] for key in all_head_names}
+        attention_masks = {key: [] for key in all_head_names}
+        all_target_txts = []
+        all_context_txts = []
+        turn_ids = []
+        dialog_ids = []
+        all_schema_txts = []
         for item in batch:
+            item_target_txts = []
             for head_name, prompt_token in self.mh_fact.get_head_prompt_token_pairs():
                 context_tokens = self.train_tokenizer(
                     "".join([item.context, item.schema, prompt_token])
+                    # "".join([item.context, item.schema])
                 )[0]
                 context_len = len(context_tokens)
                 unused_len = self.cfg.test_prompt_max_len - context_len
@@ -126,9 +132,14 @@ class MultiLMHeadDatamodule(BaseDataModule):
                         ]
                     )
                 )
-                target_txts[head_name].append(item[head_name])
-
-        return MHTodTestDataBatch(
+                item_target_txts.append(item[head_name])
+            
+            all_target_txts.append("".join(item_target_txts))
+            turn_ids.append(item.turn_id)
+            all_context_txts.append(item.context)
+            dialog_ids.append(item.dialog_id)
+            all_schema_txts.append(item.schema)
+        return TodTestDataBatch(
             input_ids={
                 head_name: torch.stack(input_tokens[head_name])
                 for head_name in all_head_names
@@ -137,5 +148,9 @@ class MultiLMHeadDatamodule(BaseDataModule):
                 head_name: torch.stack(attention_masks[head_name])
                 for head_name in all_head_names
             },
-            targets_text=target_txts,
+            targets_text=all_target_txts,
+            turn_ids=turn_ids,
+            contexts_text=all_context_txts,
+            dialog_ids=dialog_ids,
+            schemas_text=all_schema_txts,
         )
