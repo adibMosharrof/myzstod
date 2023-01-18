@@ -188,6 +188,7 @@ class SimpleTODTrainer:
             dataloader_num_workers=self.cfg.num_workers,
             report_to="all",
             fp16=self.cfg.fp16,
+            dataloader_drop_last=True,
             # sharded_ddp="simple",
         )
 
