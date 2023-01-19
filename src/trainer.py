@@ -258,7 +258,8 @@ def init_wandb(cfg:DictConfig):
     parent_without_year = "-".join(out_dir.parent.name.split('-')[1:])
     run_name = "/".join([parent_without_year, out_dir.name])
     group = "multi_head" if cfg.is_multi_head else "single_head"
-    tags = [cfg.model_name, "_".join(cfg.num_dialogs)]
+    num_dialogs = "_".join(map(str,cfg.num_dialogs))
+    tags = [cfg.model_name, num_dialogs]
     run = wandb.init(name=run_name, group=group, tags=tags, project=cfg.wandb.project, entity="adibm", settings=wandb.Settings(start_method="thread"))
 
 @hydra.main(config_path="../config/trainer/", config_name="simple_tod_trainer")
