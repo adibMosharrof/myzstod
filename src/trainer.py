@@ -52,6 +52,8 @@ class SimpleTODTrainer:
     ) -> None:
         self.cfg = trainer_config
         os.environ['WANDB_PROJECT'] = 'ZSTod'
+        os.environ['WANDB_LOG_MODEL'] = 'true'
+
 
     def print_cuda_info(self, step=""):
         if step:
