@@ -85,6 +85,7 @@ class TrainerConfig:
         local_rank: int = 0,
         fp16: int = False,
         postprocess_generation: bool = False,
+        wandb: any = None
     ) -> None:
         self.project_root = Path(project_root)
         self.data_prep_out_root = Path(data_prep_out_root)
