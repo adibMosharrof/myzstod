@@ -1,12 +1,13 @@
 import os
 import re
 from pathlib import Path
-from typing import Union
+from typing import Tuple, Union
 from dotmap import DotMap
-
+import wandb
 import hydra
 import numpy as np
 from omegaconf import DictConfig
+import pandas as pd
 import torch
 from tqdm import tqdm
 from transformers import AutoTokenizer, GPT2LMHeadModel, GPT2PreTrainedModel
@@ -58,8 +59,8 @@ class Inference:
             .cuda()
         )
         start_tokens = []
+        metric_results = []
         for domain_setting in self.cfg.test_domain_settings:
-
             domains = DstcDomains[domain_setting.upper()].value
             test_csv_out_data = []
             text_csv_out_path = f"simple_tod_dstc_predictions_{domain_setting}_{self.cfg.num_turns}_dialogs_{self.cfg.num_test_dialogs}{SimpleTodConstants.DELEXICALIZED if self.cfg.delexicalize else ''}_{domains}.csv"
@@ -120,12 +121,14 @@ class Inference:
             headers = ["dialog_id", "turn_id", "context", "target", "prediction"]
             utils.write_csv(headers, test_csv_out_data, text_csv_out_path)
             self.cfg.logger.info(f"Testing {domain_setting}")
-            self._print_metrics()
+            cols, values = self._print_metrics()
+            metric_results.append([domain_setting, cols, values])
             self.cfg.logger.info(str(self.cfg.out_dir))
             [
                 self.tod_metrics[m].visualize(Path(self.cfg.predictions_log_dir))
                 for m in self.tod_metrics
             ]
+        self.log_metrics_wandb(metric_results)
         self.cfg.logger.info("Start token counts")
         for token, count in sorted(Counter(start_tokens).items()):
             self.cfg.logger.info(f"{token}:{count}")
@@ -140,7 +143,11 @@ class Inference:
         print("output_dir: ")
         print(os.getcwd())
 
-    def _print_metrics(self):
+    def log_metrics_wandb(self, metric_results):
+        df = pd.DataFrame(columns=["Domains"]+ metric_results[0][1], data=[ [r[0]]+ r[2] for r in metric_results])
+        wandb.log({"metrics": wandb.Table(dataframe=df)})
+
+    def _print_metrics(self)->Tuple[list[str], list[str]]:
         tod_metrics_str = [str(self.tod_metrics[m]) for m in self.tod_metrics]
         combined_metrics_str = [
             str(self.combined_metrics[m]) for m in self.combined_metrics
@@ -163,6 +170,7 @@ class Inference:
         self.cfg.logger.info(f"|{'|'.join(cols)}|")
         self.cfg.logger.info(f"|{'|'.join(header_sep)}|")
         self.cfg.logger.info(f"|{'|'.join(values)}|")
+        return cols, values
 
     def _set_metrics(self):
         slot_categories = get_slot_categories(self.cfg.raw_data_root)
