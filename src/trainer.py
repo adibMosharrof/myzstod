@@ -51,6 +51,7 @@ class SimpleTODTrainer:
         trainer_config: TrainerConfig,
     ) -> None:
         self.cfg = trainer_config
+        os.environ['WANDB_PROJECT'] = 'ZSTod'
 
     def print_cuda_info(self, step=""):
         if step:
@@ -186,7 +187,7 @@ class SimpleTODTrainer:
             weight_decay=0.01,
             logging_dir=self.cfg.logging_dir,
             dataloader_num_workers=self.cfg.num_workers,
-            report_to="all",
+            report_to="wandb",
             fp16=self.cfg.fp16,
             dataloader_drop_last=True,
             # sharded_ddp="simple",
