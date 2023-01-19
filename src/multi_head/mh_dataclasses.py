@@ -94,6 +94,8 @@ class MhBadWordTokens:
             SpecialTokens.end_dst,
             SpecialTokens.begin_belief,
             SpecialTokens.end_belief,
+            SpecialTokens.begin_intent,
+            SpecialTokens.end_intent
         ]
 
     @classmethod
