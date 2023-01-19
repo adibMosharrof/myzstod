@@ -79,7 +79,7 @@ class MhBadWordTokens:
 
     @classmethod
     def nlg(self):
-        return self._dsts_special_tokens() + self._action_special_tokens()
+        return self._dsts_special_tokens() + self._action_special_tokens() + [SimpleTodConstants.SLOT_VALUE_SEPARATOR, SimpleTodConstants.DOMAIN_SLOT_SEPARATOR, SimpleTodConstants.ACTION_VALUE_SEPARATOR, SimpleTodConstants.ITEM_SEPARATOR]
 
     @classmethod
     def _action_special_tokens(self):
