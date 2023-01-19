@@ -43,7 +43,7 @@ from sentence_transformers import SentenceTransformer
 warnings.filterwarnings("ignore")
 # os.environ["NCCL_DEBUG"] = "INFO"
 import argparse
-
+import wandb
 
 class SimpleTODTrainer:
     def __init__(
@@ -51,8 +51,8 @@ class SimpleTODTrainer:
         trainer_config: TrainerConfig,
     ) -> None:
         self.cfg = trainer_config
-        os.environ['WANDB_PROJECT'] = 'ZSTod'
-        os.environ['WANDB_LOG_MODEL'] = 'true'
+        # os.environ['WANDB_PROJECT'] = 'ZSTod'
+        # os.environ['WANDB_LOG_MODEL'] = 'true'
 
 
     def print_cuda_info(self, step=""):
@@ -253,10 +253,9 @@ class SimpleTODTrainer:
 
 @hydra.main(config_path="../config/trainer/", config_name="simple_tod_trainer")
 def hydra_start(cfg: DictConfig) -> None:
-    local_rank = os.getenv("LOCAL_RANK") or 0
-    all_cfg = {**cfg, **{"local_rank": local_rank}}
-    stt = SimpleTODTrainer(TrainerConfig(**all_cfg))
-    # stt = SimpleTODTrainer(TrainerConfig(**cfg))
+    wandb.config = omegaconf.OmegaConf.to_container(cfg, resolve=True, throw_on_missing=True)
+    run = wandb.init(project=cfg.wandb.project, entity="adibm" settings=wandb.Settings(start_method="thread"))
+    stt = SimpleTODTrainer(TrainerConfig(**cfg))
     stt.run()
 
 
