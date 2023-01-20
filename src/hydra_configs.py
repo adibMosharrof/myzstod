@@ -154,7 +154,7 @@ class TrainerConfig:
         self.mh_fact = (
             MultiHeadDictFactory(self.tokenizer) if self.is_multi_head else None
         )
-
+        self.wandb = wandb
 
 class InferenceConfig:
     def __init__(
