@@ -193,6 +193,7 @@ class SimpleTODTrainer:
             report_to="wandb",
             fp16=self.cfg.fp16,
             dataloader_drop_last=True,
+            run_name=step_name,
             # sharded_ddp="simple",
         )
 
