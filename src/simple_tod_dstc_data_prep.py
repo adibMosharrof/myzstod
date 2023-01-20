@@ -276,11 +276,12 @@ class SimpleTODDSTCDataPrep:
                     self._prepare_multitask_dialog(tod_turn, self.cfg.is_multi_head)
                 )
             else:
+                head_instances = self.cfg.mh_fact.get_head_instances() if self.cfg.is_multi_head else None
                 tod_turns.append(
                     tod_turn.to_csv_row(
                         self.cfg.context_type,
                         self.cfg.is_multi_head,
-                        self.cfg.mh_fact.get_head_instances(),
+                        head_instances,
                     )
                 )
         if not self.cfg.is_multi_task:

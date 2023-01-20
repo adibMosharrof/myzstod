@@ -259,6 +259,8 @@ class InferenceConfig:
         model_class = dstc_utils.get_model_class(self.model_name, self.is_multi_head)
         if isinstance(model, str):
             model_path = self.project_root / model
+            if model_class is not GPT2MultiLMHeadModel:
+                return model_class.from_pretrained(model_path).cuda()
             model_args = self.mh_fact if model_class == GPT2MultiLMHeadModel else {}
             model_kwargs = (
                 {"tok": self.tokenizer, "is_inference": True}
@@ -683,6 +685,9 @@ class DataPrepConfig:
         self.mh_fact = mh_fact if mh_fact else None
 
     def _get_domains(self, domain_setting: str) -> list[str]:
+        if domain_setting not in DstcDomains.regular_settings():
+            return DstcDomains[domain_setting].value
+
         domain_to_step_map = {
             DstcDomains.SEEN.name: [Steps.TRAIN.value],
             DstcDomains.UNSEEN.name: [Steps.DEV.value, Steps.TEST.value],

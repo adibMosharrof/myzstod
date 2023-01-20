@@ -10,18 +10,18 @@ class Steps(str, Enum):
     def list(cls):
         return [c.value for c in cls]
 
-
-class TestSettings(str, Enum):
-    SEEN = "seen"
-    UNSEEN = "unseen"
-    ALL = "all"
-    CUSTOM = "custom"
-
-
 class DstcDomains(str, Enum):
     SEEN = "SEEN"
     UNSEEN = "UNSEEN"
     ALL = "ALL"
+    RESTAURANTS_1 = "Restaurants_1"
+    RESTAURANTS_2 = "Restaurants_2"
+    HOTELS_1 = "Hotels_1"
+    PAYMENT_1 = "Payment_1"
+
+    @classmethod
+    def regular_settings(cls):
+        return [cls.SEEN.value, cls.UNSEEN.value, cls.ALL.value]
 
     @classmethod
     def list(cls):

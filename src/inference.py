@@ -23,7 +23,7 @@ from metrics.goal_metric import GoalMetric, GoalMetricConfigFactory
 from metrics.requested_slots_metric import RequestedSlotsMetric
 from metrics.dstc_metrics import InformMetric, SuccessMetric, CombinedMetric
 from multi_head.mh_datamodule import MultiLMHeadDatamodule
-from my_enums import DstcDomains, GoalMetricConfigType, SpecialTokens, TestSettings
+from my_enums import DstcDomains, GoalMetricConfigType, SpecialTokens
 from reconstruct_dialog import ReconstructDialog
 import utils
 from hydra_configs import DataModuleConfig, InferenceConfig, ReconstructDialogConfig

@@ -52,9 +52,6 @@ class SimpleTODTrainer:
         trainer_config: TrainerConfig,
     ) -> None:
         self.cfg = trainer_config
-        # os.environ['WANDB_PROJECT'] = 'ZSTod'
-        # os.environ['WANDB_LOG_MODEL'] = 'true'
-
 
     def print_cuda_info(self, step=""):
         if step:
@@ -64,8 +61,6 @@ class SimpleTODTrainer:
 
     def run(self):
         self.print_cuda_info("init")
-        # model = GPT2LMHeadModel.from_pretrained(self.cfg.model_name)
-        # model.resize_token_embeddings(len(self.cfg.tokenizer))
         # heads_to_prune = defaultdict(list)
         # for layer in range(12):
         #     for head in range(12):
@@ -73,7 +68,6 @@ class SimpleTODTrainer:
         #             continue
         #         heads_to_prune[layer].append(head)
         # model.prune_heads(heads_to_prune)
-        # model = model.cuda()
         current_dir = os.getcwd()
         print(current_dir)
         dm = self._get_dm()
@@ -92,12 +86,10 @@ class SimpleTODTrainer:
         out_dir = self.train_model(pretrained_model_path, dm)
         full_out_dir = str(Path(current_dir) / out_dir)
         self.print_cuda_info("after train")
-        # out_dir = self.train(model, dm)
         print("Training done")
         print("-" * 80)
         if self.cfg.should_test:
             inf = Inference(
-                # InferenceConfig.from_trainer_config(self.cfg, model),
                 InferenceConfig.from_trainer_config(self.cfg, full_out_dir),
             )
             inf.test()
