@@ -13,7 +13,7 @@ from transformers.generation.beam_constraints import Constraint
 from multi_head.mh_dataclasses import MultiHeadDictFactory
 from dataclasses import asdict
 from transformers.utils import logging
-
+import wandb
 logger = logging.get_logger(__name__)
 
 
@@ -246,7 +246,12 @@ class GPT2MultiLMHeadModel(GPT2LMHeadModel):
                 lm_head=self.lm_heads[head_name],
             )
             outs.append(out)
-
+        step_name = "train" if self.training else "eval"
+        step_loss_data = {}
+        for head_name, head_out in zip(self.mh_fact.get_head_names(), outs):
+            name = f"{step_name}_loss_{head_name}"
+            step_loss_data[name] = head_out.loss
+        wandb.log(step_loss_data)
         return CausalLMOutputWithCrossAttentions(
             loss=torch.sum(torch.stack([out.loss for out in outs])),
             logits=torch.stack([out.logits for out in outs]),
