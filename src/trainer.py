@@ -260,7 +260,7 @@ def init_wandb(cfg:TrainerConfig, omega_cfg: DictConfig):
     group = "multi_head" if cfg.is_multi_head else "single_head"
     num_dialogs = "_".join(map(str,cfg.num_dialogs))
     tags = [cfg.model_name, num_dialogs]
-    run = wandb.init(name=run_name, group=group, tags=tags, project=cfg.wandb.project, entity="adibm", settings=wandb.Settings(start_method="thread"))
+    run = wandb.init(name=run_name, group=group, tags=tags, notes=cfg.wandb.notes or "", project=cfg.wandb.project, entity="adibm", settings=wandb.Settings(start_method="thread"))
 
 @hydra.main(config_path="../config/trainer/", config_name="simple_tod_trainer")
 def hydra_start(cfg: DictConfig) -> None:
