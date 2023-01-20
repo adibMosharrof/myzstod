@@ -252,7 +252,7 @@ class SimpleTODTrainer:
         return training_args.output_dir
 
 
-def init_wandb(cfg:TrainerConfig, omega_conf: DictConfig):
+def init_wandb(cfg:TrainerConfig, omega_cfg: DictConfig):
     wandb.config = omegaconf.OmegaConf.to_container(omega_cfg, resolve=True, throw_on_missing=True)
     out_dir = Path(os.getcwd())
     parent_without_year = "-".join(out_dir.parent.name.split('-')[1:])
@@ -266,7 +266,7 @@ def init_wandb(cfg:TrainerConfig, omega_conf: DictConfig):
 def hydra_start(cfg: DictConfig) -> None:
     trainer_cfg = TrainerConfig(**cfg)
     init_wandb(trainer_cfg, cfg)
-    stt = SimpleTODTrainer(**trainer_cfg)
+    stt = SimpleTODTrainer(trainer_cfg)
     stt.run()
 
 
