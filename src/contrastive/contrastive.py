@@ -1,6 +1,9 @@
 import sys
 import os
 
+from configs.contrastive_config import ContrastiveConfig
+from configs.dm_config import DataModuleConfig
+
 sys.path.insert(0, os.path.abspath("./src"))
 import hydra
 import numpy as np
@@ -8,7 +11,6 @@ from omegaconf import DictConfig
 from tqdm import tqdm
 from contrastive.contrastive_datamodule import ContrastiveDataModule
 from contrastive.contrastive_utils import ContrastiveTokens
-from hydra_configs import ContrastiveConfig, DataModuleConfig
 from my_enums import ContrastiveConstants, SpecialTokens, Steps
 from sentence_transformers import SentenceTransformer, losses, evaluation, util
 

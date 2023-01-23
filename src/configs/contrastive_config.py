@@ -34,6 +34,7 @@ class ContrastiveConfig:
         single_action_neg_samples: int = 10,
         should_add_dsts: bool = False,
         contrastive_max_token_len: int = 512,
+        data_prep_multi_process: bool = True,
     ):
         self.project_root = Path(project_root)
         self.data_prep_out_root = self.project_root / data_prep_out_root
@@ -69,7 +70,8 @@ class ContrastiveConfig:
         self.should_add_dsts = should_add_dsts
         self.tokenizer_name = tokenizer_name
         self.contrastive_max_token_len = contrastive_max_token_len
-
+        self.data_prep_multi_process = data_prep_multi_process
+    
     @classmethod
     def from_trainer_config(self, trainer_cfg: TrainerConfig) -> "ContrastiveConfig":
         return self(
@@ -91,4 +93,5 @@ class ContrastiveConfig:
             single_action_neg_samples=trainer_cfg.single_action_neg_samples,
             train_epochs=trainer_cfg.contrastive_train_epochs,
             contrastive_train_batch_size=trainer_cfg.contrastive_train_batch_size,
+            data_prep_multi_process=trainer_cfg.data_prep_multi_process,
         )

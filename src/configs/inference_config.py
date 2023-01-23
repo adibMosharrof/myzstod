@@ -48,6 +48,7 @@ class InferenceConfig:
         should_add_service_results: bool = False,
         postprocess_generation: bool = True,
         mh_fact: MultiHeadDictFactory = None,
+        data_prep_multi_process: bool = True,
     ) -> None:
         self.num_workers = num_workers
         self.data_split_percent = data_split_percent or [1, 1, 1]
@@ -95,6 +96,7 @@ class InferenceConfig:
         
         self.generation_handler:GenerationBase = MultiHeadGeneration(self.model, self.tokenizer) if is_multi_head else SimpleGeneration(self.model, self.tokenizer)
         # self.contrastive_model = contrastive_model
+        self.data_prep_multi_process = data_prep_multi_process
 
     def _get_tokenizer(self, model_path_str: str):
         model_path: Path = self.project_root / model_path_str

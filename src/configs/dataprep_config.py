@@ -32,6 +32,7 @@ class DataPrepConfig:
         context_type: str = ContextType.SHORT_REPR,
         should_add_service_results: bool = False,
         mh_fact: MultiHeadDictFactory = None,
+        data_prep_multi_process: bool = True,
     ):
         self.project_root = Path(project_root)
         self.raw_data_root = self.project_root / raw_data_root
@@ -56,6 +57,7 @@ class DataPrepConfig:
         self.context_type = context_type
         self.should_add_service_results = should_add_service_results
         self.mh_fact = mh_fact if mh_fact else None
+        self.data_prep_multi_process = data_prep_multi_process
 
     def _get_domains(self, domain_setting: str) -> list[str]:
         if domain_setting not in DstcDomains.regular_settings():
@@ -132,4 +134,5 @@ class DataPrepConfig:
             context_type=dm_config.context_type,
             should_add_service_results=dm_config.should_add_service_results,
             mh_fact=dm_config.mh_fact,
+            data_prep_multi_process=dm_config.data_prep_multi_process,
         )

@@ -64,7 +64,8 @@ class TrainerConfig:
         local_rank: int = 0,
         fp16: int = False,
         postprocess_generation: bool = False,
-        wandb: any = None
+        wandb: any = None,
+        data_prep_multi_process: bool = True,
     ) -> None:
         self.project_root = Path(project_root)
         self.data_prep_out_root = Path(data_prep_out_root)
@@ -133,4 +134,5 @@ class TrainerConfig:
         self.mh_fact = (
             MultiHeadDictFactory(self.tokenizer) if self.is_multi_head else None
         )
+        self.data_prep_multi_process = data_prep_multi_process
         self.wandb = wandb

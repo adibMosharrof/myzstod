@@ -337,24 +337,26 @@ class SimpleTODDSTCDataPrep:
                     f"{step} csv file already exists and overwrite is false, so skipping"
                 )
                 continue
-
-            # res = list(
-            #     tqdm(
-            #         Pool().imap(
-            #             self._prepare_dialog_file,
-            #             dialog_paths[:num_dialog],
-            #             itertools.repeat(schemas),
-            #             itertools.repeat(turn_csv_row_handler),
-            #         ),
-            #         total=num_dialog,
-            #     )
-            # )
+            
+            if self.cfg.data_prep_multi_process:
+                res = list(
+                    tqdm(
+                        Pool().imap(
+                            self._prepare_dialog_file,
+                            dialog_paths[:num_dialog],
+                            itertools.repeat(schemas),
+                            itertools.repeat(turn_csv_row_handler),
+                        ),
+                        total=num_dialog,
+                    )
+                )
             # start no mp code
-            res = []
-            for d in tqdm(dialog_paths[:num_dialog]):
-                output = self._prepare_dialog_file(d, schemas, turn_csv_row_handler)
-                if res is not None:
-                    res.append(output)
+            else:
+                res = []
+                for d in tqdm(dialog_paths[:num_dialog]):
+                    output = self._prepare_dialog_file(d, schemas, turn_csv_row_handler)
+                    if res is not None:
+                        res.append(output)
             # end no mp code
 
             out_data = [d for d in res if len(d)]

@@ -45,6 +45,7 @@ class DataModuleConfig:
         should_add_service_results: bool = False,
         should_add_dsts: bool = False,
         mh_fact: MultiHeadDictFactory = None,
+        data_prep_multi_process: bool = True,
     ):
         self.num_workers = num_workers
         self.preprocessing_model_name = preprocessing_model_name
@@ -90,6 +91,7 @@ class DataModuleConfig:
             if is_multi_head
             else None
         )
+        self.data_prep_multi_process = data_prep_multi_process
 
     @classmethod
     def from_trainer_config(
@@ -125,6 +127,7 @@ class DataModuleConfig:
             context_type=trainer_config.context_type,
             should_add_service_results=trainer_config.should_add_service_results,
             mh_fact=trainer_config.mh_fact,
+            data_prep_multi_process=trainer_config.data_prep_multi_process,
         )
 
     @classmethod
@@ -160,6 +163,7 @@ class DataModuleConfig:
             context_type=inf_config.context_type,
             should_add_service_results=inf_config.should_add_service_results,
             mh_fact=inf_config.mh_fact,
+            data_prep_multi_process=inf_config.data_prep_multi_process,
         )
 
     @classmethod
@@ -202,5 +206,6 @@ class DataModuleConfig:
             contrast_with=c_config.contrast_with,
             should_add_dsts=c_config.should_add_dsts,
             contrastive_max_token_len=c_config.contrastive_max_token_len,
+            data_prep_multi_process = c_config.data_prep_multi_process,
         )
 
