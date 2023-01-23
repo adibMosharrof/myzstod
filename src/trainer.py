@@ -254,6 +254,7 @@ def init_wandb(cfg:TrainerConfig, omega_cfg: DictConfig):
     num_dialogs = "_".join(map(str,cfg.num_dialogs))
     tags = [cfg.model_name, num_dialogs]
     run = wandb.init(name=run_name, group=group, tags=tags, notes=cfg.wandb.notes or "", project=cfg.wandb.project, entity="adibm", settings=wandb.Settings(start_method="thread"))
+    wandb.log({"job_id":os.environ["SLURM_JOB_ID"]})
 
 @hydra.main(config_path="../config/trainer/", config_name="zs_tod_trainer_mh")
 def hydra_start(cfg: DictConfig) -> None:
@@ -264,7 +265,4 @@ def hydra_start(cfg: DictConfig) -> None:
 
 
 if __name__ == "__main__":
-    # parser = argparse.ArgumentParser()
-    # parser.add_argument("--local_rank", type=int, default=-1)
-    # args = parser.parse_args()
     hydra_start()
