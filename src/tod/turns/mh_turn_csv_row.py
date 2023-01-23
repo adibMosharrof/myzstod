@@ -12,7 +12,6 @@ class MhTurnCsvRow(TurnCsvRowBase):
     def get_csv_headers(self, should_add_schema: bool)->list[str]:
         headers= super().get_csv_headers(should_add_schema)
         return headers + self.mh_fact.get_head_names()
-        return np.concatenate([headers, self.mh_fact.get_head_names()], axis=0)
 
     def to_csv_row(self, context_type:ContextType, tod_turn: SimpleTodTurn)->list[str]:
         row = super().to_csv_row(context_type, tod_turn)
@@ -20,11 +19,3 @@ class MhTurnCsvRow(TurnCsvRowBase):
                 getattr(tod_turn.target, mhi.target_attr)() for mhi in self.mh_fact.get_head_instances()
         ]
         return row + mh_target
-        out = np.concatenate(
-                [
-                    row,
-                    mh_target,
-                ],
-                axis=0,
-            )
-        return out
