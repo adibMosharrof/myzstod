@@ -256,7 +256,7 @@ def init_wandb(cfg:TrainerConfig, omega_cfg: DictConfig):
     run = wandb.init(name=run_name, group=group, tags=tags, notes=cfg.wandb.notes or "", project=cfg.wandb.project, entity="adibm", settings=wandb.Settings(start_method="thread"))
     wandb.log({"job_id":os.environ["SLURM_JOB_ID"]})
 
-@hydra.main(config_path="../config/trainer/", config_name="simple_tod_trainer")
+@hydra.main(config_path="../config/trainer/", config_name="zs_tod_trainer_mh")
 def hydra_start(cfg: DictConfig) -> None:
     trainer_cfg = TrainerConfig(**cfg)
     init_wandb(trainer_cfg, cfg)

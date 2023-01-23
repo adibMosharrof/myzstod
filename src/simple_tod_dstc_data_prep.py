@@ -11,6 +11,9 @@ import humps
 from hydra_configs import DataPrepConfig
 from multi_head.mh_dataclasses import MultiHeadDictFactory
 from my_enums import Steps, SimpleTodConstants
+from tod.turns.general_turn_csv_row import GeneralTurnCsvRow
+from tod.turns.mh_turn_csv_row import MhTurnCsvRow
+from tod.turns.turn_csv_row import TurnCsvRowBase
 
 import utils
 from pathos.multiprocessing import ProcessingPool as Pool
@@ -254,7 +257,7 @@ class SimpleTODDSTCDataPrep:
         return out
 
     def _prepare_dialog(
-        self, dstc_dialog: DstcDialog, schemas: Dict[str, DstcSchema]
+        self, dstc_dialog: DstcDialog, schemas: Dict[str, DstcSchema],turn_csv_row_handler: TurnCsvRowBase
     ) -> Optional[List[SimpleTodTurn]]:
         tod_turns = []
         tod_turn = None
@@ -276,21 +279,24 @@ class SimpleTODDSTCDataPrep:
                     self._prepare_multitask_dialog(tod_turn, self.cfg.is_multi_head)
                 )
             else:
-                head_instances = self.cfg.mh_fact.get_head_instances() if self.cfg.is_multi_head else None
                 tod_turns.append(
-                    tod_turn.to_csv_row(
-                        self.cfg.context_type,
-                        self.cfg.is_multi_head,
-                        head_instances,
-                    )
+                    turn_csv_row_handler.to_csv_row(self.cfg.context_type, tod_turn)
                 )
+                # head_instances = self.cfg.mh_fact.get_head_instances() if self.cfg.is_multi_head else None
+                # tod_turns.append(
+                #     tod_turn.to_csv_row(
+                #         self.cfg.context_type,
+                #         self.cfg.is_multi_head,
+                #         head_instances,
+                #     )
+                # )
         if not self.cfg.is_multi_task:
             return tod_turns
         out = np.concatenate(tod_turns, axis=0)
         return out
 
     def _prepare_dialog_file(
-        self, path: Path, schemas: Dict[str, DstcSchema]
+        self, path: Path, schemas: Dict[str, DstcSchema], turn_csv_row_handler: TurnCsvRowBase
     ) -> np.ndarray:
         data = []
         dialog_json_data = utils.read_json(path)
@@ -298,7 +304,7 @@ class SimpleTODDSTCDataPrep:
             raise ValueError("dialog contains ~")
         for d in dialog_json_data:
             dialog = DstcDialog.from_dict(d)
-            prepped_dialog = self._prepare_dialog(dialog, schemas)
+            prepped_dialog = self._prepare_dialog(dialog, schemas,turn_csv_row_handler)
             if prepped_dialog is None:
                 continue
             data.append(prepped_dialog)
@@ -311,6 +317,7 @@ class SimpleTODDSTCDataPrep:
         schemas = {}
         for d in [get_schemas(self.cfg.raw_data_root, step) for step in steps]:
             schemas.update(d)
+        turn_csv_row_handler: TurnCsvRowBase = MhTurnCsvRow(self.cfg.mh_fact) if self.cfg.is_multi_head else GeneralTurnCsvRow() 
         for step, num_dialog, should_overwrite in tqdm(
             zip(steps, self.cfg.num_dialogs, self.cfg.overwrite)
         ):
@@ -332,30 +339,32 @@ class SimpleTODDSTCDataPrep:
                 )
                 continue
 
-            res = list(
-                tqdm(
-                    Pool().imap(
-                        self._prepare_dialog_file,
-                        dialog_paths[:num_dialog],
-                        itertools.repeat(schemas),
-                    ),
-                    total=num_dialog,
-                )
-            )
+            # res = list(
+            #     tqdm(
+            #         Pool().imap(
+            #             self._prepare_dialog_file,
+            #             dialog_paths[:num_dialog],
+            #             itertools.repeat(schemas),
+            #             itertools.repeat(turn_csv_row_handler),
+            #         ),
+            #         total=num_dialog,
+            #     )
+            # )
             # start no mp code
-            # res = []
-            # for d in tqdm(dialog_paths[:num_dialog]):
-            #     output = self._prepare_dialog_file(d, schemas)
-            #     if res is not None:
-            #         res.append(output)
+            res = []
+            for d in tqdm(dialog_paths[:num_dialog]):
+                output = self._prepare_dialog_file(d, schemas, turn_csv_row_handler)
+                if res is not None:
+                    res.append(output)
             # end no mp code
 
             out_data = [d for d in res if len(d)]
-            headers = SimpleTodTurn.get_csv_headers(
-                self.cfg.should_add_schema,
-                self.cfg.is_multi_head,
-                self.cfg.mh_fact,
-            )
+            # headers = SimpleTodTurn.get_csv_headers(
+            #     self.cfg.should_add_schema,
+            #     self.cfg.is_multi_head,
+            #     self.cfg.mh_fact,
+            # )
+            headers = turn_csv_row_handler.get_csv_headers(self.cfg.should_add_schema)
             if len(out_data) == 0:
                 print(f"No data for {step}")
                 continue
