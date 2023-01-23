@@ -12,6 +12,7 @@ class Steps(str, Enum):
 
 
 class DstcDomains(str, Enum):
+    # make sure the string values exactly match the domain names in the data
     SEEN = "SEEN"
     UNSEEN = "UNSEEN"
     ALL = "ALL"
