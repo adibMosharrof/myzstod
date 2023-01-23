@@ -15,7 +15,7 @@ class DstcDomains(str, Enum):
     SEEN = "SEEN"
     UNSEEN = "UNSEEN"
     ALL = "ALL"
-    TRAVEL_1 = "TRAVEL_1"
+    TRAVEL_1 = "Travel_1"
     RESTAURANTS_2 = "Restaurants_2"
     TRAINS_1 = "Hotels_1"
     PAYMENT_1 = "Payment_1"
