@@ -1,6 +1,6 @@
 import torch
 from base_datamodule import BaseDataModule
-from hydra_configs import DataModuleConfig
+from configs.dm_config import DataModuleConfig
 from multi_head.mh_dataclasses import MultiHeadDictFactory
 from simple_tod_dataclasses import TodTestDataBatch
 from tod.turns.zs_tod_turn import TodTurnMultiHeadCsvRow

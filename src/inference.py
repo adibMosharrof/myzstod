@@ -12,6 +12,9 @@ import torch
 from tqdm import tqdm
 from transformers import AutoTokenizer, GPT2LMHeadModel, GPT2PreTrainedModel
 from torch.utils.data import DataLoader
+from configs.dm_config import DataModuleConfig
+from configs.inference_config import InferenceConfig
+from configs.reconstruct_dialog_config import ReconstructDialogConfig
 import dstc_utils
 from metrics.intent_accuracy_metric import IntentAccuracyMetric
 from metrics.response_metrics import ResponseMetric
@@ -26,7 +29,6 @@ from multi_head.mh_datamodule import MultiLMHeadDatamodule
 from my_enums import DstcDomains, GoalMetricConfigType, SpecialTokens
 from reconstruct_dialog import ReconstructDialog
 import utils
-from hydra_configs import DataModuleConfig, InferenceConfig, ReconstructDialogConfig
 from my_datamodules import TodDataModule
 from simple_tod_dataclasses import (
     InferenceRecords,

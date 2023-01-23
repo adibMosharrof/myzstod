@@ -8,7 +8,7 @@ import numpy as np
 from omegaconf import DictConfig, ListConfig, OmegaConf
 from tqdm import tqdm
 import humps
-from hydra_configs import DataPrepConfig
+from configs.dataprep_config import DataPrepConfig
 from multi_head.mh_dataclasses import MultiHeadDictFactory
 from my_enums import Steps, SimpleTodConstants
 from tod.turns.general_turn_csv_row import GeneralTurnCsvRow

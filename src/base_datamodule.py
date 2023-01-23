@@ -4,11 +4,12 @@ from typing import Dict, Iterable, List, Union
 
 import torch
 from torch.utils.data import DataLoader, Dataset
+from configs.dataprep_config import DataPrepConfig
+from configs.dm_config import DataModuleConfig
 
 import dstc_utils
 from tod.turns.zs_tod_turn import TodTurnCsvRow, TodTurnMultiHeadCsvRow
 import utils
-from hydra_configs import DataModuleConfig, DataPrepConfig
 from my_enums import SpecialTokens, Steps
 from simple_tod_dataclasses import (
     TodTestDataBatch,

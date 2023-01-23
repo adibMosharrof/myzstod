@@ -2,9 +2,9 @@ import numpy as np
 from sentence_transformers import InputExample
 import torch
 from base_datamodule import BaseDataModule
+from configs.dm_config import DataModuleConfig
 from contrastive.contrastive_utils import ContrastiveTokens
 
-from hydra_configs import DataModuleConfig
 from my_datamodules import TodDataModule
 from my_enums import (
     ContrastiveConstants,

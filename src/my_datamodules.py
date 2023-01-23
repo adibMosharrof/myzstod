@@ -2,8 +2,8 @@ from dotmap import DotMap
 
 import torch
 from base_datamodule import BaseDataModule
+from configs.dm_config import DataModuleConfig
 
-from hydra_configs import DataModuleConfig
 from my_enums import (
     DstcSystemActions,
     ZsTodActionAttributes,

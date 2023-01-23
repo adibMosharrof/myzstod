@@ -18,18 +18,17 @@ from transformers import (
     T5ForConditionalGeneration,
 )
 from base_datamodule import BaseDataModule
+from configs.contrastive_config import ContrastiveConfig
+from configs.dm_config import DataModuleConfig
+from configs.inference_config import InferenceConfig
+from configs.trainer_config import TrainerConfig
 from contrastive.contrastive import Contrastive
 from contrastive.contrastive_datamodule import ContrastiveDataModule
 from contrastive.contrastive_trainer import (
     ContrastiveTrainerHelper,
     ContrastiveTrainer,
 )
-from hydra_configs import (
-    ContrastiveConfig,
-    DataModuleConfig,
-    TrainerConfig,
-    InferenceConfig,
-)
+
 from inference import Inference
 from multi_head.mh_dataclasses import MultiHeadDictFactory
 from multi_head.mh_datamodule import MultiLMHeadDatamodule

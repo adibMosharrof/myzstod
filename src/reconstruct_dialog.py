@@ -3,6 +3,7 @@ from typing import Optional
 import hydra
 from omegaconf import DictConfig
 from tqdm import tqdm
+from configs.reconstruct_dialog_config import ReconstructDialogConfig
 from dstc_dataclasses import (
     DstcAction,
     DstcDialog,
@@ -11,7 +12,6 @@ from dstc_dataclasses import (
     DstcState,
     DstcTurn,
 )
-from hydra_configs import ReconstructDialogConfig
 import pandas as pd
 from tod.zs_tod_action import ZsTodAction
 from tod.zs_tod_belief import ZsTodBelief
