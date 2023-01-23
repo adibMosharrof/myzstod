@@ -76,14 +76,14 @@ class DialogDomains:
     def print_dialog_domains(self, domains):
         headers = ["Step", "Domain", "Num Dialogs", "File Ids"]
         rows = []
-
+        self.cfg.out_file_path.mkdir(parents=True, exist_ok=True)
         for step in Steps:
             for domain, file_ids in domains[step.value].items():
                 rows.append(
                     [step.value, domain, len(file_ids), " ".join(sorted(file_ids))]
                 )
         file_name = "".join(
-            [self.cfg.out_file_path, "_".join(map(str, self.cfg.num_dialogs)), ".csv"]
+            [str(self.cfg.out_file_path), "_".join(map(str, self.cfg.num_dialogs)), ".csv"]
         )
         utils.write_csv(headers, rows, self.cfg.project_root / file_name)
 
@@ -99,9 +99,9 @@ if __name__ == "__main__":
         DotMap(
             raw_data_root="data/dstc8-schema-guided-dialogue/",
             processed_data_root="data/processed_data/",
-            project_root=Path("/mounts/u-amo-d0/grad/adibm/projects/generative_tod/"),
+            project_root=Path("/u/amo-d0/grad/adibm/data/projects/ZSToD"),
             num_dialogs=[127, 20, 34],
-            out_file_path="data_exploration/dialog_domains",
+            out_file_path=Path("data_exploration/dialog_domains"),
         )
     )
     dd.run()

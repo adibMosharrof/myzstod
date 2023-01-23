@@ -3,10 +3,8 @@ from metrics.response_metrics import ResponseMetric
 from metrics.tod_metrics_base import TodMetricsBase
 from my_enums import SpecialTokens
 from predictions_logger import PredictionLoggerFactory, TodMetricsEnum
-from simple_tod_dataclasses import (
-    SimpleTodAction,
-)
 from dstc_dataclasses import DstcRequestedSlot
+from tod.zs_tod_action import ZsTodAction
 
 
 class SuccessMetric(TodMetricsBase):
@@ -36,7 +34,7 @@ class SuccessMetric(TodMetricsBase):
                 SpecialTokens.end_action,
             )
             target_actions = [
-                SimpleTodAction.from_string(t, self.slot_categories)
+                ZsTodAction.from_string(t, self.slot_categories)
                 for t in target_actions_txt
             ]
             target_items = [act for act in target_actions if act in requested_slots]
@@ -46,7 +44,7 @@ class SuccessMetric(TodMetricsBase):
                 SpecialTokens.end_action,
             )
             pred_items = [
-                SimpleTodAction.from_string(t, self.slot_categories)
+                ZsTodAction.from_string(t, self.slot_categories)
                 for t in pred_items_txt
             ]
 
@@ -78,7 +76,7 @@ class InformMetric(TodMetricsBase):
         self.prediction_logger = PredictionLoggerFactory.create(TodMetricsEnum.INFORM)
         self.add_state("all_inform", [], dist_reduce_fx="cat")
 
-    def _check(self, target: SimpleTodAction, preds: list[SimpleTodAction]) -> bool:
+    def _check(self, target: ZsTodAction, preds: list[ZsTodAction]) -> bool:
         for p in preds:
             if p.slot_name == target.slot_name:
                 return True
@@ -98,8 +96,8 @@ class InformMetric(TodMetricsBase):
                 SpecialTokens.begin_action,
                 SpecialTokens.end_action,
             )
-            target_actions = [SimpleTodAction.from_string(t) for t in target_items]
-            pred_actions = [SimpleTodAction.from_string(p) for p in pred_items]
+            target_actions = [ZsTodAction.from_string(t) for t in target_items]
+            pred_actions = [ZsTodAction.from_string(p) for p in pred_items]
             # batch_inform = []
             for t in target_actions:
                 if not t.is_inform():

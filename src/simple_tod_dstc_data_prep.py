@@ -14,7 +14,12 @@ from my_enums import Steps, SimpleTodConstants
 from tod.turns.general_turn_csv_row import GeneralTurnCsvRow
 from tod.turns.mh_turn_csv_row import MhTurnCsvRow
 from tod.turns.turn_csv_row import TurnCsvRowBase
-
+from tod.turns.zs_tod_turn import ZsTodTurn
+from tod.zs_target import ZsTodTarget
+from tod.zs_tod_action import ZsTodAction
+from tod.zs_tod_belief import ZsTodBelief
+from tod.zs_tod_context import ZsTodContext
+from tod.zs_tod_dst import ZsTodDst
 import utils
 from pathos.multiprocessing import ProcessingPool as Pool
 
@@ -23,12 +28,6 @@ from dstc_utils import get_csv_data_path, get_dialog_file_paths
 
 from simple_tod_dataclasses import (
     MultiTaskSpecialToken,
-    SimpleTodAction,
-    SimpleTodBelief,
-    SimpleTodContext,
-    SimpleTodDst,
-    SimpleTodTarget,
-    SimpleTodTurn,
     SpecialTokens,
     get_multi_task_special_tokens,
 )
@@ -52,11 +51,11 @@ class SimpleTODDSTCDataPrep:
         self,
         user_turn: DstcTurn,
         system_turn: DstcTurn,
-        prev_tod_turn: SimpleTodTurn,
+        prev_tod_turn: ZsTodTurn,
         schemas: Dict[str, DstcSchema],
     ):
         if not prev_tod_turn:
-            context = SimpleTodContext(max_length=self.cfg.num_turns)
+            context = ZsTodContext(max_length=self.cfg.num_turns)
             context.should_add_sys_actions = self.cfg.should_add_sys_actions
         else:
             context = copy.deepcopy(prev_tod_turn.context)
@@ -84,7 +83,7 @@ class SimpleTODDSTCDataPrep:
                     # context.service_call = frame.service_call
         return context
 
-    def _prepare_dst(self, user_turn: DstcTurn) -> List[SimpleTodBelief]:
+    def _prepare_dst(self, user_turn: DstcTurn) -> List[ZsTodBelief]:
         dsts = []
         for frame in user_turn.frames:
             if not frame.state:
@@ -104,22 +103,22 @@ class SimpleTODDSTCDataPrep:
             ]
             for slot_name, value in frame.state.slot_values.items():
                 beliefs.append(
-                    SimpleTodBelief(
+                    ZsTodBelief(
                         frame.short_service,
                         # humps.camelize(slot_name),
                         slot_name,
                         value,
                     )
                 )
-            dsts.append(SimpleTodDst(beliefs, active_intent, requested_slots))
+            dsts.append(ZsTodDst(beliefs, active_intent, requested_slots))
         return dsts
 
-    def _get_actions(self, turn: DstcTurn) -> list[SimpleTodAction]:
+    def _get_actions(self, turn: DstcTurn) -> list[ZsTodAction]:
         actions = []
         for frame in turn.frames:
             for action in frame.actions:
                 actions.append(
-                    SimpleTodAction(
+                    ZsTodAction(
                         frame.short_service,
                         action.act,
                         action.slot,
@@ -165,12 +164,12 @@ class SimpleTODDSTCDataPrep:
         user_turn: DstcTurn,
         system_turn: DstcTurn,
         schemas: Dict[str, DstcSchema],
-    ):
+    )->ZsTodTarget:
         dsts = self._prepare_dst(user_turn)
         actions = self._get_actions(system_turn)
         user_actions = self._get_actions(user_turn)
         response = self._prepare_response(system_turn, schemas)
-        return SimpleTodTarget(
+        return ZsTodTarget(
             dsts=dsts, actions=actions, user_actions=user_actions, response=response
         )
 
@@ -178,10 +177,10 @@ class SimpleTODDSTCDataPrep:
         self,
         user_turn: DstcTurn,
         system_turn: DstcTurn,
-        prev_tod_turn: SimpleTodTurn,
+        prev_tod_turn: ZsTodTurn,
         schemas: Dict[str, DstcSchema],
         services: list[str],
-    ) -> SimpleTodTurn:
+    ) -> ZsTodTurn:
         turn_schemas = None
         turn_schema_str = None
         if self.cfg.should_add_schema:
@@ -189,7 +188,7 @@ class SimpleTODDSTCDataPrep:
             turn_schema_str = "".join([str(s) for s in turn_schemas])
         context = self._prepare_context(user_turn, system_turn, prev_tod_turn, schemas)
         target = self._prepare_target(user_turn, system_turn, schemas)
-        return SimpleTodTurn(
+        return ZsTodTurn(
             context, target, schemas=turn_schemas, schema_str=turn_schema_str
         )
 
@@ -218,7 +217,7 @@ class SimpleTODDSTCDataPrep:
     def _get_schema_str(
         self,
         schemas: list[DstcSchema],
-        turn: SimpleTodTurn,
+        turn: ZsTodTurn,
         mtst: MultiTaskSpecialToken = None,
     ) -> str:
         if not schemas:
@@ -232,7 +231,7 @@ class SimpleTODDSTCDataPrep:
         schema_str = "".join([schema.get_full_repr() for schema in turn.schemas])
         return schema_str
 
-    def _prepare_multitask_dialog(self, turn: SimpleTodTurn) -> list[str]:
+    def _prepare_multitask_dialog(self, turn: ZsTodTurn) -> list[str]:
         out = []
         multi_task_special_tokens = get_multi_task_special_tokens()
 
@@ -244,7 +243,7 @@ class SimpleTODDSTCDataPrep:
             text = self._extract_from_target(
                 str(turn.target), mtst.start_tokens, mtst.end_tokens
             )
-            row = SimpleTodTurn(
+            row = ZsTodTurn(
                 dialog_id=turn.dialog_id,
                 turn_id=turn.turn_id,
                 context=turn.context,
@@ -258,7 +257,7 @@ class SimpleTODDSTCDataPrep:
 
     def _prepare_dialog(
         self, dstc_dialog: DstcDialog, schemas: Dict[str, DstcSchema],turn_csv_row_handler: TurnCsvRowBase
-    ) -> Optional[List[SimpleTodTurn]]:
+    ) -> Optional[List[ZsTodTurn]]:
         tod_turns = []
         tod_turn = None
         if not self._is_dialogue_in_domain(dstc_dialog.services):

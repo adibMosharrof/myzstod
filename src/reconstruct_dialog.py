@@ -13,7 +13,8 @@ from dstc_dataclasses import (
 )
 from hydra_configs import ReconstructDialogConfig
 import pandas as pd
-from simple_tod_dataclasses import SimpleTodAction, SimpleTodBelief
+from tod.zs_tod_action import ZsTodAction
+from tod.zs_tod_belief import ZsTodBelief
 import utils
 from my_enums import SimpleTodConstants, Speaker, SpecialTokens, Steps
 import json
@@ -50,7 +51,7 @@ class ReconstructDialog:
         )
         actions: list[DstcAction] = []
         for action_str in actions_str.split(SimpleTodConstants.ITEM_SEPARATOR):
-            tod_action = SimpleTodAction.from_string(action_str)
+            tod_action = ZsTodAction.from_string(action_str)
             dstc_action = DstcAction(
                 act=tod_action.action_type,
                 slot=tod_action.slot_name,
@@ -84,7 +85,7 @@ class ReconstructDialog:
         slot_values = {}
         if beliefs_str:
             for belief_str in beliefs_str.split(SimpleTodConstants.ITEM_SEPARATOR):
-                tod_belief = SimpleTodBelief.from_string(belief_str)
+                tod_belief = ZsTodBelief.from_string(belief_str)
                 # slot_name = humps.depascalize(tod_belief.slot_name)
                 slot_name = tod_belief.slot_name
                 slot_values[slot_name] = tod_belief.values

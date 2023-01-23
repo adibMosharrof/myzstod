@@ -6,15 +6,17 @@ from base_datamodule import BaseDataModule
 from hydra_configs import DataModuleConfig
 from my_enums import (
     DstcSystemActions,
-    SimpleTodActionAttributes,
+    ZsTodActionAttributes,
     SimpleTodConstants,
     SpecialTokens,
     Steps,
 )
-from simple_tod_dataclasses import SimpleTodAction, TodTestDataBatch, TodTurnCsvRow
+from simple_tod_dataclasses import TodTestDataBatch 
 import dstc_utils
 from torch.utils.data import DataLoader, Dataset
 import random
+
+from tod.turns.zs_tod_turn import TodTurnCsvRow
 
 
 class TodDataModule(BaseDataModule):
@@ -33,47 +35,7 @@ class TodDataModule(BaseDataModule):
         targets_text = []
         mt_prompt_ids = []
         for item in batch:
-            context_tokens = self.train_tokenizer(item.context)[0]
-            target_tokens = self.train_tokenizer(item.target)[0]
-            schema_tokens = self.train_tokenizer(item.schema)[0]
-            context_len = len(context_tokens)
-            target_len = len(target_tokens)
-            schema_len = len(schema_tokens)
-            unused_len = self.cfg.max_token_len - context_len - target_len - schema_len
-            # handling case when input is greater than tokenizer length
-            if unused_len < 0:
-                context_start_tokens = context_tokens[:1]
-                trimmed_context = context_tokens[unused_len * -1 + 1 :]
-                context_tokens = torch.cat(
-                    [context_start_tokens, trimmed_context], axis=0
-                )
-                context_len = len(context_tokens)
-                unused_len = 0
-            if self.cfg.is_multi_task:
-                mt_prompt_ids.append(context_tokens[-1])
-            pad = torch.full([unused_len], self.cfg.tokenizer.pad_token_id)
-            input_tokens = torch.cat(
-                [schema_tokens, context_tokens, target_tokens, pad]
-            )
-            if is_pretrain:
-                label = input_tokens
-            else:
-                label = torch.cat(
-                    [
-                        torch.full(
-                            [context_len + schema_len],
-                            self._huggingface_ignore_label_id,
-                        ),
-                        target_tokens,
-                        torch.full([unused_len], self._huggingface_ignore_label_id),
-                    ]
-                )
-            attention_mask = torch.cat(
-                [
-                    torch.full([context_len + schema_len + target_len], 1),
-                    torch.full([unused_len], 0),
-                ]
-            )
+            input_tokens, label, attention_mask = self.collate_single_item(item.context, item.schema, item.target, self.cfg.max_token_len,  is_pretrain)
             input_ids.append(input_tokens)
             attention_masks.append(attention_mask)
             labels.append(label)
@@ -91,9 +53,7 @@ class TodDataModule(BaseDataModule):
         return out
 
     def my_test_collate(self, batch: list[TodTurnCsvRow]) -> TodTestDataBatch:
-        data = DotMap(
-            dict.fromkeys(
-                [
+        data = DotMap({key: [] for key in [
                     "input_ids",
                     "attention_masks",
                     "dialog_ids",
@@ -101,51 +61,55 @@ class TodDataModule(BaseDataModule):
                     "contexts",
                     "schemas",
                     "targets",
-                ],
-                [],
-            )
-        )
+                ]})
         for item in batch:
             data.dialog_ids.append(item.dialog_id)
             data.turn_ids.append(item.turn_id)
             data.contexts.append(item.context)
             data.targets.append(item.target)
             data.schemas.append(item.schema)
-            context_tokens = self.train_tokenizer(
-                # "".join([item.context, SpecialTokens.begin_target,SpecialTokens.begin_dsts, SpecialTokens.begin_dst])
-                "".join([item.context, SpecialTokens.begin_target])
-            )[0]
-            # context_tokens = self.train_tokenizer(item.context)[0]
-            if self.cfg.is_multi_task:
-                context_tokens = self._add_multi_task_prompt_token(context_tokens)
 
-            schema_tokens = self.train_tokenizer(item.schema)[0]
-            context_len = len(context_tokens)
-            schema_len = len(schema_tokens)
-            # handling case when input is greater than tokenizer length
-            unused_len = self.cfg.test_prompt_max_len - context_len - schema_len
-            if schema_len > self.cfg.test_prompt_max_len:
-                raise ValueError("Schema is too long")
-            if unused_len < 0:
-                context_start_tokens = context_tokens[:1]
-                trimmed_context = context_tokens[unused_len * -1 + 1 :]
-                context_tokens = torch.cat(
-                    [context_start_tokens, trimmed_context], axis=0
-                )
-                context_len = len(context_tokens)
-                unused_len = 0
-                print("unused length < 0")
-
-            pad = torch.full([unused_len], self.cfg.tokenizer.pad_token_id)
-            input_tokens = torch.cat([schema_tokens, context_tokens, pad])
-            data.input_ids.append(input_tokens)
-            attention_mask = torch.cat(
-                [
-                    torch.full([schema_len + context_len], 1),
-                    torch.full([unused_len], 0),
-                ]
+            input_tokens, _, attention_mask = self.collate_single_item(
+                "".join([item.context, SpecialTokens.begin_target]), item.schema, "", self.cfg.test_prompt_max_len, True
             )
+            data.input_ids.append(input_tokens)
             data.attention_masks.append(attention_mask)
+
+            # context_tokens = self.train_tokenizer(
+            #     # "".join([item.context, SpecialTokens.begin_target,SpecialTokens.begin_dsts, SpecialTokens.begin_dst])
+            #     "".join([item.context, SpecialTokens.begin_target])
+            # )[0]
+            # # context_tokens = self.train_tokenizer(item.context)[0]
+            # if self.cfg.is_multi_task:
+            #     context_tokens = self._add_multi_task_prompt_token(context_tokens)
+
+            # schema_tokens = self.train_tokenizer(item.schema)[0]
+            # context_len = len(context_tokens)
+            # schema_len = len(schema_tokens)
+            # # handling case when input is greater than tokenizer length
+            # unused_len = self.cfg.test_prompt_max_len - context_len - schema_len
+            # if schema_len > self.cfg.test_prompt_max_len:
+            #     raise ValueError("Schema is too long")
+            # if unused_len < 0:
+            #     context_start_tokens = context_tokens[:1]
+            #     trimmed_context = context_tokens[unused_len * -1 + 1 :]
+            #     context_tokens = torch.cat(
+            #         [context_start_tokens, trimmed_context], axis=0
+            #     )
+            #     context_len = len(context_tokens)
+            #     unused_len = 0
+            #     print("unused length < 0")
+
+            # pad = torch.full([unused_len], self.cfg.tokenizer.pad_token_id)
+            # input_tokens = torch.cat([schema_tokens, context_tokens, pad])
+            # data.input_ids.append(input_tokens)
+            # attention_mask = torch.cat(
+            #     [
+            #         torch.full([schema_len + context_len], 1),
+            #         torch.full([unused_len], 0),
+            #     ]
+            # )
+            # data.attention_masks.append(attention_mask)
 
         return TodTestDataBatch(
             input_ids=torch.stack(data.input_ids),

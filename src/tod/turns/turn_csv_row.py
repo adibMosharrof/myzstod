@@ -2,8 +2,8 @@
 
 from abc import ABC, abstractmethod
 
-from my_enums import ContextType, SpecialTokens
-from simple_tod_dataclasses import SimpleTodContext, SimpleTodTurn
+from my_enums import ContextType
+from tod.turns.zs_tod_turn import ZsTodTurn
 
 
 class TurnCsvRowBase(ABC):
@@ -16,7 +16,7 @@ class TurnCsvRowBase(ABC):
         return headers
     
     @abstractmethod
-    def to_csv_row(self, context_type:ContextType, tod_turn: SimpleTodTurn)->list[str]:
+    def to_csv_row(self, context_type:ContextType, tod_turn: ZsTodTurn)->list[str]:
         context_str = (
             str(tod_turn.context)
             if context_type == ContextType.DEFAULT

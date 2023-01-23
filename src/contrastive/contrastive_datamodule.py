@@ -9,17 +9,17 @@ from my_datamodules import TodDataModule
 from my_enums import (
     ContrastiveConstants,
     DstcSystemActions,
-    SimpleTodActionAttributes,
+    ZsTodActionAttributes,
     SimpleTodConstants,
     SpecialTokens,
     Steps,
 )
-from simple_tod_dataclasses import SimpleTodAction, TodTurnCsvRow
 import dstc_utils
 import random
 from dstc_dataclasses import get_schemas
 from itertools import combinations
-
+from tod.turns.zs_tod_turn import TodTurnCsvRow
+from tod.zs_tod_action import ZsTodAction
 
 class ContrastiveDataModule(TodDataModule):
     steps = Steps.list()
@@ -242,17 +242,17 @@ class ContrastiveDataModule(TodDataModule):
         sys_act_txt: str,
         act_splits: list[str],
     ):
-        action = SimpleTodAction.from_string(random.choice(act_splits))
-        attr = random.choice(SimpleTodActionAttributes.list())
-        if attr == SimpleTodActionAttributes.domain:
+        action = ZsTodAction.from_string(random.choice(act_splits))
+        attr = random.choice(ZsTodActionAttributes.list())
+        if attr == ZsTodActionAttributes.domain:
             action.domain = dstc_utils.get_dstc_service_name(
                 random.choice([*self.schemas])
             )
-        elif attr == SimpleTodActionAttributes.action_type:
+        elif attr == ZsTodActionAttributes.action_type:
             action.action_type = random.choice(
                 [x for x in DstcSystemActions.list() if x != action.action_type]
             )
-        elif attr == SimpleTodActionAttributes.slot_name:
+        elif attr == ZsTodActionAttributes.slot_name:
             schema = self.schemas[random.choice([*self.schemas])]
             action.slot_name = random.choice(
                 [s for s in schema.slots if s.name != action.slot_name]
@@ -269,17 +269,17 @@ class ContrastiveDataModule(TodDataModule):
         act_splits: list[str],
     ):
         for i, action_txt in enumerate(act_splits):
-            action = SimpleTodAction.from_string(action_txt)
-            attr = random.choice(SimpleTodActionAttributes.list())
-            if attr == SimpleTodActionAttributes.domain:
+            action = ZsTodAction.from_string(action_txt)
+            attr = random.choice(ZsTodActionAttributes.list())
+            if attr == ZsTodActionAttributes.domain:
                 action.domain = dstc_utils.get_dstc_service_name(
                     random.choice([*self.schemas])
                 )
-            elif attr == SimpleTodActionAttributes.action_type:
+            elif attr == ZsTodActionAttributes.action_type:
                 action.action_type = random.choice(
                     [x for x in DstcSystemActions.list() if x != action.action_type]
                 )
-            elif attr == SimpleTodActionAttributes.slot_name:
+            elif attr == ZsTodActionAttributes.slot_name:
                 schema = self.schemas[random.choice([*self.schemas])]
                 action.slot_name = random.choice(
                     [s for s in schema.slots if s.name != action.slot_name]

@@ -33,7 +33,7 @@ class Speaker(str, Enum):
     USER = "USER"
 
 
-class SimpleTodActionAttributes(str, Enum):
+class ZsTodActionAttributes(str, Enum):
     domain = "domain"
     action_type = "action_type"
     slot_name = "slot_name"

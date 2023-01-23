@@ -1,5 +1,4 @@
 from typing import Callable, Iterable, List, Optional, Tuple, Union
-from dotmap import DotMap
 import torch
 from transformers import GPT2LMHeadModel
 from transformers.modeling_outputs import CausalLMOutputWithCrossAttentions
@@ -11,7 +10,6 @@ from transformers.generation.logits_process import LogitsProcessorList
 from transformers.generation.utils import GenerateOutput
 from transformers.generation.beam_constraints import Constraint
 from multi_head.mh_dataclasses import MultiHeadDictFactory
-from dataclasses import asdict
 from transformers.utils import logging
 import wandb
 logger = logging.get_logger(__name__)

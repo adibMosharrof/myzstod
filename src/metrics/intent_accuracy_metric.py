@@ -25,6 +25,7 @@ class IntentAccuracyMetric(TodMetricsBase):
                 SpecialTokens.begin_intent,
                 SpecialTokens.end_intent,
                 multiple_values=True,
+                default_value=[]
             )
             if not len(t_intents):
                 continue

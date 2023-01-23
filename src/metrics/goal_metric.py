@@ -9,11 +9,9 @@ from predictions_logger import (
     PredictionsLoggerBase,
     TodMetricsEnum,
 )
+from tod.zs_tod_action import ZsTodAction
+from tod.zs_tod_belief import ZsTodBelief
 
-from simple_tod_dataclasses import (
-    SimpleTodAction,
-    SimpleTodBelief,
-)
 
 
 @dataclass
@@ -22,7 +20,7 @@ class GoalMetricConfig:
     end_token: str
     step_name: GoalMetricConfigType
     prediction_logger: PredictionsLoggerBase
-    tod_class: Union[SimpleTodBelief, SimpleTodAction]
+    tod_class: Union[ZsTodBelief, ZsTodAction]
 
 
 class GoalMetricConfigFactory:
@@ -34,7 +32,7 @@ class GoalMetricConfigFactory:
                 SpecialTokens.end_action,
                 GoalMetricConfigType.ACTION,
                 PredictionLoggerFactory.create(TodMetricsEnum.ACTION),
-                SimpleTodAction,
+                ZsTodAction,
             )
         elif step == GoalMetricConfigType.BELIEF:
             return GoalMetricConfig(
@@ -42,7 +40,7 @@ class GoalMetricConfigFactory:
                 SpecialTokens.end_belief,
                 GoalMetricConfigType.BELIEF,
                 PredictionLoggerFactory.create(TodMetricsEnum.BELIEF),
-                SimpleTodBelief,
+                ZsTodBelief,
             )
         elif step == GoalMetricConfigType.USER_ACTION:
             return GoalMetricConfig(
@@ -50,7 +48,7 @@ class GoalMetricConfigFactory:
                 SpecialTokens.end_user_action,
                 GoalMetricConfigType.USER_ACTION,
                 PredictionLoggerFactory.create(TodMetricsEnum.USER_ACTION),
-                SimpleTodAction,
+                ZsTodAction,
             )
         else:
             raise ValueError(f"Unknown step name: {step}")
@@ -61,8 +59,8 @@ class GoalMetric(TodMetricsBase):
     Computes avg and joint goal accuracy of belief or action.
     args:
         target_step_class: One of the following
-            * SimpleTodAction: it will calculate action accuracy
-            * SimpleTodBelief: it will calculate belief accuracy
+            * ZsTodAction: it will calculate action accuracy
+            * ZsTodBelief: it will calculate belief accuracy
     """
 
     def __init__(
@@ -81,7 +79,7 @@ class GoalMetric(TodMetricsBase):
     def _update(self, turn_predictions: list[str], references: list[str]) -> None:
         for ref, pred in zip(references, turn_predictions):
             multiple_values = (
-                True if self.config.tod_class == SimpleTodBelief else False
+                True if self.config.tod_class == ZsTodBelief else False
             )
             target_txt_items = self._extract_section_and_split_items_from_text(
                 ref,
@@ -95,7 +93,7 @@ class GoalMetric(TodMetricsBase):
                 self.config.tod_class.from_string(t, self.slot_categories)
                 for t in target_txt_items
             ]
-            if self.config.tod_class is SimpleTodBelief:
+            if self.config.tod_class is ZsTodBelief:
                 target_items = [t for t in target_items if t.values]
             if not len(target_items):
                 continue

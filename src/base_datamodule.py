@@ -3,17 +3,15 @@ from pathlib import Path
 from typing import Dict, Iterable, List, Union
 
 import torch
-from responses import target
 from torch.utils.data import DataLoader, Dataset
 
 import dstc_utils
+from tod.turns.zs_tod_turn import TodTurnCsvRow, TodTurnMultiHeadCsvRow
 import utils
 from hydra_configs import DataModuleConfig, DataPrepConfig
 from my_enums import SpecialTokens, Steps
 from simple_tod_dataclasses import (
     TodTestDataBatch,
-    TodTurnCsvRow,
-    TodTurnMultiHeadCsvRow,
 )
 from simple_tod_dstc_data_prep import SimpleTODDSTCDataPrep
 
@@ -140,7 +138,47 @@ class BaseDataModule(ABC):
         )
         out = torch.cat([context_tokens, torch.tensor([prompt_token])])
         return out
-
+    
+    def collate_single_item(self, context:str, schema:str, target:str, max_length:int, dont_create_labels:bool):
+        context_tokens = self.train_tokenizer(context)[0]
+        schema_tokens = self.train_tokenizer(schema)[0]
+        target_tokens = self.train_tokenizer(target)[0]
+        unused_len = max_length - len(context_tokens) - len(schema_tokens) - len(target_tokens)
+        if len(schema_tokens) > max_length:
+            raise ValueError("Schema is too long")
+        if len(target_tokens) > max_length:
+            raise ValueError("Target is too long")
+        if unused_len < 0:
+            context_start_tokens = context_tokens[:1]
+            trimmed_context = context_tokens[unused_len * -1 + 1 :]
+            context_tokens = torch.cat(
+                    [context_start_tokens, trimmed_context], axis=0
+            )
+            unused_len = 0
+        pad = torch.full([unused_len], self.cfg.tokenizer.pad_token_id)
+        input_tokens = torch.cat(
+            [schema_tokens, context_tokens, target_tokens, pad]
+        )
+        if dont_create_labels:
+            label = input_tokens
+        else:
+            label = torch.cat(
+                [
+                    torch.full(
+                        [len(context_tokens) + len(schema_tokens)],
+                        self._huggingface_ignore_label_id,
+                    ),
+                    target_tokens,
+                    torch.full([unused_len], self._huggingface_ignore_label_id),
+                ]
+            )
+        attention_mask = torch.cat(
+            [
+                torch.full([len(context_tokens) + len(schema_tokens) + len(target_tokens)], 1),
+                torch.full([unused_len], 0),
+            ]
+        )
+        return input_tokens, label, attention_mask
 
 class SimpleTodDataSet(Dataset):
     def __init__(
