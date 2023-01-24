@@ -95,6 +95,7 @@ class GPT2MultiLMHeadModel(GPT2LMHeadModel):
                 max_length=max_length,
                 head_name=head_instance.name,
                 bad_words_ids=self.tok(head_instance.bad_word_tokens)["input_ids"],
+                attention_mask=model_kwargs["attention_mask"][head_instance.name],
             )
             if out.shape[1] < max_length:
                 out = torch.cat(
