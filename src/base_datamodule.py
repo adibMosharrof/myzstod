@@ -173,12 +173,13 @@ class BaseDataModule(ABC):
                     torch.full([unused_len], self._huggingface_ignore_label_id),
                 ]
             )
-        attention_mask = torch.cat(
-            [
-                torch.full([len(context_tokens) + len(schema_tokens) + len(target_tokens)], 1),
-                torch.full([unused_len], 0),
-            ]
-        )
+        attention_mask = input_tokens.ne(self.cfg.tokenizer.pad_token_id).to(torch.int32)
+        # attention_mask = torch.cat(
+        #     [
+        #         torch.full([len(context_tokens) + len(schema_tokens) + len(target_tokens)], 1),
+        #         torch.full([unused_len], 0),
+        #     ]
+        # )
         return input_tokens, label, attention_mask
 
 class SimpleTodDataSet(Dataset):
