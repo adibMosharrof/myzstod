@@ -138,6 +138,8 @@ def get_text_in_between(
     default_value: any = None,
     multiple_values: bool = False,
 ) -> Union[str, list[str]]:
+    if not text:
+        return default_value
     if not multiple_values:
         try:
             idx1 = text.index(start_token)
