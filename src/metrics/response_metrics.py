@@ -51,6 +51,8 @@ class ResponseMetric(TodMetricsBase):
             elif self.metric_name == ResponseMetricType.BLEU:
                 target_responses_batch.append([target_response])
         # if self.metric_name == ResponseMetricType.BLEU:
+        if len(target_responses_batch) == 0:
+            return
         self.metric.add_batch(
             predictions=pred_responses_batch, references=target_responses_batch
         )
@@ -79,8 +81,9 @@ class ResponseMetric(TodMetricsBase):
         try:
             out = self.metric.compute()
             res = out[self.metric_key_name]
-        except ZeroDivisionError:
-            res = 0.0
+        except (ZeroDivisionError, ValueError):
+            return 0.0
+
         if self.metric_name == ResponseMetricType.ROUGE:
             return res.mid.fmeasure
         return res

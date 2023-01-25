@@ -1,6 +1,5 @@
-
-
 from pathlib import Path
+from typing import TYPE_CHECKING
 from configs.contrastive_config import ContrastiveConfig
 from configs.data_model_exploration_config import DataModelExplorationConfig
 from configs.inference_config import InferenceConfig
@@ -8,6 +7,7 @@ from configs.trainer_config import TrainerConfig
 from multi_head.mh_dataclasses import MultiHeadDictFactory
 from my_enums import ContextType, DstcDomains, Steps
 import dstc_utils
+
 
 class DataModuleConfig:
     def __init__(
@@ -206,6 +206,5 @@ class DataModuleConfig:
             contrast_with=c_config.contrast_with,
             should_add_dsts=c_config.should_add_dsts,
             contrastive_max_token_len=c_config.contrastive_max_token_len,
-            data_prep_multi_process = c_config.data_prep_multi_process,
+            data_prep_multi_process=c_config.data_prep_multi_process,
         )
-

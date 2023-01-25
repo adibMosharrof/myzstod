@@ -184,6 +184,8 @@ class IntentsPredictionLogger(PredictionsLoggerBase):
                 logger_cols.IS_CORRECT: self.is_correct,
             }
         )
+        if df.empty:
+            return
         if len(self.preds):
             df = pd.concat(
                 [df, pd.DataFrame({logger_cols.PREDICTIONS: self.preds})], axis=1

@@ -3,6 +3,7 @@ import re
 from pathlib import Path
 from typing import Tuple, Union
 from dotmap import DotMap
+import omegaconf
 import wandb
 import hydra
 import numpy as np
@@ -146,10 +147,13 @@ class Inference:
         print(os.getcwd())
 
     def log_metrics_wandb(self, metric_results):
-        df = pd.DataFrame(columns=["Domains"]+ metric_results[0][1], data=[ [r[0]]+ r[2] for r in metric_results])
+        df = pd.DataFrame(
+            columns=["Domains"] + metric_results[0][1],
+            data=[[r[0]] + r[2] for r in metric_results],
+        )
         wandb.log({"metrics": wandb.Table(dataframe=df)})
 
-    def _print_metrics(self)->Tuple[list[str], list[str]]:
+    def _print_metrics(self) -> Tuple[list[str], list[str]]:
         tod_metrics_str = [str(self.tod_metrics[m]) for m in self.tod_metrics]
         combined_metrics_str = [
             str(self.combined_metrics[m]) for m in self.combined_metrics
@@ -260,10 +264,34 @@ class Inference:
         return self.cfg.tokenizer.encode(text)[0]
 
 
+def init_wandb(cfg: InferenceConfig, omega_cfg: DictConfig):
+    wandb.config = omegaconf.OmegaConf.to_container(
+        omega_cfg, resolve=True, throw_on_missing=True
+    )
+    out_dir = Path(os.getcwd())
+    parent_without_year = "-".join(out_dir.parent.name.split("-")[1:])
+    run_name = "/".join([parent_without_year, out_dir.name])
+    group = "multi_head" if cfg.is_multi_head else "single_head"
+    num_dialogs = "_".join(map(str, cfg.num_dialogs))
+    tags = [cfg.model_name, num_dialogs, "inference"]
+    run = wandb.init(
+        name=run_name,
+        group=group,
+        tags=tags,
+        notes=cfg.wandb.notes or "",
+        project=cfg.wandb.project,
+        entity="adibm",
+        settings=wandb.Settings(start_method="thread"),
+    )
+    wandb.log({"job_id": os.environ.get("SLURM_JOB_ID", "")})
+
+
 @hydra.main(config_path="../config/inference/", config_name="simple_tod_inference")
 def hydra_start(cfg: DictConfig) -> None:
     # torch.cuda.set_device(1)
-    inf = Inference(InferenceConfig(**cfg))
+    inf_config = InferenceConfig(**cfg)
+    utils.init_wandb(inf_config, cfg, "inference")
+    inf = Inference(inf_config)
     inf.run()
 
 

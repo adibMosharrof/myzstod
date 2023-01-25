@@ -1,7 +1,6 @@
-
+from __future__ import annotations
 from pathlib import Path
 import re
-from configs.trainer_config import TrainerConfig
 from transformers import AutoTokenizer, GPT2LMHeadModel
 from generation.generation_base import GenerationBase
 from generation.multi_head_generation import MultiHeadGeneration
@@ -12,6 +11,11 @@ from multi_head.mh_model import GPT2MultiLMHeadModel
 from my_enums import ContextType, SpecialTokens
 import utils
 import dstc_utils
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from configs.trainer_config import TrainerConfig
+
 
 class InferenceConfig:
     def __init__(
@@ -49,6 +53,7 @@ class InferenceConfig:
         postprocess_generation: bool = True,
         mh_fact: MultiHeadDictFactory = None,
         data_prep_multi_process: bool = True,
+        wandb: any = None,
     ) -> None:
         self.num_workers = num_workers
         self.data_split_percent = data_split_percent or [1, 1, 1]
@@ -93,10 +98,15 @@ class InferenceConfig:
         self.context_type = context_type
         self.should_add_service_results = should_add_service_results
         self.postprocess_generation = postprocess_generation
-        
-        self.generation_handler:GenerationBase = MultiHeadGeneration(self.model, self.tokenizer) if is_multi_head else SimpleGeneration(self.model, self.tokenizer)
+
+        self.generation_handler: GenerationBase = (
+            MultiHeadGeneration(self.model, self.tokenizer)
+            if is_multi_head
+            else SimpleGeneration(self.model, self.tokenizer)
+        )
         # self.contrastive_model = contrastive_model
         self.data_prep_multi_process = data_prep_multi_process
+        self.wandb = wandb
 
     def _get_tokenizer(self, model_path_str: str):
         model_path: Path = self.project_root / model_path_str

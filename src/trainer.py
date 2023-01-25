@@ -38,12 +38,14 @@ import os
 import warnings
 import my_enums
 import dstc_utils
+import utils
 from sentence_transformers import SentenceTransformer
 
 warnings.filterwarnings("ignore")
 # os.environ["NCCL_DEBUG"] = "INFO"
 import argparse
 import wandb
+
 
 class SimpleTODTrainer:
     def __init__(
@@ -244,21 +246,32 @@ class SimpleTODTrainer:
         return training_args.output_dir
 
 
-def init_wandb(cfg:TrainerConfig, omega_cfg: DictConfig):
-    wandb.config = omegaconf.OmegaConf.to_container(omega_cfg, resolve=True, throw_on_missing=True)
+def init_wandb(cfg: TrainerConfig, omega_cfg: DictConfig):
+    wandb.config = omegaconf.OmegaConf.to_container(
+        omega_cfg, resolve=True, throw_on_missing=True
+    )
     out_dir = Path(os.getcwd())
-    parent_without_year = "-".join(out_dir.parent.name.split('-')[1:])
+    parent_without_year = "-".join(out_dir.parent.name.split("-")[1:])
     run_name = "/".join([parent_without_year, out_dir.name])
     group = "multi_head" if cfg.is_multi_head else "single_head"
-    num_dialogs = "_".join(map(str,cfg.num_dialogs))
-    tags = [cfg.model_name, num_dialogs]
-    run = wandb.init(name=run_name, group=group, tags=tags, notes=cfg.wandb.notes or "", project=cfg.wandb.project, entity="adibm", settings=wandb.Settings(start_method="thread"))
-    wandb.log({"job_id":os.environ.get("SLURM_JOB_ID","")})
+    num_dialogs = "_".join(map(str, cfg.num_dialogs))
+    tags = [cfg.model_name, num_dialogs, "train"]
+    run = wandb.init(
+        name=run_name,
+        group=group,
+        tags=tags,
+        notes=cfg.wandb.notes or "",
+        project=cfg.wandb.project,
+        entity="adibm",
+        settings=wandb.Settings(start_method="thread"),
+    )
+    wandb.log({"job_id": os.environ.get("SLURM_JOB_ID", "")})
+
 
 @hydra.main(config_path="../config/trainer/", config_name="zs_tod_trainer_mh")
 def hydra_start(cfg: DictConfig) -> None:
     trainer_cfg = TrainerConfig(**cfg)
-    init_wandb(trainer_cfg, cfg)
+    utils.init_wandb(trainer_cfg, cfg, "training")
     stt = SimpleTODTrainer(trainer_cfg)
     stt.run()
 

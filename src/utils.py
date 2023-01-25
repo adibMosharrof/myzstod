@@ -1,11 +1,21 @@
+from __future__ import annotations
 import csv
 import json
 from collections import deque
 from itertools import zip_longest
+import os
 from pathlib import Path
-from typing import Tuple
+from typing import Tuple, Union
 
 from dataclass_csv import DataclassReader
+from omegaconf import DictConfig
+import omegaconf
+import wandb
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from configs.inference_config import InferenceConfig
+    from configs.trainer_config import TrainerConfig
 
 # from transformers.utils import logging
 import logging
@@ -77,3 +87,28 @@ def grouper(iterable, n=2, fillvalue=None):
     # iterable.appendleft(None)
     args = [iter(iterable)] * n
     return zip_longest(fillvalue=fillvalue, *args)
+
+
+def init_wandb(
+    cfg: Union[InferenceConfig, TrainerConfig], omega_cfg: DictConfig, step: str
+):
+    wandb.config = omegaconf.OmegaConf.to_container(
+        omega_cfg, resolve=True, throw_on_missing=True
+    )
+    out_dir = Path(os.getcwd())
+    parent_without_year = "-".join(out_dir.parent.name.split("-")[1:])
+    run_name = "/".join([parent_without_year, out_dir.name])
+    group = "multi_head" if cfg.is_multi_head else "single_head"
+    # num_dialogs = "_".join(map(str, cfg.num_dialogs))
+    # tags = [cfg.model_name, num_dialogs, step]
+    tags = [cfg.model_name, step]
+    run = wandb.init(
+        name=run_name,
+        group=group,
+        tags=tags,
+        notes=cfg.wandb.notes if hasattr(cfg.wandb, "notes") else "",
+        project=cfg.wandb.project,
+        entity="adibm",
+        settings=wandb.Settings(start_method="thread"),
+    )
+    wandb.log({"job_id": os.environ.get("SLURM_JOB_ID", "")})

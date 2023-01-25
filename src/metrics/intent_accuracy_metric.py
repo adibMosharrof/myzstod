@@ -4,13 +4,14 @@ from predictions_logger import IntentsPredictionLogger
 import torch
 import evaluate
 from torchmetrics import Accuracy
+import numpy as np
 
 
 class IntentAccuracyMetric(TodMetricsBase):
     def __init__(self) -> None:
         super().__init__()
         # self.metric = evaluate.load("accuracy")
-        self.metric = Accuracy()
+        # self.metric = Accuracy()
         self.prediction_logger = IntentsPredictionLogger()
         self.add_state("pred_intents", [], dist_reduce_fx="cat")
         self.add_state("target_intents", [], dist_reduce_fx="cat")
@@ -25,7 +26,7 @@ class IntentAccuracyMetric(TodMetricsBase):
                 SpecialTokens.begin_intent,
                 SpecialTokens.end_intent,
                 multiple_values=True,
-                default_value=[]
+                default_value=[],
             )
             if not len(t_intents):
                 continue
@@ -49,9 +50,13 @@ class IntentAccuracyMetric(TodMetricsBase):
         # self.metric.add_batch(predictions=pred_intents, references=target_intents)
 
     def _compute(self) -> float:
-        return self.metric(
-            torch.tensor(self.pred_intents), torch.tensor(self.target_intents)
-        )
+        try:
+            acc = (
+                np.array(self.pred_intents) == np.array(self.target_intents)
+            ).sum() / len(self.target_intents)
+        except ZeroDivisionError:
+            acc = 0
+        return acc
         # return self.metric.compute()
         # return self.metric.compute()["accuracy"]
         # return self.metric.compute(
