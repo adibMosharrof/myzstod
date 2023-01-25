@@ -16,13 +16,16 @@ class TurnCsvRowBase(ABC):
         return headers
     
     @abstractmethod
-    def to_csv_row(self, context_type:ContextType, tod_turn: ZsTodTurn)->list[str]:
+    def to_csv_row(self, context_type:ContextType, tod_turn: ZsTodTurn, should_add_schema: bool)->list[str]:
         context_str = (
             str(tod_turn.context)
             if context_type == ContextType.DEFAULT
             else tod_turn.context.get_short_repr()
         )
         context_str += tod_turn.prompt_token if tod_turn.prompt_token else ""
-        return [tod_turn.dialog_id, tod_turn.turn_id, context_str]
+        out =  [tod_turn.dialog_id, tod_turn.turn_id, context_str]
+        if should_add_schema:
+            out.append(tod_turn.schema_str)
+        return out
 
 

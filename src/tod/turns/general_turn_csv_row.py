@@ -10,8 +10,8 @@ class GeneralTurnCsvRow(TurnCsvRowBase):
         headers.append("target")
         return headers
 
-    def to_csv_row(self, context_type:ContextType, tod_turn: ZsTodTurn)->list[str]:
-        row = super().to_csv_row(context_type, tod_turn)
+    def to_csv_row(self, context_type:ContextType, tod_turn: ZsTodTurn, should_add_schema:bool)->list[str]:
+        row = super().to_csv_row(context_type, tod_turn, should_add_schema)
         target_str = str(tod_turn.target)
         row.append(target_str)
         return row

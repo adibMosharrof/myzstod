@@ -279,7 +279,7 @@ class SimpleTODDSTCDataPrep:
                 )
             else:
                 tod_turns.append(
-                    turn_csv_row_handler.to_csv_row(self.cfg.context_type, tod_turn)
+                    turn_csv_row_handler.to_csv_row(self.cfg.context_type, tod_turn, self.cfg.should_add_schema)
                 )
                 # head_instances = self.cfg.mh_fact.get_head_instances() if self.cfg.is_multi_head else None
                 # tod_turns.append(
