@@ -96,7 +96,7 @@ class TrainerConfig:
         self.contrastive_train_epochs = contrastive_train_epochs
         self.dev_domain_settings = dev_domain_settings or ["seen"]
         self.train_domain_settings = train_domain_settings or ["seen"]
-        self.test_domain_settings = test_domain_settings or ["all", "seen", "unseen"]
+        self.test_domain_settings = test_domain_settings or [["all"], ["seen"], ["unseen"]]
         self.train_domain_percentage = train_domain_percentage
         self.pretrain_model_path = pretrain_model_path
         self.train_model_path = train_model_path

@@ -85,7 +85,7 @@ class InferenceConfig:
         self.model = self._get_model(model)
         self.generate_max_len = generate_max_len
         self.train_domain_percentage = train_domain_percentage
-        self.test_domain_settings = test_domain_settings or ["all", "seen", "unseen"]
+        self.test_domain_settings = test_domain_settings or [["all"], ["seen"], ["unseen"]]
         self.num_turns = num_turns
         self.overwrite = overwrite or [False, False, False]
         self.out_dir = out_dir
