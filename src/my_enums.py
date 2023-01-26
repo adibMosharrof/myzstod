@@ -7,25 +7,8 @@ class Steps(str, Enum):
     TEST = "test"
 
     @classmethod
-    def list(cls):
-        return [c.value for c in cls]
-
-
-class DstcDomains(str, Enum):
-    # make sure the string values exactly match the domain names in the data
-    SEEN = "SEEN"
-    UNSEEN = "UNSEEN"
-    ALL = "ALL"
-    TRAVEL_1 = "Travel_1"
-    RESTAURANTS_2 = "Restaurants_2"
-    TRAINS_1 = "Hotels_1"
-    PAYMENT_1 = "Payment_1"
-    RENTALCARS_3 = "RentalCars_3"
-    RENTALCARS_1 = "RentalCars_1"
-
-    @classmethod
-    def regular_settings(cls):
-        return [cls.SEEN.value, cls.UNSEEN.value, cls.ALL.value]
+    def get_index(self, step_text):
+        return Steps.list().index(step_text.lower())
 
     @classmethod
     def list(cls):

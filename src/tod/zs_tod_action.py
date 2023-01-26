@@ -1,10 +1,10 @@
 
 from dataclasses import dataclass
 from typing import Optional
-from dstc_dataclasses import DstcRequestedSlot
+from dstc.dstc_dataclasses import DstcRequestedSlot
 
 from my_enums import SimpleTodConstants
-import dstc_utils
+import dstc.dstc_utils as dstc_utils
 @dataclass
 class ZsTodAction:
     domain: str

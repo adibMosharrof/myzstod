@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from my_enums import SpecialTokens
 from sentence_transformers import SentenceTransformer, losses
 from transformers import AutoTokenizer, Trainer
-import dstc_utils
+import dstc.dstc_utils as dstc_utils
 
 
 @dataclass

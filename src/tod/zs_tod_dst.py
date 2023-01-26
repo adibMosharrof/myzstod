@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 from typing import Optional
-from dstc_dataclasses import DstcRequestedSlot
+from dstc.dstc_dataclasses import DstcRequestedSlot
 
 from my_enums import SimpleTodConstants, SpecialTokens
 from tod.zs_tod_belief import ZsTodBelief

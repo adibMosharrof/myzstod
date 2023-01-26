@@ -12,7 +12,7 @@ from my_enums import (
     Steps,
 )
 from simple_tod_dataclasses import TodTestDataBatch 
-import dstc_utils
+import dstc.dstc_utils as dstc_utils
 from torch.utils.data import DataLoader, Dataset
 import random
 
@@ -25,8 +25,9 @@ class TodDataModule(BaseDataModule):
     def __init__(
         self,
         cfg: DataModuleConfig,
+        steps: list[Steps] = None,
     ):
-        super().__init__(cfg)
+        super().__init__(cfg, steps, tod_turn_row_cls=TodTurnCsvRow)
 
     def training_collator(self, batch: list[TodTurnCsvRow], is_pretrain: bool = False):
         input_ids = []

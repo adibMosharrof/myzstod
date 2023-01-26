@@ -12,12 +12,12 @@ from tqdm import tqdm
 
 from multi_head.mh_dataclasses import MultiHeadDictFactory
 
-from dstc_dataclasses import DstcDialog, DstcSchema
+from dstc.dstc_dataclasses import DstcDialog, DstcSchema
 from my_enums import Steps
 import utils
 import pandas as pd
 from transformers import AutoTokenizer
-import dstc_utils
+import dstc.dstc_utils as dstc_utils
 
 # myPath = os.path.dirname(os.path.abspath(__file__))
 # sys.path.insert(0, os.path.abspath(myPath + "/../"))

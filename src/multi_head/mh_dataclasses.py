@@ -5,7 +5,7 @@ from torch import nn
 from typing import Union, Optional
 from my_enums import SimpleTodConstants, SpecialTokens, MultiHeadName
 from transformers import AutoTokenizer
-import dstc_utils
+import dstc.dstc_utils as dstc_utils
 
 
 @dataclass

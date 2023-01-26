@@ -8,11 +8,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 from omegaconf import DictConfig
 from tqdm import tqdm
+from configs.data_model_exploration_config import DataModelExplorationConfig
+from configs.dm_config import DataModuleConfig
 
-import dstc_utils
-from hydra_configs import DataModelExplorationConfig, DataModuleConfig
-from my_enums import DstcDomains, Steps
-from my_datamodules import TodDataModule
+import dstc.dstc_utils as dstc_utils
+from my_enums import Steps
+from tod_datamodules import TodDataModule
 from simple_tod_dataclasses import (
     TodTurnCsvRow,
 )

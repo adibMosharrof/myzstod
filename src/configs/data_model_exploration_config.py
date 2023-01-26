@@ -1,6 +1,6 @@
-import dstc_utils
+from dstc.dstc_domains import DstcDomains
+import dstc.dstc_utils as dstc_utils
 from pathlib import Path
-from my_enums import DstcDomains
 
 class DataModelExplorationConfig:
     def __init__(

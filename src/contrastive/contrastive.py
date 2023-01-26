@@ -15,7 +15,7 @@ from my_enums import ContrastiveConstants, SpecialTokens, Steps
 from sentence_transformers import SentenceTransformer, losses, evaluation, util
 
 from torch.utils.data import DataLoader
-import dstc_utils
+import dstc.dstc_utils as dstc_utils
 
 
 class Contrastive:

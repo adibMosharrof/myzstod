@@ -5,7 +5,7 @@ from typing import List, Dict, Optional
 from dataclasses_json import dataclass_json
 from enum import Enum
 import humps
-import dstc_utils
+import dstc.dstc_utils as dstc_utils
 from my_enums import Speaker, SpecialTokens, SimpleTodConstants, Steps
 import utils
 

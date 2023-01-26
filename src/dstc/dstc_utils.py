@@ -2,6 +2,7 @@ import re
 from pathlib import Path
 from typing import List, Optional, Union, Dict
 import numpy as np
+from omegaconf import ListConfig
 import pandas as pd
 from transformers import (
     AutoTokenizer,
@@ -30,18 +31,23 @@ def get_dialog_file_paths(data_root, step):
     return file_paths
 
 
+def get_domain_setting_str(domain_setting: Union[list[str], ListConfig, str]):
+    if isinstance(domain_setting, (list, ListConfig)):
+        return "_".join(domain_setting)
+    return domain_setting
+
+
 def get_csv_data_path(
     step: str = "train",
     num_dialogs: int = 1,
     cfg: any = None,
     data_root: Optional[Path] = None,
-    domain_setting: Optional[str] = None,
 ):
     sgdx_versions = ["v1", "v2", "v3", "v4", "v5"]
     version = "v0"
     if cfg.raw_data_root.stem in sgdx_versions:
         version = cfg.raw_data_root.stem
-    dom_sett = domain_setting if domain_setting else str(cfg.domain_setting)
+    domain_setting = get_domain_setting_str(cfg.domain_setting)
     base = data_root if data_root else cfg.processed_data_root
     step_dir = base / step
     return step_dir / (
@@ -70,7 +76,7 @@ def get_csv_data_path(
                 "delexicalize",
                 str(cfg.delexicalize),
                 "domain_setting",
-                dom_sett.upper(),
+                get_domain_setting_str(domain_setting),
                 "train_domains",
                 str(cfg.train_domain_percentage),
             ]

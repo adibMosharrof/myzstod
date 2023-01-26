@@ -1,4 +1,3 @@
-
 from pathlib import Path
 from configs.trainer_config import TrainerConfig
 from my_enums import ContrastiveConstants
@@ -71,7 +70,7 @@ class ContrastiveConfig:
         self.tokenizer_name = tokenizer_name
         self.contrastive_max_token_len = contrastive_max_token_len
         self.data_prep_multi_process = data_prep_multi_process
-    
+
     @classmethod
     def from_trainer_config(self, trainer_cfg: TrainerConfig) -> "ContrastiveConfig":
         return self(
@@ -85,7 +84,7 @@ class ContrastiveConfig:
             num_turns=trainer_cfg.num_turns,
             num_workers=trainer_cfg.num_workers,
             overwrite=trainer_cfg.overwrite,
-            train_domain_setting=trainer_cfg.train_domain_setting,
+            train_domain_setting=trainer_cfg.train_domain_settings,
             is_multi_task=trainer_cfg.is_multi_task,
             contrastive_max_token_len=trainer_cfg.contrastive_max_token_len,
             should_add_dsts=trainer_cfg.should_add_dsts,

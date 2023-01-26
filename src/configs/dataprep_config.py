@@ -1,4 +1,3 @@
-
 import os
 from pathlib import Path
 import random
@@ -6,10 +5,12 @@ from typing import Union
 
 import numpy as np
 from configs.dm_config import DataModuleConfig
-from dstc_dataclasses import DstcSchema
+from dstc.dstc_dataclasses import DstcSchema
+from dstc.dstc_domains import DstcDomainBuilder
 from multi_head.mh_dataclasses import MultiHeadDictFactory
-from my_enums import ContextType, DstcDomains, Steps
+from my_enums import ContextType, Steps
 import utils
+
 
 class DataPrepConfig:
     def __init__(
@@ -17,9 +18,9 @@ class DataPrepConfig:
         project_root: str,
         raw_data_root: str,
         processed_data_root: str,
-        num_dialogs: list[int] = None,
+        num_dialogs: int = 1,
         delexicalize: bool = True,
-        overwrite: list[bool] = None,
+        overwrite: bool = False,
         domain_setting: str = None,
         train_domain_percentage: float = 1.0,
         num_turns: int = 26,
@@ -33,6 +34,7 @@ class DataPrepConfig:
         should_add_service_results: bool = False,
         mh_fact: MultiHeadDictFactory = None,
         data_prep_multi_process: bool = True,
+        step_name: str = Steps.TRAIN,
     ):
         self.project_root = Path(project_root)
         self.raw_data_root = self.project_root / raw_data_root
@@ -40,11 +42,13 @@ class DataPrepConfig:
         self.processed_data_root.mkdir(parents=True, exist_ok=True)
         self.num_dialogs = num_dialogs
         self.delexicalize = delexicalize
-        self.overwrite = overwrite or [False, False, False]
+        self.overwrite = overwrite
         self.train_domain_percentage = train_domain_percentage
-        self.domain_setting = domain_setting.upper()
+        self.domain_setting = domain_setting
         # self.domains = DstcDomains[domain_setting.upper()].value
-        self.domains = self._get_domains(self.domain_setting)
+        self.domains = DstcDomainBuilder(
+            self.raw_data_root, train_domain_percentage
+        ).get_domains(self.domain_setting)
         self.num_turns = num_turns
         self.is_multi_task = is_multi_task
         self.is_multi_head = is_multi_head
@@ -58,60 +62,7 @@ class DataPrepConfig:
         self.should_add_service_results = should_add_service_results
         self.mh_fact = mh_fact if mh_fact else None
         self.data_prep_multi_process = data_prep_multi_process
-
-    def _get_domains(self, domain_setting: str) -> list[str]:
-        if domain_setting not in DstcDomains.regular_settings():
-            return DstcDomains[domain_setting].value
-
-        domain_to_step_map = {
-            DstcDomains.SEEN.name: [Steps.TRAIN.value],
-            DstcDomains.UNSEEN.name: [Steps.DEV.value, Steps.TEST.value],
-            DstcDomains.ALL.name: [
-                Steps.TRAIN.value,
-                Steps.DEV.value,
-                Steps.TEST.value,
-            ],
-        }
-        step_names = domain_to_step_map[domain_setting]
-        if domain_setting == DstcDomains.ALL.name:
-            return self._get_domains_from_step_names(step_names)
-
-        used_train_domains, unused_train_domains = self._get_train_domains()
-        if domain_setting == DstcDomains.SEEN.name:
-            return used_train_domains
-
-        dev_test_domains = self._get_domains_from_step_names(step_names)
-        unseen_domains = np.setdiff1d(dev_test_domains, used_train_domains)
-        return np.concatenate([unseen_domains, unused_train_domains])
-
-    def _get_train_domains(self):
-        domains = np.array(self._get_domains_from_step_names(Steps.TRAIN.value))
-        num_choices = int(len(domains) * self.train_domain_percentage)
-        random.seed(os.getcwd())
-        train_indices = random.sample(range(len(domains)), num_choices)
-        mask = np.zeros(len(domains), dtype=bool)
-        mask[train_indices] = True
-        used_domains = domains[mask]
-        unused_domains = domains[~mask]
-        return used_domains, unused_domains
-
-    def _get_domains_from_step_names(
-        self, step_names: Union[str, list[str]]
-    ) -> list[DstcSchema]:
-        if isinstance(step_names, str):
-            step_names = [step_names]
-        schema_strs = np.concatenate(
-            [
-                utils.read_json(self.raw_data_root / step / "schema.json")
-                for step in step_names
-            ],
-            axis=0,
-        )
-
-        schemas = set([DstcSchema.from_dict(schema_str) for schema_str in schema_strs])
-        domains = sorted([schema.service_name for schema in schemas])
-        # shuffle(domains)
-        return domains
+        self.step_name = step_name
 
     @classmethod
     def from_dm_config(self, dm_config: DataModuleConfig) -> "DataPrepConfig":
@@ -135,4 +86,5 @@ class DataPrepConfig:
             should_add_service_results=dm_config.should_add_service_results,
             mh_fact=dm_config.mh_fact,
             data_prep_multi_process=dm_config.data_prep_multi_process,
+            step_name=dm_config.step_name,
         )

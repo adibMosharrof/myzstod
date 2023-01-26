@@ -33,11 +33,11 @@ from inference import Inference
 from multi_head.mh_dataclasses import MultiHeadDictFactory
 from multi_head.mh_datamodule import MultiLMHeadDatamodule
 from multi_head.mh_model import GPT2MultiLMHeadModel
-from my_datamodules import TodDataModule
+from tod_datamodules import TodDataModule
 import os
 import warnings
 import my_enums
-import dstc_utils
+import dstc.dstc_utils as dstc_utils
 import utils
 from sentence_transformers import SentenceTransformer
 
@@ -45,6 +45,7 @@ warnings.filterwarnings("ignore")
 # os.environ["NCCL_DEBUG"] = "INFO"
 import argparse
 import wandb
+from my_enums import Steps
 
 
 class SimpleTODTrainer:
@@ -71,20 +72,20 @@ class SimpleTODTrainer:
         # model.prune_heads(heads_to_prune)
         current_dir = os.getcwd()
         print(current_dir)
-        dm = self._get_dm()
+        self.cfg.datamodule = self._get_dm()
         # self.cfg.tokenizer = dstc_utils.get_trained_tokenizer(self.cfg)
         if self.cfg.train_model_path:
             pretrained_model_path = str(
                 self.cfg.project_root / self.cfg.train_model_path
             )
         else:
-            pretrained_model_path = self.pretrain_model(dm)
+            pretrained_model_path = self.pretrain_model(self.cfg.datamodule)
         self.print_cuda_info("after pretrain")
         self._setup_contrastive()
         self.print_cuda_info("contrastive model created")
         torch.cuda.empty_cache()
         self.print_cuda_info("empty cache before training")
-        out_dir = self.train_model(pretrained_model_path, dm)
+        out_dir = self.train_model(pretrained_model_path, self.cfg.datamodule)
         full_out_dir = str(Path(current_dir) / out_dir)
         self.print_cuda_info("after train")
         print("Training done")
@@ -97,14 +98,18 @@ class SimpleTODTrainer:
         print(full_out_dir)
 
     def _get_dm(self) -> BaseDataModule:
+        steps = Steps.list() if self.cfg.should_test else Steps.list()[:-1]
         if self.cfg.is_multi_head:
             return MultiLMHeadDatamodule(
                 DataModuleConfig.from_trainer_config(self.cfg),
+                steps,
                 MultiHeadDictFactory(self.cfg.tokenizer),
             )
         if self.cfg.contrast_with:
-            return ContrastiveDataModule(DataModuleConfig.from_trainer_config(self.cfg))
-        return TodDataModule(DataModuleConfig.from_trainer_config(self.cfg))
+            return ContrastiveDataModule(
+                DataModuleConfig.from_trainer_config(self.cfg), steps
+            )
+        return TodDataModule(DataModuleConfig.from_trainer_config(self.cfg), steps)
 
     def _setup_contrastive(self) -> Optional[AutoTokenizer]:
         if not self.cfg.contrast_with:
@@ -137,8 +142,8 @@ class SimpleTODTrainer:
             trainer = ContrastiveTrainer(
                 model=model_train,
                 args=training_args,
-                train_dataset=dm.cfg.datasets["train"],
-                eval_dataset=dm.cfg.datasets["dev"],
+                train_dataset=dm.datasets[Steps.TRAIN.value],
+                eval_dataset=dm.datasets[Steps.DEV.value],
                 data_collator=dm.training_collator,
                 callbacks=[
                     EarlyStoppingCallback(
@@ -151,8 +156,8 @@ class SimpleTODTrainer:
         trainer = Trainer(
             model=model_train,
             args=training_args,
-            train_dataset=dm.cfg.datasets["train"],
-            eval_dataset=dm.cfg.datasets["dev"],
+            train_dataset=dm.datasets[my_enums.Steps.TRAIN.value],
+            eval_dataset=dm.datasets[my_enums.Steps.DEV.value],
             data_collator=dm.training_collator,
             callbacks=[
                 EarlyStoppingCallback(
@@ -219,8 +224,8 @@ class SimpleTODTrainer:
         pre_trainer = Trainer(
             model=model,
             args=training_args,
-            train_dataset=dm.cfg.datasets["train"],
-            eval_dataset=dm.cfg.datasets["dev"],
+            train_dataset=dm.datasets[Steps.TRAIN.value],
+            eval_dataset=dm.datasets[Steps.DEV.value],
             data_collator=dm.pretraining_collator,
             callbacks=[
                 EarlyStoppingCallback(
@@ -268,7 +273,7 @@ def init_wandb(cfg: TrainerConfig, omega_cfg: DictConfig):
     wandb.log({"job_id": os.environ.get("SLURM_JOB_ID", "")})
 
 
-@hydra.main(config_path="../config/trainer/", config_name="zs_tod_trainer_mh")
+@hydra.main(config_path="../config/trainer/", config_name="simple_tod_trainer")
 def hydra_start(cfg: DictConfig) -> None:
     trainer_cfg = TrainerConfig(**cfg)
     utils.init_wandb(trainer_cfg, cfg, "training")

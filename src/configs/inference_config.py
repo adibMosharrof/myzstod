@@ -1,21 +1,27 @@
 from __future__ import annotations
+
 from pathlib import Path
 import re
 from transformers import AutoTokenizer, GPT2LMHeadModel
+
 from generation.generation_base import GenerationBase
 from generation.multi_head_generation import MultiHeadGeneration
 from generation.simple_generation import SimpleGeneration
 
 from multi_head.mh_dataclasses import MultiHeadDictFactory
+from multi_head.mh_datamodule import MultiLMHeadDatamodule
 from multi_head.mh_model import GPT2MultiLMHeadModel
 from my_enums import ContextType, SpecialTokens
+from simple_tod_dataclasses import TodTestDataBatch
+from tod_datamodules import TodDataModule
 import utils
-import dstc_utils
+import dstc.dstc_utils as dstc_utils
 from typing import TYPE_CHECKING
+from configs.dm_config import DataModuleConfig
 
 if TYPE_CHECKING:
     from configs.trainer_config import TrainerConfig
-
+    from base_datamodule import BaseDataModule
 
 class InferenceConfig:
     def __init__(
@@ -54,6 +60,7 @@ class InferenceConfig:
         mh_fact: MultiHeadDictFactory = None,
         data_prep_multi_process: bool = True,
         wandb: any = None,
+        datamodule:'BaseDataModule' = None
     ) -> None:
         self.num_workers = num_workers
         self.data_split_percent = data_split_percent or [1, 1, 1]
@@ -107,6 +114,7 @@ class InferenceConfig:
         # self.contrastive_model = contrastive_model
         self.data_prep_multi_process = data_prep_multi_process
         self.wandb = wandb
+        self.datamodule = datamodule or self._get_datamodule()
 
     def _get_tokenizer(self, model_path_str: str):
         model_path: Path = self.project_root / model_path_str
@@ -148,6 +156,24 @@ class InferenceConfig:
             "model must be either a string or a model class, but model is:{model}"
         )
 
+    def _get_datamodule(self, test_setting: str) -> BaseDataModule:
+        if self.cfg.is_multi_head:
+            dm = MultiLMHeadDatamodule(
+                DataModuleConfig.from_inference_config(
+                    self.cfg, domain_setting=test_setting
+                ),
+                self.cfg.mh_fact,
+            )
+        else:
+            dm = TodDataModule(
+                DataModuleConfig.from_inference_config(
+                    self.cfg,
+                    domain_setting=test_setting,
+                )
+            )
+        return dm
+
+
     @classmethod
     def from_trainer_config(
         cls, trainer_config: TrainerConfig, model: GPT2LMHeadModel
@@ -183,5 +209,6 @@ class InferenceConfig:
             context_type=trainer_config.context_type,
             should_add_service_results=trainer_config.should_add_service_results,
             postprocess_generation=trainer_config.postprocess_generation,
+            datamodule=trainer_config.datamodule,
             # contrastive_model=trainer_config.contrastive_model,
         )

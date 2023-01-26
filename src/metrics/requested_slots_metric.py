@@ -1,7 +1,7 @@
 import random
 import numpy as np
 from sklearn.metrics import f1_score
-from dstc_dataclasses import DstcRequestedSlot
+from dstc.dstc_dataclasses import DstcRequestedSlot
 from metrics.tod_metrics_base import TodMetricsBase
 from my_enums import SpecialPredictions, SpecialTokens
 from predictions_logger import PredictionLoggerFactory, TodMetricsEnum

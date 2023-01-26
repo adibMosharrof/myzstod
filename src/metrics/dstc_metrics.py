@@ -3,7 +3,7 @@ from metrics.response_metrics import ResponseMetric
 from metrics.tod_metrics_base import TodMetricsBase
 from my_enums import SpecialTokens
 from predictions_logger import PredictionLoggerFactory, TodMetricsEnum
-from dstc_dataclasses import DstcRequestedSlot
+from dstc.dstc_dataclasses import DstcRequestedSlot
 from tod.zs_tod_action import ZsTodAction
 
 

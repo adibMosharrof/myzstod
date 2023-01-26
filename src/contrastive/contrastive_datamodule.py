@@ -5,7 +5,7 @@ from base_datamodule import BaseDataModule
 from configs.dm_config import DataModuleConfig
 from contrastive.contrastive_utils import ContrastiveTokens
 
-from my_datamodules import TodDataModule
+from tod_datamodules import TodDataModule
 from my_enums import (
     ContrastiveConstants,
     DstcSystemActions,
@@ -14,13 +14,14 @@ from my_enums import (
     SpecialTokens,
     Steps,
 )
-import dstc_utils
+import dstc.dstc_utils as dstc_utils
 import random
-from dstc_dataclasses import get_schemas
+from dstc.dstc_dataclasses import get_schemas
 from itertools import combinations
 from tod.turns.zs_tod_turn import TodTurnCsvRow
 from tod.zs_tod_action import ZsTodAction
 
+## TODO : need to adjust to new data module prep
 class ContrastiveDataModule(TodDataModule):
     steps = Steps.list()
     _huggingface_ignore_label_id = -100
@@ -29,6 +30,7 @@ class ContrastiveDataModule(TodDataModule):
     def __init__(
         self,
         cfg: DataModuleConfig,
+        steps: list[Steps],
     ):
         super().__init__(cfg)
 

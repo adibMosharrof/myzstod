@@ -8,7 +8,7 @@ import numpy as np
 
 from predictions_logger import PredictionsLoggerBase
 from my_enums import SimpleTodConstants
-import dstc_utils
+import dstc.dstc_utils as dstc_utils
 from torchmetrics import Metric
 
 

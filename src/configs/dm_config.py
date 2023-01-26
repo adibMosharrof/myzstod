@@ -1,13 +1,14 @@
 from pathlib import Path
-from typing import TYPE_CHECKING
-from configs.contrastive_config import ContrastiveConfig
-from configs.data_model_exploration_config import DataModelExplorationConfig
-from configs.inference_config import InferenceConfig
-from configs.trainer_config import TrainerConfig
+from typing import TYPE_CHECKING, Union
+from dstc.dstc_domains import DstcDomains
 from multi_head.mh_dataclasses import MultiHeadDictFactory
-from my_enums import ContextType, DstcDomains, Steps
-import dstc_utils
-
+from my_enums import ContextType, Steps
+import dstc.dstc_utils as dstc_utils
+if TYPE_CHECKING:
+    from configs.trainer_config import TrainerConfig
+    from configs.data_model_exploration_config import DataModelExplorationConfig    
+    from configs.dm_config import DataModuleConfig
+    from configs.contrastive_config import ContrastiveConfig
 
 class DataModuleConfig:
     def __init__(
@@ -30,7 +31,9 @@ class DataModuleConfig:
         delexicalize: bool = False,
         overwrite: list[bool] = None,
         num_turns: int = 26,
-        domain_setting: str = None,
+        train_domain_settings: Union[list[str], str] = None,
+        dev_domain_settings: Union[list[str], str] = None,
+        test_domain_settings: Union[list[str], str] = None,
         train_domain_percentage: float = 1.0,
         is_multi_task: bool = False,
         is_multi_head: bool = False,
@@ -74,8 +77,6 @@ class DataModuleConfig:
         self.should_add_sys_actions = should_add_sys_actions
         self.should_add_user_actions = should_add_user_actions
         self.train_domain_percentage = train_domain_percentage
-        self.domain_setting = domain_setting
-        self.domains = DstcDomains[domain_setting.upper()].value
         self.single_action_neg_samples = (
             single_action_neg_samples if single_action_neg_samples else 5
         )
@@ -92,11 +93,17 @@ class DataModuleConfig:
             else None
         )
         self.data_prep_multi_process = data_prep_multi_process
+        self.train_domain_settings = train_domain_settings
+        self.dev_domain_settings = dev_domain_settings
+        self.test_domain_settings = test_domain_settings
+        # these two variables are added so that we can have typing in DataPrepConfig.from_dm_config method
+        self.step_name = None
+        self.domain_setting = None
 
     @classmethod
     def from_trainer_config(
         self,
-        trainer_config: TrainerConfig,
+        trainer_config: 'TrainerConfig',
     ) -> "DataModuleConfig":
         return self(
             num_workers=trainer_config.num_workers,
@@ -113,7 +120,9 @@ class DataModuleConfig:
             is_multi_task=trainer_config.is_multi_task,
             multi_tasks=trainer_config.multi_tasks,
             should_add_schema=trainer_config.should_add_schema,
-            domain_setting=trainer_config.train_domain_setting,
+            train_domain_settings=trainer_config.train_domain_settings,
+            dev_domain_settings=trainer_config.dev_domain_settings,
+            test_domain_settings=trainer_config.test_domain_settings,
             train_domain_percentage=trainer_config.train_domain_percentage,
             tokenizer=trainer_config.tokenizer,
             batch_size=trainer_config.train_batch_size,
@@ -133,7 +142,7 @@ class DataModuleConfig:
     @classmethod
     def from_inference_config(
         self,
-        inf_config: InferenceConfig,
+        inf_config: 'InferenceConfig',
         domain_setting: str = None,
     ) -> "DataModuleConfig":
         return self(
@@ -147,7 +156,7 @@ class DataModuleConfig:
             delexicalize=inf_config.delexicalize,
             overwrite=inf_config.overwrite,
             num_turns=inf_config.num_turns,
-            domain_setting=domain_setting,
+            test_domain_setting=domain_setting,
             train_domain_percentage=inf_config.train_domain_percentage,
             is_multi_head=inf_config.is_multi_head,
             is_multi_task=inf_config.is_multi_task,
@@ -168,7 +177,7 @@ class DataModuleConfig:
 
     @classmethod
     def from_data_model_exploration(
-        self, dme_config: DataModelExplorationConfig
+        self, dme_config: 'DataModelExplorationConfig'
     ) -> "DataModuleConfig":
         return self(
             project_root=dme_config.project_root,
@@ -185,7 +194,7 @@ class DataModuleConfig:
 
     @classmethod
     def from_contrastive_config(
-        self, c_config: ContrastiveConfig
+        self, c_config: 'ContrastiveConfig'
     ) -> "DataModuleConfig":
         return self(
             project_root=c_config.project_root,
@@ -197,7 +206,9 @@ class DataModuleConfig:
             num_dialogs=c_config.num_dialogs,
             overwrite=c_config.overwrite,
             num_turns=c_config.num_turns,
-            domain_setting=c_config.train_domain_setting,
+            train_domain_settings=c_config.train_domain_settings,
+            dev_domain_settings=c_config.dev_domain_settings,
+            test_domain_settings=c_config.test_domain_settings,
             is_multi_task=c_config.is_multi_task,
             multi_tasks=c_config.multi_tasks,
             data_split_percent=c_config.data_split_percent,

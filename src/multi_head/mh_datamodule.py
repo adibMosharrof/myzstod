@@ -4,11 +4,12 @@ from configs.dm_config import DataModuleConfig
 from multi_head.mh_dataclasses import MultiHeadDictFactory
 from simple_tod_dataclasses import TodTestDataBatch
 from tod.turns.zs_tod_turn import TodTurnMultiHeadCsvRow
-
+from my_enums import Steps
 class MultiLMHeadDatamodule(BaseDataModule):
     def __init__(
         self,
         cfg: DataModuleConfig,
+        steps: list[Steps],
         mh_fact: MultiHeadDictFactory,
         tod_turn_row_cls=TodTurnMultiHeadCsvRow,
     ):

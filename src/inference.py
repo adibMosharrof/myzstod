@@ -16,7 +16,8 @@ from torch.utils.data import DataLoader
 from configs.dm_config import DataModuleConfig
 from configs.inference_config import InferenceConfig
 from configs.reconstruct_dialog_config import ReconstructDialogConfig
-import dstc_utils
+from dstc.dstc_domains import DstcDomains
+import dstc.dstc_utils as dstc_utils
 from metrics.intent_accuracy_metric import IntentAccuracyMetric
 from metrics.response_metrics import ResponseMetric
 from collections import Counter
@@ -27,16 +28,16 @@ from metrics.goal_metric import GoalMetric, GoalMetricConfigFactory
 from metrics.requested_slots_metric import RequestedSlotsMetric
 from metrics.dstc_metrics import InformMetric, SuccessMetric, CombinedMetric
 from multi_head.mh_datamodule import MultiLMHeadDatamodule
-from my_enums import DstcDomains, GoalMetricConfigType, SpecialTokens
+from my_enums import GoalMetricConfigType, SpecialTokens
 from reconstruct_dialog import ReconstructDialog
 import utils
-from my_datamodules import TodDataModule
+from tod_datamodules import TodDataModule
 from simple_tod_dataclasses import (
     InferenceRecords,
     SimpleTodConstants,
     TodTestDataBatch,
 )
-from dstc_dataclasses import get_slot_categories
+from dstc.dstc_dataclasses import get_slot_categories
 
 
 class Inference:
@@ -63,13 +64,12 @@ class Inference:
         )
         start_tokens = []
         metric_results = []
-        for domain_setting in self.cfg.test_domain_settings:
-            domains = DstcDomains[domain_setting.upper()].value
+        for domain_setting, test_dataloader in zip(self.cfg.test_domain_settings, self.cfg.datamodule.test_dataloader()):
+            domains_str = dstc_utils.get_domain_setting_str(domain_setting)
             test_csv_out_data = []
-            text_csv_out_path = f"simple_tod_dstc_predictions_{domain_setting}_{self.cfg.num_turns}_dialogs_{self.cfg.num_test_dialogs}{SimpleTodConstants.DELEXICALIZED if self.cfg.delexicalize else ''}_{domains}.csv"
-            test_dataloader = self._get_dataloader(domain_setting)
+            text_csv_out_path = f"simple_tod_dstc_predictions_{domains_str}_{self.cfg.num_turns}_dialogs_{self.cfg.num_test_dialogs}{SimpleTodConstants.DELEXICALIZED if self.cfg.delexicalize else ''}.csv"
             if not len(test_dataloader):
-                self.cfg.logger.info(f"No data to test for {domain_setting}")
+                self.cfg.logger.info(f"No data to test for {domains_str}")
                 continue
             inf_records = InferenceRecords()
 
@@ -123,9 +123,9 @@ class Inference:
                 self.combined_metrics.update(references=refs, predictions=preds)
             headers = ["dialog_id", "turn_id", "context", "target", "prediction"]
             utils.write_csv(headers, test_csv_out_data, text_csv_out_path)
-            self.cfg.logger.info(f"Testing {domain_setting}")
+            self.cfg.logger.info(f"Testing {domains_str}")
             cols, values = self._print_metrics()
-            metric_results.append([domain_setting, cols, values])
+            metric_results.append([domains_str, cols, values])
             self.cfg.logger.info(str(self.cfg.out_dir))
             [
                 self.tod_metrics[m].visualize(Path(self.cfg.predictions_log_dir))
@@ -240,22 +240,6 @@ class Inference:
         self.tod_metrics = MetricCollection(tod_metrics)
         self.combined_metrics = MetricCollection(combined_metrics)
 
-    def _get_dataloader(self, test_setting: str) -> TodTestDataBatch:
-        if self.cfg.is_multi_head:
-            dm = MultiLMHeadDatamodule(
-                DataModuleConfig.from_inference_config(
-                    self.cfg, domain_setting=test_setting
-                ),
-                self.cfg.mh_fact,
-            )
-        else:
-            dm = TodDataModule(
-                DataModuleConfig.from_inference_config(
-                    self.cfg,
-                    domain_setting=test_setting,
-                )
-            )
-        return dm.test_dataloader()
 
     def _remove_padding(self, text):
         return re.sub(self.cfg.padding_regexp, "", text)

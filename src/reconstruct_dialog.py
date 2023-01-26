@@ -4,7 +4,7 @@ import hydra
 from omegaconf import DictConfig
 from tqdm import tqdm
 from configs.reconstruct_dialog_config import ReconstructDialogConfig
-from dstc_dataclasses import (
+from dstc.dstc_dataclasses import (
     DstcAction,
     DstcDialog,
     DstcFrame,
@@ -18,7 +18,7 @@ from tod.zs_tod_belief import ZsTodBelief
 import utils
 from my_enums import SimpleTodConstants, Speaker, SpecialTokens, Steps
 import json
-from dstc_utils import (
+from dstc.dstc_utils import (
     extract_section_and_split_items_from_text,
     get_text_in_between,
     get_dstc_service_name,

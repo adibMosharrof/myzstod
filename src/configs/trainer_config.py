@@ -1,4 +1,8 @@
-import dstc_utils
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from base_datamodule import BaseDataModule
+import dstc.dstc_utils as dstc_utils
 from pathlib import Path
 from multi_head.mh_dataclasses import MultiHeadDictFactory
 from my_enums import ContextType
@@ -29,8 +33,9 @@ class TrainerConfig:
         delexicalize: bool = False,
         num_turns: int = 10,
         overwrite: list[bool] = None,
-        train_domain_setting: str = None,
         train_domain_percentage: float = 1.0,
+        train_domain_settings: list[str] = None,
+        dev_domain_settings: list[str] = None,
         test_domain_settings: list[str] = None,
         out_dir: str = "results",
         pretrain_epochs: int = 1,
@@ -66,6 +71,7 @@ class TrainerConfig:
         postprocess_generation: bool = False,
         wandb: any = None,
         data_prep_multi_process: bool = True,
+        datamodule: 'BaseDataModule' = None,
     ) -> None:
         self.project_root = Path(project_root)
         self.data_prep_out_root = Path(data_prep_out_root)
@@ -84,12 +90,13 @@ class TrainerConfig:
         self.delexicalize = delexicalize
         self.num_turns = num_turns
         self.overwrite = overwrite or [False, False, False]
-        self.test_domain_settings = test_domain_settings or ["all", "seen", "unseen"]
         self.out_dir = Path(out_dir)
         self.pretrain_epochs = pretrain_epochs
         self.train_epochs = train_epochs
         self.contrastive_train_epochs = contrastive_train_epochs
-        self.train_domain_setting = train_domain_setting
+        self.dev_domain_settings = dev_domain_settings or ["seen"]
+        self.train_domain_settings = train_domain_settings or ["seen"]
+        self.test_domain_settings = test_domain_settings or ["all", "seen", "unseen"]
         self.train_domain_percentage = train_domain_percentage
         self.pretrain_model_path = pretrain_model_path
         self.train_model_path = train_model_path
@@ -136,3 +143,4 @@ class TrainerConfig:
         )
         self.data_prep_multi_process = data_prep_multi_process
         self.wandb = wandb
+        self.datamodule = datamodule

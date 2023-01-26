@@ -3,7 +3,7 @@
 
 from dataclasses import dataclass
 from typing import Optional
-from dstc_dataclasses import DstcSchema
+from dstc.dstc_dataclasses import DstcSchema
 from my_enums import SpecialTokens
 
 from simple_tod_dataclasses import MultiTaskSpecialToken
