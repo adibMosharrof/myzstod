@@ -6,6 +6,7 @@ from my_enums import ContextType, Steps
 import dstc.dstc_utils as dstc_utils
 if TYPE_CHECKING:
     from configs.trainer_config import TrainerConfig
+    from configs.inference_config import InferenceConfig
     from configs.data_model_exploration_config import DataModelExplorationConfig    
     from configs.dm_config import DataModuleConfig
     from configs.contrastive_config import ContrastiveConfig
