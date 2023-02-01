@@ -46,6 +46,7 @@ class DstcDomainBuilder:
             for domain in domain_setting:
                 out += self.get_domains(domain)
             return out
+        domain_setting = domain_setting.upper()
         if domain_setting not in DstcDomains.regular_settings():
             return [DstcDomains(domain_setting).value]
 
