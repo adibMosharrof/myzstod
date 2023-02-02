@@ -1,0 +1,143 @@
+\begin{thebibliography}{}
+
+\bibitem[\protect\citeauthoryear{Devlin \bgroup et al\mbox.\egroup
+  }{2019}]{Devlin2019BERTPO}
+Devlin, J.; Chang, M.-W.; Lee, K.; and Toutanova, K.
+\newblock 2019.
+\newblock Bert: Pre-training of deep bidirectional transformers for language
+  understanding.
+\newblock {\em ArXiv} abs/1810.04805.
+
+\bibitem[\protect\citeauthoryear{Feng, Wang, and Li}{2020}]{Feng2020ASA}
+Feng, Y.; Wang, Y.; and Li, H.
+\newblock 2020.
+\newblock A sequence-to-sequence approach to dialogue state tracking.
+\newblock In {\em Annual Meeting of the Association for Computational
+  Linguistics}.
+
+\bibitem[\protect\citeauthoryear{Hosseini-Asl \bgroup et al\mbox.\egroup
+  }{2020}]{HosseiniAsl2020ASL}
+Hosseini-Asl, E.; McCann, B.; Wu, C.-S.; Yavuz, S.; and Socher, R.
+\newblock 2020.
+\newblock A simple language model for task-oriented dialogue.
+\newblock {\em ArXiv} abs/2005.00796.
+
+\bibitem[\protect\citeauthoryear{Jeon and Lee}{2021}]{Jeon2021DORATP}
+Jeon, H., and Lee, G.~G.
+\newblock 2021.
+\newblock Dora: Toward policy optimization for task-oriented dialogue system
+  with efficient context.
+\newblock {\em Comput. Speech Lang.} 72:101310.
+
+\bibitem[\protect\citeauthoryear{Lee \bgroup et al\mbox.\egroup
+  }{2020}]{Lee2020SUMBTLaRLEN}
+Lee, H.; Jo, S.; Kim, H.; Jung, S.; and Kim, T.-Y.
+\newblock 2020.
+\newblock Sumbt+larl: End-to-end neural task-oriented dialog system with
+  reinforcement learning.
+\newblock {\em ArXiv} abs/2009.10447.
+
+\bibitem[\protect\citeauthoryear{Lin and Och}{2004}]{lin2004looking}
+Lin, C.-Y., and Och, F.
+\newblock 2004.
+\newblock Looking for a few good metrics: Rouge and its evaluation.
+\newblock In {\em Ntcir workshop}.
+
+\bibitem[\protect\citeauthoryear{Mehri, Srinivasan, and
+  Eskenazi}{2019}]{mehri2019structured}
+Mehri, S.; Srinivasan, T.; and Eskenazi, M.
+\newblock 2019.
+\newblock Structured fusion networks for dialog.
+\newblock {\em arXiv preprint arXiv:1907.10016}.
+
+\bibitem[\protect\citeauthoryear{Noroozi \bgroup et al\mbox.\egroup
+  }{2020}]{Noroozi2020AFA}
+Noroozi, V.; Zhang, Y.; Bakhturina, E.; and Kornuta, T.
+\newblock 2020.
+\newblock A fast and robust bert-based dialogue state tracker for schema guided
+  dialogue dataset.
+\newblock {\em ArXiv} abs/2008.12335.
+
+\bibitem[\protect\citeauthoryear{Peng \bgroup et al\mbox.\egroup
+  }{2021}]{Peng2021SoloistBT}
+Peng, B.; Li, C.; Li, J.; Shayandeh, S.; Lid{\'e}n, L.; and Gao, J.
+\newblock 2021.
+\newblock Soloist: Building task bots at scale with transfer learning and
+  machine teaching.
+\newblock {\em Transactions of the Association for Computational Linguistics}
+  9:807--824.
+
+\bibitem[\protect\citeauthoryear{Radford \bgroup et al\mbox.\egroup
+  }{2019}]{Radford2019LanguageMA}
+Radford, A.; Wu, J.; Child, R.; Luan, D.; Amodei, D.; and Sutskever, I.
+\newblock 2019.
+\newblock Language models are unsupervised multitask learners.
+
+\bibitem[\protect\citeauthoryear{Raffel \bgroup et al\mbox.\egroup
+  }{2019}]{Raffel2019ExploringTL}
+Raffel, C.; Shazeer, N.~M.; Roberts, A.; Lee, K.; Narang, S.; Matena, M.; Zhou,
+  Y.; Li, W.; and Liu, P.~J.
+\newblock 2019.
+\newblock Exploring the limits of transfer learning with a unified text-to-text
+  transformer.
+\newblock {\em ArXiv} abs/1910.10683.
+
+\bibitem[\protect\citeauthoryear{Su \bgroup et al\mbox.\egroup
+  }{2021}]{su2021multi}
+Su, Y.; Shu, L.; Mansimov, E.; Gupta, A.; Cai, D.; Lai, Y.-A.; and Zhang, Y.
+\newblock 2021.
+\newblock Multi-task pre-training for plug-and-play task-oriented dialogue
+  system.
+\newblock {\em arXiv preprint arXiv:2109.14739}.
+
+\bibitem[\protect\citeauthoryear{Sun \bgroup et al\mbox.\egroup
+  }{2022}]{Sun2022BORTBA}
+Sun, H.; Bao, J.; Wu, Y.; and He, X.
+\newblock 2022.
+\newblock Bort: Back and denoising reconstruction for end-to-end task-oriented
+  dialog.
+\newblock In {\em NAACL-HLT}.
+
+\bibitem[\protect\citeauthoryear{Wang, Liu, and
+  Zhao}{2016}]{wang-etal-2016-inner}
+Wang, B.; Liu, K.; and Zhao, J.
+\newblock 2016.
+\newblock Inner attention based recurrent neural networks for answer selection.
+\newblock In {\em Proceedings of the 54th Annual Meeting of the Association for
+  Computational Linguistics (Volume 1: Long Papers)},  1288--1297.
+\newblock Berlin, Germany: Association for Computational Linguistics.
+
+\bibitem[\protect\citeauthoryear{Wu \bgroup et al\mbox.\egroup
+  }{2016}]{wu2016googles}
+Wu, Y.; Schuster, M.; Chen, Z.; Le, Q.~V.; Norouzi, M.; Macherey, W.; Krikun,
+  M.; Cao, Y.; Gao, Q.; Macherey, K.; Klingner, J.; Shah, A.; Johnson, M.; Liu,
+  X.; Łukasz Kaiser; Gouws, S.; Kato, Y.; Kudo, T.; Kazawa, H.; Stevens, K.;
+  Kurian, G.; Patil, N.; Wang, W.; Young, C.; Smith, J.; Riesa, J.; Rudnick,
+  A.; Vinyals, O.; Corrado, G.; Hughes, M.; and Dean, J.
+\newblock 2016.
+\newblock Google's neural machine translation system: Bridging the gap between
+  human and machine translation.
+
+\bibitem[\protect\citeauthoryear{Yang \bgroup et al\mbox.\egroup
+  }{2022}]{Yang2022UBARv2TM}
+Yang, Y.; Ding, H.; Liu, Q.; and Quan, X.
+\newblock 2022.
+\newblock Ubarv2: Towards mitigating exposure bias in task-oriented dialogs.
+\newblock {\em ArXiv} abs/2209.07239.
+
+\bibitem[\protect\citeauthoryear{Yang, Li, and Quan}{2020}]{Yang2020UBARTF}
+Yang, Y.; Li, Y.; and Quan, X.
+\newblock 2020.
+\newblock Ubar: Towards fully end-to-end task-oriented dialog systems with
+  gpt-2.
+\newblock In {\em AAAI Conference on Artificial Intelligence}.
+
+\bibitem[\protect\citeauthoryear{Zhao \bgroup et al\mbox.\egroup
+  }{2022}]{Zhao2022DescriptionDrivenTD}
+Zhao, J.; Gupta, R.; Cao, Y.; Yu, D.; Wang, M.; Lee, H.; Rastogi, A.; Shafran,
+  I.; and Wu, Y.
+\newblock 2022.
+\newblock Description-driven task-oriented dialog modeling.
+\newblock {\em ArXiv} abs/2201.08904.
+
+\end{thebibliography}

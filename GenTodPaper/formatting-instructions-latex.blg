@@ -1,0 +1,48 @@
+This is BibTeX, Version 0.99d (TeX Live 2019/Debian)
+Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
+The top-level auxiliary file: formatting-instructions-latex.aux
+The style file: flairs.bst
+Database file #1: custom.bib
+Warning--empty booktitle in Radford2019LanguageMA
+You've used 18 entries,
+            2568 wiz_defined-function locations,
+            671 strings with 8721 characters,
+and the built_in function-call counts, 8392 in all, are:
+= -- 813
+> -- 604
+< -- 1
++ -- 223
+- -- 220
+* -- 729
+:= -- 1478
+add.period$ -- 89
+call.type$ -- 18
+change.case$ -- 182
+chr.to.int$ -- 18
+cite$ -- 19
+duplicate$ -- 261
+empty$ -- 434
+format.name$ -- 248
+if$ -- 1626
+int.to.chr$ -- 1
+int.to.str$ -- 0
+missing$ -- 17
+newline$ -- 110
+num.names$ -- 54
+pop$ -- 168
+preamble$ -- 1
+purify$ -- 200
+quote$ -- 0
+skip$ -- 206
+stack$ -- 0
+substring$ -- 172
+swap$ -- 46
+text.length$ -- 1
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 144
+warning$ -- 1
+while$ -- 41
+width$ -- 23
+write$ -- 244
+(There was 1 warning)

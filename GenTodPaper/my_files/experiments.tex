@@ -1,0 +1,28 @@
+\section{Experimental Setup}
+
+% SGD Dataset
+% Schemas : from schema in sgd
+% SGD-X Dataset
+
+\subsection{Datasets}
+
+The Schema Guided Dialogue (SGD) dataset is a large scale dataset for task oriented dialogue that consists of over 16K multi domain
+dialogs between a human and a virtual assistant covering 16 domains. The dataset also provides a schema for each domain that
+provides a textual description of the domain, list of slots and list of intents. A slot contains a name, textual description,
+and possible values for categorical slots and an intent contains a name, textual description, optional slots and result slots.
+
+\subsection{Evaluation Metrics}
+
+To have a fair comparison with other methods, we use the evaluation script from SGD dataset and report the Active Intent Accuracy,
+Requested Slot F1, Average Goal Accuracy and Joint Goal Accuracy.
+
+However, the metrics in the SGD dataset are geared towards DST, and do not take into account the system actions and response.
+To evaluate task completion we report Inform, Success, Average Action Accuracy (AAA) and Joint Action Accuracy (JAA). For evaluating response
+generation we report the ROUGE-2~\cite{lin2004looking} score and GLEU~\cite{wu2016googles} instead of BLEU as it performs better on individual sentence pairs.
+The combined score is calculated as suggested in~\cite{mehri2019structured} with (Inform + Success) $\times$ 0.5 + GLEU.
+
+The metric Inform measures whether a system has provided a correct entity and Success measures whether it has answered all the requested
+information. To calculate inform, from the ground truth system actions, we filter actions by action type inform (Inform, Inform Count)
+and check if they are predicted correctly. To calculate success, we filter actions by slot names that are in the requested slots and
+check if the action slot values are predicted correctly. AAA and JAA are similar to the
+goal metrics in SGD, but are calculated from system actions.

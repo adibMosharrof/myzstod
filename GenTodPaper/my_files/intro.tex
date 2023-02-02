@@ -1,0 +1,20 @@
+\section{Introductions}
+\begin{itemize}
+    \item Basic Tod intro
+    \item Challenge of zero-shot TOD
+    \item Existing methods
+    \item Our Method
+    \item Pros of our methodology
+    \item Summary of results
+\end{itemize}
+
+TOD systems interact with users in the form of dialog using natural language, to accomplish user tasks.
+The system needs to understand user needs and provide the best possible response to the user.
+The task of extracting user intent and goals from conversations by filling belief slots is called Dialog State Tracking (DST)~\cite{wang-etal-2016-inner}.
+Using the DST and dialog history, the system needs to decide what actions to take and then convey that action in the form of natural language to the user.
+
+Traditional TOD systems were built using a pipeline approach, where each component was created separately and then integrated together.
+However, with the adaptation of large pretrained language models~\cite{Devlin2019BERTPO,Radford2019LanguageMA},
+researchers have moved towards end-to-end systems~\cite{HosseiniAsl2020ASL,Peng2021SoloistBT,Lee2020SUMBTLaRLEN,Yang2020UBARTF,Jeon2021DORATP,Sun2022BORTBA,Yang2022UBARv2TM,Noroozi2020AFA}.,
+and have formulated the problem as a cascaded generation problem~\cite{su2021multi}, which is to sequentially generate the DST, system action and response.
+

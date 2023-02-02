@@ -1,0 +1,32 @@
+\section{Methodology}
+
+Steps: Pretraining(CE Loss), Training (loss on target only)
+
+Context:
+Dialog History like SimpleTOD
+DST instead of dialog history
+
+Additional info
+Schema
+List of system actions
+User actions
+Service Results
+
+\begin{itemize}
+    \item Summary and importance of approach
+    \item Base model (GPT-2)
+    \item Prompt (context, additional info)
+    \item Training (pretraining, training)
+\end{itemize}
+
+As shown in Figure~\ref{fig:model}, our model receives the DST and user utterance of the previous turn, and additional information
+as the context and auto-regressively generates the target, which consists of the updated DST, system action and response.
+
+
+\subsection{Training}
+
+We train the model in two steps, where in the first step we calculate the cross entropy loss on the context and target,
+and in the second step we calculate the loss only on the target.
+The goal of the first step is for the model to understand the general structure of the text
+and the second step is to fine tune the model to generate the target text.
+

@@ -1,0 +1,43 @@
+%File: formatting-instruction.tex
+\documentclass[letterpaper]{article}
+\usepackage{flairs}%aaai
+\usepackage{times}
+\usepackage{helvet}
+\usepackage{courier}
+\usepackage{graphicx}
+\usepackage{adjustbox}
+\usepackage{multirow}
+\frenchspacing
+\setlength{\pdfpagewidth}{8.5in}
+\setlength{\pdfpageheight}{11in}
+\pdfinfo{
+/Title (Compressed Context for Schema Guided Zero Shot Dialog)
+/Author (Put All Your Authors Here, Separated by Commas)}
+\setcounter{secnumdepth}{2}  
+
+% This file is an adoption of the style file for AAAI Press 
+% proceedings, working notes, and technical reports.  This file is made 
+% with minimal changes by explicit permission from AAAI.
+%
+\title{Compressed Context for Schema Guided Zero Shot Dialog}
+\author{Anonymous Authors\\
+    Affiliation\\
+    Address Line 1\\
+}
+\begin{document}
+\maketitle
+\begin{abstract}
+    \begin{quote}
+        \input{my_files/abstract.tex}
+    \end{quote}
+\end{abstract}
+
+\input{my_files/intro.tex}
+\input{my_files/methodology.tex}
+\input{my_files/experiments.tex}
+\input{my_files/results.tex}
+\input{my_files/related_works.tex}
+
+\bibliography{custom}
+\bibliographystyle{flairs}
+\end{document}
