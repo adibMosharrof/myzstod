@@ -305,6 +305,22 @@ class SimpleTODDSTCDataPrep:
         out = np.concatenate(tod_turns, axis=0)
         return out
 
+
+    # def run(self, turn_csv_row_handler: TurnCsvRowBase):
+    #     dialog_paths = get_dialog_file_paths()
+    #     schemas = get_schemas()
+    #     res = list(
+    #         tqdm(
+    #             Pool().imap(
+    #                 self._prepare_dialog_file,
+    #                 dialog_paths[: self.cfg.num_dialogs],
+    #                 itertools.repeat(schemas),
+    #                 itertools.repeat(turn_csv_row_handler),
+    #             ),
+    #             total=self.cfg.num_dialogs,
+    #         )
+    #     )
+
     def _prepare_dialog_file(
         self,
         path: Path,

@@ -44,8 +44,8 @@ class DstcDomainBuilder:
         if isinstance(domain_setting, (list, ListConfig)):
             out = []
             for domain in domain_setting:
-                out += self.get_domains(domain)
-            return out
+                out.append(self.get_domains(domain))
+            return np.concatenate(out, axis=0)
         domain_setting = domain_setting.upper()
         if domain_setting not in DstcDomains.regular_settings():
             return [DstcDomains(domain_setting).value]
