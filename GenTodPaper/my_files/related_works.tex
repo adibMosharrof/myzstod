@@ -2,12 +2,13 @@
 
 \subsection{Supervised End to End Models}
 Pretrained language models like BERT~\cite{Devlin2019BERTPO}, GPT-2~\cite{Radford2019LanguageMA} and T5~\cite{Raffel2019ExploringTL}
-have been used extensively in the literature for End to End models for TOD systems~\cite{HosseiniAsl2020ASL},~\cite{Peng2021SoloistBT},~\cite{Lee2020SUMBTLaRLEN},~\cite{Yang2020UBARTF},~\cite{Jeon2021DORATP},~\cite{Sun2022BORTBA},~\cite{Yang2022UBARv2TM},~\cite{Noroozi2020AFA}.
-In these models, the context consists of user and system utterance, whereas in our model we use the last user utterance and the previous state DST as context.
-Moreover, most of these models have the best performance in supervised settings and do not have the primary focus on zero-shot generalization.
+have been used extensively in the literature for End to End models for TOD systems~\cite{HosseiniAsl2020ASL,Peng2021SoloistBT,Lee2020SUMBTLaRLEN,Yang2020UBARTF,Jeon2021DORATP,Sun2022BORTBA,Yang2022UBARv2TM,Noroozi2020AFA}.
+In these models, the context consists of the dialog history, whereas our approach uses the last user utterance and the previous state DST as context.
+Moreover, most of these models have the best performance in supervised settings and do not generalize well to unseen domains.
 
-\subsection{Zero Shot End to End Models}
+\subsection{Zero Shot Dialog Models}
 
-Zero Shot DST models~\cite{Feng2020ASA},~\cite{Zhao2022DescriptionDrivenTD} incorporate schema as part of the context and generalize
-well for DST, however these models do not focus on system actions and response generation.
-\cite{Noroozi2020AFA}
+Recently, some work has been done on Zero Shot generalizability by incorporating schema on certain components of TOD systems,
+such as for DST~\cite{Feng2020ASA,Lee2021DialogueST,Noroozi2020AFA}
+and next action prediction and response generation~\cite{Mosig2020STARAS,Mehri2021SchemaGuidedPF}. 
+However, unlike ours, these systems are not end-to-end.

@@ -37,11 +37,27 @@ Lee, H.; Jo, S.; Kim, H.; Jung, S.; and Kim, T.-Y.
   reinforcement learning.
 \newblock {\em ArXiv} abs/2009.10447.
 
+\bibitem[\protect\citeauthoryear{Lee, Cheng, and
+  Ostendorf}{2021}]{Lee2021DialogueST}
+Lee, C.-H.; Cheng, H.; and Ostendorf, M.
+\newblock 2021.
+\newblock Dialogue state tracking with a language model using schema-driven
+  prompting.
+\newblock In {\em Conference on Empirical Methods in Natural Language
+  Processing}.
+
 \bibitem[\protect\citeauthoryear{Lin and Och}{2004}]{lin2004looking}
 Lin, C.-Y., and Och, F.
 \newblock 2004.
 \newblock Looking for a few good metrics: Rouge and its evaluation.
 \newblock In {\em Ntcir workshop}.
+
+\bibitem[\protect\citeauthoryear{Mehri and
+  Esk{\'e}nazi}{2021}]{Mehri2021SchemaGuidedPF}
+Mehri, S., and Esk{\'e}nazi, M.
+\newblock 2021.
+\newblock Schema-guided paradigm for zero-shot dialog.
+\newblock In {\em SIGDIAL Conferences}.
 
 \bibitem[\protect\citeauthoryear{Mehri, Srinivasan, and
   Eskenazi}{2019}]{mehri2019structured}
@@ -49,6 +65,13 @@ Mehri, S.; Srinivasan, T.; and Eskenazi, M.
 \newblock 2019.
 \newblock Structured fusion networks for dialog.
 \newblock {\em arXiv preprint arXiv:1907.10016}.
+
+\bibitem[\protect\citeauthoryear{Mosig, Mehri, and
+  Kober}{2020}]{Mosig2020STARAS}
+Mosig, J. E.~M.; Mehri, S.; and Kober, T.
+\newblock 2020.
+\newblock Star: A schema-guided dialog dataset for transfer learning.
+\newblock {\em ArXiv} abs/2010.11853.
 
 \bibitem[\protect\citeauthoryear{Noroozi \bgroup et al\mbox.\egroup
   }{2020}]{Noroozi2020AFA}
@@ -91,12 +114,20 @@ Su, Y.; Shu, L.; Mansimov, E.; Gupta, A.; Cai, D.; Lai, Y.-A.; and Zhang, Y.
 \newblock {\em arXiv preprint arXiv:2109.14739}.
 
 \bibitem[\protect\citeauthoryear{Sun \bgroup et al\mbox.\egroup
-  }{2022}]{Sun2022BORTBA}
+  }{2022a}]{Sun2022BORTBA}
 Sun, H.; Bao, J.; Wu, Y.; and He, X.
-\newblock 2022.
+\newblock 2022a.
 \newblock Bort: Back and denoising reconstruction for end-to-end task-oriented
   dialog.
 \newblock In {\em NAACL-HLT}.
+
+\bibitem[\protect\citeauthoryear{Sun \bgroup et al\mbox.\egroup
+  }{2022b}]{sun2022mars}
+Sun, H.; Bao, J.; Wu, Y.; and He, X.
+\newblock 2022b.
+\newblock Mars: Semantic-aware contrastive learning for end-to-end
+  task-oriented dialog.
+\newblock {\em arXiv preprint arXiv:2210.08917}.
 
 \bibitem[\protect\citeauthoryear{Wang, Liu, and
   Zhao}{2016}]{wang-etal-2016-inner}
@@ -131,13 +162,5 @@ Yang, Y.; Li, Y.; and Quan, X.
 \newblock Ubar: Towards fully end-to-end task-oriented dialog systems with
   gpt-2.
 \newblock In {\em AAAI Conference on Artificial Intelligence}.
-
-\bibitem[\protect\citeauthoryear{Zhao \bgroup et al\mbox.\egroup
-  }{2022}]{Zhao2022DescriptionDrivenTD}
-Zhao, J.; Gupta, R.; Cao, Y.; Yu, D.; Wang, M.; Lee, H.; Rastogi, A.; Shafran,
-  I.; and Wu, Y.
-\newblock 2022.
-\newblock Description-driven task-oriented dialog modeling.
-\newblock {\em ArXiv} abs/2201.08904.
 
 \end{thebibliography}
