@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Tuple
 
 if TYPE_CHECKING:
     from base_datamodule import BaseDataModule
@@ -71,7 +71,8 @@ class TrainerConfig:
         postprocess_generation: bool = False,
         wandb: any = None,
         data_prep_multi_process: bool = True,
-        datamodule: 'BaseDataModule' = None,
+        datamodule: "BaseDataModule" = None,
+        test_num_turns_groups: list[Tuple[int, int]] = None,
     ) -> None:
         self.project_root = Path(project_root)
         self.data_prep_out_root = Path(data_prep_out_root)
@@ -96,7 +97,11 @@ class TrainerConfig:
         self.contrastive_train_epochs = contrastive_train_epochs
         self.dev_domain_settings = dev_domain_settings or ["seen"]
         self.train_domain_settings = train_domain_settings or ["seen"]
-        self.test_domain_settings = test_domain_settings or [["all"], ["seen"], ["unseen"]]
+        self.test_domain_settings = test_domain_settings or [
+            ["all"],
+            ["seen"],
+            ["unseen"],
+        ]
         self.train_domain_percentage = train_domain_percentage
         self.pretrain_model_path = pretrain_model_path
         self.train_model_path = train_model_path
@@ -143,4 +148,5 @@ class TrainerConfig:
         )
         self.data_prep_multi_process = data_prep_multi_process
         self.wandb = wandb
+        self.test_num_turns_groups = test_num_turns_groups
         self.datamodule = datamodule

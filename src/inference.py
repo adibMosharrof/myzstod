@@ -57,14 +57,15 @@ class Inference:
                 SpecialTokens.begin_dst,
             ]
         )
-        target_start_tokens = (
-            self.cfg.tokenizer.encode(target_start_txt, return_tensors="pt")
-            # .expand([self.cfg.test_batch_size, -1])
-            .cuda()
-        )
         start_tokens = []
         metric_results = []
-        for domain_setting, test_dataloader in zip(self.cfg.test_domain_settings, self.cfg.datamodule.test_dataloader()):
+        test_dl_func = (
+            self.cfg.datamodule.grouped_test_dataloader
+            if self.cfg.test_num_turns_groups
+            else self.cfg.datamodule.test_dataloader
+        )
+
+        for test_dataloader, domain_setting in test_dl_func():
             domains_str = dstc_utils.get_domain_setting_str(domain_setting)
             test_csv_out_data = []
             text_csv_out_path = f"simple_tod_dstc_predictions_{domains_str}_{self.cfg.num_turns}_dialogs_{self.cfg.num_test_dialogs}{SimpleTodConstants.DELEXICALIZED if self.cfg.delexicalize else ''}.csv"
@@ -74,24 +75,12 @@ class Inference:
             inf_records = InferenceRecords()
 
             for batch in tqdm(test_dataloader):
-                # gen = self.cfg.generation_handler.get_generation(batch, self.cfg.max_token_len)
-                # gen_without_context = self.cfg.generation_handler.remove_context(gen, self.cfg.test_prompt_max_len)
-                # pred_text = self.cfg.tokenizer.batch_decode(
-                #     gen_without_context,
-                #     skip_special_tokens=False,
-                # )
                 pred_text_no_pad = self.cfg.generation_handler.get_generation(
                     batch,
                     self.cfg.max_token_len,
                     self.cfg.test_prompt_max_len,
                     self.cfg.postprocess_generation,
                 )
-                # for s in pred_text:
-                #     start_tokens.append(s[:15])
-                # pred_text_no_pad = [self._remove_padding(text) for text in pred_text]
-                # if self.cfg.postprocess_generation:
-                #     processed_gen = self.cfg.generation_handler.postprocess_generation(pred_text_no_pad)
-                #     pred_text_no_pad = processed_gen
                 if not self.cfg.is_multi_task:
                     self.tod_metrics.update(
                         references=batch.targets_text, predictions=pred_text_no_pad
@@ -239,7 +228,6 @@ class Inference:
             )
         self.tod_metrics = MetricCollection(tod_metrics)
         self.combined_metrics = MetricCollection(combined_metrics)
-
 
     def _remove_padding(self, text):
         return re.sub(self.cfg.padding_regexp, "", text)

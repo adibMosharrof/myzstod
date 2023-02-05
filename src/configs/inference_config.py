@@ -11,17 +11,18 @@ from generation.simple_generation import SimpleGeneration
 from multi_head.mh_dataclasses import MultiHeadDictFactory
 from multi_head.mh_datamodule import MultiLMHeadDatamodule
 from multi_head.mh_model import GPT2MultiLMHeadModel
-from my_enums import ContextType, SpecialTokens
+from my_enums import ContextType, SpecialTokens, Steps
 from simple_tod_dataclasses import TodTestDataBatch
 from tod_datamodules import TodDataModule
 import utils
 import dstc.dstc_utils as dstc_utils
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Tuple
 from configs.dm_config import DataModuleConfig
 
 if TYPE_CHECKING:
     from configs.trainer_config import TrainerConfig
     from base_datamodule import BaseDataModule
+
 
 class InferenceConfig:
     def __init__(
@@ -60,7 +61,8 @@ class InferenceConfig:
         mh_fact: MultiHeadDictFactory = None,
         data_prep_multi_process: bool = True,
         wandb: any = None,
-        datamodule:'BaseDataModule' = None
+        datamodule: "BaseDataModule" = None,
+        test_num_turns_groups: list[Tuple[int, int]] = None,
     ) -> None:
         self.num_workers = num_workers
         self.data_split_percent = data_split_percent or [1, 1, 1]
@@ -85,7 +87,11 @@ class InferenceConfig:
         self.model = self._get_model(model)
         self.generate_max_len = generate_max_len
         self.train_domain_percentage = train_domain_percentage
-        self.test_domain_settings = test_domain_settings or [["all"], ["seen"], ["unseen"]]
+        self.test_domain_settings = test_domain_settings or [
+            ["all"],
+            ["seen"],
+            ["unseen"],
+        ]
         self.num_turns = num_turns
         self.overwrite = overwrite or [False, False, False]
         self.out_dir = out_dir
@@ -114,7 +120,8 @@ class InferenceConfig:
         # self.contrastive_model = contrastive_model
         self.data_prep_multi_process = data_prep_multi_process
         self.wandb = wandb
-        self.datamodule = datamodule or self._get_datamodule()
+        self.test_num_turns_groups = test_num_turns_groups
+        self.datamodule = datamodule or self._get_datamodule(self.test_domain_settings)
 
     def _get_tokenizer(self, model_path_str: str):
         model_path: Path = self.project_root / model_path_str
@@ -157,22 +164,17 @@ class InferenceConfig:
         )
 
     def _get_datamodule(self, test_setting: str) -> BaseDataModule:
-        if self.cfg.is_multi_head:
-            dm = MultiLMHeadDatamodule(
-                DataModuleConfig.from_inference_config(
-                    self.cfg, domain_setting=test_setting
-                ),
-                self.cfg.mh_fact,
+        dm_config = DataModuleConfig.from_inference_config(
+            self, domain_setting=test_setting
+        )
+        return (
+            MultiLMHeadDatamodule(
+                dm_config,
+                self.mh_fact,
             )
-        else:
-            dm = TodDataModule(
-                DataModuleConfig.from_inference_config(
-                    self.cfg,
-                    domain_setting=test_setting,
-                )
-            )
-        return dm
-
+            if self.is_multi_head
+            else TodDataModule(dm_config, steps=[Steps.TEST.value])
+        )
 
     @classmethod
     def from_trainer_config(
@@ -210,5 +212,6 @@ class InferenceConfig:
             should_add_service_results=trainer_config.should_add_service_results,
             postprocess_generation=trainer_config.postprocess_generation,
             datamodule=trainer_config.datamodule,
+            test_num_turns_groups=trainer_config.test_num_turns_groups,
             # contrastive_model=trainer_config.contrastive_model,
         )

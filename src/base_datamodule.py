@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Iterable, List, Union
+from typing import Dict, Iterable, List, Tuple, Union
 from omegaconf import ListConfig
 
 import torch
@@ -18,6 +18,7 @@ from simple_tod_dataclasses import (
 )
 from simple_tod_dstc_data_prep import SimpleTODDSTCDataPrep
 import copy
+import pandas as pd
 
 
 @dataclass(frozen=True)
@@ -25,6 +26,7 @@ class StepData:
     name: Steps
     num_dialog: int
     overwrite: bool
+    split_percent: float
     domain_settings: Union[list[str], str]
 
 
@@ -45,6 +47,7 @@ class BaseDataModule(ABC):
         self.cfg = cfg
         self.tod_turn_row_cls = tod_turn_row_cls
         self.datasets: list[str, SimpleTodDataSet] = {}
+        self.grouped_test_datasets: list[str, SimpleTodDataSet] = {}
         self.steps = steps
         self.setup()
         self.prompt_token_map = {}
@@ -66,7 +69,9 @@ class BaseDataModule(ABC):
     def prepare_data(self, stdp: SimpleTODDSTCDataPrep):
         stdp.run()
 
-    def setup_single_run(self, step, step_data, split_percent,num_dialog, domain_setting ) -> 'SimpleTodDataSet':
+    def setup_single_run(
+        self, step: str, step_data: StepData, domain_setting: Union[str, list[str]]
+    ) -> "SimpleTodDataSet":
         cfg = copy.deepcopy(self.cfg)
         cfg.step_name = step_data.name
         cfg.num_dialogs = step_data.num_dialog
@@ -76,40 +81,66 @@ class BaseDataModule(ABC):
         self.prepare_data(stdp)
         csv_path = dstc_utils.get_csv_data_path(
             step,
-            num_dialog,
+            step_data.num_dialog,
             cfg=stdp.cfg,
         )
         try:
             data = utils.read_csv_dataclass(csv_path, self.tod_turn_row_cls)
-            data = data[: int(len(data) * split_percent)]
         except FileNotFoundError:
             data = []
+        data = self.get_data_by_split_percent(data, step_data.split_percent)
         return SimpleTodDataSet(data)
 
     def setup(self):
-        for step, split_percent, num_dialog in zip(
-            self.steps, self.cfg.data_split_percent, self.cfg.num_dialogs
-        ):
+        for step in self.steps:
             step_data = self.get_step_data(step)
             if isinstance(step_data.domain_settings[0], ListConfig):
                 self.datasets[step] = []
                 for domain_setting in step_data.domain_settings:
-                    self.datasets[step].append(self.setup_single_run(step, step_data, split_percent, num_dialog, domain_setting))
+                    self.datasets[step].append(
+                        self.setup_single_run(step, step_data, domain_setting)
+                    )
             else:
-                self.datasets[step] = self.setup_single_run(step,step_data , split_percent, num_dialog, step_data.domain_settings)
-            # stdp = SimpleTODDSTCDataPrep(DataPrepConfig.from_dm_config(cfg))
-            # self.prepare_data(stdp)
-            # csv_path = dstc_utils.get_csv_data_path(
-            #     step,
-            #     num_dialog,
-            #     cfg=stdp.cfg,
-            # )
-            # try:
-            #     data = utils.read_csv_dataclass(csv_path, self.tod_turn_row_cls)
-            #     data = data[: int(len(data) * split_percent)]
-            # except FileNotFoundError:
-            #     data = []
-            # self.datasets[step] = SimpleTodDataSet(data)
+                self.datasets[step] = self.setup_single_run(
+                    step,
+                    step_data,
+                    step_data.domain_settings,
+                )
+        if self.cfg.test_num_turns_groups:
+            self.create_test_data_grouped_by_dialog_turns(self.datasets[Steps.TEST])
+
+    def create_test_data_grouped_by_dialog_turns(
+        self, datasets: list[list[TodTurnCsvRow]]
+    ):
+        out = {}
+        for domain in self.cfg.test_domain_settings:
+            for group in self.cfg.test_num_turns_groups:
+                domain_str = "_".join(domain)
+                key = f"{domain_str}_{group}"
+                out[key] = []
+
+        for dataset, domain in zip(datasets, self.cfg.test_domain_settings):
+            bins = [0] + self.cfg.test_num_turns_groups
+            labels = self.cfg.test_num_turns_groups
+            df = pd.DataFrame(dataset.data)
+            dialog_turn_counts = (
+                df.groupby("dialog_id").size().reset_index(name="counts")
+            )
+            dialog_turn_counts["binned"] = pd.cut(
+                dialog_turn_counts["counts"], bins=bins, labels=labels
+            )
+            domain_str = "_".join(domain)
+            for dialog_id, turn_count, bin_id in dialog_turn_counts.values:
+                mask = df["dialog_id"] == dialog_id
+                key = f"{domain_str}_{bin_id}"
+                out[key].append(df[mask])
+        for key, data in out.items():
+            try:
+                ds_data = pd.concat(data, axis=0)
+                row_data = ds_data.apply(lambda row: TodTurnCsvRow(*row), axis=1).tolist()
+            except ValueError:
+                row_data = []
+            self.grouped_test_datasets[key] = SimpleTodDataSet(row_data)
 
     def get_step_data(self, step: Steps) -> StepData:
         index = Steps.get_index(step)
@@ -117,8 +148,14 @@ class BaseDataModule(ABC):
             step,
             self.cfg.num_dialogs[index],
             self.cfg.overwrite[index],
+            self.cfg.data_split_percent[index],
             getattr(self.cfg, self.domain_step_map[step]),
         )
+
+    def get_data_by_split_percent(
+        self, data: list[TodTurnCsvRow], split_percent: float
+    ):
+        return data[: int(len(data) * split_percent)]
 
     def get_arguments_for_step_iteration(self, step: Steps):
         if step == Steps.TRAIN:
@@ -130,19 +167,41 @@ class BaseDataModule(ABC):
         else:
             raise ValueError("Invalid step")
 
-    def test_dataloader(self) -> TodTestDataBatch:
+    def test_dataloader(self) -> list[Tuple[TodTestDataBatch, str]]:
         dls = self.datasets[Steps.TEST]
         if not isinstance(dls, list):
-           dls = [dls] 
-        
-        return [DataLoader(
-            dl,
-            batch_size=self.cfg.test_batch_size,
-            shuffle=False,
-            num_workers=self.cfg.num_workers,
-            collate_fn=self.my_test_collate,
-            pin_memory=True,
-        ) for dl in dls]
+            dls = [dls]
+
+        return [
+            (
+                DataLoader(
+                    dl,
+                    batch_size=self.cfg.test_batch_size,
+                    shuffle=False,
+                    num_workers=self.cfg.num_workers,
+                    collate_fn=self.my_test_collate,
+                    pin_memory=True,
+                ),
+                domain_setting,
+            )
+            for dl, domain_setting in zip(dls, self.cfg.test_domain_settings)
+        ]
+
+    def grouped_test_dataloader(self) -> list[Tuple[TodTestDataBatch, str]]:
+        return [
+            (
+                DataLoader(
+                    dl,
+                    batch_size=self.cfg.test_batch_size,
+                    shuffle=False,
+                    num_workers=self.cfg.num_workers,
+                    collate_fn=self.my_test_collate,
+                    pin_memory=True,
+                ),
+                key,
+            )
+            for key, dl in self.grouped_test_datasets.items()
+        ]
 
     def _get_token_id(self, text: str) -> int:
         return self.cfg.tokenizer.encode(text)[0]
@@ -250,12 +309,6 @@ class BaseDataModule(ABC):
         attention_mask = input_tokens.ne(self.cfg.tokenizer.pad_token_id).to(
             torch.int32
         )
-        # attention_mask = torch.cat(
-        #     [
-        #         torch.full([len(context_tokens) + len(schema_tokens) + len(target_tokens)], 1),
-        #         torch.full([unused_len], 0),
-        #     ]
-        # )
         return input_tokens, label, attention_mask
 
 

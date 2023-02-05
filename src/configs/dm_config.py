@@ -1,15 +1,17 @@
 from pathlib import Path
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Tuple, Union
 from dstc.dstc_domains import DstcDomains
 from multi_head.mh_dataclasses import MultiHeadDictFactory
 from my_enums import ContextType, Steps
 import dstc.dstc_utils as dstc_utils
+
 if TYPE_CHECKING:
     from configs.trainer_config import TrainerConfig
     from configs.inference_config import InferenceConfig
-    from configs.data_model_exploration_config import DataModelExplorationConfig    
+    from configs.data_model_exploration_config import DataModelExplorationConfig
     from configs.dm_config import DataModuleConfig
     from configs.contrastive_config import ContrastiveConfig
+
 
 class DataModuleConfig:
     def __init__(
@@ -50,6 +52,7 @@ class DataModuleConfig:
         should_add_dsts: bool = False,
         mh_fact: MultiHeadDictFactory = None,
         data_prep_multi_process: bool = True,
+        test_num_turns_groups: list[Tuple[int, int]] = None,
     ):
         self.num_workers = num_workers
         self.preprocessing_model_name = preprocessing_model_name
@@ -100,11 +103,12 @@ class DataModuleConfig:
         # these two variables are added so that we can have typing in DataPrepConfig.from_dm_config method
         self.step_name = None
         self.domain_setting = None
+        self.test_num_turns_groups = test_num_turns_groups
 
     @classmethod
     def from_trainer_config(
         self,
-        trainer_config: 'TrainerConfig',
+        trainer_config: "TrainerConfig",
     ) -> "DataModuleConfig":
         return self(
             num_workers=trainer_config.num_workers,
@@ -138,12 +142,13 @@ class DataModuleConfig:
             should_add_service_results=trainer_config.should_add_service_results,
             mh_fact=trainer_config.mh_fact,
             data_prep_multi_process=trainer_config.data_prep_multi_process,
+            test_num_turns_groups=trainer_config.test_num_turns_groups,
         )
 
     @classmethod
     def from_inference_config(
         self,
-        inf_config: 'InferenceConfig',
+        inf_config: "InferenceConfig",
         domain_setting: str = None,
     ) -> "DataModuleConfig":
         return self(
@@ -157,7 +162,7 @@ class DataModuleConfig:
             delexicalize=inf_config.delexicalize,
             overwrite=inf_config.overwrite,
             num_turns=inf_config.num_turns,
-            test_domain_setting=domain_setting,
+            test_domain_settings=domain_setting,
             train_domain_percentage=inf_config.train_domain_percentage,
             is_multi_head=inf_config.is_multi_head,
             is_multi_task=inf_config.is_multi_task,
@@ -174,11 +179,12 @@ class DataModuleConfig:
             should_add_service_results=inf_config.should_add_service_results,
             mh_fact=inf_config.mh_fact,
             data_prep_multi_process=inf_config.data_prep_multi_process,
+            test_num_turns_groups=inf_config.test_num_turns_groups,
         )
 
     @classmethod
     def from_data_model_exploration(
-        self, dme_config: 'DataModelExplorationConfig'
+        self, dme_config: "DataModelExplorationConfig"
     ) -> "DataModuleConfig":
         return self(
             project_root=dme_config.project_root,
@@ -195,7 +201,7 @@ class DataModuleConfig:
 
     @classmethod
     def from_contrastive_config(
-        self, c_config: 'ContrastiveConfig'
+        self, c_config: "ContrastiveConfig"
     ) -> "DataModuleConfig":
         return self(
             project_root=c_config.project_root,
