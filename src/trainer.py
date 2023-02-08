@@ -251,32 +251,13 @@ class SimpleTODTrainer:
         return training_args.output_dir
 
 
-def init_wandb(cfg: TrainerConfig, omega_cfg: DictConfig):
-    wandb.config = omegaconf.OmegaConf.to_container(
-        omega_cfg, resolve=True, throw_on_missing=True
-    )
-    out_dir = Path(os.getcwd())
-    parent_without_year = "-".join(out_dir.parent.name.split("-")[1:])
-    run_name = "/".join([parent_without_year, out_dir.name])
-    group = "multi_head" if cfg.is_multi_head else "single_head"
-    num_dialogs = "_".join(map(str, cfg.num_dialogs))
-    tags = [cfg.model_name, num_dialogs, "train"]
-    run = wandb.init(
-        name=run_name,
-        group=group,
-        tags=tags,
-        notes=cfg.wandb.notes or "",
-        project=cfg.wandb.project,
-        entity="adibm",
-        settings=wandb.Settings(start_method="thread"),
-    )
-    wandb.log({"job_id": os.environ.get("SLURM_JOB_ID", "")})
+
 
 
 @hydra.main(config_path="../config/trainer/", config_name="simple_tod_trainer")
 def hydra_start(cfg: DictConfig) -> None:
     trainer_cfg = TrainerConfig(**cfg)
-    utils.init_wandb(trainer_cfg, cfg, "training")
+    utils.init_wandb(trainer_cfg, cfg, "training", trainer_cfg.num_dialogs)
     stt = SimpleTODTrainer(trainer_cfg)
     stt.run()
 

@@ -262,7 +262,7 @@ def init_wandb(cfg: InferenceConfig, omega_cfg: DictConfig):
 def hydra_start(cfg: DictConfig) -> None:
     # torch.cuda.set_device(1)
     inf_config = InferenceConfig(**cfg)
-    utils.init_wandb(inf_config, cfg, "inference")
+    utils.init_wandb(inf_config, cfg, "inference", inf_config.num_test_dialogs)
     inf = Inference(inf_config)
     inf.run()
 
