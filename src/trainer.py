@@ -70,8 +70,8 @@ class SimpleTODTrainer:
         #             continue
         #         heads_to_prune[layer].append(head)
         # model.prune_heads(heads_to_prune)
-        current_dir = os.getcwd()
-        print(current_dir)
+        current_dir = Path(os.getcwd())
+        print(str(current_dir))
         self.cfg.datamodule = self._get_dm()
         # self.cfg.tokenizer = dstc_utils.get_trained_tokenizer(self.cfg)
         if self.cfg.train_model_path:
@@ -85,8 +85,11 @@ class SimpleTODTrainer:
         self.print_cuda_info("contrastive model created")
         torch.cuda.empty_cache()
         self.print_cuda_info("empty cache before training")
-        out_dir = self.train_model(pretrained_model_path, self.cfg.datamodule)
-        full_out_dir = str(Path(current_dir) / out_dir)
+        if self.cfg.two_step_training:
+            out_dir = self.train_model(pretrained_model_path, self.cfg.datamodule)
+            full_out_dir = str(current_dir / out_dir)
+        else:
+            full_out_dir = str(current_dir / pretrained_model_path)
         self.print_cuda_info("after train")
         print("Training done")
         print("-" * 80)

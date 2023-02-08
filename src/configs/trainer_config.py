@@ -73,6 +73,7 @@ class TrainerConfig:
         data_prep_multi_process: bool = True,
         datamodule: "BaseDataModule" = None,
         test_num_turns_groups: list[Tuple[int, int]] = None,
+        two_step_training: bool = True,
     ) -> None:
         self.project_root = Path(project_root)
         self.data_prep_out_root = Path(data_prep_out_root)
@@ -150,3 +151,4 @@ class TrainerConfig:
         self.wandb = wandb
         self.test_num_turns_groups = test_num_turns_groups
         self.datamodule = datamodule
+        self.two_step_training = two_step_training
