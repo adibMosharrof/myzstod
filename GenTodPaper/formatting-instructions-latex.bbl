@@ -8,6 +8,14 @@ Devlin, J.; Chang, M.-W.; Lee, K.; and Toutanova, K.
   understanding.
 \newblock {\em ArXiv} abs/1810.04805.
 
+\bibitem[\protect\citeauthoryear{Feng \bgroup et al\mbox.\egroup
+  }{2022}]{Feng2022DynamicSG}
+Feng, Y.; Lipani, A.; Ye, F.; Zhang, Q.; and Yilmaz, E.
+\newblock 2022.
+\newblock Dynamic schema graph fusion network for multi-domain dialogue state
+  tracking.
+\newblock {\em ArXiv} abs/2204.06677.
+
 \bibitem[\protect\citeauthoryear{Feng, Wang, and Li}{2020}]{Feng2020ASA}
 Feng, Y.; Wang, Y.; and Li, H.
 \newblock 2020.
@@ -128,6 +136,14 @@ Sun, H.; Bao, J.; Wu, Y.; and He, X.
 \newblock Mars: Semantic-aware contrastive learning for end-to-end
   task-oriented dialog.
 \newblock {\em arXiv preprint arXiv:2210.08917}.
+
+\bibitem[\protect\citeauthoryear{Wang \bgroup et al\mbox.\egroup
+  }{2022}]{Wang2022SlotDM}
+Wang, Q.; Cao, Y.; Li, P.; Fu, Y.; Lin, Z.; and Guo, L.
+\newblock 2022.
+\newblock Slot dependency modeling for zero-shot cross-domain dialogue state
+  tracking.
+\newblock In {\em International Conference on Computational Linguistics}.
 
 \bibitem[\protect\citeauthoryear{Wang, Liu, and
   Zhao}{2016}]{wang-etal-2016-inner}

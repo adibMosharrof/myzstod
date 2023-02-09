@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.20 (TeX Live 2019/Debian) (preloaded format=pdflatex 2023.1.5)  2 FEB 2023 21:20
+This is pdfTeX, Version 3.14159265-2.6-1.40.20 (TeX Live 2019/Debian) (preloaded format=pdflatex 2023.1.5)  9 FEB 2023 16:44
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -98,98 +98,234 @@ Package: multirow 2019/05/31 v2.5 Span multiple rows of a table
 \multirow@cntb=\count178
 \multirow@dima=\skip51
 \bigstrutjot=\dimen151
-) (/usr/share/texlive/texmf-dist/tex/latex/l3backend/l3backend-pdfmode.def
+) (/usr/share/texlive/texmf-dist/tex/latex/tools/multicol.sty
+Package: multicol 2019/12/09 v1.8y multicolumn formatting (FMi)
+\c@tracingmulticols=\count179
+\mult@box=\box47
+\multicol@leftmargin=\dimen152
+\c@unbalance=\count180
+\c@collectmore=\count181
+\doublecol@number=\count182
+\multicoltolerance=\count183
+\multicolpretolerance=\count184
+\full@width=\dimen153
+\page@free=\dimen154
+\premulticols=\dimen155
+\postmulticols=\dimen156
+\multicolsep=\skip52
+\multicolbaselineskip=\skip53
+\partial@page=\box48
+\last@line=\box49
+\maxbalancingoverflow=\dimen157
+\mult@rightbox=\box50
+\mult@grightbox=\box51
+\mult@gfirstbox=\box52
+\mult@firstbox=\box53
+\@tempa=\box54
+\@tempa=\box55
+\@tempa=\box56
+\@tempa=\box57
+\@tempa=\box58
+\@tempa=\box59
+\@tempa=\box60
+\@tempa=\box61
+\@tempa=\box62
+\@tempa=\box63
+\@tempa=\box64
+\@tempa=\box65
+\@tempa=\box66
+\@tempa=\box67
+\@tempa=\box68
+\@tempa=\box69
+\@tempa=\box70
+\@tempa=\box71
+\@tempa=\box72
+\@tempa=\box73
+\@tempa=\box74
+\@tempa=\box75
+\@tempa=\box76
+\@tempa=\box77
+\@tempa=\box78
+\@tempa=\box79
+\@tempa=\box80
+\@tempa=\box81
+\@tempa=\box82
+\@tempa=\box83
+\@tempa=\box84
+\@tempa=\box85
+\@tempa=\box86
+\@tempa=\box87
+\@tempa=\box88
+\@tempa=\box89
+\@tempa=\box90
+\c@minrows=\count185
+\c@columnbadness=\count186
+\c@finalcolumnbadness=\count187
+\last@try=\dimen158
+\multicolovershoot=\dimen159
+\multicolundershoot=\dimen160
+\mult@nat@firstbox=\box91
+\colbreak@box=\box92
+\mc@col@check@num=\count188
+) (/usr/share/texlive/texmf-dist/tex/latex/amsmath/amsmath.sty
+Package: amsmath 2020/01/20 v2.17e AMS math features
+\@mathmargin=\skip54
+
+For additional information on amsmath, use the `?' option.
+(/usr/share/texlive/texmf-dist/tex/latex/amsmath/amstext.sty
+Package: amstext 2000/06/29 v2.01 AMS text
+ (/usr/share/texlive/texmf-dist/tex/latex/amsmath/amsgen.sty
+File: amsgen.sty 1999/11/30 v2.0 generic functions
+\@emptytoks=\toks17
+\ex@=\dimen161
+)) (/usr/share/texlive/texmf-dist/tex/latex/amsmath/amsbsy.sty
+Package: amsbsy 1999/11/29 v1.2d Bold Symbols
+\pmbraise@=\dimen162
+) (/usr/share/texlive/texmf-dist/tex/latex/amsmath/amsopn.sty
+Package: amsopn 2016/03/08 v2.02 operator names
+)
+\inf@bad=\count189
+LaTeX Info: Redefining \frac on input line 227.
+\uproot@=\count190
+\leftroot@=\count191
+LaTeX Info: Redefining \overline on input line 389.
+\classnum@=\count192
+\DOTSCASE@=\count193
+LaTeX Info: Redefining \ldots on input line 486.
+LaTeX Info: Redefining \dots on input line 489.
+LaTeX Info: Redefining \cdots on input line 610.
+\Mathstrutbox@=\box93
+\strutbox@=\box94
+\big@size=\dimen163
+LaTeX Font Info:    Redeclaring font encoding OML on input line 733.
+LaTeX Font Info:    Redeclaring font encoding OMS on input line 734.
+\macc@depth=\count194
+\c@MaxMatrixCols=\count195
+\dotsspace@=\muskip16
+\c@parentequation=\count196
+\dspbrk@lvl=\count197
+\tag@help=\toks18
+\row@=\count198
+\column@=\count199
+\maxfields@=\count266
+\andhelp@=\toks19
+\eqnshift@=\dimen164
+\alignsep@=\dimen165
+\tagshift@=\dimen166
+\tagwidth@=\dimen167
+\totwidth@=\dimen168
+\lineht@=\dimen169
+\@envbody=\toks20
+\multlinegap=\skip55
+\multlinetaggap=\skip56
+\mathdisplay@stack=\toks21
+LaTeX Info: Redefining \[ on input line 2859.
+LaTeX Info: Redefining \] on input line 2860.
+) (/usr/share/texlive/texmf-dist/tex/latex/amsfonts/amssymb.sty
+Package: amssymb 2013/01/14 v3.01 AMS font symbols
+ (/usr/share/texlive/texmf-dist/tex/latex/amsfonts/amsfonts.sty
+Package: amsfonts 2013/01/14 v3.01 Basic AMSFonts support
+\symAMSa=\mathgroup4
+\symAMSb=\mathgroup5
+LaTeX Font Info:    Redeclaring math symbol \hbar on input line 98.
+LaTeX Font Info:    Overwriting math alphabet `\mathfrak' in version `bold'
+(Font)                  U/euf/m/n --> U/euf/b/n on input line 106.
+)) (/usr/share/texlive/texmf-dist/tex/latex/l3backend/l3backend-pdfmode.def
 File: l3backend-pdfmode.def 2020-02-03 L3 backend support: PDF mode
-\l__kernel_color_stack_int=\count179
-\l__pdf_internal_box=\box47
+\l__kernel_color_stack_int=\count267
+\l__pdf_internal_box=\box95
 ) (/mounts/u-amo-d1/adibm-data/projects/ZSToD/GenTodPaper/formatting-instructions-latex.aux)
 \openout1 = `formatting-instructions-latex.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 27.
-LaTeX Font Info:    ... okay on input line 27.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 27.
-LaTeX Font Info:    ... okay on input line 27.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 27.
-LaTeX Font Info:    ... okay on input line 27.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 27.
-LaTeX Font Info:    ... okay on input line 27.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 27.
-LaTeX Font Info:    ... okay on input line 27.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 27.
-LaTeX Font Info:    ... okay on input line 27.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 27.
-LaTeX Font Info:    ... okay on input line 27.
-LaTeX Font Info:    Trying to load font information for OT1+ptm on input line 27.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 30.
+LaTeX Font Info:    ... okay on input line 30.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 30.
+LaTeX Font Info:    ... okay on input line 30.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 30.
+LaTeX Font Info:    ... okay on input line 30.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 30.
+LaTeX Font Info:    ... okay on input line 30.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 30.
+LaTeX Font Info:    ... okay on input line 30.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 30.
+LaTeX Font Info:    ... okay on input line 30.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 30.
+LaTeX Font Info:    ... okay on input line 30.
+LaTeX Font Info:    Trying to load font information for OT1+ptm on input line 30.
  (/usr/share/texlive/texmf-dist/tex/latex/psnfss/ot1ptm.fd
 File: ot1ptm.fd 2001/06/04 font definitions for OT1/ptm.
 ) (/usr/share/texlive/texmf-dist/tex/context/base/mkii/supp-pdf.mkii
 [Loading MPS to PDF converter (version 2006.09.02).]
-\scratchcounter=\count180
-\scratchdimen=\dimen152
-\scratchbox=\box48
-\nofMPsegments=\count181
-\nofMParguments=\count182
-\everyMPshowfont=\toks17
-\MPscratchCnt=\count183
-\MPscratchDim=\dimen153
-\MPnumerator=\count184
-\makeMPintoPDFobject=\count185
-\everyMPtoPDFconversion=\toks18
+\scratchcounter=\count268
+\scratchdimen=\dimen170
+\scratchbox=\box96
+\nofMPsegments=\count269
+\nofMParguments=\count270
+\everyMPshowfont=\toks22
+\MPscratchCnt=\count271
+\MPscratchDim=\dimen171
+\MPnumerator=\count272
+\makeMPintoPDFobject=\count273
+\everyMPtoPDFconversion=\toks23
 ) (/usr/share/texlive/texmf-dist/tex/latex/epstopdf-pkg/epstopdf-base.sty
 Package: epstopdf-base 2020-01-24 v2.11 Base part for package epstopdf
 Package epstopdf-base Info: Redefining graphics rule for `.eps' on input line 485.
  (/usr/share/texlive/texmf-dist/tex/latex/latexconfig/epstopdf-sys.cfg
 File: epstopdf-sys.cfg 2010/07/13 v1.3 Configuration of (r)epstopdf for TeX Live
 ))
-LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <7> on input line 28.
-LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <5> on input line 28.
-LaTeX Font Info:    Trying to load font information for TS1+ptm on input line 28.
+LaTeX Font Info:    Trying to load font information for U+msa on input line 31.
+ (/usr/share/texlive/texmf-dist/tex/latex/amsfonts/umsa.fd
+File: umsa.fd 2013/01/14 v3.01 AMS symbols A
+)
+LaTeX Font Info:    Trying to load font information for U+msb on input line 31.
+ (/usr/share/texlive/texmf-dist/tex/latex/amsfonts/umsb.fd
+File: umsb.fd 2013/01/14 v3.01 AMS symbols B
+)
+LaTeX Font Info:    Trying to load font information for TS1+ptm on input line 31.
  (/usr/share/texlive/texmf-dist/tex/latex/psnfss/ts1ptm.fd
 File: ts1ptm.fd 2001/06/04 font definitions for TS1/ptm.
-) (/mounts/u-amo-d1/adibm-data/projects/ZSToD/GenTodPaper/my_files/abstract.tex) (/mounts/u-amo-d1/adibm-data/projects/ZSToD/GenTodPaper/my_files/intro.tex) (/mounts/u-amo-d1/adibm-data/projects/ZSToD/GenTodPaper/my_files/methodology.tex [1{/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}
-
-
-
-]
-<assets/approach.png, id=8, 2935.96875pt x 887.315pt>
+) (/mounts/u-amo-d1/adibm-data/projects/ZSToD/GenTodPaper/my_files/abstract.tex) (/mounts/u-amo-d1/adibm-data/projects/ZSToD/GenTodPaper/my_files/intro.tex
+<assets/approach.png, id=1, 488.5452pt x 376.5267pt>
 File: assets/approach.png Graphic file (type png)
 <use assets/approach.png>
-Package pdftex.def Info: assets/approach.png  used on input line 24.
-(pdftex.def)             Requested size: 505.89pt x 152.88599pt.
-) (/mounts/u-amo-d1/adibm-data/projects/ZSToD/GenTodPaper/my_files/experiments.tex) (/mounts/u-amo-d1/adibm-data/projects/ZSToD/GenTodPaper/my_files/results.tex
+Package pdftex.def Info: assets/approach.png  used on input line 15.
+(pdftex.def)             Requested size: 239.39438pt x 184.50543pt.
+<assets/our_model.png, id=3, 580.3281pt x 247.8861pt>
+File: assets/our_model.png Graphic file (type png)
+<use assets/our_model.png>
+Package pdftex.def Info: assets/our_model.png  used on input line 26.
+(pdftex.def)             Requested size: 505.89pt x 216.09412pt.
+ [1{/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}
 
-LaTeX Warning: Reference `tab:ablation-results' on page 2 undefined on input line 33.
 
-) (/mounts/u-amo-d1/adibm-data/projects/ZSToD/GenTodPaper/my_files/related_works.tex) (/mounts/u-amo-d1/adibm-data/projects/ZSToD/GenTodPaper/formatting-instructions-latex.bbl [2]
-Underfull \hbox (badness 2680) in paragraph at lines 64--68
+
+ </mounts/u-amo-d1/adibm-data/projects/ZSToD/GenTodPaper/assets/approach.png>]) (/mounts/u-amo-d1/adibm-data/projects/ZSToD/GenTodPaper/my_files/methodology.tex [2 </mounts/u-amo-d1/adibm-data/projects/ZSToD/GenTodPaper/assets/our_model.png>]) (/mounts/u-amo-d1/adibm-data/projects/ZSToD/GenTodPaper/my_files/experiments.tex) (/mounts/u-amo-d1/adibm-data/projects/ZSToD/GenTodPaper/my_files/results.tex
+<assets/dialog_turns.png, id=22, 462.528pt x 346.896pt>
+File: assets/dialog_turns.png Graphic file (type png)
+<use assets/dialog_turns.png>
+Package pdftex.def Info: assets/dialog_turns.png  used on input line 57.
+(pdftex.def)             Requested size: 239.39438pt x 179.54533pt.
+ [3 </mounts/u-amo-d1/adibm-data/projects/ZSToD/GenTodPaper/assets/dialog_turns.png>]) (/mounts/u-amo-d1/adibm-data/projects/ZSToD/GenTodPaper/my_files/related_works.tex) (/mounts/u-amo-d1/adibm-data/projects/ZSToD/GenTodPaper/my_files/conclusion.tex) (/mounts/u-amo-d1/adibm-data/projects/ZSToD/GenTodPaper/formatting-instructions-latex.bbl [4]
+Underfull \hbox (badness 2671) in paragraph at lines 72--76
 []\OT1/ptm/m/n/10 Mehri, S.; Srini-vasan, T.; and Es-ke-nazi, M.  2019.
  []
 
+[5]) [6
 
-Underfull \vbox (badness 1577) has occurred while \output is active []
-
- [3 </mounts/u-amo-d1/adibm-data/projects/ZSToD/GenTodPaper/assets/approach.png>]) [4
-
-] (/mounts/u-amo-d1/adibm-data/projects/ZSToD/GenTodPaper/formatting-instructions-latex.aux)
-
-LaTeX Warning: There were undefined references.
-
- ) 
+] (/mounts/u-amo-d1/adibm-data/projects/ZSToD/GenTodPaper/formatting-instructions-latex.aux) ) 
 Here is how much of TeX's memory you used:
- 2398 strings out of 481239
- 39200 string characters out of 5920378
- 291215 words of memory out of 5000000
- 17621 multiletter control sequences out of 15000+600000
- 545845 words of font info for 43 fonts, out of 8000000 for 9000
+ 3669 strings out of 481239
+ 54054 string characters out of 5920378
+ 368791 words of memory out of 5000000
+ 18845 multiletter control sequences out of 15000+600000
+ 549268 words of font info for 53 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 31i,10n,34p,380b,324s stack positions out of 5000i,500n,10000p,200000b,80000s
-{/usr/share/texlive/texmf-dist/fonts/enc/dvips/base/8r.enc}</usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/times/utmb8a.pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/times/utmr8a.pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/times/utmri8a.pfb>
-Output written on /mounts/u-amo-d1/adibm-data/projects/ZSToD/GenTodPaper/formatting-instructions-latex.pdf (4 pages, 479071 bytes).
+ 31i,10n,34p,409b,331s stack positions out of 5000i,500n,10000p,200000b,80000s
+{/usr/share/texlive/texmf-dist/fonts/enc/dvips/base/8r.enc}</usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/times/utmb8a.pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/times/utmr8a.pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/times/utmri8a.pfb>
+Output written on /mounts/u-amo-d1/adibm-data/projects/ZSToD/GenTodPaper/formatting-instructions-latex.pdf (6 pages, 602385 bytes).
 PDF statistics:
- 57 PDF objects out of 1000 (max. 8388607)
- 39 compressed objects within 1 object stream
+ 71 PDF objects out of 1000 (max. 8388607)
+ 46 compressed objects within 1 object stream
  0 named destinations out of 1000 (max. 500000)
- 6 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 16 words of extra memory for PDF output out of 10000 (max. 10000000)
 

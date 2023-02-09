@@ -1,34 +1,5 @@
 \section{Methodology}
 
-Steps: Pretraining(CE Loss), Training (loss on target only)
-
-Context:
-Dialog History like SimpleTOD
-DST instead of dialog history
-
-Additional info
-Schema
-List of system actions
-User actions
-Service Results
-
-\begin{itemize}
-    \item Summary and importance of approach
-    \item Base model (GPT-2)
-    \item Prompt (context, additional info)
-    \item Training (pretraining, training)
-\end{itemize}
-
-\begin{figure*}
-    \centering
-    \includegraphics[width=\linewidth]{assets/approach.png}
-    \caption{
-        Using the user utterance (brown), domain schema (blue), system action names (purple) and database results, our model autoregressively generates the dialog state (green),
-        user actions (yellow) system action (red) and system response (gray)
-    }
-    \label{fig:approach}
-\end{figure*}
-
 \subsection{Problem Formulation}
 
 A dialog session is composed of multiple turns, which consists of interactions between the user and the system
@@ -39,13 +10,41 @@ can be used to extract the relevent schema for that dialog, $S_r \in S$.
 For a turn $t$, the inputs to the model are the following: user utterance $U_t$, DST from the previous turn $D_{t-1}$, relevant schemas $S_r$, database search results $Db_t$
 and a list of system action names $Action_{all}$.
 The model autoregressively generates the dialog state $D_{t}$, user actions $UA_t$, system actions $SA_t$ and system response $R_t$.
-Figure~\ref{fig:approach} shows a visual representation of the overall approach.
+Figure~\ref{fig:our_model} shows a visual representation of the overall approach.
 
+A dialog session is composed of multiple interactions between a user and a system in natural language utterance.
+At turn $t$, the user utters $U_t$ and the system responds with $S_t$. In a multi-domain dialog system with $m$ domains, the domain
+knowledge is encapsulated in a schema, $Schema_i \in Schema = \{Schema_1, ..., Schema_m\}$.
+A schema object, $Schema_i$, contains the domain name, a list of slots
+Our model~\oursys, at timestep $t$ estimates the probability of the dialog state at $D_t$ as follows:
+
+\begin{equation}
+    P(D_t | U_t, D_{t-1}, Schema_i)
+    \label{eq:dialog_state}
+\end{equation}
+
+The dialog state consists of a triplets of slot names and values from domain $i$, $D_t = \{S^i_1, ..., S^i_n\}$.
+
+\subsection{Input and Output Representation}
+
+\textbf{Should I write about this?}
 
 \subsection{Training}
 
-The model is trained in two steps, where in the first step we calculate the cross entropy loss on the context and target,
-and in the second step we calculate the loss only on the target.
-The intuition behind this is that in the first step the model understand the general structure of the text
-and in the second step the model fine tunes the target text.
+A GPT model is passed an input prompt and the model generates a response based on this. The input prompt is contained
+in the response of the model.
+Let $t_1, ..., t_p$ be the tokens in the input prompt and $t_{p+1}, ..., t_{n}$ be the tokens in the response.
+While optimizing a GPT model, the common practice is to calculate the Cross Entropy (CE) loss on the full sequence, $t_1, ..., t_n$.
 
+In this paper, we propose a two step training approach for training TOD systems that use generation models.
+In the first step, we follow the standard training procedure and calculate the CE loss on the full sequence, $t_1, ..., t_n$.
+For the second step, we intialize the model with the weights from the first step and calculate the CE loss only on the response,
+as shown in Equation~\eqref{eq:loss_func}.
+
+\begin{equation}
+    L = - \sum_{i=p+1}^{n} t_i \log(p_i)
+    \label{eq:loss_func}
+\end{equation}
+
+Formulating the loss in this way ensures that in turns that have a long input prompt, the model will not get an extra
+reward for generating the prompt, rather the full focus would be on optimizing the response.

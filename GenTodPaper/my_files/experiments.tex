@@ -11,18 +11,35 @@ dialogs between a human and a virtual assistant covering 16 domains. The dataset
 provides a textual description of the domain, list of slots and list of intents. A slot contains a name, textual description,
 and possible values for categorical slots and an intent contains a name, textual description, optional slots and result slots.
 
+\textbf{Add section about sgd-x dataset}
+
 \subsection{Evaluation Metrics}
 
-To have a fair comparison with other methods, we use the evaluation script from SGD dataset and report the Active Intent Accuracy,
-Requested Slot F1, Average Goal Accuracy and Joint Goal Accuracy.
+To evaluate the performance of our model, we compute multiple metrics on each component of the TOD system.
+For DST, we calculate:
+\begin{itemize}
+    \item Intent Accuracy: The percentage of correct active intent predictions.
+    \item Average Goal Accuracy: The average of the percentage of correct slot predictions.
+    \item Joint Goal Accuracy: The percentage of correct slot predictions.
+    \item Requested Slot F1: The F1 score of the requested slots.
+\end{itemize}
 
-However, the metrics in the SGD dataset are geared towards DST, and do not take into account the system actions and response.
-To evaluate task completion we report Inform, Success, Average Action Accuracy (AAA) and Joint Action Accuracy (JAA). For evaluating response
-generation we report the ROUGE-2~\cite{lin2004looking} score and GLEU~\cite{wu2016googles} instead of BLEU as it performs better on individual sentence pairs.
-The combined score is calculated as suggested in~\cite{mehri2019structured} with (Inform + Success) $\times$ 0.5 + GLEU.
+For DST, we calculate the Intent Accuracy, Average Goal Accuracy, Joint Goal Accuracy and Requestes Slot F1, all of which
+are suggested by the SGD dataset. Since the SGD dataset was created for evaluating DST, it does not contain metrics for evaluating system
+actions and response. For system actions, we calculate the metrics Inform, Success, Average Action Accuracy (AAA) and Joint Action Accuracy (JAA).
+Inform measures whether a system has provided a correct entity and Success measures whether it has answered all the requested
+information. AAA and JAA are similar to the goal metrics in SGD, but are calculated from system actions.
+For evaluating the system response, we report the ROUGE-2~\cite{lin2004looking} score and GLEU~\cite{wu2016googles} score.
+We went for GLEU instead of BLEU as it performs better on individual sentence pairs.
+To get an overall score for the model, we calculate the combined score~\cite{mehri2019structured} with (Inform + Success) $\times$ 0.5 + GLEU.
 
-The metric Inform measures whether a system has provided a correct entity and Success measures whether it has answered all the requested
-information. To calculate inform, from the ground truth system actions, we filter actions by action type inform (Inform, Inform Count)
-and check if they are predicted correctly. To calculate success, we filter actions by slot names that are in the requested slots and
-check if the action slot values are predicted correctly. AAA and JAA are similar to the
-goal metrics in SGD, but are calculated from system actions.
+For a few metrics, we did not find suitable pre-built solutions, so we ended up implementing inform, success, AAA and JAA ourselves.
+For inform, from the ground truth system actions we filtered actions by action type inform (Inform, Inform Count)
+and checked if they were predicted correctly. For success, we filtered actions by slot names that were in the requested slots and
+check if the action slot values were predicted correctly. AAA and JAA are implemented following the implementations of AGA and JGA.
+To ensure a fair comparson of our model with models from other papers, we used the evaluation script from SGD dataset to get the metrics.
+However, for internal experiments within our codebase, we reimplemented the SGD metrics but numbers did not exactly match those from the official script.
+
+
+
+
