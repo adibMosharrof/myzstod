@@ -87,10 +87,36 @@ class DialogDomains:
         )
         utils.write_csv(headers, rows, self.cfg.project_root / file_name)
 
+
+    def domain_counts(self, dialogs_by_steps):
+        domains = {step.value: defaultdict(lambda: 0) for step in Steps}
+        for step in Steps:
+            for _, dialogs in dialogs_by_steps[step.value].items():
+                for dialog in dialogs:
+                    service_str = ",".join(sorted(dialog.services))
+                    domains[step.value][service_str] += 1
+        
+        headers = ["Step", "Domain", "Count"]
+        rows = []
+        for step in Steps:
+            for domain, count in domains[step.value].items():
+                rows.append([step.value, domain, count])
+        
+        df = pd.DataFrame(rows, columns=headers)
+        df.sort_values(by=["Step", "Domain"], inplace=True)        
+
+        file_name = "".join(
+            [str(self.cfg.out_file_path), "_".join(map(str, self.cfg.num_dialogs)), ".csv"]
+        )
+        df.to_csv(self.cfg.project_root / file_name, index=False)
+        # utils.write_csv(headers, rows, self.cfg.project_root / file_name)        
+
+
     def run(self):
         dialogs = self._get_dialogs()
-        domains = self._group_dialogs_by_domain(dialogs)
-        self.print_dialog_domains(domains)
+        # domains = self._group_dialogs_by_domain(dialogs)
+        # self.print_dialog_domains(domains)
+        self.domain_counts(dialogs)
         a = 1
 
 
@@ -101,7 +127,8 @@ if __name__ == "__main__":
             processed_data_root="data/processed_data/",
             project_root=Path("/u/amo-d0/grad/adibm/data/projects/ZSToD"),
             num_dialogs=[127, 20, 34],
-            out_file_path=Path("data_exploration/dialog_domains"),
+            # num_dialogs=[1, 1, 1],
+            out_file_path=Path("data_exploration/dialog_domains/domain_counts"),
         )
     )
     dd.run()
