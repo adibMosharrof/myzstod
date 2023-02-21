@@ -1,0 +1,10 @@
+Step,Domain,Count
+dev,"Banks_2,Events_1",28
+dev,"Buses_1,Hotels_4",51
+dev,"Buses_1,RentalCars_1",49
+test,"Events_3,Messaging_1,Trains_1",43
+test,"Flights_4,Trains_1",1
+test,"Media_3,Music_3,Travel_1",39
+test,"Payment_1,Trains_1,Weather_1",45
+train,"Hotels_3,Travel_1",64
+train,"RideSharing_2,Travel_1,Weather_1",64
