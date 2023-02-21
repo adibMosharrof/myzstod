@@ -101,7 +101,7 @@ def init_wandb(
     group = "multi_head" if cfg.is_multi_head else "single_head"
     # num_dialogs = "_".join(map(str, cfg.num_dialogs))
     # tags = [cfg.model_name, num_dialogs, step]
-    tags = [cfg.model_name, step]
+    tags = [cfg.wandb.task, cfg.model_name, step]
     run = wandb.init(
         name=run_name,
         group=group,
