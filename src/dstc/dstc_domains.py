@@ -13,22 +13,22 @@ import utils
 
 class DstcDomains(str, Enum):
     # make sure the string values exactly match the domain names in the data
-    SEEN = "SEEN"
-    UNSEEN = "UNSEEN"
-    ALL = "ALL"
-    TRAVEL_1 = "Travel_1"
-    RESTAURANTS_2 = "Restaurants_2"
-    RESTAURANTS_1 = "Restaurants_1"
-    HOTELS_2 = "Hotels_2"
-    MOVIES_3 = "Movies_3"
-    RENTALCARS_1 = "RentalCars_1"
+    SEEN = "seen"
+    UNSEEN = "unseen"
+    ALL = "all"
+    # TRAVEL_1 = "Travel_1"
+    # RESTAURANTS_2 = "Restaurants_2"
+    # RESTAURANTS_1 = "Restaurants_1"
+    # HOTELS_2 = "Hotels_2"
+    # MOVIES_3 = "Movies_3"
+    # RENTALCARS_1 = "RentalCars_1"
 
     @classmethod
     def regular_settings(cls):
         return [cls.SEEN.value, cls.UNSEEN.value, cls.ALL.value]
 
     def __getitem__(cls, name):
-        return cls._member_map_[name.upper()]
+        return cls._member_map_[name]
 
     @classmethod
     def list(cls):
@@ -46,9 +46,8 @@ class DstcDomainBuilder:
             for domain in domain_setting:
                 out.append(self.get_domains(domain))
             return np.concatenate(out, axis=0)
-        domain_setting = domain_setting.upper()
         if domain_setting not in DstcDomains.regular_settings():
-            return [DstcDomains(domain_setting).value]
+            return [domain_setting]
 
         domain_to_step_map = {
             DstcDomains.SEEN.name: [Steps.TRAIN.value],
