@@ -1,43 +1,86 @@
+\begin{table*}
+    \centering
+    \begin{adjustbox}{max width=\textwidth}
+        \begin{tabular}{|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|}
+            \hline
+            \multirow{3}{*}{Model}     &         & \multirow{2}{*}{Intent}   & Requested & Average        & Joint          &                &         & Average  & Joint    & Average    & Joint      & \multirow{2}{*}{Response} &          \\
+                                       & Domains & \multirow{2}{*}{Accuracy} & Slots     & Goal           & Goal           & Inform         & Success & Action   & Action   & UserAction & UserAction & \multirow{2}{*}{GLEU}     & Combined \\
+                                       &         &                           & F1        & Accurracy      & Accuracy       &                &         & Accuracy & Accuracy & Accuracy   & Accuracy   &                           &          \\ \hline
+            \multirow{3}{*}{SimpleTOD} & all     & 78.60                     & 94.08     & 47.85          & 24.18          & 55.65          & 47.27   & 49.08    & 37.66    & 66.42      & 57.46      & 20.64                     & 72.10    \\
+                                       & seen    & 80.07                     & 94.55     & 52.00          & 29.35          & 58.35          & 50.13   & 51.43    & 40.26    & 68.88      & 60.31      & 24.89                     & 79.13    \\
+                                       & unseen  & 78.63                     & 93.92     & 46.27          & 22.72          & 54.28          & 46.17   & 48.29    & 37.12    & 65.55      & 56.65      & 19.24                     & 69.47    \\ \hline
+            {SimpleTOD w/}             & all     & 82.34                     & 95.72     & 58.03          & 30.36          & 68.30          & 60.47   & 55.18    & 43.42    & 70.30      & 60.23      & 22.03                     & 86.41    \\
+            {Schema \&}                & seen    & 83.32                     & 96.05     & 61.29          & 34.88          & 70.05          & 62.68   & 57.28    & 46.01    & 72.34      & 62.61      & 25.68                     & 92.04    \\
+            {DB Results}               & unseen  & 82.19                     & 95.71     & 57.35          & 29.20          & 68.10          & 60.48   & 54.64    & 42.85    & 70.19      & 60.24      & 20.40                     & 84.69    \\ \hline
+            \multirow{3}{*}{\oursys~}  & all     & 84.83                     & 95.53     & \textbf{72.38} & \textbf{48.44} & \textbf{73.08} & 62.19   & 58.32    & 46.31    & 73.20      & 64.20      & 20.04                     & 87.67    \\
+                                       & seen    & 85.48                     & 95.88     & \textbf{74.23} & \textbf{52.05} & \textbf{74.72} & 63.85   & 60.19    & 48.69    & 74.89      & 66.24      & 24.66                     & 93.95    \\
+                                       & unseen  & 84.45                     & 95.42     & \textbf{72.03} & \textbf{47.83} & \textbf{71.68} & 61.63   & 57.42    & 45.21    & 72.56      & 63.46      & 18.51                     & 85.16    \\ \hline
+        \end{tabular}
+    \end{adjustbox}
+    \caption{Main Results. For end-to-end systems,~\oursys~outperforms existing baselines across all metrics, particularly there is significant improvement in key metrics like Average/Joint Goal Accuracy and Inform.}
+    \label{tab:main-results}
+\end{table*}
+
 \section{Methodology}
 
 \subsection{Problem Formulation}
+\textbf{Please review this section. I am not that confident about the formulation.}
+In a multi-domain dialog system, the domain knowledge is encapsulated in a domain schema,
+$DS_i$, which is identified by the domain name and contains a list of slots and intents, $DS_i = \{slots, intents\}$.
+A dialog session is composed of multiple turns from multiple domains, which consists of interactions between the user and the system in natural language utterance.
+At timestep $t$, the user utterance is $U^u_t$ and the system response is $S^r_t$ and the current state of the dialog is captured
+in a dialog state object $D_t$, which contains the intent and a list of triplets recording the slot names and values in a particular domain: $(domain\_name, slot\_name, value)$.
 
-A dialog session is composed of multiple turns, which consists of interactions between the user and the system
-in natural language utterance.
-The SGD dataset provides a list of Schemas, $S = (s_1, ...., s_n)$ and each dialog contains a list of service names, which
-can be used to extract the relevent schema for that dialog, $S_r \in S$.
-
-For a turn $t$, the inputs to the model are the following: user utterance $U_t$, DST from the previous turn $D_{t-1}$, relevant schemas $S_r$, database search results $Db_t$
-and a list of system action names $Action_{all}$.
-The model autoregressively generates the dialog state $D_{t}$, user actions $UA_t$, system actions $SA_t$ and system response $R_t$.
-Figure~\ref{fig:our_model} shows a visual representation of the overall approach.
-
-A dialog session is composed of multiple interactions between a user and a system in natural language utterance.
-At turn $t$, the user utters $U_t$ and the system responds with $S_t$. In a multi-domain dialog system with $m$ domains, the domain
-knowledge is encapsulated in a schema, $Schema_i \in Schema = \{Schema_1, ..., Schema_m\}$.
-A schema object, $Schema_i$, contains the domain name, a list of slots
-Our model~\oursys, at timestep $t$ estimates the probability of the dialog state at $D_t$ as follows:
+At timestep $t$,~\oursys~estimates the probability of the dialog state, $D_t$ by conditioning on $U^u_t$, $D_{t-1}$ and $DS_i$  as follows:
 
 \begin{equation}
     P(D_t | U_t, D_{t-1}, Schema_i)
     \label{eq:dialog_state}
 \end{equation}
 
-The dialog state consists of a triplets of slot names and values from domain $i$, $D_t = \{S^i_1, ..., S^i_n\}$.
+The dialog state is used to query the database, which returns a list of Database Results, $DB_t$, that satisfy the constraints in the dialog state.
+\oursys~estimates the probability of the user action, $U^a_t$ by conditioning on $U^u_t$, $S^r_t$, $D_t$, $DS_i$ and $DB_t$ as follows:
 
-\subsection{Input and Output Representation}
+\begin{equation}
+    P(U_t^a | U^u_t, D_{t}, DS_i, DB_t)
+    \label{eq:user_action}
+\end{equation}
 
-\textbf{Should I write about this?}
+The user action contains a list of triplets recording the action type, slot names and values in a particular domain: $(domain\_name, action\_type, slot\_name, value)$.
+Next,~\oursys~estimates the probability of the system action consisting of items similar to the user actions, $S^a_t$ by conditioning on $U^u_t$, $U^a_t$, $D_t$, $DS_i$, $\forall S^a(name)$  and $DB_t$ as follows:
+\begin{equation}
+    P(S_t^a | U^u_t, D_{t}, DS_i,\forall S^a(name), DB_t)
+    \label{eq:system_action}
+\end{equation}
 
-\subsection{Training}
+Finally,~\oursys~estimates the probability of the system response, $S^r_t$ by conditioning on $U^u_t$, $U^a_t$, $S^a_t$, $D_t$ and $DS_i$ as follows:
 
-A GPT model is passed an input prompt and the model generates a response based on this. The input prompt is contained
-in the response of the model.
-Let $t_1, ..., t_p$ be the tokens in the input prompt and $t_{p+1}, ..., t_{n}$ be the tokens in the response.
-While optimizing a GPT model, the common practice is to calculate the Cross Entropy (CE) loss on the full sequence, $t_1, ..., t_n$.
+\begin{equation}
+    P(S_t^r | U^u_t, D_t, U^a_t, S^a_t, DS_i)
+    \label{eq:system_response}
+\end{equation}
 
-In this paper, we propose a two step training approach for training TOD systems that use generation models.
-In the first step, we follow the standard training procedure and calculate the CE loss on the full sequence, $t_1, ..., t_n$.
+Figure~\ref{fig:our_model} shows a visual representation of the overall approach.
+
+\subsection{Pre-trained Language Models}
+
+Language models like GPT and BERT have been trained on massive amount of textual data and have shown to be effective in a variety of NLP tasks.
+Since language models have millions of parameters, they are able to effectively capture the semantic and syntactic information in text.
+In this paper, we use GPT-2 as the base model and fine tune it on task specific data to create an End-to-End TOD system.
+
+GPT-2 is a large transformer based language model that has been pre-trained for autoregressively generating the next word given a sequence of text as a prompt.
+Since we formulate our problem as a sequence generation problem, GPT-2 is a natural choice for our TOD system.
+
+\subsection{Two Step Training}
+
+Generation models are passed an input tokens, $T_{in} = \{t_1, ..., t_p\}$ as the prompt,
+and the model generates a response, $T_{out} = \{t_1, ..., t_p, ..., t_n\}$ which contains the input followed by the generated text.
+The standard procedure for training these models is to optimize the CE loss on the full sequence. In TOD systems,
+the input prompt is usually a long sequence of text that contains the entire dialog history, and the generation output is generally much shorter than the input prompt.
+Since the focus is not on generating the input prompt, we should modify the loss function to pay less attention to the input prompt and more attention to the response.
+
+We propose a two step training approach for training TOD systems that use generation models.
+In the first step, we follow the standard training procedure and calculate the CE loss on the full sequence.
 For the second step, we intialize the model with the weights from the first step and calculate the CE loss only on the response,
 as shown in Equation~\eqref{eq:loss_func}.
 
@@ -45,6 +88,3 @@ as shown in Equation~\eqref{eq:loss_func}.
     L = - \sum_{i=p+1}^{n} t_i \log(p_i)
     \label{eq:loss_func}
 \end{equation}
-
-Formulating the loss in this way ensures that in turns that have a long input prompt, the model will not get an extra
-reward for generating the prompt, rather the full focus would be on optimizing the response.

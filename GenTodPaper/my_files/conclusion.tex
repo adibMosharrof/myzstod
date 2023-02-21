@@ -1,6 +1,12 @@
 
 \section{Conclusion}
 
-In this paper, we have introduced a novel to model the context in TOD systems. Instead of passing the whole dialog history, we just
-pass the last user utterance and the previous state DST as context. Through extensive experimental results,
-we have shown that this approach is more effective than the existing approaches. \textbf{rewrite this after seeing all the results, also add a future work section}.
+In this paper, we have presented a novel Schema Guided Zero-Shot Generalizable End-to-End Task Oriented Dialog System using Context Summarization,
+which to the best of our knowledge is the first End-to-End TOD system for the SGD dataset. We proposed to restructure the input to a TOD system,
+by passing the last user utterance and the previous state DST as context instead of the dialog history. We also introduced a two step
+training approach, where the model first learns the general structure of the data and then optimizes the generation.
+To better understand our contributions, we have provided an ablation study that shows the importance of each component of our approach.
+Our experimental results show that~\oursys~beats existing End-To-End TOD systems and outperforms state-of-the-art DST systems on key metrics
+like Average and Joint Goal Accuracy by a large margin in the SGD dataset.
+
+

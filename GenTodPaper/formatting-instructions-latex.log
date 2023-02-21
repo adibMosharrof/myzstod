@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.20 (TeX Live 2019/Debian) (preloaded format=pdflatex 2023.1.5)  9 FEB 2023 16:44
+This is pdfTeX, Version 3.14159265-2.6-1.40.20 (TeX Live 2019/Debian) (preloaded format=pdflatex 2023.1.5)  10 FEB 2023 19:30
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -290,42 +290,69 @@ File: assets/approach.png Graphic file (type png)
 <use assets/approach.png>
 Package pdftex.def Info: assets/approach.png  used on input line 15.
 (pdftex.def)             Requested size: 239.39438pt x 184.50543pt.
-<assets/our_model.png, id=3, 580.3281pt x 247.8861pt>
+<assets/our_model.png, id=3, 565.1514pt x 248.6088pt>
 File: assets/our_model.png Graphic file (type png)
 <use assets/our_model.png>
 Package pdftex.def Info: assets/our_model.png  used on input line 26.
-(pdftex.def)             Requested size: 505.89pt x 216.09412pt.
+(pdftex.def)             Requested size: 505.89pt x 222.54709pt.
  [1{/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}
 
 
 
- </mounts/u-amo-d1/adibm-data/projects/ZSToD/GenTodPaper/assets/approach.png>]) (/mounts/u-amo-d1/adibm-data/projects/ZSToD/GenTodPaper/my_files/methodology.tex [2 </mounts/u-amo-d1/adibm-data/projects/ZSToD/GenTodPaper/assets/our_model.png>]) (/mounts/u-amo-d1/adibm-data/projects/ZSToD/GenTodPaper/my_files/experiments.tex) (/mounts/u-amo-d1/adibm-data/projects/ZSToD/GenTodPaper/my_files/results.tex
-<assets/dialog_turns.png, id=22, 462.528pt x 346.896pt>
+ </mounts/u-amo-d1/adibm-data/projects/ZSToD/GenTodPaper/assets/approach.png>]) (/mounts/u-amo-d1/adibm-data/projects/ZSToD/GenTodPaper/my_files/methodology.tex
+Underfull \hbox (badness 1308) in paragraph at lines 49--51
+[]\OT1/ptm/m/n/10 The user ac-tion con-tains a list of triplets record-ing
+ []
+
+
+Underfull \hbox (badness 1122) in paragraph at lines 49--51
+\OT1/ptm/m/n/10 the ac-tion type, slot names and val-ues in a par-tic-u-lar
+ []
+
+[2 </mounts/u-amo-d1/adibm-data/projects/ZSToD/GenTodPaper/assets/our_model.png>]) (/mounts/u-amo-d1/adibm-data/projects/ZSToD/GenTodPaper/my_files/experiments.tex [3]) (/mounts/u-amo-d1/adibm-data/projects/ZSToD/GenTodPaper/my_files/results.tex
+<assets/dialog_turns.png, id=26, 462.528pt x 346.896pt>
 File: assets/dialog_turns.png Graphic file (type png)
 <use assets/dialog_turns.png>
-Package pdftex.def Info: assets/dialog_turns.png  used on input line 57.
+Package pdftex.def Info: assets/dialog_turns.png  used on input line 73.
 (pdftex.def)             Requested size: 239.39438pt x 179.54533pt.
- [3 </mounts/u-amo-d1/adibm-data/projects/ZSToD/GenTodPaper/assets/dialog_turns.png>]) (/mounts/u-amo-d1/adibm-data/projects/ZSToD/GenTodPaper/my_files/related_works.tex) (/mounts/u-amo-d1/adibm-data/projects/ZSToD/GenTodPaper/my_files/conclusion.tex) (/mounts/u-amo-d1/adibm-data/projects/ZSToD/GenTodPaper/formatting-instructions-latex.bbl [4]
-Underfull \hbox (badness 2671) in paragraph at lines 72--76
+
+Underfull \vbox (badness 2197) has occurred while \output is active []
+
+<assets/two_step_training.png, id=27, 462.528pt x 346.896pt>
+File: assets/two_step_training.png Graphic file (type png)
+<use assets/two_step_training.png>
+Package pdftex.def Info: assets/two_step_training.png  used on input line 97.
+(pdftex.def)             Requested size: 239.39438pt x 179.54533pt.
+
+Underfull \vbox (badness 3148) has occurred while \output is active []
+
+ [4 </mounts/u-amo-d1/adibm-data/projects/ZSToD/GenTodPaper/assets/dialog_turns.png> </mounts/u-amo-d1/adibm-data/projects/ZSToD/GenTodPaper/assets/two_step_training.png>]
+<assets/sgdx_results.png, id=33, 462.22687pt x 346.79562pt>
+File: assets/sgdx_results.png Graphic file (type png)
+<use assets/sgdx_results.png>
+Package pdftex.def Info: assets/sgdx_results.png  used on input line 152.
+(pdftex.def)             Requested size: 239.39438pt x 179.6098pt.
+ [5 </mounts/u-amo-d1/adibm-data/projects/ZSToD/GenTodPaper/assets/sgdx_results.png>]) (/mounts/u-amo-d1/adibm-data/projects/ZSToD/GenTodPaper/my_files/related_works.tex) (/mounts/u-amo-d1/adibm-data/projects/ZSToD/GenTodPaper/my_files/conclusion.tex) (/mounts/u-amo-d1/adibm-data/projects/ZSToD/GenTodPaper/formatting-instructions-latex.bbl
+Underfull \hbox (badness 2671) in paragraph at lines 66--70
 []\OT1/ptm/m/n/10 Mehri, S.; Srini-vasan, T.; and Es-ke-nazi, M.  2019.
  []
 
-[5]) [6
+[6]) [7
 
 ] (/mounts/u-amo-d1/adibm-data/projects/ZSToD/GenTodPaper/formatting-instructions-latex.aux) ) 
 Here is how much of TeX's memory you used:
- 3669 strings out of 481239
- 54054 string characters out of 5920378
- 368791 words of memory out of 5000000
- 18845 multiletter control sequences out of 15000+600000
- 549268 words of font info for 53 fonts, out of 8000000 for 9000
+ 3686 strings out of 481239
+ 54477 string characters out of 5920378
+ 334809 words of memory out of 5000000
+ 18860 multiletter control sequences out of 15000+600000
+ 549968 words of font info for 54 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 31i,10n,34p,409b,331s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 31i,10n,34p,385b,343s stack positions out of 5000i,500n,10000p,200000b,80000s
 {/usr/share/texlive/texmf-dist/fonts/enc/dvips/base/8r.enc}</usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/times/utmb8a.pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/times/utmr8a.pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/times/utmri8a.pfb>
-Output written on /mounts/u-amo-d1/adibm-data/projects/ZSToD/GenTodPaper/formatting-instructions-latex.pdf (6 pages, 602385 bytes).
+Output written on /mounts/u-amo-d1/adibm-data/projects/ZSToD/GenTodPaper/formatting-instructions-latex.pdf (7 pages, 760649 bytes).
 PDF statistics:
- 71 PDF objects out of 1000 (max. 8388607)
- 46 compressed objects within 1 object stream
+ 80 PDF objects out of 1000 (max. 8388607)
+ 50 compressed objects within 1 object stream
  0 named destinations out of 1000 (max. 500000)
- 16 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 26 words of extra memory for PDF output out of 10000 (max. 10000000)
 

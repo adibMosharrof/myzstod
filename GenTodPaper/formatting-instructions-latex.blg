@@ -4,45 +4,45 @@ The top-level auxiliary file: formatting-instructions-latex.aux
 The style file: flairs.bst
 Database file #1: custom.bib
 Warning--empty booktitle in Radford2019LanguageMA
-You've used 23 entries,
+You've used 22 entries,
             2568 wiz_defined-function locations,
-            695 strings with 9588 characters,
-and the built_in function-call counts, 10136 in all, are:
-= -- 994
-> -- 689
+            690 strings with 9475 characters,
+and the built_in function-call counts, 9804 in all, are:
+= -- 960
+> -- 676
 < -- 1
-+ -- 252
-- -- 248
-* -- 859
-:= -- 1776
-add.period$ -- 114
-call.type$ -- 23
-change.case$ -- 216
-chr.to.int$ -- 22
-cite$ -- 24
-duplicate$ -- 335
-empty$ -- 556
-format.name$ -- 286
-if$ -- 1981
++ -- 248
+- -- 244
+* -- 836
+:= -- 1721
+add.period$ -- 109
+call.type$ -- 22
+change.case$ -- 210
+chr.to.int$ -- 21
+cite$ -- 23
+duplicate$ -- 319
+empty$ -- 528
+format.name$ -- 280
+if$ -- 1911
 int.to.chr$ -- 2
 int.to.str$ -- 0
-missing$ -- 22
-newline$ -- 140
-num.names$ -- 69
-pop$ -- 204
+missing$ -- 21
+newline$ -- 134
+num.names$ -- 66
+pop$ -- 196
 preamble$ -- 1
-purify$ -- 239
+purify$ -- 232
 quote$ -- 0
-skip$ -- 255
+skip$ -- 246
 stack$ -- 0
-substring$ -- 197
-swap$ -- 56
+substring$ -- 192
+swap$ -- 54
 text.length$ -- 1
 text.prefix$ -- 0
 top$ -- 0
-type$ -- 184
+type$ -- 176
 warning$ -- 1
-while$ -- 51
-width$ -- 28
-write$ -- 310
+while$ -- 49
+width$ -- 27
+write$ -- 297
 (There was 1 warning)

@@ -54,12 +54,6 @@ Lee, C.-H.; Cheng, H.; and Ostendorf, M.
 \newblock In {\em Conference on Empirical Methods in Natural Language
   Processing}.
 
-\bibitem[\protect\citeauthoryear{Lin and Och}{2004}]{lin2004looking}
-Lin, C.-Y., and Och, F.
-\newblock 2004.
-\newblock Looking for a few good metrics: Rouge and its evaluation.
-\newblock In {\em Ntcir workshop}.
-
 \bibitem[\protect\citeauthoryear{Mehri and
   Esk{\'e}nazi}{2021}]{Mehri2021SchemaGuidedPF}
 Mehri, S., and Esk{\'e}nazi, M.

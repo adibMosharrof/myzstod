@@ -1,9 +1,6 @@
-Creating Task Oriented Dialog (TOD) Systems that generalize well to unseen domains has been a challenging research area in dialog.
-Most systems use the dialog history as context, and as the number of turns in a dialog increases, the context becomes too long and in many cases contain
-repetitive and unnecessary information. Also, the metrics used to evaluate dialog systems mainly focus on Dialog State Tracking (DST) and response generation, and seem to
-neglect system actions. In this paper, we propose a novel TOD system that uses a compressed context consisting of the latest DST and the last user utterance.
-Using a compressed context allows us to feed additional information like the schema, list of system actions, user actions and service results to the model, and still use
-language models like GPT-2. We propose a two step training process, where in the first pass we calculate the cross entropy loss on the context and target, and
-in the second pass we calculate the loss only on the target.
-To get a better understanding of the system actions, we propose two new metrics called Average Action Accuracy (AAA) and Joint Action Accuracy (JAA).
-Experimental results on the Schema Guided Dialogue (SGD) dataset show that our model outperforms the state of the art models in terms of zero shot generalization.
+Task Oriented Dialog (TOD) Systems that generalize well to unseen domain has been a challenging research area in dialog.
+Existing methods mainly target individual components of TOD systems, but there are no End-to-End TOD systems that generalize well to unseen domains.
+We introduce a novel TOD system that uses domain schema to generalize to unseen domains and propose to replace the dialog history with a
+dialog summary as the context to the model. To enhance language generation, we suggest a two step training process where the goal of the first
+pass is to learn the general structure of the data and the second pass is to optimize the generation.
+Through experimental results on the SGD and SGD-X dataset, we demonstrate the superiority of our approach over the state of the art models.
