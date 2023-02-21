@@ -190,7 +190,6 @@ class DstcSchemaSlot:
         return self.name == slot_name
 
     def __str__(self):
-        # return self.name
         return "".join(
             [
                 self.name,

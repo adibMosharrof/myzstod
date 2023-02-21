@@ -170,17 +170,17 @@ class BaseDataModule(ABC):
     def test_dataloader(self) -> list[Tuple[TodTestDataBatch, str]]:
         dls = self.datasets[Steps.TEST]
         if not isinstance(dls, list):
-            dls = [dls]
-
+           dls = [dls] 
+        
         return [
             (
                 DataLoader(
-                    dl,
-                    batch_size=self.cfg.test_batch_size,
-                    shuffle=False,
-                    num_workers=self.cfg.num_workers,
-                    collate_fn=self.my_test_collate,
-                    pin_memory=True,
+            dl,
+            batch_size=self.cfg.test_batch_size,
+            shuffle=False,
+            num_workers=self.cfg.num_workers,
+            collate_fn=self.my_test_collate,
+            pin_memory=True,
                 ),
                 domain_setting,
             )

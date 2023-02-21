@@ -45,7 +45,6 @@ class DataPrepConfig:
         self.overwrite = overwrite
         self.train_domain_percentage = train_domain_percentage
         self.domain_setting = domain_setting
-        # self.domains = DstcDomains[domain_setting.upper()].value
         self.domains = DstcDomainBuilder(
             self.raw_data_root, train_domain_percentage
         ).get_domains(self.domain_setting)

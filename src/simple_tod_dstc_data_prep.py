@@ -391,11 +391,6 @@ class SimpleTODDSTCDataPrep:
         # end no mp code
 
         out_data = [d for d in res if len(d)]
-        # headers = SimpleTodTurn.get_csv_headers(
-        #     self.cfg.should_add_schema,
-        #     self.cfg.is_multi_head,
-        #     self.cfg.mh_fact,
-        # )
         headers = turn_csv_row_handler.get_csv_headers(self.cfg.should_add_schema)
         if len(out_data) == 0:
             print(f"No data for {self.cfg.step_name}")
