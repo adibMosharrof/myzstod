@@ -36,7 +36,7 @@ class TrainerConfig:
         train_domain_percentage: float = 1.0,
         train_domain_settings: list[str] = None,
         dev_domain_settings: list[str] = None,
-        test_domain_settings: list[str] = None,
+        test_domain_settings: list[list[str]] = None,
         out_dir: str = "results",
         pretrain_epochs: int = 1,
         pretrain_model_path: str = None,
