@@ -257,10 +257,10 @@ class SimpleTODTrainer:
 
 
 
-@hydra.main(config_path="../config/trainer/", config_name="simple_tod_trainer")
+@hydra.main(config_path="../config/trainer/", config_name="arithmetic_trainer")
 def hydra_start(cfg: DictConfig) -> None:
     trainer_cfg = TrainerConfig(**cfg)
-    utils.init_wandb(trainer_cfg, cfg, "training", trainer_cfg.num_dialogs)
+    utils.init_wandb(trainer_cfg, cfg, "training")
     stt = SimpleTODTrainer(trainer_cfg)
     stt.run()
 
