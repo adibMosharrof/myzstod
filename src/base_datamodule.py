@@ -19,7 +19,8 @@ from simple_tod_dataclasses import (
 from simple_tod_dstc_data_prep import SimpleTODDSTCDataPrep
 import copy
 import pandas as pd
-
+import random
+random.seed(420)
 
 @dataclass(frozen=True)
 class StepData:
@@ -46,7 +47,7 @@ class BaseDataModule(ABC):
     ):
         self.cfg = cfg
         self.tod_turn_row_cls = tod_turn_row_cls
-        self.datasets: list[str, SimpleTodDataSet] = {}
+        self.datasets: dict[str, SimpleTodDataSet] = {}
         self.grouped_test_datasets: list[str, SimpleTodDataSet] = {}
         self.steps = steps
         self.setup()
@@ -108,6 +109,31 @@ class BaseDataModule(ABC):
                 )
         if self.cfg.test_num_turns_groups:
             self.create_test_data_grouped_by_dialog_turns(self.datasets[Steps.TEST])
+        if self.cfg.create_data_from_train:
+            self.create_dev_test_from_train()
+        a=1
+
+    def create_dev_test_from_train(self):
+        if Steps.TRAIN in self.steps:
+            if not self.datasets[Steps.TRAIN]:
+                raise ValueError("There is no train data, so cannot create dev/test")
+        else:
+            raise ValueError("Need to implement if called from inference")            
+
+        for step, split_percent in zip([Steps.DEV, Steps.TEST], self.cfg.create_data_from_train_splits):
+            ds = self.datasets[step] if step == Steps.DEV else self.datasets[step][0]
+            if ds.data:
+                continue
+            train_df = pd.DataFrame(self.datasets[Steps.TRAIN].data)
+            train_dialog_ids = list(train_df.dialog_id.unique())
+            new_data_dialog_ids = random.sample(train_dialog_ids, int(len(train_dialog_ids) * split_percent))
+            new_data = train_df[train_df.dialog_id.isin(new_data_dialog_ids)]
+            updated_train_data = train_df[~train_df.dialog_id.isin(new_data_dialog_ids)]
+            self.datasets[Steps.TRAIN] = SimpleTodDataSet([ TodTurnCsvRow(**row) for row in updated_train_data.to_dict(orient="records")])
+            new_step_data = SimpleTodDataSet([ TodTurnCsvRow(**row) for row in new_data.to_dict(orient="records")])
+            self.datasets[step] = [new_step_data] if step == Steps.TEST else new_step_data
+            
+
 
     def create_test_data_grouped_by_dialog_turns(
         self, datasets: list[list[TodTurnCsvRow]]
@@ -156,16 +182,6 @@ class BaseDataModule(ABC):
         self, data: list[TodTurnCsvRow], split_percent: float
     ):
         return data[: int(len(data) * split_percent)]
-
-    def get_arguments_for_step_iteration(self, step: Steps):
-        if step == Steps.TRAIN:
-            return
-        elif step == Steps.VALID:
-            return self.val_dataloader()
-        elif step == Steps.TEST:
-            return self.test_dataloader()
-        else:
-            raise ValueError("Invalid step")
 
     def test_dataloader(self) -> list[Tuple[TodTestDataBatch, str]]:
         dls = self.datasets[Steps.TEST]
@@ -317,7 +333,7 @@ class SimpleTodDataSet(Dataset):
         self,
         data: List[TodTurnCsvRow],
     ):
-        self.data = data
+        self.data:list[TodTurnCsvRow] = data
 
     def __len__(self):
         return len(self.data)

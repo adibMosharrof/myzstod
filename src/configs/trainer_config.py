@@ -37,6 +37,8 @@ class TrainerConfig:
         train_domain_settings: list[str] = None,
         dev_domain_settings: list[str] = None,
         test_domain_settings: list[list[str]] = None,
+        create_data_from_train: bool = False,
+        create_data_from_train_splits: list[float] = None,
         out_dir: str = "results",
         pretrain_epochs: int = 1,
         pretrain_model_path: str = None,
@@ -103,6 +105,8 @@ class TrainerConfig:
             ["seen"],
             ["unseen"],
         ]
+        self.create_data_from_train = create_data_from_train
+        self.create_data_from_train_splits = create_data_from_train_splits or [0.1,0.1]
         self.train_domain_percentage = train_domain_percentage
         self.pretrain_model_path = pretrain_model_path
         self.train_model_path = train_model_path

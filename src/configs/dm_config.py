@@ -38,6 +38,8 @@ class DataModuleConfig:
         dev_domain_settings: Union[list[str], str] = None,
         test_domain_settings: Union[list[str], str] = None,
         train_domain_percentage: float = 1.0,
+        create_data_from_train: bool = False,
+        create_data_from_train_splits: list[float] = None,
         is_multi_task: bool = False,
         is_multi_head: bool = False,
         multi_tasks: list[int] = None,
@@ -100,6 +102,8 @@ class DataModuleConfig:
         self.train_domain_settings = train_domain_settings
         self.dev_domain_settings = dev_domain_settings
         self.test_domain_settings = test_domain_settings
+        self.create_data_from_train = create_data_from_train
+        self.create_data_from_train_splits = create_data_from_train_splits or [0.1,0.1]
         # these two variables are added so that we can have typing in DataPrepConfig.from_dm_config method
         self.step_name = None
         self.domain_setting = None
@@ -129,6 +133,8 @@ class DataModuleConfig:
             dev_domain_settings=trainer_config.dev_domain_settings,
             test_domain_settings=trainer_config.test_domain_settings,
             train_domain_percentage=trainer_config.train_domain_percentage,
+            create_data_from_train=trainer_config.create_data_from_train,
+            create_data_from_train_splits=trainer_config.create_data_from_train_splits,
             tokenizer=trainer_config.tokenizer,
             batch_size=trainer_config.train_batch_size,
             eval_batch_size=trainer_config.eval_batch_size,
