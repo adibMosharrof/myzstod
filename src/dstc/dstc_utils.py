@@ -219,10 +219,10 @@ def fuzzy_string_match(ref: str, hyp: str) -> float:
 def get_model_class(model_name: str, is_mh_head: bool = False):
     if is_mh_head:
         return GPT2MultiLMHeadModel
-    if model_name in ["gpt2", "distilgpt2"]:
-        return GPT2LMHeadModel
-    elif model_name == "t5-base":
+    if model_name == "t5-base":
         return T5ForConditionalGeneration
+    else:
+        return GPT2LMHeadModel
 
 
 def get_model_size(model: AutoModel) -> int:
