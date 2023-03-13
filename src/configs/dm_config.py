@@ -11,6 +11,7 @@ if TYPE_CHECKING:
     from configs.data_model_exploration_config import DataModelExplorationConfig
     from configs.dm_config import DataModuleConfig
     from configs.contrastive_config import ContrastiveConfig
+    from base_datamodule import StepData
 
 
 class DataModuleConfig:
@@ -55,6 +56,7 @@ class DataModuleConfig:
         mh_fact: MultiHeadDictFactory = None,
         data_prep_multi_process: bool = True,
         test_num_turns_groups: list[Tuple[int, int]] = None,
+        train_step_data: "StepData" = None,
     ):
         self.num_workers = num_workers
         self.preprocessing_model_name = preprocessing_model_name
@@ -103,11 +105,12 @@ class DataModuleConfig:
         self.dev_domain_settings = dev_domain_settings
         self.test_domain_settings = test_domain_settings
         self.create_data_from_train = create_data_from_train
-        self.create_data_from_train_splits = create_data_from_train_splits or [0.1,0.1]
+        self.create_data_from_train_splits = create_data_from_train_splits or [0.1, 0.1]
         # these two variables are added so that we can have typing in DataPrepConfig.from_dm_config method
         self.step_name = None
         self.domain_setting = None
         self.test_num_turns_groups = test_num_turns_groups
+        self.train_step_data = train_step_data
 
     @classmethod
     def from_trainer_config(
@@ -156,6 +159,7 @@ class DataModuleConfig:
         self,
         inf_config: "InferenceConfig",
         domain_setting: str = None,
+        train_step_data: "StepData" = None,
     ) -> "DataModuleConfig":
         return self(
             num_workers=inf_config.num_workers,
@@ -170,6 +174,8 @@ class DataModuleConfig:
             num_turns=inf_config.num_turns,
             test_domain_settings=domain_setting,
             train_domain_percentage=inf_config.train_domain_percentage,
+            create_data_from_train=inf_config.create_data_from_train,
+            create_data_from_train_splits=inf_config.create_data_from_train_splits,
             is_multi_head=inf_config.is_multi_head,
             is_multi_task=inf_config.is_multi_task,
             multi_tasks=inf_config.multi_tasks,
@@ -186,6 +192,7 @@ class DataModuleConfig:
             mh_fact=inf_config.mh_fact,
             data_prep_multi_process=inf_config.data_prep_multi_process,
             test_num_turns_groups=inf_config.test_num_turns_groups,
+            train_step_data=train_step_data,
         )
 
     @classmethod

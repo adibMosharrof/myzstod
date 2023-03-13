@@ -50,11 +50,11 @@ class TrainerConfig:
         should_test: bool = False,
         logging_steps: int = 50,
         test_prompt_max_len: int = 799,
-        max_token_len: int = 1022,
+        max_token_len: int = 1024,
         eval_accumulation_steps: int = 16,
         is_multi_head: bool = False,
         is_multi_task: bool = False,
-        is_multi_decoder: bool = True,
+        is_multi_decoder: bool = False,
         multi_tasks: list[int] = None,
         should_add_schema: bool = False,
         should_add_user_actions: bool = False,
@@ -106,7 +106,7 @@ class TrainerConfig:
             ["unseen"],
         ]
         self.create_data_from_train = create_data_from_train
-        self.create_data_from_train_splits = create_data_from_train_splits or [0.1,0.1]
+        self.create_data_from_train_splits = create_data_from_train_splits or [0.1, 0.1]
         self.train_domain_percentage = train_domain_percentage
         self.pretrain_model_path = pretrain_model_path
         self.train_model_path = train_model_path
@@ -128,7 +128,6 @@ class TrainerConfig:
         self.multi_tasks = (
             multi_tasks if self.is_multi_task and multi_tasks else [1, 1, 1]
         )
-        # self.tokenizer = dstc_utils.get_tokenizer(model_name)
         self.tokenizer = dstc_utils.get_tokenizer(tokenizer_name)
         self.should_add_schema = should_add_schema
         self.should_add_sys_actions = should_add_sys_actions

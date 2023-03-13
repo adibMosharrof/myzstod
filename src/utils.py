@@ -13,9 +13,11 @@ import omegaconf
 import wandb
 from typing import TYPE_CHECKING
 
+
 if TYPE_CHECKING:
     from configs.inference_config import InferenceConfig
     from configs.trainer_config import TrainerConfig
+    from configs.task_arithmetic_config import TaskArithmeticConfig
 
 # from transformers.utils import logging
 import logging
@@ -90,7 +92,9 @@ def grouper(iterable, n=2, fillvalue=None):
 
 
 def init_wandb(
-    cfg: Union[InferenceConfig, TrainerConfig], omega_cfg: DictConfig, step: str
+    cfg: Union[InferenceConfig, TrainerConfig, TaskArithmeticConfig],
+    omega_cfg: DictConfig,
+    step: str,
 ):
     wandb.config = omegaconf.OmegaConf.to_container(
         omega_cfg, resolve=True, throw_on_missing=True
@@ -98,13 +102,13 @@ def init_wandb(
     out_dir = Path(os.getcwd())
     parent_without_year = "-".join(out_dir.parent.name.split("-")[1:])
     run_name = "/".join([parent_without_year, out_dir.name])
-    group = "multi_head" if cfg.is_multi_head else "single_head"
+    # group = "multi_head" if cfg.is_multi_head else "single_head"
     # num_dialogs = "_".join(map(str, cfg.num_dialogs))
     # tags = [cfg.model_name, num_dialogs, step]
     tags = [cfg.wandb.task, cfg.model_name, step]
     run = wandb.init(
         name=run_name,
-        group=group,
+        # group=group,
         tags=tags,
         notes=cfg.wandb.notes if hasattr(cfg.wandb, "notes") else "",
         project=cfg.wandb.project,

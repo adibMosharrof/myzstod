@@ -3,6 +3,8 @@ from __future__ import annotations
 from pathlib import Path
 import re
 from transformers import AutoTokenizer, GPT2LMHeadModel
+from configs.task_arithmetic_config import TaskArithmeticConfig
+
 
 from generation.generation_base import GenerationBase
 from generation.multi_head_generation import MultiHeadGeneration
@@ -21,7 +23,7 @@ from configs.dm_config import DataModuleConfig
 
 if TYPE_CHECKING:
     from configs.trainer_config import TrainerConfig
-    from base_datamodule import BaseDataModule
+    from base_datamodule import BaseDataModule, StepData
 
 
 class InferenceConfig:
@@ -31,23 +33,25 @@ class InferenceConfig:
         data_split_percent: list[float] = None,
         eval_batch_size: int = 6,
         test_batch_size: int = 100,
-        max_token_len: int = 512,
+        max_token_len: int = 1024,
         raw_data_root: str = "data/dstc8-schema-guided-dialogue/",
-        project_root: str = "/mounts/u-amo-d0/grad/adibm/data/projects/ZSToD",
+        project_root: str = "/mounts/u-amo-d0/grad/adibm/data/projects/ZSToD/",
         data_prep_out_root: str = "processed_data/simple_tod",
         predictions_log_dir: str = "predictions_logs",
         num_test_dialogs: int = 17,
         delexicalize: bool = False,
-        model: str = "outputs/2022-07-26/22-28-09/results/train/checkpoint-7067",
+        model: str = "",
         model_name: str = "gpt2",
         generate_max_len: int = 1024,
         num_turns: int = 10,
         overwrite: list[bool] = None,
         train_domain_percentage: float = 1.0,
         test_domain_settings: list[str] = None,
+        create_data_from_train: bool = False,
+        create_data_from_train_splits: list[float] = None,
         out_dir: str = "results",
         tokenizer: AutoTokenizer = None,
-        test_prompt_max_len: int = 799,
+        test_prompt_max_len: int = 750,
         is_multi_task: bool = False,
         is_multi_head: bool = False,
         is_multi_decoder: bool = False,
@@ -63,6 +67,7 @@ class InferenceConfig:
         wandb: any = None,
         datamodule: "BaseDataModule" = None,
         test_num_turns_groups: list[Tuple[int, int]] = None,
+        train_step_data: "StepData" = None,
     ) -> None:
         self.num_workers = num_workers
         self.data_split_percent = data_split_percent or [1, 1, 1]
@@ -121,6 +126,9 @@ class InferenceConfig:
         self.data_prep_multi_process = data_prep_multi_process
         self.wandb = wandb
         self.test_num_turns_groups = test_num_turns_groups
+        self.train_step_data = train_step_data
+        self.create_data_from_train = create_data_from_train
+        self.create_data_from_train_splits = create_data_from_train_splits or [0.1, 0.1]
         self.datamodule = datamodule or self._get_datamodule(self.test_domain_settings)
 
     def _get_tokenizer(self, model_path_str: str):
@@ -165,7 +173,7 @@ class InferenceConfig:
 
     def _get_datamodule(self, test_setting: str) -> BaseDataModule:
         dm_config = DataModuleConfig.from_inference_config(
-            self, domain_setting=test_setting
+            self, domain_setting=test_setting, train_step_data=self.train_step_data
         )
         return (
             MultiLMHeadDatamodule(
@@ -214,4 +222,25 @@ class InferenceConfig:
             datamodule=trainer_config.datamodule,
             test_num_turns_groups=trainer_config.test_num_turns_groups,
             # contrastive_model=trainer_config.contrastive_model,
+        )
+
+    @classmethod
+    def from_task_arithmetic_config(
+        cls,
+        task_arithmetic_config: TaskArithmeticConfig,
+        model: GPT2LMHeadModel,
+        tokenizer: AutoTokenizer,
+        domain_settings: list[str],
+    ) -> "InferenceConfig":
+        return cls(
+            model=model,
+            train_step_data=task_arithmetic_config.train_step_data,
+            project_root=task_arithmetic_config.project_root,
+            tokenizer=tokenizer,
+            test_domain_settings=domain_settings,
+            create_data_from_train=task_arithmetic_config.create_data_from_train,
+            create_data_from_train_splits=task_arithmetic_config.create_data_from_train_splits,
+            num_test_dialogs=task_arithmetic_config.num_test_dialogs,
+            test_batch_size=task_arithmetic_config.test_batch_size,
+            postprocess_generation=task_arithmetic_config.postprocess_generation,
         )
