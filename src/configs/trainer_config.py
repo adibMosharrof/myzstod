@@ -16,7 +16,7 @@ class TrainerConfig:
         raw_data_root: str = "data/dstc8-schema-guided-dialogue/",
         model_name: str = "gpt2",
         contrastive_model_name: str = "sentence-transformers/stsb-roberta-base-v2",
-        tokenizer_name: str = "gpt2",
+        tokenizer_name: str = None,
         num_workers: int = 8,
         data_split_percent: list[float] = None,
         early_stopping_patience: int = 3,
@@ -76,6 +76,7 @@ class TrainerConfig:
         datamodule: "BaseDataModule" = None,
         test_num_turns_groups: list[Tuple[int, int]] = None,
         two_step_training: bool = True,
+        quantization: bool = False,
     ) -> None:
         self.project_root = Path(project_root)
         self.data_prep_out_root = Path(data_prep_out_root)
@@ -98,6 +99,7 @@ class TrainerConfig:
         self.pretrain_epochs = pretrain_epochs
         self.train_epochs = train_epochs
         self.contrastive_train_epochs = contrastive_train_epochs
+        self.quantization = quantization
         self.dev_domain_settings = dev_domain_settings or ["seen"]
         self.train_domain_settings = train_domain_settings or ["seen"]
         self.test_domain_settings = test_domain_settings or [
@@ -128,7 +130,8 @@ class TrainerConfig:
         self.multi_tasks = (
             multi_tasks if self.is_multi_task and multi_tasks else [1, 1, 1]
         )
-        self.tokenizer = dstc_utils.get_tokenizer(tokenizer_name)
+        self.tokenizer_name = tokenizer_name or model_name
+        self.tokenizer = dstc_utils.get_tokenizer(self.tokenizer_name)
         self.should_add_schema = should_add_schema
         self.should_add_sys_actions = should_add_sys_actions
         self.should_add_user_actions = should_add_user_actions
@@ -141,7 +144,7 @@ class TrainerConfig:
         self.contrastive_max_token_len = contrastive_max_token_len
         self.context_type = context_type
         self.should_add_service_results = should_add_service_results
-        self.tokenizer_name = tokenizer_name
+        
         self.contrastive_model_name = contrastive_model_name
         self.should_add_dsts = should_add_dsts
         self.single_action_neg_samples = single_action_neg_samples
