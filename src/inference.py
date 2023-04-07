@@ -38,7 +38,8 @@ from simple_tod_dataclasses import (
     TodTestDataBatch,
 )
 from dstc.dstc_dataclasses import get_slot_categories
-
+import os
+os.environ['CUDA_LAUNCH_BLOCKING']="1"
 
 class Inference:
     def __init__(
@@ -64,7 +65,7 @@ class Inference:
             if self.cfg.test_num_turns_groups
             else self.cfg.datamodule.test_dataloader
         )
-
+        self.cfg.model.eval()
         for test_dataloader, domain_setting in test_dl_func():
             domains_str = dstc_utils.get_domain_setting_str(domain_setting)
             test_csv_out_data = []
@@ -120,7 +121,8 @@ class Inference:
                 self.tod_metrics[m].visualize(Path(self.cfg.predictions_log_dir))
                 for m in self.tod_metrics
             ]
-        self.log_metrics_wandb(metric_results)
+        if len(metric_results):
+            self.log_metrics_wandb(metric_results)
         self.cfg.logger.info("Start token counts")
         for token, count in sorted(Counter(start_tokens).items()):
             self.cfg.logger.info(f"{token}:{count}")
@@ -209,11 +211,11 @@ class Inference:
                     "response_bleu": ResponseMetric(
                         metric_name="bleu", metric_key_name="google_bleu"
                     ),
-                    "response_rouge": ResponseMetric(
-                        # metric_name="rouge", metric_key_name="rouge2_fmeasure"
-                        metric_name="rouge",
-                        metric_key_name="rouge2",
-                    ),
+                    # "response_rouge": ResponseMetric(
+                    #     # metric_name="rouge", metric_key_name="rouge2_fmeasure"
+                    #     metric_name="rouge",
+                    #     metric_key_name="rouge2",
+                    # ),
                 }
             )
         if action and response:
@@ -262,7 +264,7 @@ def init_wandb(cfg: InferenceConfig, omega_cfg: DictConfig):
 def hydra_start(cfg: DictConfig) -> None:
     # torch.cuda.set_device(1)
     inf_config = InferenceConfig(**cfg)
-    utils.init_wandb(inf_config, cfg, "inference", inf_config.num_test_dialogs)
+    # utils.init_wandb(inf_config, cfg, "inference", inf_config.num_test_dialogs)
     inf = Inference(inf_config)
     inf.run()
 

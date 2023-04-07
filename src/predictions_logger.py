@@ -49,7 +49,7 @@ class PredictionsLoggerBase(abc.ABC):
     def plot_confusion_matrix(self, labels, x_label, y_label, title, file_name):
         plt.figure(figsize=(10, 10), dpi=200)
         cf_matrix = confusion_matrix(self.refs, self.preds, labels=labels)
-        annot_formatter = np.vectorize(lambda x: numerize(int(x), 1), otypes=[np.str])
+        annot_formatter = np.vectorize(lambda x: numerize(int(x), 1), otypes=[str])
         annotations = annot_formatter(cf_matrix)
         sns.heatmap(
             cf_matrix,
@@ -122,7 +122,6 @@ class PredictionsLoggerBase(abc.ABC):
     def _plot_stacked_bar_chart(
         self, data: StackedBarChartData, x_label="", y_label="", title="", file_name=""
     ):
-
         plt.style.use("ggplot")
         sns.set(style="darkgrid")
 
@@ -144,7 +143,6 @@ class PredictionsLoggerBase(abc.ABC):
                 data.counts.loc[x],
                 data.proportions.loc[x].cumsum(),
             ):
-
                 plt.text(
                     y=n - 0.035,
                     x=(y_loc - proportion) + (proportion / 2),

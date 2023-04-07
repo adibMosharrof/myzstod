@@ -10,9 +10,10 @@ from typing import Tuple, Union
 from dataclass_csv import DataclassReader
 from omegaconf import DictConfig
 import omegaconf
+import torch
 import wandb
 from typing import TYPE_CHECKING
-
+from peft import PeftModel, PeftConfig, LoraConfig,get_peft_model
 
 if TYPE_CHECKING:
     from configs.inference_config import InferenceConfig
@@ -22,6 +23,9 @@ if TYPE_CHECKING:
 # from transformers.utils import logging
 import logging
 
+from peft import PeftConfig, PeftModel
+from transformers import AutoModelForCausalLM
+from accelerate import Accelerator
 
 def get_logger(name: str = "transformers"):
     # logging.set_verbosity_info()
@@ -116,3 +120,25 @@ def init_wandb(
         settings=wandb.Settings(start_method="thread"),
     )
     wandb.log({"job_id": os.environ.get("SLURM_JOB_ID", "")})
+
+
+def load_quantized_model(path: Path, tokenizer):
+    current_device = Accelerator().process_index
+    config = PeftConfig.from_pretrained(path)
+    model = AutoModelForCausalLM.from_pretrained(
+        config.base_model_name_or_path,
+        return_dict=True,
+        load_in_8bit=True,
+        device_map="auto",
+    )
+    model.resize_token_embeddings(len(tokenizer))
+    model = PeftModel.from_pretrained(model, path, torch_dtype=torch.bfloat16)
+    return model
+    row = tokenizer("<|begincontext|>I am looking to eat somewhere<|endcontext|>", return_tensors='pt')
+    output_tokens = model.generate(
+        inputs = row['input_ids'].cuda(), 
+        attention_mask = row['attention_mask'].cuda(),
+        max_length=150)
+
+    print('\n\n', tokenizer.decode(output_tokens[0], skip_special_tokens=False))
+    a=1

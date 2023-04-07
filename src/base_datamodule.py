@@ -264,8 +264,8 @@ class BaseDataModule(ABC):
                 item,
                 return_tensors="pt",
             )
-        except TypeError as e:
-            tokens = torch.empty([1, 0], dtype=torch.int64)
+        except Exception as e:
+            tokens = torch.empty([1, 0], dtype=torch.int32)
         return tokens.to(dtype=torch.int32)
 
     def contrastive_tokenizer(self, item):

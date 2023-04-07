@@ -2,6 +2,7 @@
 data/
 out/
 envs/
+.venvs/
 processed_data/
 lightning_logs/
 __pycache__/
@@ -15,5 +16,7 @@ task_slurm_out/
 google_sgd/schema_guided_dst/baseline/test_data
 data_exploration/*.csv
 tokenizer/
-transformers/
+# transformers/
 GenTodPaper/.olauth
+.nfs*
+

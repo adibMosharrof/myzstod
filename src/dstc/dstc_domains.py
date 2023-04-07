@@ -12,16 +12,9 @@ import utils
 
 
 class DstcDomains(str, Enum):
-    # make sure the string values exactly match the domain names in the data
     SEEN = "seen"
     UNSEEN = "unseen"
     ALL = "all"
-    # TRAVEL_1 = "Travel_1"
-    # RESTAURANTS_2 = "Restaurants_2"
-    # RESTAURANTS_1 = "Restaurants_1"
-    # HOTELS_2 = "Hotels_2"
-    # MOVIES_3 = "Movies_3"
-    # RENTALCARS_1 = "RentalCars_1"
 
     @classmethod
     def regular_settings(cls):

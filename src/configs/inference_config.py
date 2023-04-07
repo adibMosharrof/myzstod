@@ -68,6 +68,7 @@ class InferenceConfig:
         datamodule: "BaseDataModule" = None,
         test_num_turns_groups: list[Tuple[int, int]] = None,
         train_step_data: "StepData" = None,
+        quantization: bool = False,
     ) -> None:
         self.num_workers = num_workers
         self.data_split_percent = data_split_percent or [1, 1, 1]
@@ -80,6 +81,7 @@ class InferenceConfig:
         self.num_test_dialogs = num_test_dialogs
         self.delexicalize = delexicalize
         self.is_multi_head = is_multi_head
+        self.quantization = quantization
         self.model_name = model_name
         self.tokenizer = tokenizer if tokenizer else self._get_tokenizer(model)
         self.mh_fact = (
@@ -90,6 +92,18 @@ class InferenceConfig:
             else None
         )
         self.model = self._get_model(model)
+        
+
+        # row = self.tokenizer("<|begincontext|>I am looking to eat somewhere<|endcontext|>", return_tensors='pt')
+        # output_tokens = self.model.generate(
+        #     inputs = row['input_ids'].cuda(), 
+        #     attention_mask = row['attention_mask'].cuda(),
+        #     max_length=150)
+
+        # print('\n\n', self.tokenizer.decode(output_tokens[0], skip_special_tokens=False))
+        # a=1
+
+
         self.generate_max_len = generate_max_len
         self.train_domain_percentage = train_domain_percentage
         self.test_domain_settings = test_domain_settings or [
@@ -139,6 +153,8 @@ class InferenceConfig:
             # checkpoint not provided (results/train)
             if not tok_path.exists():
                 tok_path = model_path.parent.parent / "tokenizer"
+            if not tok_path.exists():
+                tok_path = self.model_name
             tokenizer = AutoTokenizer.from_pretrained(tok_path)
         except OSError:
             self.logger.info(
@@ -152,7 +168,9 @@ class InferenceConfig:
         if isinstance(model, str):
             model_path = self.project_root / model
             if model_class is not GPT2MultiLMHeadModel:
-                return model_class.from_pretrained(model_path).cuda()
+                if not self.quantization:
+                    return model_class.from_pretrained(model_path).cuda()
+                return utils.load_quantized_model(model_path, self.tokenizer)
             model_args = self.mh_fact if model_class == GPT2MultiLMHeadModel else {}
             model_kwargs = (
                 {"tok": self.tokenizer, "is_inference": True}
@@ -221,6 +239,7 @@ class InferenceConfig:
             postprocess_generation=trainer_config.postprocess_generation,
             datamodule=trainer_config.datamodule,
             test_num_turns_groups=trainer_config.test_num_turns_groups,
+            quantization=trainer_config.quantization,
             # contrastive_model=trainer_config.contrastive_model,
         )
 

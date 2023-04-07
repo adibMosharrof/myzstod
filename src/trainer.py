@@ -16,6 +16,7 @@ from transformers import (
     IntervalStrategy,
     GPT2Config,
     T5ForConditionalGeneration,
+    AutoModelForCausalLM,
 )
 from base_datamodule import BaseDataModule
 from configs.contrastive_config import ContrastiveConfig
@@ -40,12 +41,22 @@ import my_enums
 import dstc.dstc_utils as dstc_utils
 import utils
 from sentence_transformers import SentenceTransformer
-
+from accelerate import Accelerator
 warnings.filterwarnings("ignore")
+os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
+os.environ["TORCH_DISTRIBUTED_DEBUG"] = "DETAIL"
 # os.environ["NCCL_DEBUG"] = "INFO"
 import argparse
 import wandb
 from my_enums import Steps
+
+from peft import (
+    LoraConfig,
+    PeftConfig,
+    PeftModel,
+    get_peft_model,
+    prepare_model_for_int8_training,
+)
 
 
 class SimpleTODTrainer:
@@ -93,6 +104,8 @@ class SimpleTODTrainer:
         self.print_cuda_info("after train")
         print("Training done")
         print("-" * 80)
+        torch.cuda.empty_cache()
+        self.print_cuda_info("empty cache before testing")
         if self.cfg.should_test:
             inf = Inference(
                 InferenceConfig.from_trainer_config(self.cfg, full_out_dir),
@@ -195,11 +208,9 @@ class SimpleTODTrainer:
             fp16=self.cfg.fp16,
             dataloader_drop_last=True,
             run_name=step_name,
-            # sharded_ddp="simple",
         )
 
     def get_model_instance(self, path: str = None) -> AutoModel:
-
         model_class = dstc_utils.get_model_class(
             self.cfg.model_name, self.cfg.is_multi_head
         )
@@ -213,6 +224,44 @@ class SimpleTODTrainer:
             model = model_class.from_pretrained(path or self.cfg.model_name)
         return model
 
+    def get_quantized_model(self, path: Path = None):
+        if path:
+            model = utils.load_quantized_model(path, self.cfg.tokenizer)
+        else:
+            current_device = Accelerator().process_index
+            model = AutoModelForCausalLM.from_pretrained(
+                self.cfg.model_name, load_in_8bit=True, device_map="auto",
+            )
+            model.resize_token_embeddings(len(self.cfg.tokenizer))
+        if "gpt-neox" in self.cfg.model_name:
+            model = prepare_model_for_int8_training(
+                model,
+                output_embedding_layer_name="embed_out",
+                layer_norm_names=["layer_norm", "layernorm"],
+            )
+        else:
+            model = prepare_model_for_int8_training(model)
+        target_modules = ["q_proj", "v_proj"]
+        if "gpt-neox" in self.cfg.model_name:
+            target_modules = [
+                "query_key_value",
+                "xxx",
+            ]  # workaround to use 8bit training on this model
+        config = LoraConfig(
+            r=16,
+            lora_alpha=32,
+            target_modules=target_modules,
+            lora_dropout=0.05,
+            bias="none",
+            task_type="CAUSAL_LM",
+            base_model_name_or_path=self.cfg.model_name,
+        )
+        model = get_peft_model(model, config)
+        if model.peft_config.base_model_name_or_path is None:
+            model.peft_config.base_model_name_or_path = self.cfg.model_name
+        self.print_trainable_parameters(model)
+        return model
+
     def pretrain_model(self, dm: TodDataModule) -> str:
         if self.cfg.pretrain_model_path:
             path = self.cfg.project_root / self.cfg.pretrain_model_path
@@ -221,8 +270,13 @@ class SimpleTODTrainer:
         training_args = self._get_training_args(
             "pretrain", self.cfg.pretrain_epochs, self.cfg.pretrain_batch_size
         )
-        model = self.get_model_instance()
-        model.resize_token_embeddings(len(self.cfg.tokenizer))
+        model = (
+            self.get_model_instance()
+            if not self.cfg.quantization
+            else self.get_quantized_model()
+        )
+        # model.lm_head = CastOutputToFloat(model.lm_head)
+        # model.resize_token_embeddings(len(self.cfg.tokenizer))
         print(f"Model Size of {type(model)}: {dstc_utils.get_model_size(model)}")
         pre_trainer = Trainer(
             model=model,
@@ -236,31 +290,58 @@ class SimpleTODTrainer:
                 )
             ],
         )
+        # with torch.cuda.amp.autocast():
+        #     pre_trainer.train()
+        model.config.use_cache = False
+        model.train()
         pre_trainer.train()
-        pre_trainer.save_model()
+        # pre_trainer.save_model()
+        model.save_pretrained(training_args.output_dir)
         # return str(self.cfg.project_root/training_args.output_dir)
         return training_args.output_dir
 
     def train_model(self, path, dm) -> str:
-        model = self.get_model_instance(path)
+        model = (
+            self.get_model_instance(path)
+            if not self.cfg.quantization
+            else self.get_quantized_model(path)
+        )
         training_args = self._get_training_args(
             "train", self.cfg.train_epochs, self.cfg.train_batch_size
         )
         trainer = self._get_trainer(model, dm, training_args)
+        model.train()
         trainer.train()
-        trainer.save_model()
+        # trainer.save_model()
+        model.save_pretrained(training_args.output_dir)
         out_dir = os.getcwd()
         print("training output_dir: ", out_dir)
         return training_args.output_dir
 
+    def print_trainable_parameters(self, model):
+        """
+        Prints the number of trainable parameters in the model.
+        """
+        trainable_params = 0
+        all_param = 0
+        for _, param in model.named_parameters():
+            all_param += param.numel()
+            if param.requires_grad:
+                trainable_params += param.numel()
+        print(
+            f"trainable params: {trainable_params} || all params: {all_param} || trainable%: {100 * trainable_params / all_param}"
+        )
 
 
+class CastOutputToFloat(torch.nn.Sequential):
+    def forward(self, x):
+        return super().forward(x).to(torch.float32)
 
 
 @hydra.main(config_path="../config/trainer/", config_name="arithmetic_trainer")
 def hydra_start(cfg: DictConfig) -> None:
     trainer_cfg = TrainerConfig(**cfg)
-    utils.init_wandb(trainer_cfg, cfg, "training")
+    # utils.init_wandb(trainer_cfg, cfg, "training")
     stt = SimpleTODTrainer(trainer_cfg)
     stt.run()
 
