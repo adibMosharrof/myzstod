@@ -11,6 +11,7 @@ training.1600000.processed.noemoticon.csv
 results/
 figures/
 slurm_out/
+task_slurm_out/
 google_sgd/schema_guided_dst/baseline/test_data
 data_exploration/*.csv
 tokenizer/
