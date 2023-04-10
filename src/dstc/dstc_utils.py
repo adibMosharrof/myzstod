@@ -10,6 +10,7 @@ from transformers import (
     PreTrainedTokenizerFast,
     GPT2LMHeadModel,
     T5ForConditionalGeneration,
+    GPTJForCausalLM,
 )
 import os
 from multi_head.mh_model import GPT2MultiLMHeadModel
@@ -221,6 +222,8 @@ def get_model_class(model_name: str, is_mh_head: bool = False):
         return GPT2MultiLMHeadModel
     if model_name == "t5-base":
         return T5ForConditionalGeneration
+    if "gpt-j" in model_name:
+        return GPTJForCausalLM
     else:
         return GPT2LMHeadModel
 
