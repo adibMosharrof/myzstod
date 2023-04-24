@@ -59,6 +59,7 @@ class TrainerConfig:
         should_add_schema: bool = False,
         should_add_user_actions: bool = False,
         should_add_sys_actions: bool = False,
+        should_add_special_tokens: bool = True,
         ce_loss_weight: float = 0.50,
         contrastive_loss_weight: float = 0.50,
         contrastive_model: str = None,
@@ -115,6 +116,7 @@ class TrainerConfig:
         self.logging_dir = Path(logging_dir)
         self.generate_max_len = generate_max_len
         self.should_test = should_test
+        self.should_add_special_tokens = should_add_special_tokens
         self.delexicalize = delexicalize
         self.logging_steps = logging_steps
         self.train_batch_size = train_batch_size
@@ -131,7 +133,9 @@ class TrainerConfig:
             multi_tasks if self.is_multi_task and multi_tasks else [1, 1, 1]
         )
         self.tokenizer_name = tokenizer_name or model_name
-        self.tokenizer = dstc_utils.get_tokenizer(self.tokenizer_name)
+        self.tokenizer = dstc_utils.get_tokenizer(
+            self.tokenizer_name, should_add_special_tokens=should_add_special_tokens
+        )
         self.should_add_schema = should_add_schema
         self.should_add_sys_actions = should_add_sys_actions
         self.should_add_user_actions = should_add_user_actions
@@ -144,7 +148,7 @@ class TrainerConfig:
         self.contrastive_max_token_len = contrastive_max_token_len
         self.context_type = context_type
         self.should_add_service_results = should_add_service_results
-        
+
         self.contrastive_model_name = contrastive_model_name
         self.should_add_dsts = should_add_dsts
         self.single_action_neg_samples = single_action_neg_samples

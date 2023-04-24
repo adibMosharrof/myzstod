@@ -42,13 +42,14 @@ import dstc.dstc_utils as dstc_utils
 import utils
 from sentence_transformers import SentenceTransformer
 from accelerate import Accelerator
+
 warnings.filterwarnings("ignore")
 os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
 os.environ["TORCH_DISTRIBUTED_DEBUG"] = "DETAIL"
 # os.environ["NCCL_DEBUG"] = "INFO"
 import argparse
 import wandb
-from my_enums import Steps
+from my_enums import Steps, TrainingStage
 
 from peft import (
     LoraConfig,
@@ -101,6 +102,7 @@ class SimpleTODTrainer:
             full_out_dir = str(current_dir / out_dir)
         else:
             full_out_dir = str(current_dir / pretrained_model_path)
+            # full_out_dir = pretrained_model_path
         self.print_cuda_info("after train")
         print("Training done")
         print("-" * 80)
@@ -153,14 +155,20 @@ class SimpleTODTrainer:
         model_train: AutoModel,
         dm: TodDataModule,
         training_args: TrainingArguments,
+        training_stage: TrainingStage = TrainingStage.TRAIN,
     ) -> Trainer:
+        collator = (
+            dm.training_collator
+            if training_stage == TrainingStage.TRAIN
+            else dm.pretraining_collator
+        )
         if self.cfg.contrast_with:
             trainer = ContrastiveTrainer(
                 model=model_train,
                 args=training_args,
                 train_dataset=dm.datasets[Steps.TRAIN.value],
                 eval_dataset=dm.datasets[Steps.DEV.value],
-                data_collator=dm.training_collator,
+                data_collator=collator,
                 callbacks=[
                     EarlyStoppingCallback(
                         early_stopping_patience=self.cfg.early_stopping_patience
@@ -174,11 +182,12 @@ class SimpleTODTrainer:
             args=training_args,
             train_dataset=dm.datasets[my_enums.Steps.TRAIN.value],
             eval_dataset=dm.datasets[my_enums.Steps.DEV.value],
-            data_collator=dm.training_collator,
+            data_collator=collator,
             callbacks=[
                 EarlyStoppingCallback(
                     early_stopping_patience=self.cfg.early_stopping_patience
-                )
+                ),
+                # utils.PeftSavingCallback,
             ],
         )
         return trainer
@@ -230,7 +239,9 @@ class SimpleTODTrainer:
         else:
             current_device = Accelerator().process_index
             model = AutoModelForCausalLM.from_pretrained(
-                self.cfg.model_name, load_in_8bit=True, device_map="auto",
+                self.cfg.model_name,
+                load_in_8bit=True,
+                device_map="auto",
             )
             model.resize_token_embeddings(len(self.cfg.tokenizer))
         if "gpt-neox" in self.cfg.model_name:
@@ -241,7 +252,8 @@ class SimpleTODTrainer:
             )
         else:
             model = prepare_model_for_int8_training(model)
-        target_modules = ["q_proj", "v_proj"]
+        target_modules = None
+        # target_modules = ["q_proj", "v_proj"]
         if "gpt-neox" in self.cfg.model_name:
             target_modules = [
                 "query_key_value",
@@ -255,11 +267,13 @@ class SimpleTODTrainer:
             bias="none",
             task_type="CAUSAL_LM",
             base_model_name_or_path=self.cfg.model_name,
+            modules_to_save=["wte"],
         )
         model = get_peft_model(model, config)
-        if model.peft_config.base_model_name_or_path is None:
-            model.peft_config.base_model_name_or_path = self.cfg.model_name
+        if model.active_peft_config.base_model_name_or_path is None:
+            model.active_peft_config.base_model_name_or_path = self.cfg.model_name
         self.print_trainable_parameters(model)
+        model.gradient_checkpointing_enable()
         return model
 
     def pretrain_model(self, dm: TodDataModule) -> str:
@@ -278,27 +292,30 @@ class SimpleTODTrainer:
         # model.lm_head = CastOutputToFloat(model.lm_head)
         # model.resize_token_embeddings(len(self.cfg.tokenizer))
         print(f"Model Size of {type(model)}: {dstc_utils.get_model_size(model)}")
-        pre_trainer = Trainer(
-            model=model,
-            args=training_args,
-            train_dataset=dm.datasets[Steps.TRAIN.value],
-            eval_dataset=dm.datasets[Steps.DEV.value],
-            data_collator=dm.pretraining_collator,
-            callbacks=[
-                EarlyStoppingCallback(
-                    early_stopping_patience=self.cfg.early_stopping_patience
-                )
-            ],
+        # pre_trainer = Trainer(
+        #     model=model,
+        #     args=training_args,
+        #     train_dataset=dm.datasets[Steps.TRAIN.value],
+        #     eval_dataset=dm.datasets[Steps.DEV.value],
+        #     data_collator=dm.pretraining_collator,
+        #     callbacks=[
+        #         EarlyStoppingCallback(
+        #             early_stopping_patience=self.cfg.early_stopping_patience
+        #         ),
+        #     ],
+        # )
+        pre_trainer = self._get_trainer(
+            model, dm, training_args, training_stage=TrainingStage.PRETRAIN
         )
         # with torch.cuda.amp.autocast():
         #     pre_trainer.train()
         model.config.use_cache = False
         model.train()
         pre_trainer.train()
-        # pre_trainer.save_model()
+        pre_trainer.save_model()
         model.save_pretrained(training_args.output_dir)
-        # return str(self.cfg.project_root/training_args.output_dir)
         return training_args.output_dir
+        return model
 
     def train_model(self, path, dm) -> str:
         model = (
@@ -309,10 +326,12 @@ class SimpleTODTrainer:
         training_args = self._get_training_args(
             "train", self.cfg.train_epochs, self.cfg.train_batch_size
         )
-        trainer = self._get_trainer(model, dm, training_args)
+        trainer = self._get_trainer(
+            model, dm, training_args, training_stage=TrainingStage.TRAIN
+        )
         model.train()
         trainer.train()
-        # trainer.save_model()
+        trainer.save_model()
         model.save_pretrained(training_args.output_dir)
         out_dir = os.getcwd()
         print("training output_dir: ", out_dir)

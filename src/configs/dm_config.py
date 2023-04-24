@@ -47,6 +47,7 @@ class DataModuleConfig:
         should_add_schema: bool = False,
         should_add_sys_actions: bool = False,
         should_add_user_actions: bool = False,
+        should_add_special_tokens: bool = True,
         single_action_neg_samples: int = 5,
         contrast_with: str = None,
         contrastive_max_token_len: int = 512,
@@ -84,6 +85,7 @@ class DataModuleConfig:
         self.should_add_schema = should_add_schema
         self.should_add_sys_actions = should_add_sys_actions
         self.should_add_user_actions = should_add_user_actions
+        self.should_add_special_tokens = should_add_special_tokens
         self.train_domain_percentage = train_domain_percentage
         self.single_action_neg_samples = (
             single_action_neg_samples if single_action_neg_samples else 5
@@ -145,6 +147,7 @@ class DataModuleConfig:
             data_split_percent=trainer_config.data_split_percent,
             should_add_user_actions=trainer_config.should_add_user_actions,
             should_add_sys_actions=trainer_config.should_add_sys_actions,
+            should_add_special_tokens=trainer_config.should_add_special_tokens,
             contrast_with=trainer_config.contrast_with,
             contrastive_max_token_len=trainer_config.contrastive_max_token_len,
             context_type=trainer_config.context_type,
@@ -180,6 +183,7 @@ class DataModuleConfig:
             is_multi_task=inf_config.is_multi_task,
             multi_tasks=inf_config.multi_tasks,
             should_add_schema=inf_config.should_add_schema,
+            should_add_special_tokens=inf_config.should_add_special_tokens,
             tokenizer=inf_config.tokenizer,
             batch_size=inf_config.test_batch_size,
             eval_batch_size=inf_config.test_batch_size,

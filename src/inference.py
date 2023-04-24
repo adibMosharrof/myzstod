@@ -65,7 +65,9 @@ class Inference:
             if self.cfg.test_num_turns_groups
             else self.cfg.datamodule.test_dataloader
         )
-        self.cfg.model.eval()
+        # self.cfg.model.eval()
+        # self.cfg.model.gradient_checkpointing_disable()
+        
         for test_dataloader, domain_setting in test_dl_func():
             domains_str = dstc_utils.get_domain_setting_str(domain_setting)
             test_csv_out_data = []
@@ -264,7 +266,7 @@ def init_wandb(cfg: InferenceConfig, omega_cfg: DictConfig):
 def hydra_start(cfg: DictConfig) -> None:
     # torch.cuda.set_device(1)
     inf_config = InferenceConfig(**cfg)
-    # utils.init_wandb(inf_config, cfg, "inference", inf_config.num_test_dialogs)
+    utils.init_wandb(inf_config, cfg, "inference")
     inf = Inference(inf_config)
     inf.run()
 

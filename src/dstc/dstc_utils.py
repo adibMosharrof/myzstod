@@ -62,6 +62,8 @@ def get_csv_data_path(
                 "multi_task",
                 str(cfg.is_multi_task),
                 "_".join(map(str, cfg.multi_tasks)),
+                "special_tokens",
+                str(cfg.should_add_special_tokens),
                 "schema",
                 str(cfg.should_add_schema),
                 "user_actions",
@@ -113,6 +115,7 @@ def get_tokenizer(
     tokenizer_name: str = "gpt2",
     add_prefix_space: bool = False,
     tokenizer_path="tokenizer",
+    should_add_special_tokens=True,
 ) -> PreTrainedTokenizerFast:
     print("************getting tokenizer*************")
     tok_path = Path(tokenizer_path)
@@ -120,14 +123,23 @@ def get_tokenizer(
         return AutoTokenizer.from_pretrained(tok_path)
     if tokenizer_name == "sentence-transformers/stsb-roberta-base-v2":
         add_prefix_space = True
-    tokenizer = AutoTokenizer.from_pretrained(
-        tokenizer_name,
-        pad_token=SpecialTokens.pad_token.value,
-        bos_token=SpecialTokens.bos_token.value,
-        eos_token=SpecialTokens.end_target.value,
-        additional_special_tokens=SpecialTokens.list(),
-        add_prefix_space=add_prefix_space,
-    )
+    if not should_add_special_tokens:
+        tokenizer = AutoTokenizer.from_pretrained(
+            tokenizer_name,
+            pad_token=SpecialTokens.pad_token.value,
+            bos_token=SpecialTokens.bos_token.value,
+            eos_token=SpecialTokens.end_target.value,
+            add_prefix_space=add_prefix_space,
+        )
+    else:
+        tokenizer = AutoTokenizer.from_pretrained(
+            tokenizer_name,
+            pad_token=SpecialTokens.pad_token.value,
+            bos_token=SpecialTokens.bos_token.value,
+            eos_token=SpecialTokens.end_target.value,
+            additional_special_tokens=SpecialTokens.list(),
+            add_prefix_space=add_prefix_space,
+        )
     tokenizer.save_pretrained(tokenizer_path)
     return tokenizer
 

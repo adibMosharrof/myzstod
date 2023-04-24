@@ -21,6 +21,8 @@ import dstc.dstc_utils as dstc_utils
 from typing import TYPE_CHECKING, Tuple
 from configs.dm_config import DataModuleConfig
 
+from peft import PeftModelForCausalLM
+
 if TYPE_CHECKING:
     from configs.trainer_config import TrainerConfig
     from base_datamodule import BaseDataModule, StepData
@@ -59,6 +61,7 @@ class InferenceConfig:
         should_add_schema: bool = False,
         should_add_user_actions: bool = False,
         should_add_sys_actions: bool = False,
+        should_add_special_tokens: bool = True,
         context_type: str = ContextType.SHORT_REPR,
         should_add_service_results: bool = False,
         postprocess_generation: bool = True,
@@ -83,6 +86,7 @@ class InferenceConfig:
         self.is_multi_head = is_multi_head
         self.quantization = quantization
         self.model_name = model_name
+        self.should_add_special_tokens = should_add_special_tokens
         self.tokenizer = tokenizer if tokenizer else self._get_tokenizer(model)
         self.mh_fact = (
             mh_fact
@@ -92,18 +96,9 @@ class InferenceConfig:
             else None
         )
         self.model = self._get_model(model)
-        
-
-        # row = self.tokenizer("<|begincontext|>I am looking to eat somewhere<|endcontext|>", return_tensors='pt')
-        # output_tokens = self.model.generate(
-        #     inputs = row['input_ids'].cuda(), 
-        #     attention_mask = row['attention_mask'].cuda(),
-        #     max_length=150)
-
-        # print('\n\n', self.tokenizer.decode(output_tokens[0], skip_special_tokens=False))
-        # a=1
-
-
+        self.model.eval()
+        # self.model = self.model.merge_adapter()
+        # self.model = self.model.merge_and_unload()
         self.generate_max_len = generate_max_len
         self.train_domain_percentage = train_domain_percentage
         self.test_domain_settings = test_domain_settings or [
@@ -185,6 +180,8 @@ class InferenceConfig:
                 model.tok = self.tokenizer
                 model.is_inference = True
             return model.cuda()
+        if isinstance(model, PeftModelForCausalLM):
+            return model
         raise ValueError(
             "model must be either a string or a model class, but model is:{model}"
         )
@@ -204,7 +201,7 @@ class InferenceConfig:
 
     @classmethod
     def from_trainer_config(
-        cls, trainer_config: TrainerConfig, model: GPT2LMHeadModel
+        cls, trainer_config: TrainerConfig, model: str
     ) -> "InferenceConfig":
         return cls(
             num_workers=trainer_config.num_workers,

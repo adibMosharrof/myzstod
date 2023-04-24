@@ -11,7 +11,7 @@ from my_enums import (
     SpecialTokens,
     Steps,
 )
-from simple_tod_dataclasses import TodTestDataBatch 
+from simple_tod_dataclasses import TodTestDataBatch
 import dstc.dstc_utils as dstc_utils
 from torch.utils.data import DataLoader, Dataset
 import random
@@ -36,7 +36,13 @@ class TodDataModule(BaseDataModule):
         targets_text = []
         mt_prompt_ids = []
         for item in batch:
-            input_tokens, label, attention_mask = self.collate_single_item(item.context, item.schema, item.target, self.cfg.max_token_len,  is_pretrain)
+            input_tokens, label, attention_mask = self.collate_single_item(
+                item.context,
+                item.schema,
+                item.target,
+                self.cfg.max_token_len,
+                is_pretrain,
+            )
             input_ids.append(input_tokens)
             attention_masks.append(attention_mask)
             labels.append(label)
@@ -54,7 +60,10 @@ class TodDataModule(BaseDataModule):
         return out
 
     def my_test_collate(self, batch: list[TodTurnCsvRow]) -> TodTestDataBatch:
-        data = DotMap({key: [] for key in [
+        data = DotMap(
+            {
+                key: []
+                for key in [
                     "input_ids",
                     "attention_masks",
                     "dialog_ids",
@@ -62,7 +71,9 @@ class TodDataModule(BaseDataModule):
                     "contexts",
                     "schemas",
                     "targets",
-                ]})
+                ]
+            }
+        )
         for item in batch:
             data.dialog_ids.append(item.dialog_id)
             data.turn_ids.append(item.turn_id)
@@ -71,7 +82,18 @@ class TodDataModule(BaseDataModule):
             data.schemas.append(item.schema)
 
             input_tokens, _, attention_mask = self.collate_single_item(
-                "".join([item.context, SpecialTokens.begin_target]), item.schema, "", self.cfg.test_prompt_max_len, True
+                "".join(
+                    [
+                        item.context,
+                        SpecialTokens.begin_target,
+                        SpecialTokens.begin_dsts,
+                        SpecialTokens.begin_dst,
+                    ]
+                ),
+                item.schema,
+                "",
+                self.cfg.test_prompt_max_len,
+                True,
             )
             data.input_ids.append(input_tokens)
             data.attention_masks.append(attention_mask)

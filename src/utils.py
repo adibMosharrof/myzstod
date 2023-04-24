@@ -13,7 +13,8 @@ import omegaconf
 import torch
 import wandb
 from typing import TYPE_CHECKING
-from peft import PeftModel, PeftConfig, LoraConfig,get_peft_model
+from peft import PeftModel, PeftConfig, LoraConfig, get_peft_model
+from transformers.trainer_callback import TrainerCallback
 
 if TYPE_CHECKING:
     from configs.inference_config import InferenceConfig
@@ -22,10 +23,11 @@ if TYPE_CHECKING:
 
 # from transformers.utils import logging
 import logging
-
+import peft
 from peft import PeftConfig, PeftModel
 from transformers import AutoModelForCausalLM
 from accelerate import Accelerator
+
 
 def get_logger(name: str = "transformers"):
     # logging.set_verbosity_info()
@@ -127,18 +129,49 @@ def load_quantized_model(path: Path, tokenizer):
     config = PeftConfig.from_pretrained(path)
     model = AutoModelForCausalLM.from_pretrained(
         config.base_model_name_or_path,
-        return_dict=True,
+        # return_dict=True,
         load_in_8bit=True,
         device_map="auto",
     )
     model.resize_token_embeddings(len(tokenizer))
-    model = PeftModel.from_pretrained(model, path, torch_dtype=torch.bfloat16)
+    # model = model.cuda()
+    # model = PeftModel.from_pretrained(model, path, torch_dtype=torch.bfloat16)
+    model = PeftModel.from_pretrained(model, path)
     return model
-    row = tokenizer("<|begincontext|>I am looking to eat somewhere<|endcontext|>", return_tensors='pt')
-    output_tokens = model.generate(
-        inputs = row['input_ids'].cuda(), 
-        attention_mask = row['attention_mask'].cuda(),
-        max_length=150)
+    key_list = [
+        key for key, _ in model.base_model.model.named_modules() if "lora" not in key
+    ]
+    for key in key_list:
+        parent, target, target_name = model.base_model._get_submodules(key)
+        if isinstance(target, peft.tuners.lora.Linear):
+            bias = target.bias is not None
+            new_module = torch.nn.Linear(
+                target.in_features, target.out_features, bias=bias
+            )
+            model.base_model._replace_module(parent, target_name, new_module, target)
 
-    print('\n\n', tokenizer.decode(output_tokens[0], skip_special_tokens=False))
-    a=1
+    model = model.base_model.model
+    return model
+    row = tokenizer(
+        "<|begincontext|>I am looking to eat somewhere<|endcontext|>",
+        return_tensors="pt",
+    )
+    output_tokens = model.generate(
+        inputs=row["input_ids"].cuda(),
+        attention_mask=row["attention_mask"].cuda(),
+        max_length=150,
+    )
+
+    print("\n\n", tokenizer.decode(output_tokens[0], skip_special_tokens=False))
+    a = 1
+
+
+class PeftSavingCallback(TrainerCallback):
+    def on_train_end(self, args, state, control, **kwargs):
+        peft_model_path = os.path.join(state.best_model_checkpoint, "adapter_model")
+        kwargs["model"].save_pretrained(peft_model_path)
+
+        pytorch_model_path = os.path.join(
+            state.best_model_checkpoint, "pytorch_model.bin"
+        )
+        os.remove(pytorch_model_path) if os.path.exists(pytorch_model_path) else None
