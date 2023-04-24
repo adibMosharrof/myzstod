@@ -259,6 +259,8 @@ class SimpleTODTrainer:
                 "query_key_value",
                 "xxx",
             ]  # workaround to use 8bit training on this model
+
+        modules_to_save = ["wte"] if self.cfg.save_wte else None
         config = LoraConfig(
             r=16,
             lora_alpha=32,
@@ -267,7 +269,7 @@ class SimpleTODTrainer:
             bias="none",
             task_type="CAUSAL_LM",
             base_model_name_or_path=self.cfg.model_name,
-            modules_to_save=["wte"],
+            modules_to_save=modules_to_save,
         )
         model = get_peft_model(model, config)
         if model.active_peft_config.base_model_name_or_path is None:
