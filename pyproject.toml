@@ -29,7 +29,7 @@ loralib = "^0.1.1"
 absl-py = "^1.4.0"
 rouge-score = "^0.1.2"
 sentencepiece = "^0.1.97"
-peft = {git = "https://github.com/huggingface/peft"}
+peft = {git = "https://github.com/huggingface/peft.git", branch = "main"}
 
 
 

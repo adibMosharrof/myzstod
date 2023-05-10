@@ -126,11 +126,12 @@ def get_tokenizer(
     if not should_add_special_tokens:
         tokenizer = AutoTokenizer.from_pretrained(
             tokenizer_name,
-            pad_token=SpecialTokens.pad_token.value,
-            bos_token=SpecialTokens.bos_token.value,
-            eos_token=SpecialTokens.end_target.value,
+            # pad_token=SpecialTokens.pad_token.value,
+            # bos_token=SpecialTokens.bos_token.value,
+            # eos_token=SpecialTokens.end_target.value,
             add_prefix_space=add_prefix_space,
         )
+        tokenizer.pad_token_id = tokenizer.eos_token_id
     else:
         tokenizer = AutoTokenizer.from_pretrained(
             tokenizer_name,

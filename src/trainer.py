@@ -5,6 +5,7 @@ from omegaconf import DictConfig
 import hydra
 import omegaconf
 import torch
+import gc
 from transformers import (
     AutoModel,
     AutoTokenizer,
@@ -93,8 +94,10 @@ class SimpleTODTrainer:
         else:
             pretrained_model_path = self.pretrain_model(self.cfg.datamodule)
         self.print_cuda_info("after pretrain")
+        gc.collect()
         self._setup_contrastive()
         self.print_cuda_info("contrastive model created")
+
         torch.cuda.empty_cache()
         self.print_cuda_info("empty cache before training")
         if self.cfg.two_step_training:
@@ -244,6 +247,8 @@ class SimpleTODTrainer:
                 device_map="auto",
             )
             model.resize_token_embeddings(len(self.cfg.tokenizer))
+        model.enable_input_require_grads()
+        model.gradient_checkpointing_enable()
         if "gpt-neox" in self.cfg.model_name:
             model = prepare_model_for_int8_training(
                 model,
@@ -260,7 +265,11 @@ class SimpleTODTrainer:
                 "xxx",
             ]  # workaround to use 8bit training on this model
 
-        modules_to_save = ["wte"] if self.cfg.save_wte else None
+        modules_to_save = ["wte", "lm_head"] if self.cfg.save_wte else None
+        # modules_to_save = (
+        #     ["wte", "embed.tokens", "lm_head"] if self.cfg.save_wte else None
+        # )
+
         config = LoraConfig(
             r=16,
             lora_alpha=32,
@@ -316,6 +325,8 @@ class SimpleTODTrainer:
         pre_trainer.train()
         pre_trainer.save_model()
         model.save_pretrained(training_args.output_dir)
+        del model
+        torch.cuda.empty_cache()
         return training_args.output_dir
         return model
 

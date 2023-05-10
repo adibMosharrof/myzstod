@@ -35,73 +35,73 @@ class ZsTodActionAttributes(str, Enum):
         return [c.value for c in cls]
 
 
-# class SpecialTokens(str, Enum):
-#     begin_target = "<|begintarget|>"
-#     end_target = "<|endtarget|>"
+class SpecialTokens(str, Enum):
+    begin_target = "<|begintarget|>"
+    end_target = "<|endtarget|>"
 
-#     begin_context = "<|begincontext|>"
-#     end_context = "<|endcontext|>"
-#     system = "<|system|>"
-#     user = "<|user|>"
-#     begin_last_user_utterance = "<|beginlastuserutterance|>"
-#     end_last_user_utterance = "<|endlastuserutterance|>"
+    begin_context = "<|begincontext|>"
+    end_context = "<|endcontext|>"
+    system = "<|system|>"
+    user = "<|user|>"
+    begin_last_user_utterance = "<|beginlastuserutterance|>"
+    end_last_user_utterance = "<|endlastuserutterance|>"
 
-#     begin_dsts = "<|begindsts|>"
-#     end_dsts = "<|enddsts|>"
+    begin_dsts = "<|begindsts|>"
+    end_dsts = "<|enddsts|>"
 
-#     begin_dst = "<|begindst|>"
-#     end_dst = "<|enddst|>"
+    begin_dst = "<|begindst|>"
+    end_dst = "<|enddst|>"
 
-#     begin_belief = "<|beginbelief|>"
-#     end_belief = "<|endbelief|>"
+    begin_belief = "<|beginbelief|>"
+    end_belief = "<|endbelief|>"
 
-#     begin_response = "<|beginresponse|>"
-#     end_response = "<|endresponse|>"
+    begin_response = "<|beginresponse|>"
+    end_response = "<|endresponse|>"
 
-#     begin_action = "<|beginaction|>"
-#     end_action = "<|endaction|>"
+    begin_action = "<|beginaction|>"
+    end_action = "<|endaction|>"
 
-#     begin_user_action = "<|beginuseraction|>"
-#     end_user_action = "<|enduseraction|>"
-#     sys_actions = "<|sysactions|>"
+    begin_user_action = "<|beginuseraction|>"
+    end_user_action = "<|enduseraction|>"
+    sys_actions = "<|sysactions|>"
 
-#     begin_intent = "<|beginintent|>"
-#     end_intent = "<|endintent|>"
+    begin_intent = "<|beginintent|>"
+    end_intent = "<|endintent|>"
 
-#     begin_requested_slots = "<|beginrequestedslots|>"
-#     end_requested_slots = "<|endrequestedslots|>"
+    begin_requested_slots = "<|beginrequestedslots|>"
+    end_requested_slots = "<|endrequestedslots|>"
 
-#     prompt_dst = "<|promptdst|>"
-#     prompt_action = "<|promptaction|>"
-#     prompt_response = "<|promptresponse|>"
+    prompt_dst = "<|promptdst|>"
+    prompt_action = "<|promptaction|>"
+    prompt_response = "<|promptresponse|>"
 
-#     pad_token = "<|pad|>"
-#     eos_token = "<|endoftext|>"
-#     bos_token = "<|startoftext|>"
+    pad_token = "<|pad|>"
+    eos_token = "<|endoftext|>"
+    bos_token = "<|startoftext|>"
 
-#     begin_schema = "<|beginschema|>"
-#     end_schema = "<|endschema|>"
-#     schema_name = "<|schemaname|>"
-#     schema_description = "<|schemadescription|>"
+    begin_schema = "<|beginschema|>"
+    end_schema = "<|endschema|>"
+    schema_name = "<|schemaname|>"
+    schema_description = "<|schemadescription|>"
 
-#     begin_schema_intent = "<|beginschemaintent|>"
-#     end_schema_intent = "<|endschemaintent|>"
-#     intent_required_slots = "<|intentrequiredslots|>"
-#     intent_result_slots = "<|intentresultslots|>"
-#     intent_optional_slots = "<|intentoptionalslots|>"
-#     possible_values = "<|possiblevalues|>"
-#     end_possible_values = "<|endpossiblevalues|>"
+    begin_schema_intent = "<|beginschemaintent|>"
+    end_schema_intent = "<|endschemaintent|>"
+    intent_required_slots = "<|intentrequiredslots|>"
+    intent_result_slots = "<|intentresultslots|>"
+    intent_optional_slots = "<|intentoptionalslots|>"
+    possible_values = "<|possiblevalues|>"
+    end_possible_values = "<|endpossiblevalues|>"
 
-#     begin_schema_slot = "<|beginschemaslot|>"
-#     end_schema_slot = "<|endschemaslot|>"
-#     schema_slot_values = "<|schemaslotvalues|>"
+    begin_schema_slot = "<|beginschemaslot|>"
+    end_schema_slot = "<|endschemaslot|>"
+    schema_slot_values = "<|schemaslotvalues|>"
 
-#     begin_service_results = "<|beginserviceresults|>"
-#     end_service_results = "<|endserviceresults|>"
+    begin_service_results = "<|beginserviceresults|>"
+    end_service_results = "<|endserviceresults|>"
 
-#     @classmethod
-#     def list(cls):
-#         return [c.value for c in cls]
+    @classmethod
+    def list(cls):
+        return [c.value for c in cls]
 
 
 # class SpecialTokens(str, Enum):
@@ -134,34 +134,34 @@ class ZsTodActionAttributes(str, Enum):
 #     bos_token = "start of text "
 
 
-class SpecialTokens(str, Enum):
-    begin_target = "begintarget"
-    end_target = "endtarget"
-    begin_context = "begincontext"
-    end_context = "endcontext"
-    system = "system"
-    user = "user"
-    begin_last_user_utterance = "beginlastuserutterance"
-    end_last_user_utterance = "endlastuserutterance"
-    begin_dsts = "begindsts"
-    end_dsts = "enddsts"
-    begin_dst = "begindst"
-    end_dst = "enddst"
-    begin_belief = "beginbelief"
-    end_belief = "endbelief"
-    begin_response = "beginresponse"
-    end_response = "endresponse"
-    begin_action = "beginaction"
-    end_action = "endaction"
-    begin_user_action = "beginuseraction"
-    end_user_action = "enduseraction"
-    sys_actions = "sysactions"
-    begin_intent = "beginintent"
-    end_intent = "endintent"
-    begin_requested_slots = "beginrequestedslots"
-    end_requested_slots = "endrequestedslots"
-    pad_token = "pad"
-    bos_token = "startoftext"
+# class SpecialTokens(str, Enum):
+#     begin_target = "begintarget"
+#     end_target = "endtarget"
+#     begin_context = "begincontext"
+#     end_context = "endcontext"
+#     system = "system"
+#     user = "user"
+#     begin_last_user_utterance = "beginlastuserutterance"
+#     end_last_user_utterance = "endlastuserutterance"
+#     begin_dsts = "begindsts"
+#     end_dsts = "enddsts"
+#     begin_dst = "begindst"
+#     end_dst = "enddst"
+#     begin_belief = "beginbelief"
+#     end_belief = "endbelief"
+#     begin_response = "beginresponse"
+#     end_response = "endresponse"
+#     begin_action = "beginaction"
+#     end_action = "endaction"
+#     begin_user_action = "beginuseraction"
+#     end_user_action = "enduseraction"
+#     sys_actions = "sysactions"
+#     begin_intent = "beginintent"
+#     end_intent = "endintent"
+#     begin_requested_slots = "beginrequestedslots"
+#     end_requested_slots = "endrequestedslots"
+#     pad_token = "pad"
+#     bos_token = "startoftext"
 
 
 class SimpleTodConstants(str, Enum):
