@@ -300,8 +300,6 @@ class SimpleTODTrainer:
             if not self.cfg.quantization
             else self.get_quantized_model()
         )
-        # model.lm_head = CastOutputToFloat(model.lm_head)
-        # model.resize_token_embeddings(len(self.cfg.tokenizer))
         print(f"Model Size of {type(model)}: {dstc_utils.get_model_size(model)}")
         # pre_trainer = Trainer(
         #     model=model,
