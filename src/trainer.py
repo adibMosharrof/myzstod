@@ -249,14 +249,14 @@ class SimpleTODTrainer:
             model.resize_token_embeddings(len(self.cfg.tokenizer))
         model.enable_input_require_grads()
         model.gradient_checkpointing_enable()
-        if "gpt-neox" in self.cfg.model_name:
-            model = prepare_model_for_int8_training(
-                model,
-                output_embedding_layer_name="embed_out",
-                layer_norm_names=["layer_norm", "layernorm"],
-            )
-        else:
-            model = prepare_model_for_int8_training(model)
+        # if "gpt-neox" in self.cfg.model_name:
+        #     model = prepare_model_for_int8_training(
+        #         model,
+        #         output_embedding_layer_name="embed_out",
+        #         layer_norm_names=["layer_norm", "layernorm"],
+        #     )
+        # else:
+        #     model = prepare_model_for_int8_training(model)
         target_modules = None
         # target_modules = ["q_proj", "v_proj"]
         if "gpt-neox" in self.cfg.model_name:
@@ -284,7 +284,6 @@ class SimpleTODTrainer:
         if model.active_peft_config.base_model_name_or_path is None:
             model.active_peft_config.base_model_name_or_path = self.cfg.model_name
         self.print_trainable_parameters(model)
-        model.gradient_checkpointing_enable()
         return model
 
     def pretrain_model(self, dm: TodDataModule) -> str:
