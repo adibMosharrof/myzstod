@@ -312,7 +312,7 @@ class SimpleTODTrainer:
         model.config.use_cache = False
         model.train()
         pre_trainer.train()
-        # pre_trainer.save_model()
+        pre_trainer.save_model()
         model.save_pretrained(training_args.output_dir)
         # del model
         torch.cuda.empty_cache()
