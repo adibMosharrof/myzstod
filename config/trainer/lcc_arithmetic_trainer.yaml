@@ -1,37 +1,49 @@
-pretrain_epochs: 30
+pretrain_epochs: 1
 train_epochs: 40
-pretrain_batch_size: 6
+pretrain_batch_size: 9
 train_batch_size: 3
-eval_batch_size: 6
-test_batch_size: 80
+eval_batch_size: 8
+test_batch_size: 7
 max_token_len: 1024
 test_prompt_max_len: 750
 raw_data_root: data/dstc8-schema-guided-dialogue/
 project_root: /project/msi290_uksr/generative_tod
-num_dialogs: 
-  - 127
-  - 20
-  - 34
 # num_dialogs: 
-#   - 5
-#   - 5
-#   - 10
-# overwrite:
-#   - true
-#   - true
-#   - true
+#   - 127
+#   - 20
+#   - 34
+num_dialogs: 
+  - 1
+  - 1
+  - 1
+overwrite:
+  - true
+  - true
+  - true
 should_test: true
 train_domain_settings:
   - Restaurants_1
 dev_domain_settings:
-  - Restaurants_2
+  - Restaurants_1
 test_domain_settings:
-  - [Restaurants_2]
+  - [Restaurants_1]
 wandb:
   project: ZSTod
   entity: adibm
   notes: arithmetic restaurants 
   task: arithmetic
-model_name: distilgpt2
+model_name: EleutherAI/gpt-j-6B
+# model_name: aleksickx/llama-7b-hf
+create_data_from_train: true
+create_data_from_train_splits:
+  - 0.01
+  - 0.01
 fp16: true
 gradient_accumulation_steps: 4
+fp16: false
+gradient_accumulation_steps: 32
+eval_accumulation_steps: 32
+quantization: true
+two_step_training: false
+should_add_special_tokens: true
+save_wte: true
