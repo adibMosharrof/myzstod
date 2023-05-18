@@ -18,6 +18,7 @@ from transformers import (
     GPT2Config,
     T5ForConditionalGeneration,
     AutoModelForCausalLM,
+    BitsAndBytesConfig,
 )
 from base_datamodule import BaseDataModule
 from configs.contrastive_config import ContrastiveConfig
@@ -104,8 +105,8 @@ class SimpleTODTrainer:
             out_dir = self.train_model(pretrained_model_path, self.cfg.datamodule)
             full_out_dir = str(current_dir / out_dir)
         else:
-            full_out_dir = str(current_dir / pretrained_model_path)
-            # full_out_dir = pretrained_model_path
+            # full_out_dir = str(current_dir / pretrained_model_path)
+            full_out_dir = pretrained_model_path
         self.print_cuda_info("after train")
         print("Training done")
         print("-" * 80)
@@ -240,23 +241,15 @@ class SimpleTODTrainer:
         if path:
             model = utils.load_quantized_model(path, self.cfg.tokenizer)
         else:
-            current_device = Accelerator().process_index
             model = AutoModelForCausalLM.from_pretrained(
                 self.cfg.model_name,
                 load_in_8bit=True,
                 device_map="auto",
             )
             model.resize_token_embeddings(len(self.cfg.tokenizer))
+        model = prepare_model_for_int8_training(model)
         model.enable_input_require_grads()
         model.gradient_checkpointing_enable()
-        # if "gpt-neox" in self.cfg.model_name:
-        #     model = prepare_model_for_int8_training(
-        #         model,
-        #         output_embedding_layer_name="embed_out",
-        #         layer_norm_names=["layer_norm", "layernorm"],
-        #     )
-        # else:
-        #     model = prepare_model_for_int8_training(model)
         target_modules = None
         # target_modules = ["q_proj", "v_proj"]
         if "gpt-neox" in self.cfg.model_name:
@@ -265,10 +258,9 @@ class SimpleTODTrainer:
                 "xxx",
             ]  # workaround to use 8bit training on this model
 
-        modules_to_save = ["wte", "lm_head"] if self.cfg.save_wte else None
-        # modules_to_save = (
-        #     ["wte", "embed.tokens", "lm_head"] if self.cfg.save_wte else None
-        # )
+        modules_to_save = (
+            ["wte", "lm_head", "embed_tokens"] if self.cfg.save_wte else None
+        )
 
         config = LoraConfig(
             r=16,
@@ -320,11 +312,11 @@ class SimpleTODTrainer:
         model.config.use_cache = False
         model.train()
         pre_trainer.train()
-        pre_trainer.save_model()
+        # pre_trainer.save_model()
         model.save_pretrained(training_args.output_dir)
-        del model
+        # del model
         torch.cuda.empty_cache()
-        return training_args.output_dir
+        # return training_args.output_dir
         return model
 
     def train_model(self, path, dm) -> str:
