@@ -213,7 +213,7 @@ class SimpleTODTrainer:
             eval_accumulation_steps=self.cfg.eval_accumulation_steps,
             per_device_train_batch_size=train_batch_size,
             per_device_eval_batch_size=self.cfg.eval_batch_size,
-            warmup_steps=100,
+            warmup_steps=200,
             weight_decay=0.01,
             logging_dir=self.cfg.logging_dir,
             dataloader_num_workers=self.cfg.num_workers,
@@ -221,6 +221,7 @@ class SimpleTODTrainer:
             fp16=self.cfg.fp16,
             dataloader_drop_last=True,
             run_name=step_name,
+            learning_rate=5e-4,
         )
 
     def get_model_instance(self, path: str = None) -> AutoModel:
@@ -245,11 +246,10 @@ class SimpleTODTrainer:
                 self.cfg.model_name,
                 load_in_8bit=True,
                 device_map="auto",
+                torch_dtype=torch.float16,
             )
             model.resize_token_embeddings(len(self.cfg.tokenizer))
         model = prepare_model_for_int8_training(model)
-        model.enable_input_require_grads()
-        model.gradient_checkpointing_enable()
         target_modules = None
         # target_modules = ["q_proj", "v_proj"]
         if "gpt-neox" in self.cfg.model_name:
@@ -258,14 +258,17 @@ class SimpleTODTrainer:
                 "xxx",
             ]  # workaround to use 8bit training on this model
 
-        modules_to_save = (
-            ["wte", "lm_head", "embed_tokens"] if self.cfg.save_wte else None
-        )
+        modules_to_save = None
+        if self.cfg.save_wte:
+            if "gpt-j" in self.cfg.model_name:
+                modules_to_save = ["lm_head", "wte"]
+            else:
+                modules_to_save = ["lm_head", "embed_tokens"]
 
         config = LoraConfig(
             r=16,
             lora_alpha=32,
-            target_modules=target_modules,
+            # target_modules=target_modules,
             lora_dropout=0.05,
             bias="none",
             task_type="CAUSAL_LM",
