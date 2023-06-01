@@ -33,7 +33,6 @@ class RequestedSlotsMetric(TodMetricsBase):
 
     def _update_old(self, predictions: list[str], references: list[str]) -> any:
         for ref, pred in zip(references, predictions):
-
             target_txt_items = self._extract_section_and_split_items_from_text(
                 ref,
                 SpecialTokens.begin_requested_slots,
@@ -47,6 +46,7 @@ class RequestedSlotsMetric(TodMetricsBase):
                 pred,
                 SpecialTokens.begin_requested_slots,
                 SpecialTokens.end_requested_slots,
+                trim_spaces=True,
             )
             pred_slots = [DstcRequestedSlot.from_string(t) for t in pred_txt_items]
 
@@ -87,7 +87,6 @@ class RequestedSlotsMetric(TodMetricsBase):
 
     def _update(self, predictions: list[str], references: list[str]) -> any:
         for ref, pred in zip(references, predictions):
-
             target_txt_items = self._extract_section_and_split_items_from_text(
                 ref,
                 SpecialTokens.begin_requested_slots,

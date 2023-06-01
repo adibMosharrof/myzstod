@@ -1,9 +1,9 @@
-
 from dataclasses import dataclass
 from typing import Optional
 
 from my_enums import SimpleTodConstants
 import dstc.dstc_utils as dstc_utils
+
 
 @dataclass
 class ZsTodBelief:
@@ -19,7 +19,10 @@ class ZsTodBelief:
     ) -> "ZsTodBelief":
         try:
             dom_slot, values_str = text.split(SimpleTodConstants.SLOT_VALUE_SEPARATOR)
-            values = values_str.split(SimpleTodConstants.VALUE_SEPARATOR)
+            values = [
+                v.strip() for v in values_str.split(SimpleTodConstants.VALUE_SEPARATOR)
+            ]
+
         except ValueError:
             return self("", "", "", text)
         try:
@@ -29,7 +32,9 @@ class ZsTodBelief:
         is_categorical = None
         if slot_categories:
             is_categorical = slot_categories[slot_name]
-        return self(domain, slot_name, values, is_categorical=is_categorical)
+        return self(
+            domain.strip(), slot_name.strip(), values, is_categorical=is_categorical
+        )
 
     def __repr__(self) -> str:
         return self.__str__()
@@ -53,4 +58,3 @@ class ZsTodBelief:
                 self.values, other.values, self.is_categorical
             )
         )
-

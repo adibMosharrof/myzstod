@@ -13,7 +13,6 @@ from tod.zs_tod_action import ZsTodAction
 from tod.zs_tod_belief import ZsTodBelief
 
 
-
 @dataclass
 class GoalMetricConfig:
     start_token: str
@@ -78,9 +77,7 @@ class GoalMetric(TodMetricsBase):
 
     def _update(self, turn_predictions: list[str], references: list[str]) -> None:
         for ref, pred in zip(references, turn_predictions):
-            multiple_values = (
-                True if self.config.tod_class == ZsTodBelief else False
-            )
+            multiple_values = True if self.config.tod_class == ZsTodBelief else False
             target_txt_items = self._extract_section_and_split_items_from_text(
                 ref,
                 self.config.start_token,
@@ -102,6 +99,7 @@ class GoalMetric(TodMetricsBase):
                 self.config.start_token,
                 self.config.end_token,
                 multiple_values=multiple_values,
+                trim_spaces=True,
             )
             pred_beliefs = [
                 self.config.tod_class.from_string(t, self.slot_categories)

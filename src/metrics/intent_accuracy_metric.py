@@ -20,7 +20,6 @@ class IntentAccuracyMetric(TodMetricsBase):
         # target_intents = []
         # pred_intents = []
         for target, prediction in zip(references, predictions):
-
             t_intents = self._extract_section_from_text(
                 target,
                 SpecialTokens.begin_intent,
@@ -38,6 +37,7 @@ class IntentAccuracyMetric(TodMetricsBase):
                 SpecialTokens.end_intent,
                 [SpecialPredictions.DUMMY],
                 multiple_values=True,
+                trim_spaces=True,
             )
             for t_intent in t_intents:
                 if t_intent in p:

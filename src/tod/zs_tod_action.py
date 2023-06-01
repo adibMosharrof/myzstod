@@ -1,10 +1,11 @@
-
 from dataclasses import dataclass
 from typing import Optional
 from dstc.dstc_dataclasses import DstcRequestedSlot
 
 from my_enums import SimpleTodConstants
 import dstc.dstc_utils as dstc_utils
+
+
 @dataclass
 class ZsTodAction:
     domain: str
@@ -24,6 +25,7 @@ class ZsTodAction:
             return self("", "", prediction=text)
         try:
             dom_slot, values = rest.split(SimpleTodConstants.ACTION_VALUE_SEPARATOR)
+            # values = [v.strip() for v in values]
         except ValueError:
             return self("", action_type, prediction=text)
         try:
@@ -34,7 +36,11 @@ class ZsTodAction:
         if slot_categories:
             is_categorical = slot_categories[slot_name]
         return self(
-            domain, action_type, slot_name, values, is_categorical=is_categorical
+            domain.strip(),
+            action_type.strip(),
+            slot_name.strip(),
+            values,
+            is_categorical=is_categorical,
         )
 
     def __eq__(self, other: "ZsTodAction") -> bool:

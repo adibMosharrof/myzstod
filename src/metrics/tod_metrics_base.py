@@ -15,6 +15,7 @@ from torchmetrics import Metric
 # class TodMetricsBase(ABC):
 class TodMetricsBase(Metric):
     """Base class for all TOD metrics."""
+
     full_state_update = False
 
     def __init__(
@@ -52,10 +53,16 @@ class TodMetricsBase(Metric):
         end_token: str,
         default_value: any = None,
         multiple_values: bool = False,
+        trim_spaces: bool = False,
     ):
-        return dstc_utils.get_text_in_between(
+        text = dstc_utils.get_text_in_between(
             text, start_token, end_token, default_value, multiple_values=multiple_values
         )
+        if not trim_spaces:
+            return text
+        if isinstance(text, list):
+            return [t.strip() for t in text]
+        return text.strip()
 
     def _extract_section_and_split_items_from_text(
         self,
@@ -65,9 +72,15 @@ class TodMetricsBase(Metric):
         separator: str = SimpleTodConstants.ITEM_SEPARATOR,
         default_value: any = [],
         multiple_values: bool = False,
+        trim_spaces: bool = False,
     ) -> np.ndarray:
         section_txts = self._extract_section_from_text(
-            text, start_token, end_token, default_value, multiple_values=multiple_values
+            text,
+            start_token,
+            end_token,
+            default_value,
+            multiple_values=multiple_values,
+            trim_spaces=trim_spaces,
         )
         if not section_txts:
             return default_value
@@ -84,7 +97,9 @@ class TodMetricsBase(Metric):
         if not len(references):
             raise ValueError("You must provide at least one reference.")
         if not len(predictions) == len(references):
-            raise ValueError(f"Predictions {len(predictions)} and references {len(references)} must have the same length")
+            raise ValueError(
+                f"Predictions {len(predictions)} and references {len(references)} must have the same length"
+            )
         self.is_cached = False
         return self._update(predictions, references)
 

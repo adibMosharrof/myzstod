@@ -42,10 +42,10 @@ class SuccessMetric(TodMetricsBase):
                 pred,
                 SpecialTokens.begin_action,
                 SpecialTokens.end_action,
+                trim_spaces=True,
             )
             pred_items = [
-                ZsTodAction.from_string(t, self.slot_categories)
-                for t in pred_items_txt
+                ZsTodAction.from_string(t, self.slot_categories) for t in pred_items_txt
             ]
 
             # batch_success = []
