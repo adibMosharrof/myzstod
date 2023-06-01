@@ -62,8 +62,6 @@ def get_csv_data_path(
                 "multi_task",
                 str(cfg.is_multi_task),
                 "_".join(map(str, cfg.multi_tasks)),
-                "special_tokens",
-                str(cfg.should_add_special_tokens),
                 "schema",
                 str(cfg.should_add_schema),
                 "user_actions",
@@ -76,8 +74,6 @@ def get_csv_data_path(
                 str(cfg.should_add_service_results),
                 "dialogs",
                 str(num_dialogs),
-                "delexicalize",
-                str(cfg.delexicalize),
                 "domain_setting",
                 get_domain_setting_str(domain_setting),
                 "train_domains",
@@ -132,15 +128,20 @@ def get_tokenizer(
             add_prefix_space=add_prefix_space,
         )
         tokenizer.pad_token_id = tokenizer.eos_token_id
-    else:
-        tokenizer = AutoTokenizer.from_pretrained(
-            tokenizer_name,
-            pad_token=SpecialTokens.pad_token.value,
-            bos_token=SpecialTokens.bos_token.value,
-            eos_token=SpecialTokens.end_target.value,
-            additional_special_tokens=SpecialTokens.list(),
-            add_prefix_space=add_prefix_space,
-        )
+        tokenizer.save_pretrained(tokenizer_path)
+        return tokenizer
+    clean_up_tokenization_spaces = False
+    if "llama" in tokenizer_name:
+        clean_up_tokenization_spaces = True
+    tokenizer = AutoTokenizer.from_pretrained(
+        tokenizer_name,
+        pad_token=SpecialTokens.pad_token.value,
+        bos_token=SpecialTokens.bos_token.value,
+        eos_token=SpecialTokens.end_target.value,
+        additional_special_tokens=SpecialTokens.list(),
+        add_prefix_space=add_prefix_space,
+        clean_up_tokenization_spaces=clean_up_tokenization_spaces,
+    )
     tokenizer.save_pretrained(tokenizer_path)
     return tokenizer
 
