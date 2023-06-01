@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from dataclasses import dataclass
+import math
 from pathlib import Path
 from typing import Dict, Iterable, List, Tuple, Union
 from omegaconf import ListConfig
@@ -144,7 +145,7 @@ class BaseDataModule(ABC):
             train_df = pd.DataFrame(self.datasets[Steps.TRAIN].data)
             train_dialog_ids = list(train_df.dialog_id.unique())
             new_data_dialog_ids = random.sample(
-                train_dialog_ids, int(len(train_dialog_ids) * split_percent)
+                train_dialog_ids, math.ceil(len(train_dialog_ids) * split_percent)
             )
             new_data = train_df[train_df.dialog_id.isin(new_data_dialog_ids)]
             updated_train_data = train_df[~train_df.dialog_id.isin(new_data_dialog_ids)]
