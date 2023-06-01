@@ -236,6 +236,7 @@ class SimpleTODTrainer:
             )
         else:
             model = model_class.from_pretrained(path or self.cfg.model_name)
+        model.resize_token_embeddings(len(self.cfg.tokenizer))
         return model
 
     def get_quantized_model(self, path: Path = None):
