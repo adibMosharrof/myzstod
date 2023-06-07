@@ -115,17 +115,30 @@ class BaseDataModule(ABC):
             self.create_test_data_grouped_by_dialog_turns(self.datasets[Steps.TEST])
         if self.cfg.create_data_from_train:
             self.create_dev_test_from_train()
-        a = 1
+
+    """
+        Test domain must be an array of length 1.
+        That one test array can have multiple domains in it.
+        No support for multiple different independent test domains
+    """
 
     def create_dev_test_from_train(self):
         if Steps.TRAIN in self.steps:
             if not self.datasets[Steps.TRAIN]:
                 self._check_if_step_data_exists(Steps.TRAIN)
         if Steps.TRAIN.value not in self.datasets:
+            # TODO: Try to remove the hardcoded indexes
+            train_step_data = StepData(
+                name=Steps.TRAIN.value,
+                num_dialog=self.cfg.num_dialogs[0],
+                overwrite=self.cfg.overwrite[0],
+                split_percent=self.cfg.data_split_percent[0],
+                domain_settings=self.cfg.test_domain_settings[0],
+            )
             self.datasets[Steps.TRAIN.value] = self.setup_single_run(
                 Steps.TRAIN.value,
-                self.cfg.train_step_data,
-                self.cfg.train_step_data.domain_settings,
+                train_step_data,
+                train_step_data.domain_settings,
             )
             self._check_if_step_data_exists(
                 Steps.TRAIN,
@@ -144,6 +157,10 @@ class BaseDataModule(ABC):
                 continue
             train_df = pd.DataFrame(self.datasets[Steps.TRAIN].data)
             train_dialog_ids = list(train_df.dialog_id.unique())
+            if len(train_dialog_ids) < 3:
+                raise ValueError(
+                    "There are not enough train dialogs to create dev/test"
+                )
             new_data_dialog_ids = random.sample(
                 train_dialog_ids, math.ceil(len(train_dialog_ids) * split_percent)
             )

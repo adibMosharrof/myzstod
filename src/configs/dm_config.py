@@ -171,7 +171,7 @@ class DataModuleConfig:
             data_prep_out_root=inf_config.data_prep_out_root,
             max_token_len=inf_config.max_token_len,
             test_prompt_max_len=inf_config.test_prompt_max_len,
-            num_dialogs=[1, 1, inf_config.num_test_dialogs],
+            num_dialogs=[inf_config.num_train_dialogs, 1, inf_config.num_test_dialogs],
             delexicalize=inf_config.delexicalize,
             overwrite=inf_config.overwrite,
             num_turns=inf_config.num_turns,

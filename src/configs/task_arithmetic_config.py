@@ -35,6 +35,7 @@ class TaskArithmeticConfig:
         create_data_from_train_splits: list[float] = None,
         test_batch_size: int = 32,
         postprocess_generation: bool = True,
+        quantization: bool = True,
     ) -> None:
         self.project_root = Path(project_root)
         self.data_prep_out_root = Path(data_prep_out_root)
@@ -43,6 +44,7 @@ class TaskArithmeticConfig:
         self.out_dir = Path(out_dir)
         self.raw_data_root = self.project_root / raw_data_root
         self.wandb = wandb
+        self.quantization = quantization
         self.model_a = ModelForTaskArithmetic(project_root=self.project_root, **model_a)
         self.model_b = ModelForTaskArithmetic(project_root=self.project_root, **model_b)
         self.model_multi_domain = ModelForTaskArithmetic(

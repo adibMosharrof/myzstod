@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 import logging
 import peft
 from peft import PeftConfig, PeftModel
-from transformers import AutoModelForCausalLM
+from transformers import AutoModelForCausalLM, AutoTokenizer
 from accelerate import Accelerator
 
 
@@ -124,46 +124,16 @@ def init_wandb(
     wandb.log({"job_id": os.environ.get("SLURM_JOB_ID", "")})
 
 
-def load_quantized_model(path: Path, tokenizer):
-    current_device = Accelerator().process_index
+def load_quantized_model(path: Path, tokenizer: AutoTokenizer):
     config = PeftConfig.from_pretrained(path)
     model = AutoModelForCausalLM.from_pretrained(
         config.base_model_name_or_path,
-        # return_dict=True,
         load_in_8bit=True,
         device_map="auto",
     )
     model.resize_token_embeddings(len(tokenizer))
-    # model = model.cuda()
-    # model = PeftModel.from_pretrained(model, path, torch_dtype=torch.bfloat16)
     model = PeftModel.from_pretrained(model, path)
     return model
-    key_list = [
-        key for key, _ in model.base_model.model.named_modules() if "lora" not in key
-    ]
-    for key in key_list:
-        parent, target, target_name = model.base_model._get_submodules(key)
-        if isinstance(target, peft.tuners.lora.Linear):
-            bias = target.bias is not None
-            new_module = torch.nn.Linear(
-                target.in_features, target.out_features, bias=bias
-            )
-            model.base_model._replace_module(parent, target_name, new_module, target)
-
-    model = model.base_model.model
-    return model
-    row = tokenizer(
-        "<|begincontext|>I am looking to eat somewhere<|endcontext|>",
-        return_tensors="pt",
-    )
-    output_tokens = model.generate(
-        inputs=row["input_ids"].cuda(),
-        attention_mask=row["attention_mask"].cuda(),
-        max_length=150,
-    )
-
-    print("\n\n", tokenizer.decode(output_tokens[0], skip_special_tokens=False))
-    a = 1
 
 
 class PeftSavingCallback(TrainerCallback):

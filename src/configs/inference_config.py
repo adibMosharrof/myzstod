@@ -72,6 +72,7 @@ class InferenceConfig:
         test_num_turns_groups: list[Tuple[int, int]] = None,
         train_step_data: "StepData" = None,
         quantization: bool = False,
+        num_train_dialogs: int = 1,
     ) -> None:
         self.num_workers = num_workers
         self.data_split_percent = data_split_percent or [1, 1, 1]
@@ -138,6 +139,7 @@ class InferenceConfig:
         self.train_step_data = train_step_data
         self.create_data_from_train = create_data_from_train
         self.create_data_from_train_splits = create_data_from_train_splits or [0.1, 0.1]
+        self.num_train_dialogs = num_train_dialogs
         self.datamodule = datamodule or self._get_datamodule(self.test_domain_settings)
 
     def _get_tokenizer(self, model_path_str: str):
@@ -160,7 +162,7 @@ class InferenceConfig:
 
     def _get_model(self, model):
         model_class = dstc_utils.get_model_class(self.model_name, self.is_multi_head)
-        if isinstance(model, str):
+        if isinstance(model, str) or isinstance(model, Path):
             model_path = self.project_root / model
             if model_class is not GPT2MultiLMHeadModel:
                 if not self.quantization:
@@ -259,4 +261,6 @@ class InferenceConfig:
             num_test_dialogs=task_arithmetic_config.num_test_dialogs,
             test_batch_size=task_arithmetic_config.test_batch_size,
             postprocess_generation=task_arithmetic_config.postprocess_generation,
+            data_split_percent=task_arithmetic_config.data_split_percent,
+            quantization=task_arithmetic_config.quantization,
         )

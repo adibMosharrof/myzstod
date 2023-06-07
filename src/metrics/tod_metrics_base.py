@@ -2,7 +2,7 @@ from abc import ABC
 import abc
 from pathlib import Path
 import re
-from typing import Optional
+from typing import Optional, Union
 
 import numpy as np
 
@@ -48,7 +48,7 @@ class TodMetricsBase(Metric):
 
     def _extract_section_from_text(
         self,
-        text: str,
+        text: Union[str, list[str]],
         start_token: str,
         end_token: str,
         default_value: any = None,
