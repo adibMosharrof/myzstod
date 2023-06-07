@@ -26,9 +26,11 @@ class TaskVector:
                         continue
                     if pretrained_state_dict[key].dtype == torch.uint8:
                         continue
-                    self.vector[key] = (
-                        finetuned_state_dict[key] - pretrained_state_dict[key]
-                    )
+                    diff = pretrained_state_dict[key] - finetuned_state_dict[key]
+                    # non_zeros = int(torch.count_nonzero(diff))
+                    # if not non_zeros:
+                    #     continue
+                    self.vector[key] = diff
 
     def __add__(self, other):
         """Add two task vectors together."""
