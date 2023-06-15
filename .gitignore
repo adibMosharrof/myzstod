@@ -2,6 +2,7 @@
 data/
 out/
 envs/
+env/
 .venvs/
 processed_data/
 lightning_logs/
