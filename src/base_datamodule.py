@@ -3,7 +3,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 import math
 from pathlib import Path
-from typing import Dict, Iterable, List, Tuple, Union
+from typing import Dict, Iterable, List, Optional, Tuple, Union
 from omegaconf import ListConfig
 
 import torch
@@ -14,7 +14,7 @@ from configs.dm_config import DataModuleConfig
 import dstc.dstc_utils as dstc_utils
 from tod.turns.zs_tod_turn import TodTurnCsvRow, TodTurnMultiHeadCsvRow
 import utils
-from my_enums import SpecialTokens, Steps
+from my_enums import SpecialTokens, Steps, MultiTaskNames
 from simple_tod_dataclasses import (
     TodTestDataBatch,
 )
@@ -48,8 +48,10 @@ class BaseDataModule(ABC):
         cfg: DataModuleConfig,
         steps: list[Steps],
         tod_turn_row_cls=TodTurnCsvRow,
+        task_name: Optional[MultiTaskNames] = None,
     ):
         self.cfg = cfg
+        self.task_name = task_name
         self.tod_turn_row_cls = tod_turn_row_cls
         self.datasets: dict[str, SimpleTodDataSet] = {}
         self.grouped_test_datasets: list[str, SimpleTodDataSet] = {}
@@ -93,8 +95,34 @@ class BaseDataModule(ABC):
             data = utils.read_csv_dataclass(csv_path, self.tod_turn_row_cls)
         except FileNotFoundError:
             data = []
+
+        if self.cfg.is_multi_task:
+            if step == Steps.TEST.value:
+                data = self.combine_tasks_for_inference(data)
+            if self.task_name:
+                data = self.filter_data_by_task_name(data, self.task_name)
+
         data = self.get_data_by_split_percent(data, step_data.split_percent)
         return SimpleTodDataSet(data)
+
+    def combine_tasks_for_inference(self, data: list[TodTurnCsvRow]):
+        if not isinstance(data, pd.DataFrame):
+            data = pd.DataFrame(data)
+        if data.empty:
+            return data
+        grouped = (
+            data.groupby(["dialog_id", "turn_id"])
+            .agg({"context": "last", "schema": "last", "target": "sum"})
+            .reset_index()
+        )
+        # grouped_wo_dup = grouped.drop_duplicates()
+        # return grouped
+        return [
+            self.tod_turn_row_cls(**row) for row in grouped.to_dict(orient="records")
+        ]
+
+    def filter_data_by_task_name(self, data: list, task_name: MultiTaskNames):
+        return [d for d in data if d.task == task_name.value]
 
     def setup(self):
         for step in self.steps:
@@ -115,6 +143,10 @@ class BaseDataModule(ABC):
             self.create_test_data_grouped_by_dialog_turns(self.datasets[Steps.TEST])
         if self.cfg.create_data_from_train:
             self.create_dev_test_from_train()
+            if self.cfg.is_multi_task:
+                for d in self.datasets[Steps.TEST]:
+                    d.data = self.combine_tasks_for_inference(d.data)
+                a = 1
 
     """
         Test domain must be an array of length 1.
@@ -165,16 +197,22 @@ class BaseDataModule(ABC):
                 train_dialog_ids, math.ceil(len(train_dialog_ids) * split_percent)
             )
             new_data = train_df[train_df.dialog_id.isin(new_data_dialog_ids)]
+            if self.cfg.is_multi_task and step == Steps.TEST:
+                new_data = self.combine_tasks_for_inference(new_data)
             updated_train_data = train_df[~train_df.dialog_id.isin(new_data_dialog_ids)]
             self.datasets[Steps.TRAIN] = SimpleTodDataSet(
                 [
-                    TodTurnCsvRow(**row)
+                    self.tod_turn_row_cls(**row)
                     for row in updated_train_data.to_dict(orient="records")
                 ]
             )
-            new_step_data = SimpleTodDataSet(
-                [TodTurnCsvRow(**row) for row in new_data.to_dict(orient="records")]
-            )
+            if isinstance(new_data, list):
+                new_step_data = SimpleTodDataSet(new_data)
+            elif isinstance(new_data, pd.DataFrame):
+                curr_data = new_data.to_dict(orient="records")
+                new_step_data = SimpleTodDataSet(
+                    [self.tod_turn_row_cls(**row) for row in curr_data]
+                )
             self.datasets[step] = (
                 [new_step_data] if step == Steps.TEST else new_step_data
             )
@@ -208,7 +246,7 @@ class BaseDataModule(ABC):
             try:
                 ds_data = pd.concat(data, axis=0)
                 row_data = ds_data.apply(
-                    lambda row: TodTurnCsvRow(*row), axis=1
+                    lambda row: self.tod_turn_row_cls(*row), axis=1
                 ).tolist()
             except ValueError:
                 row_data = []
@@ -357,6 +395,7 @@ class BaseDataModule(ABC):
         if len(target_tokens) > max_length:
             raise ValueError("Target is too long")
         if unused_len < 0:
+            raise ValueError("Need larger token length")
             context_start_tokens = context_tokens[:1]
             trimmed_context = context_tokens[unused_len * -1 + 1 :]
             context_tokens = torch.cat([context_start_tokens, trimmed_context], axis=0)

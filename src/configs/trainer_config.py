@@ -5,7 +5,7 @@ if TYPE_CHECKING:
 import dstc.dstc_utils as dstc_utils
 from pathlib import Path
 from multi_head.mh_dataclasses import MultiHeadDictFactory
-from my_enums import ContextType
+from my_enums import ContextType, MultiTaskNames
 
 
 class TrainerConfig:
@@ -55,7 +55,7 @@ class TrainerConfig:
         is_multi_head: bool = False,
         is_multi_task: bool = False,
         is_multi_decoder: bool = False,
-        multi_tasks: list[int] = None,
+        multi_tasks: list[MultiTaskNames] = None,
         should_add_schema: bool = False,
         should_add_user_actions: bool = False,
         should_add_sys_actions: bool = False,
@@ -131,9 +131,8 @@ class TrainerConfig:
         self.is_multi_head = is_multi_head
         self.is_multi_task = is_multi_task
         self.is_multi_decoder = is_multi_decoder
-        self.multi_tasks = (
-            multi_tasks if self.is_multi_task and multi_tasks else [1, 1, 1]
-        )
+        if self.is_multi_task:
+            self.multi_tasks = MultiTaskNames.get_multi_task_names(multi_tasks)
         self.tokenizer_name = tokenizer_name or model_name
         self.tokenizer = dstc_utils.get_tokenizer(
             self.tokenizer_name, should_add_special_tokens=should_add_special_tokens

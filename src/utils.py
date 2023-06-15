@@ -124,16 +124,38 @@ def init_wandb(
     wandb.log({"job_id": os.environ.get("SLURM_JOB_ID", "")})
 
 
-def load_quantized_model(path: Path, tokenizer: AutoTokenizer):
-    config = PeftConfig.from_pretrained(path)
-    model = AutoModelForCausalLM.from_pretrained(
-        config.base_model_name_or_path,
+def get_8bit_model(model_name: str) -> AutoModelForCausalLM:
+    return AutoModelForCausalLM.from_pretrained(
+        model_name,
         load_in_8bit=True,
         device_map="auto",
     )
+
+
+def load_quantized_model(path: Path, tokenizer: AutoTokenizer):
+    config = PeftConfig.from_pretrained(path)
+    model = get_8bit_model(config.base_model_name_or_path)
     model.resize_token_embeddings(len(tokenizer))
     model = PeftModel.from_pretrained(model, path)
     return model
+
+
+def get_modules_to_save(model_name: str):
+    if "gpt-j" in model_name:
+        return ["lm_head", "wte"]
+    return ["lm_head", "embed_tokens"]
+
+
+def get_lora_config(model_name: str) -> LoraConfig:
+    return LoraConfig(
+        r=16,
+        lora_alpha=32,
+        lora_dropout=0.05,
+        bias="none",
+        task_type="CAUSAL_LM",
+        base_model_name_or_path=model_name,
+        modules_to_save=get_modules_to_save(model_name),
+    )
 
 
 class PeftSavingCallback(TrainerCallback):

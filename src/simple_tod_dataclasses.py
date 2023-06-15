@@ -10,7 +10,13 @@ from torch import nn
 from dstc.dstc_dataclasses import DstcRequestedSlot, DstcSchema, DstcServiceCall
 from multi_head.mh_dataclasses import MultiHeadDictFactory, MultiHeadInstance
 
-from my_enums import ContextType, DstcSystemActions, SimpleTodConstants, SpecialTokens
+from my_enums import (
+    ContextType,
+    DstcSystemActions,
+    MultiTaskNames,
+    SimpleTodConstants,
+    SpecialTokens,
+)
 import dstc.dstc_utils as dstc_utils
 
 
@@ -19,6 +25,8 @@ class MultiTaskSpecialToken:
     start_tokens: list[SpecialTokens]
     end_tokens: list[SpecialTokens]
     prompt_token: SpecialTokens
+    name: MultiTaskNames
+
 
 # Datamodule classes
 
@@ -32,7 +40,6 @@ class TodTestDataBatch:
     targets_text: list[str]
     dialog_ids: list[int]
     turn_ids: list[int]
-
 
 
 @dataclass
@@ -122,15 +129,18 @@ def get_multi_task_special_tokens() -> list[MultiTaskSpecialToken]:
             [SpecialTokens.begin_dsts],
             [SpecialTokens.end_dsts],
             SpecialTokens.prompt_dst,
+            MultiTaskNames.DSTS,
         ),
         MultiTaskSpecialToken(
-            [SpecialTokens.begin_action, SpecialTokens.begin_user_action],
-            [SpecialTokens.end_action, SpecialTokens.end_user_action],
+            [SpecialTokens.begin_user_action, SpecialTokens.begin_action],
+            [SpecialTokens.end_user_action, SpecialTokens.end_action],
             SpecialTokens.prompt_action,
+            MultiTaskNames.ACTIONS,
         ),
         MultiTaskSpecialToken(
             [SpecialTokens.begin_response],
             [SpecialTokens.end_response],
             SpecialTokens.prompt_response,
+            MultiTaskNames.NLG,
         ),
     ]

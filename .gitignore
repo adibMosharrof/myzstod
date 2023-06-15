@@ -19,4 +19,4 @@ tokenizer/
 # transformers/
 GenTodPaper/.olauth
 .nfs*
-
+wandb/

@@ -2,26 +2,26 @@ from __future__ import annotations
 
 from pathlib import Path
 import re
-from transformers import AutoTokenizer, GPT2LMHeadModel
+from transformers import AutoTokenizer, GPT2LMHeadModel, AutoModel, AutoModelForCausalLM
 from configs.task_arithmetic_config import TaskArithmeticConfig
 
-
+import torch
 from generation.generation_base import GenerationBase
-from generation.multi_head_generation import MultiHeadGeneration
-from generation.simple_generation import SimpleGeneration
+from generation.generation_handler_factory import GenerationHandlerFactory
 
 from multi_head.mh_dataclasses import MultiHeadDictFactory
 from multi_head.mh_datamodule import MultiLMHeadDatamodule
 from multi_head.mh_model import GPT2MultiLMHeadModel
-from my_enums import ContextType, SpecialTokens, Steps
+from my_enums import ContextType, MultiTaskNames, SpecialTokens, Steps
 from simple_tod_dataclasses import TodTestDataBatch
+from tod.turns.zs_tod_turn import TodTurnCsvRow, TodTurnMultiTaskCsvRow
 from tod_datamodules import TodDataModule
 import utils
 import dstc.dstc_utils as dstc_utils
 from typing import TYPE_CHECKING, Tuple
 from configs.dm_config import DataModuleConfig
 
-from peft import PeftModelForCausalLM
+from peft import PeftModelForCausalLM, PeftConfig, PeftModel, get_peft_model
 
 if TYPE_CHECKING:
     from configs.trainer_config import TrainerConfig
@@ -54,6 +54,7 @@ class InferenceConfig:
         out_dir: str = "results",
         tokenizer: AutoTokenizer = None,
         test_prompt_max_len: int = 750,
+        base_model_name: str = "",
         is_multi_task: bool = False,
         is_multi_head: bool = False,
         is_multi_decoder: bool = False,
@@ -96,8 +97,7 @@ class InferenceConfig:
             if is_multi_head
             else None
         )
-        self.model = self._get_model(model)
-        self.model.eval()
+
         # self.model = self.model.merge_adapter()
         # self.model = self.model.merge_and_unload()
         self.generate_max_len = generate_max_len
@@ -114,9 +114,14 @@ class InferenceConfig:
         self.predictions_log_dir = Path(predictions_log_dir)
         self.predictions_log_dir.mkdir(parents=True, exist_ok=True)
         self.is_multi_task = is_multi_task
+        self.base_model_name = base_model_name
         self.multi_tasks = (
-            multi_tasks if self.is_multi_task and multi_tasks else [1, 1, 1]
+            MultiTaskNames.get_multi_task_names(multi_tasks)
+            if self.is_multi_task
+            else None
         )
+        self.model = self._get_model(model)
+        self.model.eval()
         self.is_multi_decoder = is_multi_decoder
         self.should_add_schema = should_add_schema
         self.should_add_sys_actions = should_add_sys_actions
@@ -127,10 +132,8 @@ class InferenceConfig:
         self.should_add_service_results = should_add_service_results
         self.postprocess_generation = postprocess_generation
 
-        self.generation_handler: GenerationBase = (
-            MultiHeadGeneration(self.model, self.tokenizer)
-            if is_multi_head
-            else SimpleGeneration(self.model, self.tokenizer)
+        self.generation_handler: GenerationBase = GenerationHandlerFactory.get_handler(
+            self
         )
         # self.contrastive_model = contrastive_model
         self.data_prep_multi_process = data_prep_multi_process
@@ -167,6 +170,10 @@ class InferenceConfig:
             if model_class is not GPT2MultiLMHeadModel:
                 if not self.quantization:
                     return model_class.from_pretrained(model_path).cuda()
+                if self.is_multi_task:
+                    return self.load_multi_task_quantized_base_model(
+                        self.base_model_name, model_path, self.multi_tasks
+                    )
                 return utils.load_quantized_model(model_path, self.tokenizer)
             model_args = self.mh_fact if model_class == GPT2MultiLMHeadModel else {}
             model_kwargs = (
@@ -188,17 +195,33 @@ class InferenceConfig:
             "model must be either a string or a model class, but model is:{model}"
         )
 
+    def load_multi_task_quantized_base_model(
+        self, model_name: str, model_dir: str, tasks: list[MultiTaskNames]
+    ) -> AutoModel:
+        model_dir = Path(model_dir)
+        model = utils.get_8bit_model(model_name)
+        model.resize_token_embeddings(len(self.tokenizer))
+        model = get_peft_model(model, utils.get_lora_config(self.base_model_name))
+        for task in tasks:
+            adap_path = model_dir / task.value
+            # model = PeftModel.from_pretrained(model, adap_path, adapter_name=task.value)
+            # model.set_adapter(task.value)
+            model.load_adapter(adap_path, task.value)
+
+        return model
+
     def _get_datamodule(self, test_setting: str) -> BaseDataModule:
         dm_config = DataModuleConfig.from_inference_config(
             self, domain_setting=test_setting, train_step_data=self.train_step_data
         )
-        return (
-            MultiLMHeadDatamodule(
+        if self.is_multi_head:
+            return MultiLMHeadDatamodule(
                 dm_config,
                 self.mh_fact,
             )
-            if self.is_multi_head
-            else TodDataModule(dm_config, steps=[Steps.TEST.value])
+        turn_cls = TodTurnMultiTaskCsvRow if self.is_multi_task else TodTurnCsvRow
+        return TodDataModule(
+            dm_config, steps=[Steps.TEST.value], tod_turn_row_cls=turn_cls
         )
 
     @classmethod
