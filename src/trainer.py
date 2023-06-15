@@ -36,6 +36,7 @@ from inference import Inference
 from multi_head.mh_dataclasses import MultiHeadDictFactory
 from multi_head.mh_datamodule import MultiLMHeadDatamodule
 from multi_head.mh_model import GPT2MultiLMHeadModel
+from tod.turns.zs_tod_turn import TodTurnMultiTaskCsvRow
 from tod_datamodules import TodDataModule
 import os
 import warnings
@@ -51,12 +52,13 @@ os.environ["TORCH_DISTRIBUTED_DEBUG"] = "DETAIL"
 # os.environ["NCCL_DEBUG"] = "INFO"
 import argparse
 import wandb
-from my_enums import Steps, TrainingStage
+from my_enums import MultiTaskNames, Steps, TrainingStage
 
 from peft import (
     LoraConfig,
     PeftConfig,
     PeftModel,
+    PeftModelForCausalLM,
     get_peft_model,
     prepare_model_for_int8_training,
 )
@@ -75,17 +77,25 @@ class SimpleTODTrainer:
         print(torch.cuda.memory_allocated() / 1024**2)
         print(torch.cuda.memory_cached() / 1024**2)
 
+    def multi_task_run(self):
+        dms = self._get_multi_task_dms()
+        for dm in dms:
+            model_path = self.train_multi_task_model(dm)
+
+        if self.cfg.should_test:
+            inf = Inference(
+                InferenceConfig.from_trainer_config(self.cfg, model_path),
+            )
+            inf.test()
+        print(str(self.cfg.out_dir.absolute()))
+
     def run(self):
         self.print_cuda_info("init")
-        # heads_to_prune = defaultdict(list)
-        # for layer in range(12):
-        #     for head in range(12):
-        #         if head < self.cfg.n_head and layer < self.cfg.n_layer:
-        #             continue
-        #         heads_to_prune[layer].append(head)
-        # model.prune_heads(heads_to_prune)
         current_dir = Path(os.getcwd())
         print(str(current_dir))
+        if self.cfg.is_multi_task:
+            self.multi_task_run()
+            return
         self.cfg.datamodule = self._get_dm()
         # self.cfg.tokenizer = dstc_utils.get_trained_tokenizer(self.cfg)
         if self.cfg.train_model_path:
@@ -118,6 +128,18 @@ class SimpleTODTrainer:
             )
             inf.test()
         print(full_out_dir)
+
+    def _get_multi_task_dms(self) -> list[BaseDataModule]:
+        steps = Steps.list() if self.cfg.should_test else Steps.list()[:-1]
+        return [
+            TodDataModule(
+                DataModuleConfig.from_trainer_config(self.cfg),
+                steps=steps,
+                tod_turn_row_cls=TodTurnMultiTaskCsvRow,
+                task_name=task_name,
+            )
+            for task_name in self.cfg.multi_tasks
+        ]
 
     def _get_dm(self) -> BaseDataModule:
         steps = Steps.list() if self.cfg.should_test else Steps.list()[:-1]
@@ -239,7 +261,7 @@ class SimpleTODTrainer:
         model.resize_token_embeddings(len(self.cfg.tokenizer))
         return model
 
-    def get_quantized_model(self, path: Path = None):
+    def get_quantized_model(self, path: Path = None, adapter_name: str = "default"):
         if path:
             model = utils.load_quantized_model(path, self.cfg.tokenizer)
         else:
@@ -251,32 +273,10 @@ class SimpleTODTrainer:
             )
             model.resize_token_embeddings(len(self.cfg.tokenizer))
         model = prepare_model_for_int8_training(model)
-        target_modules = None
-        # target_modules = ["q_proj", "v_proj"]
-        if "gpt-neox" in self.cfg.model_name:
-            target_modules = [
-                "query_key_value",
-                "xxx",
-            ]  # workaround to use 8bit training on this model
 
-        modules_to_save = None
-        if self.cfg.save_wte:
-            if "gpt-j" in self.cfg.model_name:
-                modules_to_save = ["lm_head", "wte"]
-            else:
-                modules_to_save = ["lm_head", "embed_tokens"]
+        config = utils.get_lora_config(self.cfg.model_name)
 
-        config = LoraConfig(
-            r=16,
-            lora_alpha=32,
-            # target_modules=target_modules,
-            lora_dropout=0.05,
-            bias="none",
-            task_type="CAUSAL_LM",
-            base_model_name_or_path=self.cfg.model_name,
-            modules_to_save=modules_to_save,
-        )
-        model = get_peft_model(model, config)
+        model = PeftModelForCausalLM(model, config, adapter_name=adapter_name)
         if model.active_peft_config.base_model_name_or_path is None:
             model.active_peft_config.base_model_name_or_path = self.cfg.model_name
         self.print_trainable_parameters(model)
@@ -296,23 +296,10 @@ class SimpleTODTrainer:
             else self.get_quantized_model()
         )
         print(f"Model Size of {type(model)}: {dstc_utils.get_model_size(model)}")
-        # pre_trainer = Trainer(
-        #     model=model,
-        #     args=training_args,
-        #     train_dataset=dm.datasets[Steps.TRAIN.value],
-        #     eval_dataset=dm.datasets[Steps.DEV.value],
-        #     data_collator=dm.pretraining_collator,
-        #     callbacks=[
-        #         EarlyStoppingCallback(
-        #             early_stopping_patience=self.cfg.early_stopping_patience
-        #         ),
-        #     ],
-        # )
+
         pre_trainer = self._get_trainer(
             model, dm, training_args, training_stage=TrainingStage.PRETRAIN
         )
-        # with torch.cuda.amp.autocast():
-        #     pre_trainer.train()
         model.config.use_cache = False
         model.train()
         pre_trainer.train()
@@ -343,6 +330,31 @@ class SimpleTODTrainer:
         print("training output_dir: ", out_dir)
         return training_args.output_dir
 
+    def train_multi_task_model(self, dm: BaseDataModule) -> AutoModel:
+        training_args = self._get_training_args(
+            "multi_task", self.cfg.pretrain_epochs, self.cfg.pretrain_batch_size
+        )
+        model = (
+            self.get_model_instance()
+            if not self.cfg.quantization
+            else self.get_quantized_model(adapter_name=dm.task_name.value)
+        )
+        print(f"Model Size of {type(model)}: {dstc_utils.get_model_size(model)}")
+
+        pre_trainer = self._get_trainer(
+            model, dm, training_args, training_stage=TrainingStage.PRETRAIN
+        )
+        model.config.use_cache = False
+        model.train()
+        pre_trainer.train()
+        # pre_trainer.save_model()
+        model.save_pretrained(training_args.output_dir)
+        del model
+        gc.collect()
+        torch.cuda.empty_cache()
+        return training_args.output_dir
+        # return model
+
     def print_trainable_parameters(self, model):
         """
         Prints the number of trainable parameters in the model.
@@ -356,11 +368,6 @@ class SimpleTODTrainer:
         print(
             f"trainable params: {trainable_params} || all params: {all_param} || trainable%: {100 * trainable_params / all_param}"
         )
-
-
-class CastOutputToFloat(torch.nn.Sequential):
-    def forward(self, x):
-        return super().forward(x).to(torch.float32)
 
 
 @hydra.main(config_path="../config/trainer/", config_name="arithmetic_trainer")

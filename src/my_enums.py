@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import Optional
 
 
 class TrainingStage(str, Enum):
@@ -235,3 +236,31 @@ class MultiHeadName(str, Enum):
     DSTS = "dsts"
     SYSTEM_ACTIONS = "system_actions"
     NLG = "nlg"
+
+
+class MultiTaskNames(str, Enum):
+    DSTS = "dsts"
+    ACTIONS = "actions"
+    NLG = "nlg"
+
+    def __str__(self) -> str:
+        return self.value
+
+    @classmethod
+    def get_multi_task_names(
+        self, tasks: Optional[list[str]]
+    ) -> list["MultiTaskNames"]:
+        if tasks is None:
+            return self.list()
+        try:
+            multi_tasks = [self(mt) for mt in tasks]
+        except:
+            mt_values = ",".join([mt.value for mt in self])
+            raise ValueError(
+                f"multi_tasks must be one of the following {mt_values}, got {tasks}"
+            )
+        return multi_tasks
+
+    @classmethod
+    def list(cls):
+        return [c for c in cls]

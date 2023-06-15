@@ -104,11 +104,14 @@ class PredictionsLoggerBase(abc.ABC):
         top_error_refs_bar = error_refs[:top_k]
         df_bar = df[df[bar_group_column].isin(top_error_refs_bar[bar_group_column])]
         # sorting values by predictions where is_correct is false
-        data_prop = pd.crosstab(
-            index=df_bar[bar_group_column],
-            columns=df_bar[logger_cols.IS_CORRECT],
-            normalize="index",
-        ).sort_values(False)
+        try:
+            data_prop = pd.crosstab(
+                index=df_bar[bar_group_column],
+                columns=df_bar[logger_cols.IS_CORRECT],
+                normalize="index",
+            ).sort_values(False)
+        except:
+            data_prop = pd.DataFrame().reindex_like(df_false)
 
         data_count = pd.crosstab(
             index=df_bar[bar_group_column],
@@ -257,8 +260,8 @@ class GenericPredictionLogger(PredictionsLoggerBase):
 
 
 class PredictionLoggerFactory:
-    @staticmethod
-    def create(metric: TodMetricsEnum) -> PredictionsLoggerBase:
+    @classmethod
+    def create(self, metric: TodMetricsEnum) -> PredictionsLoggerBase:
         if metric in [TodMetricsEnum.INFORM, TodMetricsEnum.REQUESTED_SLOTS]:
             columns = ["domain", "slot_name"]
         elif metric in [TodMetricsEnum.ACTION, TodMetricsEnum.SUCCESS]:

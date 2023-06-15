@@ -14,6 +14,7 @@ from my_enums import Steps, SimpleTodConstants
 from tod.turns.general_turn_csv_row import GeneralTurnCsvRow
 from tod.turns.mh_turn_csv_row import MhTurnCsvRow
 from tod.turns.turn_csv_row import TurnCsvRowBase
+from tod.turns.turn_csv_row_factory import TurnCsvRowFactory
 from tod.turns.zs_tod_turn import ZsTodTurn
 from tod.zs_target import ZsTodTarget
 from tod.zs_tod_action import ZsTodAction
@@ -237,7 +238,9 @@ class SimpleTODDSTCDataPrep:
         schema_str = "".join([schema.get_full_repr() for schema in turn.schemas])
         return schema_str
 
-    def _prepare_multitask_dialog(self, turn: ZsTodTurn) -> list[str]:
+    def _prepare_multitask_dialog(
+        self, turn: ZsTodTurn, turn_csv_row_handler: TurnCsvRowBase
+    ) -> list[str]:
         out = []
         multi_task_special_tokens = get_multi_task_special_tokens()
 
@@ -255,10 +258,15 @@ class SimpleTODDSTCDataPrep:
                 context=turn.context,
                 target=text,
                 prompt_token=mtst.prompt_token,
+                multi_task_token=mtst,
             )
             if self.cfg.should_add_schema:
                 row.schema_str = self._get_schema_str(turn.schemas, turn, mtst)
-            out.append(row.to_csv_row(self.cfg.context_type))
+            out.append(
+                turn_csv_row_handler.to_csv_row(
+                    self.cfg.context_type, row, self.cfg.should_add_schema
+                )
+            )
         return out
 
     def _prepare_dialog(
@@ -275,7 +283,6 @@ class SimpleTODDSTCDataPrep:
         for i, (user_turn, system_turn) in enumerate(
             utils.grouper(dstc_dialog.turns, 2)
         ):
-
             tod_turn = self._prepare_turn(
                 user_turn, system_turn, tod_turn, schemas, dstc_dialog.services
             )
@@ -284,7 +291,7 @@ class SimpleTODDSTCDataPrep:
             tod_turn.active_intent = user_turn.get_active_intent()
             if self.cfg.is_multi_task:
                 tod_turns.append(
-                    self._prepare_multitask_dialog(tod_turn, self.cfg.is_multi_head)
+                    self._prepare_multitask_dialog(tod_turn, turn_csv_row_handler)
                 )
             else:
                 tod_turns.append(
@@ -292,34 +299,10 @@ class SimpleTODDSTCDataPrep:
                         self.cfg.context_type, tod_turn, self.cfg.should_add_schema
                     )
                 )
-                # head_instances = self.cfg.mh_fact.get_head_instances() if self.cfg.is_multi_head else None
-                # tod_turns.append(
-                #     tod_turn.to_csv_row(
-                #         self.cfg.context_type,
-                #         self.cfg.is_multi_head,
-                #         head_instances,
-                #     )
-                # )
         if not self.cfg.is_multi_task:
             return tod_turns
         out = np.concatenate(tod_turns, axis=0)
         return out
-
-
-    # def run(self, turn_csv_row_handler: TurnCsvRowBase):
-    #     dialog_paths = get_dialog_file_paths()
-    #     schemas = get_schemas()
-    #     res = list(
-    #         tqdm(
-    #             Pool().imap(
-    #                 self._prepare_dialog_file,
-    #                 dialog_paths[: self.cfg.num_dialogs],
-    #                 itertools.repeat(schemas),
-    #                 itertools.repeat(turn_csv_row_handler),
-    #             ),
-    #             total=self.cfg.num_dialogs,
-    #         )
-    #     )
 
     def _prepare_dialog_file(
         self,
@@ -346,11 +329,7 @@ class SimpleTODDSTCDataPrep:
         schemas = {}
         for d in [get_schemas(self.cfg.raw_data_root, step) for step in steps]:
             schemas.update(d)
-        turn_csv_row_handler: TurnCsvRowBase = (
-            MhTurnCsvRow(self.cfg.mh_fact)
-            if self.cfg.is_multi_head
-            else GeneralTurnCsvRow()
-        )
+        turn_csv_row_handler: TurnCsvRowBase = TurnCsvRowFactory.get_handler(self.cfg)
         step_dir = Path(self.cfg.processed_data_root / self.cfg.step_name)
         step_dir.mkdir(parents=True, exist_ok=True)
         dialog_paths = get_dialog_file_paths(self.cfg.raw_data_root, self.cfg.step_name)

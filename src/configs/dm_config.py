@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Tuple, Union
 from dstc.dstc_domains import DstcDomains
 from multi_head.mh_dataclasses import MultiHeadDictFactory
-from my_enums import ContextType, Steps
+from my_enums import ContextType, MultiTaskNames, Steps
 import dstc.dstc_utils as dstc_utils
 
 if TYPE_CHECKING:
@@ -43,7 +43,7 @@ class DataModuleConfig:
         create_data_from_train_splits: list[float] = None,
         is_multi_task: bool = False,
         is_multi_head: bool = False,
-        multi_tasks: list[int] = None,
+        multi_tasks: list[MultiTaskNames] = None,
         should_add_schema: bool = False,
         should_add_sys_actions: bool = False,
         should_add_user_actions: bool = False,
@@ -80,7 +80,7 @@ class DataModuleConfig:
         self.is_multi_task = is_multi_task
         self.is_multi_head = is_multi_head
         self.multi_tasks = (
-            multi_tasks if self.is_multi_task and multi_tasks else [1, 1, 1]
+            multi_tasks if self.is_multi_task and multi_tasks else MultiTaskNames.list()
         )
         self.should_add_schema = should_add_schema
         self.should_add_sys_actions = should_add_sys_actions
@@ -171,7 +171,7 @@ class DataModuleConfig:
             data_prep_out_root=inf_config.data_prep_out_root,
             max_token_len=inf_config.max_token_len,
             test_prompt_max_len=inf_config.test_prompt_max_len,
-            num_dialogs=[1, 1, inf_config.num_test_dialogs],
+            num_dialogs=[inf_config.num_train_dialogs, 1, inf_config.num_test_dialogs],
             delexicalize=inf_config.delexicalize,
             overwrite=inf_config.overwrite,
             num_turns=inf_config.num_turns,

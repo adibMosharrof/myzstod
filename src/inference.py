@@ -28,7 +28,7 @@ from metrics.goal_metric import GoalMetric, GoalMetricConfigFactory
 from metrics.requested_slots_metric import RequestedSlotsMetric
 from metrics.dstc_metrics import InformMetric, SuccessMetric, CombinedMetric
 from multi_head.mh_datamodule import MultiLMHeadDatamodule
-from my_enums import GoalMetricConfigType, SpecialTokens
+from my_enums import GoalMetricConfigType, MultiTaskNames, SpecialTokens
 from reconstruct_dialog import ReconstructDialog
 import utils
 from tod_datamodules import TodDataModule
@@ -39,7 +39,9 @@ from simple_tod_dataclasses import (
 )
 from dstc.dstc_dataclasses import get_slot_categories
 import os
-os.environ['CUDA_LAUNCH_BLOCKING']="1"
+
+os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
+
 
 class Inference:
     def __init__(
@@ -60,6 +62,7 @@ class Inference:
         )
         start_tokens = []
         metric_results = []
+
         test_dl_func = (
             self.cfg.datamodule.grouped_test_dataloader
             if self.cfg.test_num_turns_groups
@@ -67,7 +70,7 @@ class Inference:
         )
         # self.cfg.model.eval()
         # self.cfg.model.gradient_checkpointing_disable()
-        
+
         for test_dataloader, domain_setting in test_dl_func():
             domains_str = dstc_utils.get_domain_setting_str(domain_setting)
             test_csv_out_data = []
@@ -173,9 +176,20 @@ class Inference:
 
     def _set_metrics(self):
         slot_categories = get_slot_categories(self.cfg.raw_data_root)
-        dst, action, response = (
-            self.cfg.multi_tasks if self.cfg.is_multi_task else [1, 1, 1]
-        )
+        out = []
+        if self.cfg.is_multi_task:
+            for task in MultiTaskNames.list():
+                if task in self.cfg.multi_tasks:
+                    out.append(True)
+                else:
+                    out.append(False)
+            dst, action, response = out
+        else:
+            dst, action, response = [1, 1, 1]
+
+        # dst, action, response = (
+        #     self.cfg.multi_tasks if self.cfg.is_multi_task else [1, 1, 1]
+        # )
         tod_metrics = {}
         combined_metrics = {}
         if dst:
@@ -183,16 +197,6 @@ class Inference:
                 {
                     "goal_accuracy": GoalMetric(
                         GoalMetricConfigFactory.create(GoalMetricConfigType.BELIEF),
-                        slot_categories,
-                    ),
-                    "action_accuracy": GoalMetric(
-                        GoalMetricConfigFactory.create(GoalMetricConfigType.ACTION),
-                        slot_categories,
-                    ),
-                    "user_action_accuracy": GoalMetric(
-                        GoalMetricConfigFactory.create(
-                            GoalMetricConfigType.USER_ACTION
-                        ),
                         slot_categories,
                     ),
                     "intent_accuracy": IntentAccuracyMetric(),
@@ -204,6 +208,16 @@ class Inference:
                 {
                     "inform": InformMetric(),
                     "success": SuccessMetric(slot_categories),
+                    "action_accuracy": GoalMetric(
+                        GoalMetricConfigFactory.create(GoalMetricConfigType.ACTION),
+                        slot_categories,
+                    ),
+                    "user_action_accuracy": GoalMetric(
+                        GoalMetricConfigFactory.create(
+                            GoalMetricConfigType.USER_ACTION
+                        ),
+                        slot_categories,
+                    ),
                 }
             )
         if response:

@@ -1,3 +1,4 @@
+from typing import Optional
 from dotmap import DotMap
 
 import torch
@@ -6,6 +7,7 @@ from configs.dm_config import DataModuleConfig
 
 from my_enums import (
     DstcSystemActions,
+    MultiTaskNames,
     ZsTodActionAttributes,
     SimpleTodConstants,
     SpecialTokens,
@@ -26,8 +28,12 @@ class TodDataModule(BaseDataModule):
         self,
         cfg: DataModuleConfig,
         steps: list[Steps] = None,
+        tod_turn_row_cls=TodTurnCsvRow,
+        task_name: Optional[MultiTaskNames] = None,
     ):
-        super().__init__(cfg, steps, tod_turn_row_cls=TodTurnCsvRow)
+        super().__init__(
+            cfg, steps, tod_turn_row_cls=tod_turn_row_cls, task_name=task_name
+        )
 
     def training_collator(self, batch: list[TodTurnCsvRow], is_pretrain: bool = False):
         input_ids = []
@@ -85,9 +91,9 @@ class TodDataModule(BaseDataModule):
                 "".join(
                     [
                         item.context,
-                        SpecialTokens.begin_target,
-                        SpecialTokens.begin_dsts,
-                        SpecialTokens.begin_dst,
+                        # SpecialTokens.begin_target,
+                        # SpecialTokens.begin_dsts,
+                        # SpecialTokens.begin_dst,
                     ]
                 ),
                 item.schema,
