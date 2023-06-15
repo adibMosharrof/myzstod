@@ -23,8 +23,8 @@ class GoalMetricConfig:
 
 
 class GoalMetricConfigFactory:
-    @staticmethod
-    def create(step) -> GoalMetricConfig:
+    @classmethod
+    def create(self, step) -> GoalMetricConfig:
         if step == GoalMetricConfigType.ACTION:
             return GoalMetricConfig(
                 SpecialTokens.begin_action,

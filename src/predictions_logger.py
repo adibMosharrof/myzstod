@@ -260,8 +260,8 @@ class GenericPredictionLogger(PredictionsLoggerBase):
 
 
 class PredictionLoggerFactory:
-    @staticmethod
-    def create(metric: TodMetricsEnum) -> PredictionsLoggerBase:
+    @classmethod
+    def create(self, metric: TodMetricsEnum) -> PredictionsLoggerBase:
         if metric in [TodMetricsEnum.INFORM, TodMetricsEnum.REQUESTED_SLOTS]:
             columns = ["domain", "slot_name"]
         elif metric in [TodMetricsEnum.ACTION, TodMetricsEnum.SUCCESS]:
