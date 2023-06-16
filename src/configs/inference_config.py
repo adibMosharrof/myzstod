@@ -166,13 +166,16 @@ class InferenceConfig:
     def _get_model(self, model):
         model_class = dstc_utils.get_model_class(self.model_name, self.is_multi_head)
         if isinstance(model, str) or isinstance(model, Path):
-            model_path = self.project_root / model
+            m_path = Path(model)
+            model_path = (
+                self.project_root / m_path if not m_path.is_absolute() else m_path
+            )
             if model_class is not GPT2MultiLMHeadModel:
                 if not self.quantization:
                     return model_class.from_pretrained(model_path).cuda()
                 if self.is_multi_task:
                     return self.load_multi_task_quantized_base_model(
-                        self.base_model_name, model_path, self.multi_tasks
+                        self.model_name, model_path, self.multi_tasks
                     )
                 return utils.load_quantized_model(model_path, self.tokenizer)
             model_args = self.mh_fact if model_class == GPT2MultiLMHeadModel else {}
@@ -201,7 +204,7 @@ class InferenceConfig:
         model_dir = Path(model_dir)
         model = utils.get_8bit_model(model_name)
         model.resize_token_embeddings(len(self.tokenizer))
-        model = get_peft_model(model, utils.get_lora_config(self.base_model_name))
+        model = get_peft_model(model, utils.get_lora_config(self.model_name))
         for task in tasks:
             adap_path = model_dir / task.value
             # model = PeftModel.from_pretrained(model, adap_path, adapter_name=task.value)

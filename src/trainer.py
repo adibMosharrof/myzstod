@@ -83,8 +83,10 @@ class SimpleTODTrainer:
             model_path = self.train_multi_task_model(dm)
 
         if self.cfg.should_test:
+            curr_dir = Path(os.getcwd())
+            model_out_path = curr_dir / model_path
             inf = Inference(
-                InferenceConfig.from_trainer_config(self.cfg, model_path),
+                InferenceConfig.from_trainer_config(self.cfg, model_out_path),
             )
             inf.test()
         print(str(self.cfg.out_dir.absolute()))
