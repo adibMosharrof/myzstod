@@ -11,7 +11,7 @@ from my_enums import ContextType, MultiTaskNames
 class TrainerConfig:
     def __init__(
         self,
-        project_root: str = "/mounts/u-amo-d0/grad/adibm/data/projects/ZSToD/",
+        project_root: str = "/mounts/u-amo-d1/adibm-data/projects/ZSToD",
         data_prep_out_root: str = "processed_data/simple_tod",
         raw_data_root: str = "data/dstc8-schema-guided-dialogue/",
         model_name: str = "gpt2",
