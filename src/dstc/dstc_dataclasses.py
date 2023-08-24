@@ -6,7 +6,7 @@ from dataclasses_json import dataclass_json
 from enum import Enum
 import humps
 import dstc.dstc_utils as dstc_utils
-from my_enums import Speaker, SpecialTokens, SimpleTodConstants, Steps
+from my_enums import Speaker, SpecialTokens, ZsTodConstants, Steps
 import utils
 
 
@@ -66,7 +66,7 @@ class DstcRequestedSlot:
     @classmethod
     def from_string(self, text: str) -> "DstcRequestedSlot":
         try:
-            domain, slot_name = text.split(SimpleTodConstants.DOMAIN_SLOT_SEPARATOR)
+            domain, slot_name = text.split(ZsTodConstants.DOMAIN_SLOT_SEPARATOR)
         except ValueError:
             return self("", text)
         return self(domain, slot_name)
@@ -75,7 +75,7 @@ class DstcRequestedSlot:
         return "".join(
             [
                 self.domain,
-                SimpleTodConstants.DOMAIN_SLOT_SEPARATOR,
+                ZsTodConstants.DOMAIN_SLOT_SEPARATOR,
                 self.slot_name,
             ]
         )
@@ -168,12 +168,12 @@ class DstcSchemaIntent:
                 # SpecialTokens.schema_description,
                 # self.description,
                 SpecialTokens.intent_required_slots,
-                # SimpleTodConstants.ITEM_SEPARATOR.join(self.required_slots),
+                # ZsTodConstants.ITEM_SEPARATOR.join(self.required_slots),
                 " ".join(self.required_slots),
                 SpecialTokens.intent_optional_slots if self.optional_slots else "",
                 " ".join(self.optional_slots),
                 # SpecialTokens.intent_result_slots,
-                # SimpleTodConstants.ITEM_SEPARATOR.join(self.result_slots),
+                # ZsTodConstants.ITEM_SEPARATOR.join(self.result_slots),
                 # SpecialTokens.end_schema_intent,
             ]
         )
@@ -249,6 +249,8 @@ class DstcSchema:
 def get_schemas(data_root: Path, step: str) -> Dict[str, DstcSchema]:
     schemas = {}
     path = data_root / step / "schema.json"
+    if not path.exists():
+        path = data_root / "schema.json"
     schema_json = utils.read_json(path)
     for s in schema_json:
         schema: DstcSchema = DstcSchema.from_dict(s)

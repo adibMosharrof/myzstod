@@ -7,7 +7,7 @@ from typing import Optional, Union
 import numpy as np
 
 from predictions_logger import PredictionsLoggerBase
-from my_enums import SimpleTodConstants
+from my_enums import ZsTodConstants
 import dstc.dstc_utils as dstc_utils
 from torchmetrics import Metric
 
@@ -69,7 +69,7 @@ class TodMetricsBase(Metric):
         text: str,
         start_token: str,
         end_token: str,
-        separator: str = SimpleTodConstants.ITEM_SEPARATOR,
+        separator: str = ZsTodConstants.ITEM_SEPARATOR,
         default_value: any = [],
         multiple_values: bool = False,
         trim_spaces: bool = False,

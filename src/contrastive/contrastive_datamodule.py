@@ -10,7 +10,7 @@ from my_enums import (
     ContrastiveConstants,
     DstcSystemActions,
     ZsTodActionAttributes,
-    SimpleTodConstants,
+    ZsTodConstants,
     SpecialTokens,
     Steps,
 )
@@ -20,6 +20,7 @@ from dstc.dstc_dataclasses import get_schemas
 from itertools import combinations
 from tod.turns.zs_tod_turn import TodTurnCsvRow
 from tod.zs_tod_action import ZsTodAction
+
 
 ## TODO : need to adjust to new data module prep
 class ContrastiveDataModule(TodDataModule):
@@ -173,7 +174,7 @@ class ContrastiveDataModule(TodDataModule):
         swap_neg_num: int = 5,
     ):
         act_txt, other_txt = self._get_act_and_other(a_txt, b_txt, contrastive_tokens)
-        act_splits = act_txt.split(SimpleTodConstants.ITEM_SEPARATOR)
+        act_splits = act_txt.split(ZsTodConstants.ITEM_SEPARATOR)
         # if len(act_splits) > 1:
         #     self.get_contrastive_incomplete_negative_old(
         #         contrastive_data, other_txt, act_splits
@@ -218,7 +219,7 @@ class ContrastiveDataModule(TodDataModule):
         #     continue
         # used_acts.add(wrong_sys_acts_tuple)
         label = num_actions / len(act_splits)
-        wrong_act_texts = SimpleTodConstants.ITEM_SEPARATOR.join(wrong_sys_acts)
+        wrong_act_texts = ZsTodConstants.ITEM_SEPARATOR.join(wrong_sys_acts)
         contrastive_data.append(
             InputExample(texts=[wrong_act_texts, sys_act_txt], label=label)
         )
@@ -233,7 +234,7 @@ class ContrastiveDataModule(TodDataModule):
             comb = list(combinations(act_splits, i))
             for wrong_sys_acts in comb:
                 label = len(wrong_sys_acts) / len(act_splits)
-                wrong_act_texts = SimpleTodConstants.ITEM_SEPARATOR.join(wrong_sys_acts)
+                wrong_act_texts = ZsTodConstants.ITEM_SEPARATOR.join(wrong_sys_acts)
                 contrastive_data.append(
                     InputExample(texts=[wrong_act_texts, sys_act_txt], label=label)
                 )

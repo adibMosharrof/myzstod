@@ -3,7 +3,7 @@ from enum import Enum
 from dataclasses_json import dataclass_json
 from torch import nn
 from typing import Union, Optional
-from my_enums import SimpleTodConstants, SpecialTokens, MultiHeadName
+from my_enums import ZsTodConstants, SpecialTokens, MultiHeadName
 from transformers import AutoTokenizer
 import dstc.dstc_utils as dstc_utils
 
@@ -79,7 +79,16 @@ class MhBadWordTokens:
 
     @classmethod
     def nlg(self):
-        return self._dsts_special_tokens() + self._action_special_tokens() + [SimpleTodConstants.SLOT_VALUE_SEPARATOR, SimpleTodConstants.DOMAIN_SLOT_SEPARATOR, SimpleTodConstants.ACTION_VALUE_SEPARATOR, SimpleTodConstants.ITEM_SEPARATOR]
+        return (
+            self._dsts_special_tokens()
+            + self._action_special_tokens()
+            + [
+                ZsTodConstants.SLOT_VALUE_SEPARATOR,
+                ZsTodConstants.DOMAIN_SLOT_SEPARATOR,
+                ZsTodConstants.ACTION_VALUE_SEPARATOR,
+                ZsTodConstants.ITEM_SEPARATOR,
+            ]
+        )
 
     @classmethod
     def _action_special_tokens(self):
@@ -95,7 +104,7 @@ class MhBadWordTokens:
             SpecialTokens.begin_belief,
             SpecialTokens.end_belief,
             SpecialTokens.begin_intent,
-            SpecialTokens.end_intent
+            SpecialTokens.end_intent,
         ]
 
     @classmethod

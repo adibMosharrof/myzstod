@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Optional
 
-from my_enums import SimpleTodConstants
+from my_enums import ZsTodConstants
 import dstc.dstc_utils as dstc_utils
 
 
@@ -18,15 +18,15 @@ class ZsTodBelief:
         self, text: str, slot_categories: dict[str, bool] = None
     ) -> "ZsTodBelief":
         try:
-            dom_slot, values_str = text.split(SimpleTodConstants.SLOT_VALUE_SEPARATOR)
+            dom_slot, values_str = text.split(ZsTodConstants.SLOT_VALUE_SEPARATOR)
             values = [
-                v.strip() for v in values_str.split(SimpleTodConstants.VALUE_SEPARATOR)
+                v.strip() for v in values_str.split(ZsTodConstants.VALUE_SEPARATOR)
             ]
 
         except ValueError:
             return self("", "", "", text)
         try:
-            domain, slot_name = dom_slot.split(SimpleTodConstants.DOMAIN_SLOT_SEPARATOR)
+            domain, slot_name = dom_slot.split(ZsTodConstants.DOMAIN_SLOT_SEPARATOR)
         except ValueError:
             return self("", "", values, text)
         is_categorical = None
@@ -43,10 +43,10 @@ class ZsTodBelief:
         return "".join(
             [
                 self.domain,
-                SimpleTodConstants.DOMAIN_SLOT_SEPARATOR,
+                ZsTodConstants.DOMAIN_SLOT_SEPARATOR,
                 self.slot_name,
-                SimpleTodConstants.SLOT_VALUE_SEPARATOR,
-                SimpleTodConstants.VALUE_SEPARATOR.join(self.values),
+                ZsTodConstants.SLOT_VALUE_SEPARATOR,
+                ZsTodConstants.VALUE_SEPARATOR.join(self.values),
             ]
         )
 

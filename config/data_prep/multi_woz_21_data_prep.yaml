@@ -1,0 +1,17 @@
+project_root: /mounts/u-amo-d1/adibm-data/projects/ZSToD/
+raw_data_root: data/MultiWOZ_2.1
+processed_data_root: processed_data/multi_woz_2.1
+num_dialogs: 1
+# num_dialogs: 
+#   - None
+#   - None
+#   - None
+delexicalize: false
+overwrite:
+  - true
+  - true
+  - true
+num_turns: 26
+domain_setting: all
+data_prep_multi_process: false
+step_name: train

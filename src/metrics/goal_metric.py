@@ -63,7 +63,7 @@ class GoalMetric(TodMetricsBase):
     """
 
     def __init__(
-        self, config: GoalMetricConfig, slot_categories: dict[str, bool]
+        self, config: GoalMetricConfig, slot_categories: dict[str, bool] = None
     ) -> None:
         super().__init__()
         self.slot_categories = slot_categories

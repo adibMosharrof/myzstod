@@ -1,22 +1,22 @@
-
-
 from dataclasses import dataclass
 from typing import Optional
 from dstc.dstc_dataclasses import DstcRequestedSlot
 
-from my_enums import SimpleTodConstants, SpecialTokens
+from my_enums import ZsTodConstants, SpecialTokens
 from tod.zs_tod_belief import ZsTodBelief
+
+
 @dataclass
 class ZsTodDst:
-    beliefs: list[ZsTodBelief]
-    active_intent: str
+    beliefs: list[ZsTodBelief] = None
+    active_intent: Optional[str] = ""
     requested_slots: Optional[list[DstcRequestedSlot]] = None
 
     def get_belief_repr(self) -> str:
-        return SimpleTodConstants.ITEM_SEPARATOR.join(map(str, self.beliefs))
+        return ZsTodConstants.ITEM_SEPARATOR.join(map(str, self.beliefs))
 
     def get_req_slots_str(self) -> str:
-        return SimpleTodConstants.ITEM_SEPARATOR.join(map(str, self.requested_slots))
+        return ZsTodConstants.ITEM_SEPARATOR.join(map(str, self.requested_slots))
 
     def __str__(self) -> str:
         intents_str = (
@@ -54,4 +54,3 @@ class ZsTodDst:
             ]
         )
         return out
-

@@ -131,8 +131,13 @@ class TrainerConfig:
         self.is_multi_head = is_multi_head
         self.is_multi_task = is_multi_task
         self.is_multi_decoder = is_multi_decoder
-        if self.is_multi_task:
-            self.multi_tasks = MultiTaskNames.get_multi_task_names(multi_tasks)
+
+        self.multi_tasks = (
+            MultiTaskNames.get_multi_task_names(multi_tasks)
+            if self.is_multi_task
+            else None
+        )
+
         self.tokenizer_name = tokenizer_name or model_name
         self.tokenizer = dstc_utils.get_tokenizer(
             self.tokenizer_name, should_add_special_tokens=should_add_special_tokens

@@ -16,7 +16,7 @@ import pandas as pd
 from tod.zs_tod_action import ZsTodAction
 from tod.zs_tod_belief import ZsTodBelief
 import utils
-from my_enums import SimpleTodConstants, Speaker, SpecialTokens, Steps
+from my_enums import ZsTodConstants, Speaker, SpecialTokens, Steps
 import json
 from dstc.dstc_utils import (
     extract_section_and_split_items_from_text,
@@ -50,7 +50,7 @@ class ReconstructDialog:
             default_value="",
         )
         actions: list[DstcAction] = []
-        for action_str in actions_str.split(SimpleTodConstants.ITEM_SEPARATOR):
+        for action_str in actions_str.split(ZsTodConstants.ITEM_SEPARATOR):
             tod_action = ZsTodAction.from_string(action_str)
             dstc_action = DstcAction(
                 act=tod_action.action_type,
@@ -84,7 +84,7 @@ class ReconstructDialog:
 
         slot_values = {}
         if beliefs_str:
-            for belief_str in beliefs_str.split(SimpleTodConstants.ITEM_SEPARATOR):
+            for belief_str in beliefs_str.split(ZsTodConstants.ITEM_SEPARATOR):
                 tod_belief = ZsTodBelief.from_string(belief_str)
                 # slot_name = humps.depascalize(tod_belief.slot_name)
                 slot_name = tod_belief.slot_name
@@ -135,7 +135,6 @@ class ReconstructDialog:
     def _extract_turn(
         self, pred: str, context: str, gt_user_turn: DstcTurn, gt_sys_turn: DstcTurn
     ) -> list[DstcTurn]:
-
         user_utterance = get_text_in_between(
             context,
             SpecialTokens.begin_last_user_utterance,

@@ -20,7 +20,7 @@ from dstc.dstc_domains import DstcDomains
 import dstc.dstc_utils as dstc_utils
 from metrics.intent_accuracy_metric import IntentAccuracyMetric
 from metrics.response_metrics import ResponseMetric
-from collections import Counter
+from collections import Counter, defaultdict
 
 # from metrics.tod_metrics_base import MetricCollection
 from torchmetrics import MetricCollection
@@ -28,16 +28,16 @@ from metrics.goal_metric import GoalMetric, GoalMetricConfigFactory
 from metrics.requested_slots_metric import RequestedSlotsMetric
 from metrics.dstc_metrics import InformMetric, SuccessMetric, CombinedMetric
 from multi_head.mh_datamodule import MultiLMHeadDatamodule
-from my_enums import GoalMetricConfigType, MultiTaskNames, SpecialTokens
+from multi_woz.multi_woz_schema import MultiWozSchema
+from my_enums import GoalMetricConfigType, MultiTaskNames, SpecialTokens, Steps
 from reconstruct_dialog import ReconstructDialog
 import utils
 from tod_datamodules import TodDataModule
 from simple_tod_dataclasses import (
     InferenceRecords,
-    SimpleTodConstants,
     TodTestDataBatch,
 )
-from dstc.dstc_dataclasses import get_slot_categories
+from sgd_dstc8_data_model.dstc_dataclasses import get_slot_categories
 import os
 
 os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
@@ -72,9 +72,9 @@ class Inference:
         # self.cfg.model.gradient_checkpointing_disable()
 
         for test_dataloader, domain_setting in test_dl_func():
-            domains_str = dstc_utils.get_domain_setting_str(domain_setting)
+            domains_str = utils.get_domain_setting_str(domain_setting)
             test_csv_out_data = []
-            text_csv_out_path = f"simple_tod_dstc_predictions_{domains_str}_{self.cfg.num_turns}_dialogs_{self.cfg.num_test_dialogs}{SimpleTodConstants.DELEXICALIZED if self.cfg.delexicalize else ''}.csv"
+            text_csv_out_path = f"simple_tod_dstc_predictions_{domains_str}_{self.cfg.num_turns}_dialogs_{self.cfg.num_test_dialogs}.csv"
             if not len(test_dataloader):
                 self.cfg.logger.info(f"No data to test for {domains_str}")
                 continue
@@ -175,7 +175,12 @@ class Inference:
         return cols, values
 
     def _set_metrics(self):
-        slot_categories = get_slot_categories(self.cfg.raw_data_root)
+        if "dstc" in self.cfg.raw_data_root.name:
+            slot_categories = get_slot_categories(self.cfg.raw_data_root)
+        elif "MultiWOZ" in self.cfg.raw_data_root.name:
+            slot_categories = self.get_woz_slot_categories(
+                self.cfg.raw_data_root.parent / "MultiWOZ_2.2"
+            )
         out = []
         if self.cfg.is_multi_task:
             for task in MultiTaskNames.list():
@@ -252,6 +257,24 @@ class Inference:
 
     def _get_token_id(self, text: str) -> int:
         return self.cfg.tokenizer.encode(text)[0]
+
+    def get_schemas(self, data_root: Path, step: str) -> dict[str, MultiWozSchema]:
+        schemas = {}
+        path = data_root / "schema.json"
+        schema_json = utils.read_json(path)
+        for s in schema_json:
+            schema = MultiWozSchema.from_dict(s)
+            schema.step = step
+            schemas[schema.service_name] = schema
+        return schemas
+
+    def get_woz_slot_categories(self, data_root: Path) -> dict[str, bool]:
+        schemas = self.get_schemas(data_root, Steps.TEST.value)
+        out = defaultdict(bool)
+        for s in schemas.values():
+            for slot in s.slots:
+                out[slot.name] = slot.is_categorical
+        return out
 
 
 def init_wandb(cfg: InferenceConfig, omega_cfg: DictConfig):

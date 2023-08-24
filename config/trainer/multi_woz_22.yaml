@@ -1,0 +1,74 @@
+pretrain_epochs: 10
+train_epochs: 1
+pretrain_batch_size: 2
+train_batch_size: 5
+data_split_percent:
+- 1
+- 1
+- 1
+eval_batch_size: 10
+eval_steps: 10
+test_batch_size: 8
+test_prompt_max_len: 750
+max_token_len: 1024
+num_dialogs:
+- 17
+- 2
+- 2
+# overwrite:
+#   - true
+#   - true
+#   - true
+should_test: true
+raw_data_root: data/MultiWOZ_2.2
+data_prep_out_root: processed_data/multi_woz_2.2
+train_domain_settings:
+  - hotel
+  - restaurant
+  - attraction 
+  - train
+  - taxi
+  - hospital
+  - police
+  - bus
+dev_domain_settings:
+  - hotel
+  - restaurant
+  - attraction 
+  - train
+  - taxi
+  - hospital
+  - police
+  - bus
+test_domain_settings:
+  - hotel
+  - restaurant
+  - attraction 
+  - train
+  - taxi
+  - hospital
+  - police
+  - bus
+  # - [Movies_1]
+wandb:
+  project: ZSTodLocal
+  entity: adibm
+  notes: gpt2 baseline
+  task: arithmetic
+model_name: gpt2
+postprocess_generation: true
+fp16: false
+gradient_accumulation_steps: 16
+eval_accumulation_steps: 16
+quantization: false
+two_step_training: false
+should_add_special_tokens: true
+data_prep_multi_process: false
+# save_wte: true
+# is_multi_task: true
+# multi_tasks:
+#   - dsts
+#   - actions
+#   - nlg
+context_type: short
+should_add_schema: true

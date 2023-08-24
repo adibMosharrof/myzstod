@@ -3,33 +3,61 @@ data_split_percent:
   - 1
   - 1
 eval_batch_size: 6
-test_batch_size: 20
+test_batch_size: 10
 max_token_len: 1024
-test_prompt_max_len: 500
-# num_test_dialogs: 34
+test_prompt_max_len: 750
 num_test_dialogs: 1
+# num_test_dialogs: 5
+wandb:
+  project: ZSTodLocal
+  entity: adibm
+  notes: inference adapters on full dataset
+  task: arithmetic
 # raw_data_root: data/dstc8-schema-guided-dialogue/sgd_x/data/
-model: outputs/2023-01-17/01-19-37/results/train
-# model: outputs/2022-12-31/16-12-57/results/train
+# model: outputs/2023-05-31/20-33-34/results/pretrain
+# model: outputs/2023-06-05/15-00-51/results/pretrain
+# model: outputs/2023-06-07/23-27-31/results/multi_task/dsts
+model : outputs/2023-07-08/22-14-55/results/multi_task
 num_turns: 26
+data_prep_multi_process: true
 # overwrite:
 #   - true
 #   - true
 #   - true
 test_domain_settings:
-  - all
-  - seen
-  - unseen
-# is_multi_task: True
-multi_tasks:
-  - 1
-  - 1
-  - 0
-is_multi_head: true
+  - [all]
+  - [seen]
+  - [unseen]
+  # - [Travel_1]
+  # - [RentalCars_3]
+  # - - Restaurants_1
+    # - Movies_1
+# base_model_name: facebook/opt-2.7b
+base_model_name: huggyllama/llama-7b
+model_name: huggyllama/llama-7b
+# is_multi_head: true
 should_add_schema: true
 should_add_user_actions: true
 should_add_sys_actions: true
-# context_type: default
 should_add_service_results: true
-postprocess_generation: true
-# model_name: t5-base
+# context_type: default
+postprocess_generation: false
+should_add_special_tokens: true
+# test_num_turns_groups:
+#   - 4
+#   - 8
+#   - 12
+#   - 16
+#   - 20
+#   - 26
+quantization: true
+create_data_from_train: false
+create_data_from_train_splits:
+  - 0.01
+  - 0.01
+num_train_dialogs: 1
+is_multi_task: true
+multi_tasks:
+  - dsts
+  - actions
+  - nlg

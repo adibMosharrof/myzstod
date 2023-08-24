@@ -165,7 +165,7 @@ class SpecialTokens(str, Enum):
 #     bos_token = "startoftext"
 
 
-class SimpleTodConstants(str, Enum):
+class ZsTodConstants(str, Enum):
     DELEXICALIZED = "_delexicalized"
     SLOT_VALUE_SEPARATOR = "->"
     DOMAIN_SLOT_SEPARATOR = "^"

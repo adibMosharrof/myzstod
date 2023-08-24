@@ -14,7 +14,6 @@ from my_enums import (
     ContextType,
     DstcSystemActions,
     MultiTaskNames,
-    SimpleTodConstants,
     SpecialTokens,
 )
 import dstc.dstc_utils as dstc_utils

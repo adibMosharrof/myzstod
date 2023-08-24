@@ -10,8 +10,10 @@ import torch
 from torch.utils.data import DataLoader, Dataset
 from configs.dataprep_config import DataPrepConfig
 from configs.dm_config import DataModuleConfig
+from configs.multi_woz_data_prep_config import MultiWozDataPrepConfig
 
-import dstc.dstc_utils as dstc_utils
+from multi_woz.tod_multi_woz_21_data_prep import TodMultiWoz21DataPrep
+from multi_woz.tod_multi_woz_22_data_prep import TodMultiWoz22DataPrep
 from tod.turns.zs_tod_turn import TodTurnCsvRow, TodTurnMultiHeadCsvRow
 import utils
 from my_enums import SpecialTokens, Steps, MultiTaskNames
@@ -76,6 +78,16 @@ class BaseDataModule(ABC):
     def prepare_data(self, stdp: SimpleTODDSTCDataPrep):
         stdp.run()
 
+    def get_data_prep_class(self, cfg: DataModuleConfig):
+        if isinstance(cfg.raw_data_root, str):
+            cfg.raw_data_root = Path(cfg.raw_data_root)
+        if "MultiWOZ_2.2" in cfg.raw_data_root.name:
+            return TodMultiWoz22DataPrep(MultiWozDataPrepConfig.from_dm_config(cfg))
+        if "MultiWOZ_2.1" in cfg.raw_data_root.name:
+            return TodMultiWoz21DataPrep(MultiWozDataPrepConfig.from_dm_config(cfg))
+        elif "dstc" in cfg.raw_data_root.name:
+            return SimpleTODDSTCDataPrep(DataPrepConfig.from_dm_config(cfg))
+
     def setup_single_run(
         self, step: str, step_data: StepData, domain_setting: Union[str, list[str]]
     ) -> "SimpleTodDataSet":
@@ -84,12 +96,13 @@ class BaseDataModule(ABC):
         cfg.num_dialogs = step_data.num_dialog
         cfg.overwrite = step_data.overwrite
         cfg.domain_setting = domain_setting
-        stdp = SimpleTODDSTCDataPrep(DataPrepConfig.from_dm_config(cfg))
-        self.prepare_data(stdp)
-        csv_path = dstc_utils.get_csv_data_path(
+
+        data_prep = self.get_data_prep_class(cfg)
+        self.prepare_data(data_prep)
+        csv_path = utils.get_csv_data_path(
             step,
             step_data.num_dialog,
-            cfg=stdp.cfg,
+            cfg=data_prep.cfg,
         )
         try:
             data = utils.read_csv_dataclass(csv_path, self.tod_turn_row_cls)
@@ -127,7 +140,7 @@ class BaseDataModule(ABC):
     def setup(self):
         for step in self.steps:
             step_data = self.get_step_data(step)
-            if isinstance(step_data.domain_settings[0], ListConfig):
+            if isinstance(step_data.domain_settings[0], (list, ListConfig)):
                 self.datasets[step] = []
                 for domain_setting in step_data.domain_settings:
                     self.datasets[step].append(
@@ -392,7 +405,7 @@ class BaseDataModule(ABC):
         )
         if len(schema_tokens) > max_length:
             raise ValueError("Schema is too long")
-        if len(target_tokens) > max_length:
+        if not dont_create_labels and len(target_tokens) > max_length:
             raise ValueError("Target is too long")
         if unused_len < 0:
             raise ValueError("Need larger token length")

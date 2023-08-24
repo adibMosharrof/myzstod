@@ -15,96 +15,13 @@ from transformers import (
 import os
 from multi_head.mh_model import GPT2MultiLMHeadModel
 
-from my_enums import SimpleTodConstants, SpecialTokens, Steps
+from my_enums import ZsTodConstants, SpecialTokens, Steps
 import utils
 from fuzzywuzzy import fuzz
 
 
 def get_dstc_service_name(service_name: str) -> str:
     return service_name[: service_name.find("_")]
-
-
-def get_dialog_file_paths(data_root, step):
-    pattern = "dialogues"
-    # file_paths = glob.glob(str(data_root / step / pattern))
-    files = sorted(os.listdir(data_root / step))
-    file_paths = [data_root / step / f for f in files if pattern in f]
-    return file_paths
-
-
-def get_domain_setting_str(domain_setting: Union[list[str], ListConfig, str]):
-    if isinstance(domain_setting, (list, ListConfig)):
-        return "_".join(domain_setting)
-    return domain_setting
-
-
-def get_csv_data_path(
-    step: str = "train",
-    num_dialogs: int = 1,
-    cfg: any = None,
-    data_root: Optional[Path] = None,
-):
-    sgdx_versions = ["v1", "v2", "v3", "v4", "v5"]
-    version = "v0"
-    if cfg.raw_data_root.stem in sgdx_versions:
-        version = cfg.raw_data_root.stem
-    domain_setting = get_domain_setting_str(cfg.domain_setting)
-    base = data_root if data_root else cfg.processed_data_root
-    step_dir = base / step
-    return step_dir / (
-        "_".join(
-            [
-                version,
-                "context_type",
-                cfg.context_type,
-                "multi_head",
-                str(cfg.is_multi_head),
-                "multi_task",
-                str(cfg.is_multi_task),
-                "_".join(map(str, cfg.multi_tasks)),
-                "schema",
-                str(cfg.should_add_schema),
-                "user_actions",
-                str(cfg.should_add_user_actions),
-                "sys_actions",
-                str(cfg.should_add_sys_actions),
-                "turns",
-                str(cfg.num_turns),
-                "service_results",
-                str(cfg.should_add_service_results),
-                "dialogs",
-                str(num_dialogs),
-                "domain_setting",
-                get_domain_setting_str(domain_setting),
-                "train_domains",
-                str(cfg.train_domain_percentage),
-            ]
-        )
-        + ".csv"
-    )
-
-
-def get_corpus(cfg) -> List[str]:
-    # root = cfg.project_root / cfg.data_prep_out_root / Steps.DEV.value
-    # file = root / os.listdir(root)[0]
-    file = get_csv_data_path(
-        Steps.TRAIN.value,
-        cfg.num_dialogs[0],
-        cfg=cfg,
-        data_root=cfg.project_root / cfg.data_prep_out_root,
-        domain_setting=cfg.train_domain_setting,
-    )
-    csv_file = pd.read_csv(file, names=["context", "target"])
-    for _, row in csv_file.iterrows():
-        yield row["context"] + " " + row["target"]
-
-
-def get_trained_tokenizer(cfg, save_path: str = "tokenizer") -> PreTrainedTokenizerFast:
-    tokenizer = get_tokenizer(cfg.tokenizer_name)
-    # new_tok = tokenizer.train_new_from_iterator(get_corpus(cfg), 52000, new_special_tokens=SpecialTokens.list())
-    new_tok = tokenizer.train_new_from_iterator(get_corpus(cfg), 52000)
-    new_tok.save_pretrained(save_path)
-    return new_tok
 
 
 def get_tokenizer(
@@ -171,8 +88,8 @@ def get_text_in_between(
         except ValueError:
             return default_value
     try:
-        if SimpleTodConstants.NEW_LINES in text:
-            text = text.replace(SimpleTodConstants.NEW_LINES, "")
+        if ZsTodConstants.NEW_LINES in text:
+            text = text.replace(ZsTodConstants.NEW_LINES, "")
         items = re.findall(f"{re.escape(start_token)}(.+?){re.escape(end_token)}", text)
         items = [item for item in items]
         if not items:
@@ -186,7 +103,7 @@ def extract_section_and_split_items_from_text(
     text: str,
     start_token: str,
     end_token: str,
-    separator: str = SimpleTodConstants.ITEM_SEPARATOR,
+    separator: str = ZsTodConstants.ITEM_SEPARATOR,
     default_value: any = [],
     multiple_values: bool = False,
 ) -> np.ndarray:

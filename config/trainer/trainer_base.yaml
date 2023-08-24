@@ -1,0 +1,56 @@
+pretrain_epochs: 15
+train_epochs: 10
+pretrain_batch_size: 5
+train_batch_size: 1
+data_split_percent:
+- 1
+- 1
+- 1
+eval_batch_size: 10
+eval_steps: 10
+test_batch_size: 8
+test_prompt_max_len: 750
+max_token_len: 1024
+# num_dialogs:
+# - 1
+# - 1
+# - 1
+num_dialogs:
+- 127
+- 20
+- 34
+overwrite:
+  - true
+  - true
+  - true
+should_test: true
+train_domain_settings:
+  - Restaurants_1
+  # - Movies_1
+dev_domain_settings:
+  - Restaurants_2
+  # - Movies_1
+test_domain_settings:
+  - [Restaurants_2]
+  # - [Movies_1]
+wandb:
+  project: ZSTodLocal
+  entity: adibm
+  notes: gpt2 baseline
+  task: arithmetic
+model_name: gpt2
+postprocess_generation: true
+fp16: false
+gradient_accumulation_steps: 8
+eval_accumulation_steps: 8
+quantization: false
+two_step_training: false
+should_add_special_tokens: true
+# save_wte: true
+# is_multi_task: true
+# multi_tasks:
+#   - dsts
+#   - actions
+#   - nlg
+context_type: default
+should_add_schema: true

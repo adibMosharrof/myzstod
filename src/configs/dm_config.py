@@ -73,7 +73,7 @@ class DataModuleConfig:
         self.num_dialogs = num_dialogs
         self.dataset_name = dataset_name
         self.datasets: any = {}
-        self.tokenizer = tokenizer or dstc_utils.get_tokenizer()
+        self.tokenizer = tokenizer or dstc_utils.get_tokenizer(model_name)
         self.delexicalize = delexicalize
         self.overwrite = overwrite or [False] * len(Steps)
         self.num_turns = num_turns
