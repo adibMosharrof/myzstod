@@ -20,3 +20,4 @@ tokenizer/
 GenTodPaper/.olauth
 .nfs*
 wandb/
+data_exploration/

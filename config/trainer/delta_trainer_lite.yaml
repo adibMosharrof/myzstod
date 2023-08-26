@@ -1,38 +1,56 @@
 pretrain_epochs: 1
 train_epochs: 1
-pretrain_batch_size: 6
-train_batch_size: 3
-eval_batch_size: 6
-test_batch_size: 50
-max_token_len: 1024
-test_prompt_max_len: 750
-pretrain_model_path: outputs/2022-12-31/16-12-57/results/train
-# train_model_path: outputs/2022-12-06/18-38-04/results/train
-# raw_data_root: data/dstc8-schema-guided-dialogue/sgd_x/data/v2/
-raw_data_root: data/dstc8-schema-guided-dialogue/
+pretrain_batch_size: 10
+train_batch_size: 1
+data_split_percent:
+- 1
+- 1
+- 1
 project_root: /projects/bbyl/amosharrof/ZSToD
-# num_dialogs: 
-#   - 127
-#   - 20
-#   - 34
-num_dialogs: 
-  - 1
-  - 1
-  - 1
-# overwrite:
-#   - true
-#   - true
-#   - true
+eval_batch_size: 15
+eval_steps: 50
+test_batch_size: 15
+test_prompt_max_len: 750
+max_token_len: 1024
+num_dialogs:
+- 1
+- 1
+- 1
+# num_dialogs:
+# - 127
+# - 20
+# - 34
 should_test: true
-train_domain_setting: seen
-# is_multi_head: true
+train_domain_settings: 
+  - seen
+dev_domain_settings: 
+  - all
+test_domain_settings:
+  - [all]
+  - [seen]
+  - [unseen]
+create_data_from_train: false
+wandb:
+  project: ZSTodLocal
+  entity: adibm
+  notes: llama 7b full dataset
+  task: arithmetic
+model_name: huggyllama/llama-7b
+postprocess_generation: true
+fp16: false
+gradient_accumulation_steps: 64
+eval_accumulation_steps: 64
+quantization: true
+two_step_training: false
+should_add_special_tokens: true
+save_wte: true
 is_multi_task: false
-should_add_schema: false
+multi_tasks:
+  - dsts
+  - actions
+  - nlg
+# context_type: default
+should_add_schema: true
 # should_add_sys_actions: true
 # should_add_user_actions: true
-# context_type: default
 # should_add_service_results: true
-model_name: gpt2
-gradient_accumulation_steps: 32
-fp16: false
-postprocess_generation: true
