@@ -1,6 +1,6 @@
 pretrain_epochs: 1
 train_epochs: 10
-pretrain_batch_size: 10
+pretrain_batch_size: 25
 train_batch_size: 1
 # num_workers: 1
 # data_split_percent:
@@ -11,6 +11,7 @@ data_split_percent:
 - 1
 - 1
 - 1
+project_root: /projects/bbyl/amosharrof/ZSToD
 eval_batch_size: 6
 eval_steps: 5
 test_batch_size: 8
@@ -28,10 +29,10 @@ num_dialogs:
 - 127
 - 1
 - 1
-overwrite:
-  - true
-  - true
-  - true
+# overwrite:
+#   - true
+#   - true
+#   - true
 should_test: true
 train_domain_settings:
   - Restaurants_1
@@ -68,8 +69,8 @@ model_name: huggyllama/llama-7b
 # model_name: gpt2-large
 postprocess_generation: true
 fp16: false
-gradient_accumulation_steps: 8
-eval_accumulation_steps: 8
+gradient_accumulation_steps: 16
+eval_accumulation_steps: 16
 quantization: true
 two_step_training: false
 should_add_special_tokens: true
