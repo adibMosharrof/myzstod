@@ -30,6 +30,8 @@ absl-py = "^1.4.0"
 rouge-score = "^0.1.2"
 sentencepiece = "^0.1.97"
 peft = {git = "https://github.com/huggingface/peft.git", branch = "main"}
+omegaconf = "^2.3.0"
+sgd-dstc8-data-model = "^0.1.4"
 
 
 
