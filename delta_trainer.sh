@@ -1,6 +1,6 @@
 #! /bin/bash
 
-#SBATCH --time=0-00:10:00 # Time limit for the job (REQUIRED).
+#SBATCH --time=2-00:00:00 # Time limit for the job (REQUIRED).
 #SBATCH --job-name=gt_trainer # Job name
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=16 # Number of cores for the job. Same as SBATCH -n 8
