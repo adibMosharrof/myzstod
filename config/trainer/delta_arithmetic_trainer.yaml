@@ -12,23 +12,23 @@ data_split_percent:
 - 1
 - 1
 project_root: /projects/bbyl/amosharrof/ZSToD
-eval_batch_size: 6
-eval_steps: 5
-test_batch_size: 8
+eval_batch_size: 25
+eval_steps: 10
+test_batch_size: 30
 test_prompt_max_len: 750
 max_token_len: 1024
 # num_dialogs:
 # - 1
 # - 1
 # - 1
-# num_dialogs:
-# - 10
-# - 5
-# - 1
 num_dialogs:
-- 127
+- 10
 - 1
 - 1
+# num_dialogs:
+# - 127
+# - 1
+# - 1
 # overwrite:
 #   - true
 #   - true
@@ -75,3 +75,4 @@ quantization: true
 two_step_training: false
 should_add_special_tokens: true
 save_wte: true
+should_add_schema: true
