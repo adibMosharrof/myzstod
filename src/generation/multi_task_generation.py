@@ -24,13 +24,17 @@ class MultiTaskGeneration(GenerationBase):
         gens = []
         for task in self.task_names:
             self.model.set_adapter(task.value)
-            gen = self.model.generate(
-                inputs=batch.input_ids,
-                attention_mask=batch.attention_masks,
-                max_length=max_len,
-                eos_token_id=self.tokenizer.eos_token_id,
-                pad_token_id=self.tokenizer.pad_token_id,
-            )
+            with torch.backends.cuda.sdp_kernel(
+                enable_flash=True, enable_math=False, enable_mem_efficient=False
+            ):
+                gen = self.model.generate(
+                    inputs=batch.input_ids,
+                    attention_mask=batch.attention_masks,
+                    max_length=max_len,
+                    eos_token_id=self.tokenizer.eos_token_id,
+                    pad_token_id=self.tokenizer.pad_token_id,
+                    use_cache=True,
+                )
             gens.append(gen)
         return gens
 
