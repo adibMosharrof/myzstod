@@ -1,0 +1,4 @@
+pretrain_batch_size: 32
+train_batch_size: 1
+eval_batch_size: 26
+test_batch_size: 60

@@ -271,7 +271,6 @@ class SimpleTODTrainer:
                 self.cfg.model_name,
                 load_in_8bit=True,
                 device_map="auto",
-                torch_dtype=torch.float16,
             )
             model.resize_token_embeddings(len(self.cfg.tokenizer))
         model = prepare_model_for_int8_training(model)
@@ -372,7 +371,8 @@ class SimpleTODTrainer:
         )
 
 
-@hydra.main(config_path="../config/trainer/", config_name="multi_woz_21")
+# @hydra.main(config_path="../config/trainer/", config_name="multi_adapter")
+@hydra.main(config_path="../config/trainer/", config_name="simple_tod_trainer")
 def hydra_start(cfg: DictConfig) -> None:
     trainer_cfg = TrainerConfig(**cfg)
     # utils.init_wandb(trainer_cfg, cfg, "training")

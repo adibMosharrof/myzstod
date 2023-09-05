@@ -28,7 +28,6 @@ def get_tokenizer(
     tokenizer_name: str = "gpt2",
     add_prefix_space: bool = False,
     tokenizer_path="tokenizer",
-    should_add_special_tokens=True,
 ) -> PreTrainedTokenizerFast:
     print("************getting tokenizer*************")
     tok_path = Path(tokenizer_path)
@@ -36,17 +35,6 @@ def get_tokenizer(
         return AutoTokenizer.from_pretrained(tok_path)
     if tokenizer_name == "sentence-transformers/stsb-roberta-base-v2":
         add_prefix_space = True
-    if not should_add_special_tokens:
-        tokenizer = AutoTokenizer.from_pretrained(
-            tokenizer_name,
-            # pad_token=SpecialTokens.pad_token.value,
-            # bos_token=SpecialTokens.bos_token.value,
-            # eos_token=SpecialTokens.end_target.value,
-            add_prefix_space=add_prefix_space,
-        )
-        tokenizer.pad_token_id = tokenizer.eos_token_id
-        tokenizer.save_pretrained(tokenizer_path)
-        return tokenizer
     clean_up_tokenization_spaces = False
     if "llama" in tokenizer_name:
         clean_up_tokenization_spaces = True

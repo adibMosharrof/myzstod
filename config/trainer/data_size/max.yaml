@@ -1,0 +1,13 @@
+num_dialogs:
+- 127
+- 20
+- 34
+data_split_percent:
+- 1
+- 1
+- 1
+pretrain_epochs: 30
+train_epochs: 1
+gradient_accumulation_steps: 64
+eval_accumulation_steps: 64
+eval_steps: 100

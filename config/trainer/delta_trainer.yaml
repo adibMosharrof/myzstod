@@ -1,25 +1,9 @@
-pretrain_epochs: 1
-train_epochs: 1
-pretrain_batch_size: 10
-train_batch_size: 1
-data_split_percent:
-- 1
-- 1
-- 1
-project_root: /projects/bbyl/amosharrof/ZSToD
-eval_batch_size: 15
-eval_steps: 50
-test_batch_size: 15
+defaults:
+  - data_size: medium
+  - machine: delta
+  - batch: delta_a40_7b_1gpu
 test_prompt_max_len: 750
 max_token_len: 1024
-num_dialogs:
-- 1
-- 1
-- 1
-# num_dialogs:
-# - 127
-# - 20
-# - 34
 should_test: true
 train_domain_settings: 
   - seen
@@ -27,8 +11,8 @@ dev_domain_settings:
   - all
 test_domain_settings:
   - [all]
-  - [seen]
-  - [unseen]
+  # - [seen]
+  # - [unseen]
 create_data_from_train: false
 wandb:
   project: ZSTodLocal
@@ -38,12 +22,8 @@ wandb:
 model_name: huggyllama/llama-7b
 postprocess_generation: true
 fp16: false
-gradient_accumulation_steps: 64
-eval_accumulation_steps: 64
 quantization: true
 two_step_training: false
-should_add_special_tokens: true
-save_wte: true
 is_multi_task: false
 multi_tasks:
   - dsts

@@ -1,24 +1,9 @@
-pretrain_epochs: 25
-train_epochs: 10
-pretrain_batch_size: 5
-train_batch_size: 1
-data_split_percent:
-- 1
-- 1
-- 1
-eval_batch_size: 10
-eval_steps: 50
-test_batch_size: 8
+defaults:
+  - data_size: min
+  - machine: local
+  - batch: bla
 test_prompt_max_len: 750
 max_token_len: 1024
-# num_dialogs:
-# - 1
-# - 1
-# - 1
-num_dialogs:
-- 127
-- 20
-- 34
 # overwrite:
 #   - true
 #   - true
@@ -48,12 +33,8 @@ wandb:
 model_name: huggyllama/llama-7b
 postprocess_generation: true
 fp16: false
-gradient_accumulation_steps: 64
-eval_accumulation_steps: 62
 quantization: true
 two_step_training: false
-should_add_special_tokens: true
-save_wte: true
 is_multi_task: true
 multi_tasks:
   - dsts
@@ -61,6 +42,6 @@ multi_tasks:
   - nlg
 # context_type: default
 should_add_schema: true
-should_add_sys_actions: true
-should_add_user_actions: true
-should_add_service_results: true
+# should_add_sys_actions: true
+# should_add_user_actions: true
+# should_add_service_results: true
