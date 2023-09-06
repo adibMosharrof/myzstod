@@ -246,6 +246,8 @@ class SimpleTODTrainer:
             dataloader_drop_last=True,
             run_name=step_name,
             learning_rate=5e-4,
+            # sharded_ddp="zero_dp_3",
+            # deepspeed=self.cfg.project_root / "config/ds_config.json",
         )
 
     def get_model_instance(self, path: str = None) -> AutoModel:
@@ -268,9 +270,7 @@ class SimpleTODTrainer:
             model = utils.load_quantized_model(path, self.cfg.tokenizer)
         else:
             model = AutoModelForCausalLM.from_pretrained(
-                self.cfg.model_name,
-                load_in_8bit=True,
-                device_map="auto",
+                self.cfg.model_name, load_in_8bit=True, device_map="auto"
             )
             model.resize_token_embeddings(len(self.cfg.tokenizer))
         model = prepare_model_for_int8_training(model)
