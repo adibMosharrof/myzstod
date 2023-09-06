@@ -30,7 +30,6 @@ class DataPrepConfig:
         should_add_schema: bool = False,
         should_add_sys_actions: bool = False,
         should_add_user_actions: bool = False,
-        should_add_special_tokens: bool = True,
         context_type: str = ContextType.SHORT_REPR,
         should_add_service_results: bool = False,
         mh_fact: MultiHeadDictFactory = None,
@@ -44,7 +43,6 @@ class DataPrepConfig:
         self.num_dialogs = num_dialogs
         self.delexicalize = delexicalize
         self.overwrite = overwrite
-        self.should_add_special_tokens = should_add_special_tokens
         self.train_domain_percentage = train_domain_percentage
         self.domain_setting = domain_setting
         self.domains = DstcDomainBuilder(
@@ -81,7 +79,6 @@ class DataPrepConfig:
             should_add_schema=dm_config.should_add_schema,
             should_add_sys_actions=dm_config.should_add_sys_actions,
             should_add_user_actions=dm_config.should_add_user_actions,
-            should_add_special_tokens=dm_config.should_add_special_tokens,
             domain_setting=dm_config.domain_setting,
             train_domain_percentage=dm_config.train_domain_percentage,
             context_type=dm_config.context_type,

@@ -62,7 +62,6 @@ class InferenceConfig:
         should_add_schema: bool = False,
         should_add_user_actions: bool = False,
         should_add_sys_actions: bool = False,
-        should_add_special_tokens: bool = True,
         context_type: str = ContextType.SHORT_REPR,
         should_add_service_results: bool = False,
         postprocess_generation: bool = True,
@@ -88,7 +87,6 @@ class InferenceConfig:
         self.is_multi_head = is_multi_head
         self.quantization = quantization
         self.model_name = model_name
-        self.should_add_special_tokens = should_add_special_tokens
         self.tokenizer = tokenizer if tokenizer else self._get_tokenizer(model)
         self.mh_fact = (
             mh_fact
