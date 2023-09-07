@@ -1,11 +1,13 @@
 from collections import defaultdict
 from pathlib import Path
 from typing import Optional
-from omegaconf import DictConfig
 import hydra
+from omegaconf import DictConfig
+from hydra import compose, initialize
 import omegaconf
 import torch
 import gc
+from datetime import datetime
 from transformers import (
     AutoModel,
     AutoTokenizer,
@@ -247,7 +249,8 @@ class SimpleTODTrainer:
             run_name=step_name,
             learning_rate=5e-4,
             # sharded_ddp="zero_dp_3",
-            # deepspeed=self.cfg.project_root / "config/ds_config.json",
+            deepspeed=self.cfg.project_root / "config/ds_config.json",
+            # fsdp_config=str(self.cfg.project_root / "config/ds_config.json"),
         )
 
     def get_model_instance(self, path: str = None) -> AutoModel:
@@ -269,9 +272,7 @@ class SimpleTODTrainer:
         if path:
             model = utils.load_quantized_model(path, self.cfg.tokenizer)
         else:
-            model = AutoModelForCausalLM.from_pretrained(
-                self.cfg.model_name, load_in_8bit=True, device_map="auto"
-            )
+            model = AutoModelForCausalLM.from_pretrained(self.cfg.model_name)
             model.resize_token_embeddings(len(self.cfg.tokenizer))
         model = prepare_model_for_int8_training(model)
 
@@ -280,7 +281,8 @@ class SimpleTODTrainer:
         model = PeftModelForCausalLM(model, config, adapter_name=adapter_name)
         if model.active_peft_config.base_model_name_or_path is None:
             model.active_peft_config.base_model_name_or_path = self.cfg.model_name
-        self.print_trainable_parameters(model)
+        # self.print_trainable_parameters(model)
+        model.print_trainable_parameters()
         return model
 
     def pretrain_model(self, dm: TodDataModule) -> str:
@@ -303,7 +305,8 @@ class SimpleTODTrainer:
         )
         model.config.use_cache = False
         model.train()
-        pre_trainer.train()
+        with torch.autocast("cuda"):
+            pre_trainer.train()
         pre_trainer.save_model()
         model.save_pretrained(training_args.output_dir)
         # del model
@@ -377,8 +380,28 @@ def hydra_start(cfg: DictConfig) -> None:
     trainer_cfg = TrainerConfig(**cfg)
     # utils.init_wandb(trainer_cfg, cfg, "training")
     stt = SimpleTODTrainer(trainer_cfg)
+    print(os.getcwd())
+    exit()
     stt.run()
 
 
+def create_out_dir():
+    time_now = datetime.now()
+    out_path_name = time_now.strftime("%Y-%m-%d/%H-%M-%S")
+    out_path = "outputs" / Path(out_path_name)
+    out_path.mkdir(parents=True, exist_ok=True)
+    os.chdir(out_path)
+
+
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--local_rank", type=int, default=-1)
+    parser.add_argument("--config-name", type=str, default="simple_tod_trainer")
+    parser.add_argument("--deepspeed", type=str, default="config/ds_config.json")
+    args = parser.parse_args()
+    print(args)
+    with initialize(config_path="../config/trainer/", job_name="simple_tod_trainer"):
+        cfg = compose(config_name="simple_tod_trainer")
+    # cfg["local_rank"] = args.local_rank
+    create_out_dir()
     hydra_start()
