@@ -375,13 +375,12 @@ class SimpleTODTrainer:
 
 
 # @hydra.main(config_path="../config/trainer/", config_name="multi_adapter")
-@hydra.main(config_path="../config/trainer/", config_name="simple_tod_trainer")
+# @hydra.main(config_path="../config/trainer/", config_name="simple_tod_trainer")
 def hydra_start(cfg: DictConfig) -> None:
     trainer_cfg = TrainerConfig(**cfg)
     # utils.init_wandb(trainer_cfg, cfg, "training")
     stt = SimpleTODTrainer(trainer_cfg)
     print(os.getcwd())
-    exit()
     stt.run()
 
 
@@ -404,4 +403,4 @@ if __name__ == "__main__":
         cfg = compose(config_name="simple_tod_trainer")
     # cfg["local_rank"] = args.local_rank
     create_out_dir()
-    hydra_start()
+    hydra_start(cfg)
