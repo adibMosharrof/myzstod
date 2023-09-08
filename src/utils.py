@@ -162,7 +162,6 @@ def read_lines_in_file(path: Path) -> list[any]:
         lines = [line.rstrip() for line in file]
     return lines
 
-
 def grouper(iterable, n=2, fillvalue=None):
     # "Collect data into fixed-length chunks or blocks"
     # grouper('ABCDEFG', 3, 'x') --> ABC DEF Gxx
@@ -170,22 +169,20 @@ def grouper(iterable, n=2, fillvalue=None):
     return zip_longest(fillvalue=fillvalue, *args)
 
 
-def init_wandb(cfg: any, omega_cfg: DictConfig, step: str, entity="None"):
-    wandb.config = omegaconf.OmegaConf.to_container(
-        omega_cfg, resolve=True, throw_on_missing=True
-    )
+def init_wandb(cfg: any, cmd_args: any, step: str, entity="None"):
     out_dir = Path(os.getcwd())
     parent_without_year = "-".join(out_dir.parent.name.split("-")[1:])
+    gpu_name = f'gpu:{cmd_args.local_rank}'
     run_name = "/".join([parent_without_year, out_dir.name])
     tags = [cfg.wandb.task, cfg.model_name, step]
     run = wandb.init(
-        name=run_name,
-        # group=group,
+        # name=gpu_name,
+        group=run_name,
         tags=tags,
         notes=cfg.wandb.notes if hasattr(cfg.wandb, "notes") else "",
         project=cfg.wandb.project,
-        entity=entity,
-        settings=wandb.Settings(start_method="thread"),
+        # entity=entity,
+        # settings=wandb.Settings(start_method="thread"),
     )
     wandb.log({"job_id": os.environ.get("SLURM_JOB_ID", "")})
 
