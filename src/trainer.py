@@ -55,7 +55,7 @@ os.environ["TORCH_DISTRIBUTED_DEBUG"] = "DETAIL"
 import argparse
 import wandb
 from my_enums import MultiTaskNames, Steps, TrainingStage
-
+from transformers.trainer_pt_utils import get_parameter_names
 from peft import (
     LoraConfig,
     PeftConfig,
@@ -63,7 +63,10 @@ from peft import (
     PeftModelForCausalLM,
     get_peft_model,
     prepare_model_for_int8_training,
+    prepare_model_for_kbit_training,
 )
+import bitsandbytes as bnb
+from torch import nn
 
 
 class SimpleTODTrainer:
@@ -180,6 +183,37 @@ class SimpleTODTrainer:
         )
         return self.contrastive_helper.contrastive_model.tokenizer
 
+    def _get_8bit_optimizer(self, model, training_args):
+        decay_parameters = get_parameter_names(model, [nn.LayerNorm])
+        decay_parameters = [name for name in decay_parameters if "bias" not in name]
+        optimizer_grouped_parameters = [
+            {
+                "params": [
+                    p for n, p in model.named_parameters() if n in decay_parameters
+                ],
+                "weight_decay": training_args.weight_decay,
+            },
+            {
+                "params": [
+                    p for n, p in model.named_parameters() if n not in decay_parameters
+                ],
+                "weight_decay": 0.0,
+            },
+        ]
+
+        optimizer_kwargs = {
+            "betas": (training_args.adam_beta1, training_args.adam_beta2),
+            "eps": training_args.adam_epsilon,
+        }
+        optimizer_kwargs["lr"] = training_args.learning_rate
+        adam_bnb_optim = bnb.optim.Adam8bit(
+            optimizer_grouped_parameters,
+            betas=(training_args.adam_beta1, training_args.adam_beta2),
+            eps=training_args.adam_epsilon,
+            lr=training_args.learning_rate,
+        )
+        return (adam_bnb_optim, None)
+
     def _get_trainer(
         self,
         model_train: AutoModel,
@@ -207,12 +241,17 @@ class SimpleTODTrainer:
             )
             trainer.contrastive_helper = self.contrastive_helper
             return trainer
+        optimizer = "adamw"
+        if self.cfg.quantization:
+            optimizer = self._get_8bit_optimizer(model_train, training_args)
+
         trainer = Trainer(
             model=model_train,
             args=training_args,
             train_dataset=dm.datasets[my_enums.Steps.TRAIN.value],
             eval_dataset=dm.datasets[my_enums.Steps.DEV.value],
             data_collator=collator,
+            optimizers=optimizer,
             callbacks=[
                 EarlyStoppingCallback(
                     early_stopping_patience=self.cfg.early_stopping_patience
@@ -272,14 +311,13 @@ class SimpleTODTrainer:
         if path:
             model = utils.load_quantized_model(path, self.cfg.tokenizer)
         else:
-            model = AutoModelForCausalLM.from_pretrained(
-                self.cfg.model_name,
-                load_in_8bit=True,
-                device_map="auto",
-                torch_dtype=torch.bfloat16,
-            )
+            if self.cfg.quantization_dtype == 8:
+                model = utils.get_8bit_model(self.cfg.model_name)
+            else:
+                model = utils.get_4bit_model(self.cfg.model_name)
             model.resize_token_embeddings(len(self.cfg.tokenizer))
-        model = prepare_model_for_int8_training(model)
+
+        model = prepare_model_for_kbit_training(model)
 
         config = utils.get_lora_config(self.cfg.model_name)
 

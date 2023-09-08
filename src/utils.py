@@ -26,7 +26,13 @@ if TYPE_CHECKING:
 import logging
 import peft
 from peft import PeftConfig, PeftModel
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import (
+    AutoModelForCausalLM,
+    AutoTokenizer,
+    BitsAndBytesConfig,
+    GPT2LMHeadModel,
+    T5ForConditionalGeneration,
+)
 from accelerate import Accelerator
 
 import csv
@@ -44,7 +50,6 @@ import wandb
 from fuzzywuzzy import fuzz
 
 from my_enums import SpecialTokens, ZsTodConstants
-from transformers import AutoTokenizer, GPT2LMHeadModel, T5ForConditionalGeneration
 
 
 def get_dialog_file_paths(data_root, step):
@@ -304,15 +309,34 @@ def init_wandb(
 
 def get_8bit_model(model_name: str) -> AutoModelForCausalLM:
     return AutoModelForCausalLM.from_pretrained(
-        model_name,
-        load_in_8bit=True,
-        device_map="auto",
+        model_name, load_in_8bit=True, device_map="auto", torch_dtype=torch.bfloat16
     )
 
 
-def load_quantized_model(path: Path, tokenizer: AutoTokenizer):
+def get_4bit_model(model_name: str) -> AutoModelForCausalLM:
+    bnb_config = BitsAndBytesConfig(
+        load_in_4bit=True,
+        bnb_4bit_use_double_quant=True,
+        bnb_4bit_quant_type="nf4",
+        bnb_4bit_compute_dtype="float16",
+    )
+    device_map = {"": 0}
+    model = AutoModelForCausalLM.from_pretrained(
+        model_name,
+        quantization_config=bnb_config,
+        use_cache=False,
+        device_map=device_map,
+    )
+    model.config.pretraining_tp = 1
+    return model
+
+
+def load_quantized_model(path: Path, tokenizer: AutoTokenizer, quantization_dtype=8):
     config = PeftConfig.from_pretrained(path)
-    model = get_8bit_model(config.base_model_name_or_path)
+    if quantization_dtype == 8:
+        model = get_8bit_model(config.base_model_name_or_path)
+    elif quantization_dtype == 4:
+        model = get_4bit_model(config.base_model_name_or_path)
     model.resize_token_embeddings(len(tokenizer))
     model = PeftModel.from_pretrained(model, path)
     return model

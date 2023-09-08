@@ -68,6 +68,7 @@ class TrainerConfig:
         test_num_turns_groups: list[Tuple[int, int]] = None,
         two_step_training: bool = True,
         quantization: bool = False,
+        quantization_dtype: int = 8,
     ) -> None:
         self.project_root = Path(machine.project_root)
         self.data_prep_out_root = Path(data_prep_out_root)
@@ -91,6 +92,7 @@ class TrainerConfig:
         self.train_epochs = data_size.train_epochs
         self.contrastive_train_epochs = contrastive_train_epochs
         self.quantization = quantization
+        self.quantization_dtype = quantization_dtype
         self.dev_domain_settings = dev_domain_settings or ["seen"]
         self.train_domain_settings = train_domain_settings or ["seen"]
         self.test_domain_settings = test_domain_settings or [
