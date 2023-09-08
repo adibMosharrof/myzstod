@@ -249,7 +249,7 @@ class SimpleTODTrainer:
             run_name=step_name,
             learning_rate=5e-4,
             # sharded_ddp="zero_dp_3",
-            deepspeed=self.cfg.project_root / "config/ds_config.json",
+            # deepspeed=self.cfg.project_root / "config/ds_config.json",
             # fsdp_config=str(self.cfg.project_root / "config/ds_config.json"),
         )
 
@@ -272,7 +272,12 @@ class SimpleTODTrainer:
         if path:
             model = utils.load_quantized_model(path, self.cfg.tokenizer)
         else:
-            model = AutoModelForCausalLM.from_pretrained(self.cfg.model_name)
+            model = AutoModelForCausalLM.from_pretrained(
+                self.cfg.model_name,
+                load_in_8bit=True,
+                device_map="auto",
+                torch_dtype=torch.bfloat16,
+            )
             model.resize_token_embeddings(len(self.cfg.tokenizer))
         model = prepare_model_for_int8_training(model)
 
