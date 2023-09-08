@@ -124,7 +124,18 @@ class GoalMetric(TodMetricsBase):
             )
 
     def _compute(self) -> float:
-        return np.mean(self.all_accuracies), np.mean(self.joint_accuracies)
+        avg_ga = 0
+        joint_ga = 0
+        try:
+            avg_ga = np.mean(self.all_accuracies)
+        except Exception as e:
+            print("avg ga exception")
+        try:
+            joint_ga = np.mean(self.joint_accuracies)
+        except Exception as e:
+            print("joint ga exception")
+        return avg_ga, joint_ga
+        # return np.mean(self.all_accuracies), np.mean(self.joint_accuracies)
 
     def __str__(self) -> str:
         avg_ga, joint_ga = self.compute()
