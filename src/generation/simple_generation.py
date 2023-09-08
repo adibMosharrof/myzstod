@@ -18,7 +18,8 @@ class SimpleGeneration(GenerationBase):
         #         pad_token_id=self.tokenizer.pad_token_id,
         #         bos_token_id=self.tokenizer.bos_token_id,
         #     )
-        with torch.no_grad():
+        # with torch.no_grad():
+        with torch.cuda.amp.autocast():
             gen = self.model.generate(
                 inputs=batch.input_ids,
                 attention_mask=batch.attention_masks,
