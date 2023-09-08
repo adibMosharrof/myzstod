@@ -418,10 +418,10 @@ class SimpleTODTrainer:
 
 
 # @hydra.main(config_path="../config/trainer/", config_name="multi_adapter")
-# @hydra.main(config_path="../config/trainer/", config_name="simple_tod_trainer")
+@hydra.main(config_path="../config/trainer/", config_name="simple_tod_trainer")
 def hydra_start(cfg: DictConfig) -> None:
     trainer_cfg = TrainerConfig(**cfg)
-    # utils.init_wandb(trainer_cfg, cfg, "training")
+    utils.init_wandb(trainer_cfg, cfg, "training")
     stt = SimpleTODTrainer(trainer_cfg)
     print(os.getcwd())
     stt.run()
@@ -435,15 +435,7 @@ def create_out_dir():
     os.chdir(out_path)
 
 
+
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--local_rank", type=int, default=-1)
-    parser.add_argument("--config-name", type=str, default="simple_tod_trainer")
-    parser.add_argument("--deepspeed", type=str, default="config/ds_config.json")
-    args = parser.parse_args()
-    print(args)
-    with initialize(config_path="../config/trainer/", job_name="simple_tod_trainer"):
-        cfg = compose(config_name="simple_tod_trainer")
-    # cfg["local_rank"] = args.local_rank
-    create_out_dir()
-    hydra_start(cfg)
+    hydra_start()
+    wandb.finish()

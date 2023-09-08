@@ -12,13 +12,14 @@ then
     num_gpus=8
     partition='gpuA100x8'
 else
-    config_name='delta_trainer_lite'
+    config_name='delta_trainer'
     partition='gpuA40x4'
     num_gpus=2
 fi
 
 sbatch <<EOT
 #!/bin/bash
+#SBATCH --mem=220g
 #SBATCH --time=2-00:00:00 # Time limit for the job (REQUIRED).
 #SBATCH --job-name=gt_trainer # Job name
 #SBATCH --nodes=1
@@ -33,8 +34,8 @@ sbatch <<EOT
 
 source /sw/external/python/anaconda3_gpu/etc/profile.d/conda.sh
 conda  activate ./envs
-time python src/trainer.py --config-name $config_name
-# time python src/trainer.py --config-name delta_trainer_lite
+time deepspeed --no_local_rank src/trainer.py --config-name $config_name 
+#time python src/trainer.py --config-name $config_name
 #time python src/trainer.py --config-name delta_arithmetic_trainer
 
 exit 0
