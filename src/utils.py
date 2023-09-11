@@ -353,6 +353,10 @@ def load_quantized_model(
         model = get_4bit_model(
             config.base_model_name_or_path, is_inference=is_inference
         )
+    elif quantization_dtype == 16:
+        model = get_8bit_model(
+            config.base_model_name_or_path, is_inference=True
+        )
     model.resize_token_embeddings(len(tokenizer))
     model = PeftModel.from_pretrained(model, path)
     return model
