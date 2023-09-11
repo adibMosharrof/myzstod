@@ -241,9 +241,10 @@ class SimpleTODTrainer:
             )
             trainer.contrastive_helper = self.contrastive_helper
             return trainer
-        optimizer = "adamw"
-        if self.cfg.quantization:
-            optimizer = self._get_8bit_optimizer(model_train, training_args)
+        # optimizer = None
+        # if self.cfg.quantization:
+        #     optimizer = self._get_8bit_optimizer(model_train, training_args)
+        optimizer = self._get_8bit_optimizer(model_train, training_args)
 
         trainer = Trainer(
             model=model_train,
@@ -341,7 +342,7 @@ class SimpleTODTrainer:
             if not self.cfg.quantization
             else self.get_quantized_model()
         )
-        print(f"Model Size of {type(model)}: {dstc_utils.get_model_size(model)}")
+        print(f"Model Size of {type(model)}: {utils.get_model_size(model)}")
 
         pre_trainer = self._get_trainer(
             model, dm, training_args, training_stage=TrainingStage.PRETRAIN
@@ -352,10 +353,10 @@ class SimpleTODTrainer:
             pre_trainer.train()
         pre_trainer.save_model()
         model.save_pretrained(training_args.output_dir)
-        # del model
+        # return model
+        del model
         torch.cuda.empty_cache()
-        # return training_args.output_dir
-        return model
+        return str(Path(os.getcwd()) / training_args.output_dir)
 
     def train_model(self, path, dm) -> str:
         model = (
@@ -386,7 +387,7 @@ class SimpleTODTrainer:
             if not self.cfg.quantization
             else self.get_quantized_model(adapter_name=dm.task_name.value)
         )
-        print(f"Model Size of {type(model)}: {dstc_utils.get_model_size(model)}")
+        print(f"Model Size of {type(model)}: {utils.get_model_size(model)}")
 
         pre_trainer = self._get_trainer(
             model, dm, training_args, training_stage=TrainingStage.PRETRAIN
@@ -433,7 +434,6 @@ def create_out_dir():
     out_path = "outputs" / Path(out_path_name)
     out_path.mkdir(parents=True, exist_ok=True)
     os.chdir(out_path)
-
 
 
 if __name__ == "__main__":

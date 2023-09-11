@@ -120,6 +120,9 @@ class InferenceConfig:
         )
         self.model = self._get_model(model)
         self.model.eval()
+        print(
+            f"Inference: Model Size of {type(self.model)}: {dstc_utils.get_model_size(self.model)}"
+        )
         self.is_multi_decoder = is_multi_decoder
         self.should_add_schema = should_add_schema
         self.should_add_sys_actions = should_add_sys_actions
@@ -169,13 +172,16 @@ class InferenceConfig:
                 self.project_root / m_path if not m_path.is_absolute() else m_path
             )
             if model_class is not GPT2MultiLMHeadModel:
-                if not self.quantization:
-                    return model_class.from_pretrained(model_path).cuda()
                 if self.is_multi_task:
                     return self.load_multi_task_quantized_base_model(
                         self.model_name, model_path, self.multi_tasks
                     )
-                return utils.load_quantized_model(model_path, self.tokenizer)
+                if not self.quantization:
+                    return model_class.from_pretrained(model_path).cuda()
+                # return model_class.from_pretrained(model_path).cuda()
+                return utils.load_quantized_model(
+                    model_path, self.tokenizer, is_inference=True
+                )
             model_args = self.mh_fact if model_class == GPT2MultiLMHeadModel else {}
             model_kwargs = (
                 {"tok": self.tokenizer, "is_inference": True}

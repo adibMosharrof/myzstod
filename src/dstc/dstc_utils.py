@@ -11,6 +11,8 @@ from transformers import (
     GPT2LMHeadModel,
     T5ForConditionalGeneration,
     GPTJForCausalLM,
+    AutoModelWithLMHead,
+    LlamaForCausalLM,
 )
 import os
 from multi_head.mh_model import GPT2MultiLMHeadModel
@@ -143,8 +145,10 @@ def get_model_class(model_name: str, is_mh_head: bool = False):
         return T5ForConditionalGeneration
     if "gpt-j" in model_name:
         return GPTJForCausalLM
+    if "llama" in model_name:
+        return LlamaForCausalLM
     else:
-        return GPT2LMHeadModel
+        return AutoModelWithLMHead
 
 
 def get_model_size(model: AutoModel) -> int:

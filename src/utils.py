@@ -32,6 +32,7 @@ from transformers import (
     BitsAndBytesConfig,
     GPT2LMHeadModel,
     T5ForConditionalGeneration,
+    AutoModel,
 )
 from accelerate import Accelerator
 
@@ -50,6 +51,7 @@ import wandb
 from fuzzywuzzy import fuzz
 
 from my_enums import SpecialTokens, ZsTodConstants
+from hurry.filesize import size
 
 
 def get_dialog_file_paths(data_root, step):
@@ -167,6 +169,7 @@ def read_lines_in_file(path: Path) -> list[any]:
         lines = [line.rstrip() for line in file]
     return lines
 
+
 def grouper(iterable, n=2, fillvalue=None):
     # "Collect data into fixed-length chunks or blocks"
     # grouper('ABCDEFG', 3, 'x') --> ABC DEF Gxx
@@ -177,7 +180,7 @@ def grouper(iterable, n=2, fillvalue=None):
 def init_wandb(cfg: any, cmd_args: any, step: str, entity="None"):
     out_dir = Path(os.getcwd())
     parent_without_year = "-".join(out_dir.parent.name.split("-")[1:])
-    gpu_name = f'gpu:{cmd_args.local_rank}'
+    gpu_name = f"gpu:{cmd_args.local_rank}"
     run_name = "/".join([parent_without_year, out_dir.name])
     tags = [cfg.wandb.task, cfg.model_name, step]
     run = wandb.init(
@@ -234,6 +237,11 @@ def get_tokenizer(
     )
     tokenizer.save_pretrained(tokenizer_path)
     return tokenizer
+
+
+def get_model_size(model: AutoModel) -> int:
+    out = sum(p.numel() for p in model.parameters())
+    return size(out)
 
 
 def get_model_class(model_name: str):
@@ -304,18 +312,23 @@ def init_wandb(
     wandb.log({"job_id": os.environ.get("SLURM_JOB_ID", "")})
 
 
-def get_8bit_model(model_name: str) -> AutoModelForCausalLM:
+def get_8bit_model(model_name: str, is_inference: bool = False) -> AutoModelForCausalLM:
+    load_in_8bit = False if is_inference else True
+    # load_in_8bit = False
     return AutoModelForCausalLM.from_pretrained(
-        model_name, load_in_8bit=True, device_map="auto", torch_dtype=torch.bfloat16
+        model_name,
+        load_in_8bit=load_in_8bit,
+        device_map="auto",
+        torch_dtype=torch.bfloat16,
     )
 
 
-def get_4bit_model(model_name: str) -> AutoModelForCausalLM:
+def get_4bit_model(model_name: str, is_inference: bool = False) -> AutoModelForCausalLM:
     bnb_config = BitsAndBytesConfig(
         load_in_4bit=True,
         bnb_4bit_use_double_quant=True,
         bnb_4bit_quant_type="nf4",
-        bnb_4bit_compute_dtype="float16",
+        bnb_4bit_compute_dtype=torch.bfloat16,
     )
     device_map = {"": 0}
     model = AutoModelForCausalLM.from_pretrained(
@@ -328,12 +341,18 @@ def get_4bit_model(model_name: str) -> AutoModelForCausalLM:
     return model
 
 
-def load_quantized_model(path: Path, tokenizer: AutoTokenizer, quantization_dtype=8):
+def load_quantized_model(
+    path: Path, tokenizer: AutoTokenizer, quantization_dtype=8, is_inference=False
+):
     config = PeftConfig.from_pretrained(path)
     if quantization_dtype == 8:
-        model = get_8bit_model(config.base_model_name_or_path)
+        model = get_8bit_model(
+            config.base_model_name_or_path, is_inference=is_inference
+        )
     elif quantization_dtype == 4:
-        model = get_4bit_model(config.base_model_name_or_path)
+        model = get_4bit_model(
+            config.base_model_name_or_path, is_inference=is_inference
+        )
     model.resize_token_embeddings(len(tokenizer))
     model = PeftModel.from_pretrained(model, path)
     return model
