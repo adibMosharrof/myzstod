@@ -72,6 +72,7 @@ class InferenceConfig:
         test_num_turns_groups: list[Tuple[int, int]] = None,
         train_step_data: "StepData" = None,
         quantization: bool = False,
+        quantization_dtype: int = 8,
         num_train_dialogs: int = 1,
     ) -> None:
         self.num_workers = num_workers
@@ -86,6 +87,7 @@ class InferenceConfig:
         self.delexicalize = delexicalize
         self.is_multi_head = is_multi_head
         self.quantization = quantization
+        self.quantization_dtype = quantization_dtype
         self.model_name = model_name
         self.tokenizer = tokenizer if tokenizer else self._get_tokenizer(model)
         self.mh_fact = (
@@ -179,8 +181,11 @@ class InferenceConfig:
                 if not self.quantization:
                     return model_class.from_pretrained(model_path).cuda()
                 # return model_class.from_pretrained(model_path).cuda()
+                device_map = "auto"
+                if self.quantization_dtype == 16:
+                    device_map = None
                 return utils.load_quantized_model(
-                    model_path, self.tokenizer, is_inference=True
+                    model_path, self.tokenizer, is_inference=True, device_map=device_map
                 )
             model_args = self.mh_fact if model_class == GPT2MultiLMHeadModel else {}
             model_kwargs = (
@@ -202,11 +207,21 @@ class InferenceConfig:
             "model must be either a string or a model class, but model is:{model}"
         )
 
+    def load_lora_adapter_model(self, model_dir):
+        model_dir = Path(model_dir)
+        model = utils.get_8bit_model(
+            self.model_name, is_inference=True, device_map=None
+        )
+        model.resize_token_embeddings(len(self.tokenizer))
+        model = get_peft_model(model, utils.get_lora_config(self.model_name))
+        model.load_adapter(model_dir, "default")
+        return model
+
     def load_multi_task_quantized_base_model(
         self, model_name: str, model_dir: str, tasks: list[MultiTaskNames]
     ) -> AutoModel:
         model_dir = Path(model_dir)
-        model = utils.get_8bit_model(model_name)
+        model = utils.get_8bit_model(model_name, is_inference=True)
         model.resize_token_embeddings(len(self.tokenizer))
         model = get_peft_model(model, utils.get_lora_config(self.model_name))
         for task in tasks:
@@ -269,6 +284,7 @@ class InferenceConfig:
             datamodule=trainer_config.datamodule,
             test_num_turns_groups=trainer_config.test_num_turns_groups,
             quantization=trainer_config.quantization,
+            quantization_dtype=trainer_config.quantization_dtype,
             # contrastive_model=trainer_config.contrastive_model,
         )
 

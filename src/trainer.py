@@ -1,3 +1,4 @@
+import sys
 from collections import defaultdict
 from pathlib import Path
 from typing import Optional
@@ -252,7 +253,7 @@ class SimpleTODTrainer:
             train_dataset=dm.datasets[my_enums.Steps.TRAIN.value],
             eval_dataset=dm.datasets[my_enums.Steps.DEV.value],
             data_collator=collator,
-            optimizers=optimizer,
+            # optimizers=optimizer,
             callbacks=[
                 EarlyStoppingCallback(
                     early_stopping_patience=self.cfg.early_stopping_patience
@@ -265,6 +266,9 @@ class SimpleTODTrainer:
     def _get_training_args(
         self, step_name: str, epochs: int, train_batch_size: int
     ) -> TrainingArguments:
+        deepspeed_path = None
+        if self.cfg.quantization_dtype == 16:
+            deepspeed_path = self.cfg.project_root / "config/ds_config.json"
         return TrainingArguments(
             output_dir=str(self.cfg.out_dir / step_name),
             num_train_epochs=epochs,
@@ -289,8 +293,9 @@ class SimpleTODTrainer:
             run_name=step_name,
             learning_rate=5e-4,
             # sharded_ddp="zero_dp_3",
-            # deepspeed=self.cfg.project_root / "config/ds_config.json",
+            deepspeed=deepspeed_path,
             # fsdp_config=str(self.cfg.project_root / "config/ds_config.json"),
+            # fsdp="full_shard",
         )
 
     def get_model_instance(self, path: str = None) -> AutoModel:
@@ -312,10 +317,18 @@ class SimpleTODTrainer:
         if path:
             model = utils.load_quantized_model(path, self.cfg.tokenizer)
         else:
-            if self.cfg.quantization_dtype == 8:
+            if self.cfg.quantization_dtype == 16:
+                model = utils.get_8bit_model(
+                    self.cfg.model_name, is_inference=True, device_map=None
+                )
+            elif self.cfg.quantization_dtype == 8:
                 model = utils.get_8bit_model(self.cfg.model_name)
-            else:
+            elif self.cfg.quantization_dtype == 4:
                 model = utils.get_4bit_model(self.cfg.model_name)
+            else:
+                raise ValueError(
+                    f"Quantization dtype must be one of 4, 8, 16, you provided {self.cfg.quantization_dtype}"
+                )
             model.resize_token_embeddings(len(self.cfg.tokenizer))
 
         model = prepare_model_for_kbit_training(model)
@@ -325,7 +338,6 @@ class SimpleTODTrainer:
         model = PeftModelForCausalLM(model, config, adapter_name=adapter_name)
         if model.active_peft_config.base_model_name_or_path is None:
             model.active_peft_config.base_model_name_or_path = self.cfg.model_name
-        # self.print_trainable_parameters(model)
         model.print_trainable_parameters()
         return model
 
@@ -353,7 +365,7 @@ class SimpleTODTrainer:
             pre_trainer.train()
         pre_trainer.save_model()
         model.save_pretrained(training_args.output_dir)
-        # return model
+        return model
         del model
         torch.cuda.empty_cache()
         return str(Path(os.getcwd()) / training_args.output_dir)
@@ -403,20 +415,6 @@ class SimpleTODTrainer:
         return training_args.output_dir
         # return model
 
-    def print_trainable_parameters(self, model):
-        """
-        Prints the number of trainable parameters in the model.
-        """
-        trainable_params = 0
-        all_param = 0
-        for _, param in model.named_parameters():
-            all_param += param.numel()
-            if param.requires_grad:
-                trainable_params += param.numel()
-        print(
-            f"trainable params: {trainable_params} || all params: {all_param} || trainable%: {100 * trainable_params / all_param}"
-        )
-
 
 # @hydra.main(config_path="../config/trainer/", config_name="multi_adapter")
 @hydra.main(config_path="../config/trainer/", config_name="simple_tod_trainer")
@@ -426,6 +424,7 @@ def hydra_start(cfg: DictConfig) -> None:
     stt = SimpleTODTrainer(trainer_cfg)
     print(os.getcwd())
     stt.run()
+    sys.stdout.close()
 
 
 def create_out_dir():

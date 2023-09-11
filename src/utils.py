@@ -312,13 +312,15 @@ def init_wandb(
     wandb.log({"job_id": os.environ.get("SLURM_JOB_ID", "")})
 
 
-def get_8bit_model(model_name: str, is_inference: bool = False) -> AutoModelForCausalLM:
+def get_8bit_model(
+    model_name: str, is_inference: bool = False, device_map="auto"
+) -> AutoModelForCausalLM:
     load_in_8bit = False if is_inference else True
     # load_in_8bit = False
     return AutoModelForCausalLM.from_pretrained(
         model_name,
         load_in_8bit=load_in_8bit,
-        device_map="auto",
+        device_map=device_map,
         torch_dtype=torch.bfloat16,
     )
 
@@ -342,20 +344,28 @@ def get_4bit_model(model_name: str, is_inference: bool = False) -> AutoModelForC
 
 
 def load_quantized_model(
-    path: Path, tokenizer: AutoTokenizer, quantization_dtype=8, is_inference=False
+    path: Path,
+    tokenizer: AutoTokenizer,
+    quantization_dtype=8,
+    is_inference=False,
+    device_map="auto",
 ):
     config = PeftConfig.from_pretrained(path)
     if quantization_dtype == 8:
         model = get_8bit_model(
-            config.base_model_name_or_path, is_inference=is_inference
+            config.base_model_name_or_path,
+            is_inference=is_inference,
+            device_map=device_map,
         )
     elif quantization_dtype == 4:
         model = get_4bit_model(
-            config.base_model_name_or_path, is_inference=is_inference
+            config.base_model_name_or_path,
+            is_inference=is_inference,
+            device_map=device_map,
         )
     elif quantization_dtype == 16:
         model = get_8bit_model(
-            config.base_model_name_or_path, is_inference=True
+            config.base_model_name_or_path, is_inference=True, device_map=device_map
         )
     model.resize_token_embeddings(len(tokenizer))
     model = PeftModel.from_pretrained(model, path)
