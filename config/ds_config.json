@@ -49,5 +49,22 @@
     "steps_per_print": 2000,
     "train_batch_size": "auto",
     "train_micro_batch_size_per_gpu": "auto",
-    "wall_clock_breakdown": false
+    "wall_clock_breakdown": false,
+    "quantize_training": {
+        "enabled": true,
+        "quantize_verbose": true,
+        "quantizer_kernel": true,
+        "quantize-algo": {
+            "q_type": "symmetric"
+        },
+        "quantize_bits": {
+            "start_bits": 16,
+            "target_bits": 8
+        },
+        "quantize_schedule": {
+            "quantize_period": 400,
+            "schedule_offset": 0
+        },
+        "quantize_groups": 8
+    }
 }
