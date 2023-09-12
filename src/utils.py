@@ -389,6 +389,8 @@ def get_lora_config(model_name: str) -> LoraConfig:
         modules_to_save=get_modules_to_save(model_name),
     )
 
+def create_tensor(value, dtype=torch.int):
+    return torch.tensor(value, device='cuda', dtype=dtype)
 
 class PeftSavingCallback(TrainerCallback):
     def on_train_end(self, args, state, control, **kwargs):

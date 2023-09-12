@@ -6,7 +6,7 @@ from torchmetrics.text.rouge import ROUGEScore
 from torchmetrics import BLEUScore
 import torch
 import uuid
-
+import utils
 
 class ResponseMetric(TodMetricsBase):
     def __init__(self, metric_name="bleu", metric_key_name=None) -> None:
@@ -82,11 +82,11 @@ class ResponseMetric(TodMetricsBase):
             out = self.metric.compute()
             res = out[self.metric_key_name]
         except (ZeroDivisionError, ValueError):
-            return 0.0
+            return utils.create_tensor(0.0, dtype=torch.float)
 
         if self.metric_name == ResponseMetricType.ROUGE:
-            return res.mid.fmeasure
-        return res
+            return torch.tensor(res.mid.fmeasure,dtype=torch.float)
+        return torch.tensor(res,dtype=torch.float)
 
     def __str__(self) -> str:
         score = self.compute()

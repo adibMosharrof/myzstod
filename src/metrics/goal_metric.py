@@ -1,6 +1,7 @@
 from dataclasses import dataclass
-from typing import Union
+from typing import Union, Tuple
 import torch
+import utils
 import numpy as np
 from metrics.tod_metrics_base import TodMetricsBase
 from my_enums import GoalMetricConfigType, SpecialTokens
@@ -109,29 +110,31 @@ class GoalMetric(TodMetricsBase):
             turn_predictions = []
             for t in target_items:
                 if t in pred_beliefs:
-                    turn_predictions.append(1)
+                    turn_predictions.append(utils.create_tensor(1))
                     self._log_prediction(ref=t, is_correct=True)
                 else:
-                    turn_predictions.append(0)
+                    turn_predictions.append(utils.create_tensor(0))
                     self._log_prediction(ref=t, is_correct=False)
+            turn_predictions = utils.create_tensor(turn_predictions)
             self.joint_accuracies.append(
-                torch.tensor(np.prod(turn_predictions))
+                utils.create_tensor(torch.prod(turn_predictions))
                 if len(turn_predictions)
-                else torch.tensor(0)
+                else utils.create_tensor(0)
             )
             self.all_accuracies.append(
-                np.mean(turn_predictions) if len(turn_predictions) else 0
+                utils.create_tensor(torch.mean(turn_predictions, dtype=torch.float)) if len(turn_predictions) else utils.create_tensor(0)
             )
 
-    def _compute(self) -> float:
+
+    def _compute(self) -> Tuple[float,float]:
         avg_ga = 0
         joint_ga = 0
         try:
-            avg_ga = np.mean(self.all_accuracies)
+            avg_ga = torch.mean(self.all_accuracies, dtype=torch.float)
         except Exception as e:
             print("avg ga exception")
         try:
-            joint_ga = np.mean(self.joint_accuracies)
+            joint_ga = torch.mean(self.joint_accuracies, dtype=torch.float)
         except Exception as e:
             print("joint ga exception")
         return avg_ga, joint_ga
