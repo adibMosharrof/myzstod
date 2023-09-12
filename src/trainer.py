@@ -48,6 +48,7 @@ import dstc.dstc_utils as dstc_utils
 import utils
 from sentence_transformers import SentenceTransformer
 from accelerate import Accelerator
+from deepspeed.runtime.utils import see_memory_usage
 
 warnings.filterwarnings("ignore")
 os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
@@ -78,6 +79,8 @@ class SimpleTODTrainer:
         self.cfg = trainer_config
 
     def print_cuda_info(self, step=""):
+        see_memory_usage(step, force=True)
+        return
         if step:
             print(f"Step: {step}")
         print(torch.cuda.memory_allocated() / 1024**2)
