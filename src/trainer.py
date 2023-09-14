@@ -272,6 +272,7 @@ class SimpleTODTrainer:
         deepspeed_path = None
         if self.cfg.quantization_dtype == 16:
             deepspeed_path = self.cfg.project_root / "config/ds_config.json"
+            deepspeed_path = self.cfg.project_root / "config/ds_zero2.json"
         return TrainingArguments(
             output_dir=str(self.cfg.out_dir / step_name),
             num_train_epochs=epochs,

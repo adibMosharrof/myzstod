@@ -225,8 +225,8 @@ def get_tokenizer(
     tokenizer_path="tokenizer",
 ) -> AutoTokenizer:
     tok_path = Path(tokenizer_path)
-    if tok_path.exists():
-        return AutoTokenizer.from_pretrained(tok_path)
+    # if tok_path.exists():
+    #     return AutoTokenizer.from_pretrained(tok_path)
     tokenizer = AutoTokenizer.from_pretrained(
         tokenizer_name,
         pad_token=SpecialTokens.pad_token.value,
@@ -235,7 +235,7 @@ def get_tokenizer(
         additional_special_tokens=SpecialTokens.list(),
         add_prefix_space=add_prefix_space,
     )
-    tokenizer.save_pretrained(tokenizer_path)
+    # tokenizer.save_pretrained(tokenizer_path)
     return tokenizer
 
 
@@ -389,8 +389,10 @@ def get_lora_config(model_name: str) -> LoraConfig:
         modules_to_save=get_modules_to_save(model_name),
     )
 
+
 def create_tensor(value, dtype=torch.int):
-    return torch.tensor(value, device='cuda', dtype=dtype)
+    return torch.tensor(value, device="cuda", dtype=dtype)
+
 
 class PeftSavingCallback(TrainerCallback):
     def on_train_end(self, args, state, control, **kwargs):
