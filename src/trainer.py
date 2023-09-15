@@ -138,7 +138,7 @@ class SimpleTODTrainer:
                 InferenceConfig.from_trainer_config(self.cfg, full_out_dir),
             )
             inf.test()
-        print(full_out_dir)
+        print(current_dir)
 
     def _get_multi_task_dms(self) -> list[BaseDataModule]:
         steps = Steps.list() if self.cfg.should_test else Steps.list()[:-1]
@@ -248,7 +248,7 @@ class SimpleTODTrainer:
         # optimizer = None
         # if self.cfg.quantization:
         #     optimizer = self._get_8bit_optimizer(model_train, training_args)
-        optimizer = self._get_8bit_optimizer(model_train, training_args)
+        # optimizer = self._get_8bit_optimizer(model_train, training_args)
 
         trainer = Trainer(
             model=model_train,
@@ -295,6 +295,7 @@ class SimpleTODTrainer:
             dataloader_drop_last=True,
             run_name=step_name,
             learning_rate=5e-4,
+            optim="adamw_bnb_8bit",
             # sharded_ddp="zero_dp_3",
             deepspeed=deepspeed_path,
             # fsdp_config=str(self.cfg.project_root / "config/ds_config.json"),
