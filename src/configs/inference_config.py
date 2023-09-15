@@ -8,7 +8,7 @@ from configs.task_arithmetic_config import TaskArithmeticConfig
 import torch
 from generation.generation_base import GenerationBase
 from generation.generation_handler_factory import GenerationHandlerFactory
-
+from vllm import LLM
 from multi_head.mh_dataclasses import MultiHeadDictFactory
 from multi_head.mh_datamodule import MultiLMHeadDatamodule
 from multi_head.mh_model import GPT2MultiLMHeadModel
@@ -202,6 +202,7 @@ class InferenceConfig:
                 model.is_inference = True
             return model.cuda()
         if isinstance(model, PeftModelForCausalLM):
+            return LLM(model=model, dtype=torch.bfloat16, trust_remote_code=True)
             return model
         raise ValueError(
             "model must be either a string or a model class, but model is:{model}"
