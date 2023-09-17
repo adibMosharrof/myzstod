@@ -53,6 +53,7 @@ class InferenceConfig:
         create_data_from_train_splits: list[float] = None,
         out_dir: str = "results",
         tokenizer: AutoTokenizer = None,
+        tokenizer_name: str = "",
         test_prompt_max_len: int = 750,
         base_model_name: str = "",
         is_multi_task: bool = False,
@@ -89,6 +90,7 @@ class InferenceConfig:
         self.quantization = quantization
         self.quantization_dtype = quantization_dtype
         self.model_name = model_name
+        self.tokenizer_name = tokenizer_name
         self.tokenizer = tokenizer if tokenizer else self._get_tokenizer(model)
         self.mh_fact = (
             mh_fact
@@ -202,7 +204,6 @@ class InferenceConfig:
                 model.is_inference = True
             return model.cuda()
         if isinstance(model, PeftModelForCausalLM):
-            return LLM(model=model, dtype=torch.bfloat16, trust_remote_code=True)
             return model
         raise ValueError(
             "model must be either a string or a model class, but model is:{model}"
@@ -269,6 +270,7 @@ class InferenceConfig:
             num_turns=trainer_config.num_turns,
             overwrite=trainer_config.overwrite,
             out_dir=trainer_config.out_dir,
+            tokenizer_name=trainer_config.tokenizer_name,
             tokenizer=trainer_config.tokenizer,
             test_prompt_max_len=trainer_config.test_prompt_max_len,
             is_multi_task=trainer_config.is_multi_task,
