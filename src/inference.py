@@ -45,7 +45,6 @@ class Inference:
         self._set_metrics()
 
     def test(self):
-        accelerator = Accelerator()
         self.cfg.logger.info(self.cfg.out_dir)
         target_start_txt = "".join(
             [
@@ -71,7 +70,7 @@ class Inference:
                 self.cfg.logger.info(f"No data to test for {domains_str}")
                 continue
             inf_records = InferenceRecords()
-            test_dataloader = accelerator.prepare(test_dataloader)
+            test_dataloader = self.cfg.accelerator.prepare(test_dataloader)
             for curr_batch in tqdm(test_dataloader):
                 (
                     targets_text,
@@ -84,7 +83,7 @@ class Inference:
                     self.cfg.max_token_len,
                     self.cfg.test_prompt_max_len,
                     self.cfg.postprocess_generation,
-                    accelerator,
+                    self.cfg.accelerator,
                 )
                 if not self.cfg.is_multi_task:
                     self.tod_metrics.update(

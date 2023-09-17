@@ -6,7 +6,7 @@ import utils
 from pathlib import Path
 from multi_head.mh_dataclasses import MultiHeadDictFactory
 from my_enums import ContextType, MultiTaskNames
-
+from accelerate import Accelerator
 
 class TrainerConfig:
     def __init__(
@@ -70,6 +70,7 @@ class TrainerConfig:
         quantization: bool = False,
         quantization_dtype: int = 8,
     ) -> None:
+        self.accelerator = Accelerator()
         self.project_root = Path(machine.project_root)
         self.data_prep_out_root = Path(data_prep_out_root)
         self.model_name = model_name

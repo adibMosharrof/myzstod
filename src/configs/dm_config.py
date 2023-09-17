@@ -4,6 +4,7 @@ from dstc.dstc_domains import DstcDomains
 from multi_head.mh_dataclasses import MultiHeadDictFactory
 from my_enums import ContextType, MultiTaskNames, Steps
 import dstc.dstc_utils as dstc_utils
+from accelerate import Accelerator
 
 if TYPE_CHECKING:
     from configs.trainer_config import TrainerConfig
@@ -57,7 +58,9 @@ class DataModuleConfig:
         data_prep_multi_process: bool = True,
         test_num_turns_groups: list[Tuple[int, int]] = None,
         train_step_data: "StepData" = None,
+        accelerator: "Accelerator" = None,
     ):
+        self.accelerator = accelerator or Accelerator()
         self.num_workers = num_workers
         self.preprocessing_model_name = preprocessing_model_name
         self.project_root = Path(project_root)
@@ -118,6 +121,7 @@ class DataModuleConfig:
         trainer_config: "TrainerConfig",
     ) -> "DataModuleConfig":
         return self(
+            accelerator=trainer_config.accelerator,
             num_workers=trainer_config.num_workers,
             project_root=trainer_config.project_root,
             raw_data_root=trainer_config.raw_data_root,
@@ -162,6 +166,7 @@ class DataModuleConfig:
         train_step_data: "StepData" = None,
     ) -> "DataModuleConfig":
         return self(
+            accelerator = inf_config.accelerator,
             num_workers=inf_config.num_workers,
             project_root=inf_config.project_root,
             raw_data_root=inf_config.raw_data_root,

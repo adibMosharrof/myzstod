@@ -10,7 +10,7 @@ from dstc.dstc_domains import DstcDomainBuilder
 from multi_head.mh_dataclasses import MultiHeadDictFactory
 from my_enums import ContextType, Steps
 import utils
-
+from accelerate import Accelerator
 
 class DataPrepConfig:
     def __init__(
@@ -35,7 +35,9 @@ class DataPrepConfig:
         mh_fact: MultiHeadDictFactory = None,
         data_prep_multi_process: bool = True,
         step_name: str = Steps.TRAIN.value,
+        accelerator: "Accelerator" = None,
     ):
+        self.accelerator = accelerator or Accelerator()
         self.project_root = Path(project_root)
         self.raw_data_root = self.project_root / raw_data_root
         self.processed_data_root = self.project_root / processed_data_root
@@ -66,6 +68,7 @@ class DataPrepConfig:
     @classmethod
     def from_dm_config(self, dm_config: DataModuleConfig) -> "DataPrepConfig":
         return self(
+            accelerator=dm_config.accelerator,
             project_root=dm_config.project_root,
             raw_data_root=dm_config.raw_data_root,
             processed_data_root=dm_config.processed_data_root,

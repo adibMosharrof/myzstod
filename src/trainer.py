@@ -61,6 +61,7 @@ class SimpleTODTrainer:
         trainer_config: TrainerConfig,
     ) -> None:
         self.cfg = trainer_config
+        
 
     def print_cuda_info(self, step=""):
         see_memory_usage(step, force=True)

@@ -19,7 +19,7 @@ import utils
 import dstc.dstc_utils as dstc_utils
 from typing import TYPE_CHECKING, Tuple
 from configs.dm_config import DataModuleConfig
-
+from accelerate import Accelerator
 from peft import PeftModelForCausalLM, PeftConfig, PeftModel, get_peft_model
 
 if TYPE_CHECKING:
@@ -74,7 +74,9 @@ class InferenceConfig:
         quantization: bool = False,
         quantization_dtype: int = 8,
         num_train_dialogs: int = 1,
+        accelerator: "Accelerator" = None,
     ) -> None:
+        self.accelerator = accelerator or Accelerator()
         self.num_workers = num_workers
         self.data_split_percent = data_split_percent or [1, 1, 1]
         self.eval_batch_size = eval_batch_size
@@ -252,6 +254,7 @@ class InferenceConfig:
         cls, trainer_config: TrainerConfig, model: str
     ) -> "InferenceConfig":
         return cls(
+            accelerator=trainer_config.accelerator,
             num_workers=trainer_config.num_workers,
             data_split_percent=trainer_config.data_split_percent,
             eval_batch_size=trainer_config.eval_batch_size,
