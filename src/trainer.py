@@ -1,10 +1,8 @@
 import sys
-from collections import defaultdict
 from pathlib import Path
 from typing import Optional
 import hydra
 from omegaconf import DictConfig
-from hydra import compose, initialize
 import omegaconf
 import torch
 import gc
@@ -12,16 +10,10 @@ from datetime import datetime
 from transformers import (
     AutoModel,
     AutoTokenizer,
-    GPT2LMHeadModel,
     Trainer,
     TrainingArguments,
-    logging,
     EarlyStoppingCallback,
     IntervalStrategy,
-    GPT2Config,
-    T5ForConditionalGeneration,
-    AutoModelForCausalLM,
-    BitsAndBytesConfig,
 )
 from base_datamodule import BaseDataModule
 from configs.contrastive_config import ContrastiveConfig
@@ -38,7 +30,6 @@ from contrastive.contrastive_trainer import (
 from inference import Inference
 from multi_head.mh_dataclasses import MultiHeadDictFactory
 from multi_head.mh_datamodule import MultiLMHeadDatamodule
-from multi_head.mh_model import GPT2MultiLMHeadModel
 from tod.turns.zs_tod_turn import TodTurnMultiTaskCsvRow
 from tod_datamodules import TodDataModule
 import os
@@ -47,24 +38,17 @@ import my_enums
 import dstc.dstc_utils as dstc_utils
 import utils
 from sentence_transformers import SentenceTransformer
-from accelerate import Accelerator
 from deepspeed.runtime.utils import see_memory_usage
 
 warnings.filterwarnings("ignore")
 os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
 os.environ["TORCH_DISTRIBUTED_DEBUG"] = "DETAIL"
 # os.environ["NCCL_DEBUG"] = "INFO"
-import argparse
 import wandb
-from my_enums import MultiTaskNames, Steps, TrainingStage
+from my_enums import Steps, TrainingStage
 from transformers.trainer_pt_utils import get_parameter_names
 from peft import (
-    LoraConfig,
-    PeftConfig,
-    PeftModel,
     PeftModelForCausalLM,
-    get_peft_model,
-    prepare_model_for_int8_training,
     prepare_model_for_kbit_training,
 )
 import bitsandbytes as bnb
@@ -80,11 +64,6 @@ class SimpleTODTrainer:
 
     def print_cuda_info(self, step=""):
         see_memory_usage(step, force=True)
-        return
-        if step:
-            print(f"Step: {step}")
-        print(torch.cuda.memory_allocated() / 1024**2)
-        print(torch.cuda.memory_cached() / 1024**2)
 
     def multi_task_run(self):
         dms = self._get_multi_task_dms()
@@ -138,7 +117,7 @@ class SimpleTODTrainer:
                 InferenceConfig.from_trainer_config(self.cfg, full_out_dir),
             )
             inf.test()
-        print(full_out_dir)
+        print(current_dir)
 
     def _get_multi_task_dms(self) -> list[BaseDataModule]:
         steps = Steps.list() if self.cfg.should_test else Steps.list()[:-1]
