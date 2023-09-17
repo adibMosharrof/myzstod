@@ -301,14 +301,15 @@ class SimpleTODTrainer:
         if path:
             model = utils.load_quantized_model(path, self.cfg.tokenizer)
         else:
+            device_map = {"": torch.cuda.current_device()}
             if self.cfg.quantization_dtype == 16:
                 model = utils.get_8bit_model(
                     self.cfg.model_name, is_inference=True, device_map=None
                 )
             elif self.cfg.quantization_dtype == 8:
-                model = utils.get_8bit_model(self.cfg.model_name)
+                model = utils.get_8bit_model(self.cfg.model_name, device_map=device_map)
             elif self.cfg.quantization_dtype == 4:
-                model = utils.get_4bit_model(self.cfg.model_name)
+                model = utils.get_4bit_model(self.cfg.model_name, device_map=device_map)
             else:
                 raise ValueError(
                     f"Quantization dtype must be one of 4, 8, 16, you provided {self.cfg.quantization_dtype}"

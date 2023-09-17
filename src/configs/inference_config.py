@@ -8,7 +8,6 @@ from configs.task_arithmetic_config import TaskArithmeticConfig
 import torch
 from generation.generation_base import GenerationBase
 from generation.generation_handler_factory import GenerationHandlerFactory
-from vllm import LLM
 from multi_head.mh_dataclasses import MultiHeadDictFactory
 from multi_head.mh_datamodule import MultiLMHeadDatamodule
 from multi_head.mh_model import GPT2MultiLMHeadModel
