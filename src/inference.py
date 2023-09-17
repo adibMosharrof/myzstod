@@ -11,34 +11,27 @@ from omegaconf import DictConfig
 import pandas as pd
 import torch
 from tqdm import tqdm
-from transformers import AutoTokenizer, GPT2LMHeadModel, GPT2PreTrainedModel
-from torch.utils.data import DataLoader
-from configs.dm_config import DataModuleConfig
 from configs.inference_config import InferenceConfig
 from configs.reconstruct_dialog_config import ReconstructDialogConfig
-from dstc.dstc_domains import DstcDomains
-import dstc.dstc_utils as dstc_utils
 from metrics.intent_accuracy_metric import IntentAccuracyMetric
 from metrics.response_metrics import ResponseMetric
 from collections import Counter, defaultdict
 
-# from metrics.tod_metrics_base import MetricCollection
 from torchmetrics import MetricCollection
 from metrics.goal_metric import GoalMetric, GoalMetricConfigFactory
 from metrics.requested_slots_metric import RequestedSlotsMetric
 from metrics.dstc_metrics import InformMetric, SuccessMetric, CombinedMetric
-from multi_head.mh_datamodule import MultiLMHeadDatamodule
 from multi_woz.multi_woz_schema import MultiWozSchema
 from my_enums import GoalMetricConfigType, MultiTaskNames, SpecialTokens, Steps
 from reconstruct_dialog import ReconstructDialog
 import utils
-from tod_datamodules import TodDataModule
 from simple_tod_dataclasses import (
     InferenceRecords,
     TodTestDataBatch,
 )
 from sgd_dstc8_data_model.dstc_dataclasses import get_slot_categories
 import os
+from accelerate import Accelerator
 
 os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
 
@@ -52,6 +45,7 @@ class Inference:
         self._set_metrics()
 
     def test(self):
+        accelerator = Accelerator()
         self.cfg.logger.info(self.cfg.out_dir)
         target_start_txt = "".join(
             [
@@ -68,8 +62,6 @@ class Inference:
             if self.cfg.test_num_turns_groups
             else self.cfg.datamodule.test_dataloader
         )
-        # self.cfg.model.eval()
-        # self.cfg.model.gradient_checkpointing_disable()
 
         for test_dataloader, domain_setting in test_dl_func():
             domains_str = utils.get_domain_setting_str(domain_setting)
@@ -79,29 +71,35 @@ class Inference:
                 self.cfg.logger.info(f"No data to test for {domains_str}")
                 continue
             inf_records = InferenceRecords()
-
-            for batch in tqdm(test_dataloader):
-                pred_text_no_pad = self.cfg.generation_handler.get_generation(
-                    batch,
+            test_dataloader = accelerator.prepare(test_dataloader)
+            for curr_batch in tqdm(test_dataloader):
+                (
+                    targets_text,
+                    pred_text_no_pad,
+                    contexts,
+                    dialog_ids,
+                    turn_ids,
+                ) = self.cfg.generation_handler.get_generation(
+                    curr_batch,
                     self.cfg.max_token_len,
                     self.cfg.test_prompt_max_len,
                     self.cfg.postprocess_generation,
+                    accelerator,
                 )
                 if not self.cfg.is_multi_task:
                     self.tod_metrics.update(
-                        references=batch.targets_text, predictions=pred_text_no_pad
+                        references=targets_text, predictions=pred_text_no_pad
                     )
                     self.combined_metrics.update(
-                        references=batch.targets_text, predictions=pred_text_no_pad
+                        references=targets_text, predictions=pred_text_no_pad
                     )
                 inf_records.add(
                     pred_text_no_pad,
-                    batch.targets_text,
-                    batch.dialog_ids,
-                    batch.turn_ids,
-                    batch.contexts_text,
+                    targets_text,
+                    dialog_ids,
+                    turn_ids,
+                    contexts,
                 )
-
             inf_records.concat_data()
             test_csv_out_data = np.column_stack(
                 [
@@ -157,7 +155,6 @@ class Inference:
         all_metric_str = "\n".join(
             np.concatenate([tod_metrics_str, combined_metrics_str])
         )
-        # tod_metric_
         metric_strs = all_metric_str.split("\n")
         cols = []
         header_sep = []
@@ -192,9 +189,6 @@ class Inference:
         else:
             dst, action, response = [1, 1, 1]
 
-        # dst, action, response = (
-        #     self.cfg.multi_tasks if self.cfg.is_multi_task else [1, 1, 1]
-        # )
         tod_metrics = {}
         combined_metrics = {}
         if dst:
@@ -301,7 +295,6 @@ def init_wandb(cfg: InferenceConfig, omega_cfg: DictConfig):
 
 @hydra.main(config_path="../config/inference/", config_name="simple_tod_inference")
 def hydra_start(cfg: DictConfig) -> None:
-    # torch.cuda.set_device(1)
     inf_config = InferenceConfig(**cfg)
     utils.init_wandb(inf_config, cfg, "inference")
     inf = Inference(inf_config)
