@@ -128,8 +128,8 @@ class Inference:
         self.cfg.logger.info("Start token counts")
         for token, count in sorted(Counter(start_tokens).items()):
             self.cfg.logger.info(f"{token}:{count}")
-        r = ReconstructDialog(ReconstructDialogConfig.from_inference_config(self.cfg))
-        r.run()
+        # r = ReconstructDialog(ReconstructDialogConfig.from_inference_config(self.cfg))
+        # r.run()
 
     def run(self):
         print("begin inference")
