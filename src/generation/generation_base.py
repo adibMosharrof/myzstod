@@ -76,7 +76,7 @@ class GenerationBase(ABC):
         contexts = self.remove_pad_decode(contexts)
 
         if should_post_process:
-            return self.postprocess_generation(gen_txt)
+            gen_txt = self.postprocess_generation(gen_txt)
         return target_txt, gen_txt, contexts, dialog_ids, turn_ids
 
     def hook_before_remove_pad(self, gen: Union[Tensor, list[Tensor]]):

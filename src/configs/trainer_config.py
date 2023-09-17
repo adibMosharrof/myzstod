@@ -2,7 +2,7 @@ from typing import TYPE_CHECKING, Tuple, Union
 
 if TYPE_CHECKING:
     from base_datamodule import BaseDataModule
-import dstc.dstc_utils as dstc_utils
+import utils
 from pathlib import Path
 from multi_head.mh_dataclasses import MultiHeadDictFactory
 from my_enums import ContextType, MultiTaskNames
@@ -128,7 +128,7 @@ class TrainerConfig:
         )
 
         self.tokenizer_name = tokenizer_name or model_name
-        self.tokenizer = dstc_utils.get_tokenizer(self.tokenizer_name)
+        self.tokenizer = utils.get_tokenizer(self.tokenizer_name)
         self.should_add_schema = should_add_schema
         self.should_add_sys_actions = should_add_sys_actions
         self.should_add_user_actions = should_add_user_actions
