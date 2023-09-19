@@ -185,7 +185,6 @@ class DataModuleConfig:
             is_multi_task=inf_config.is_multi_task,
             multi_tasks=inf_config.multi_tasks,
             should_add_schema=inf_config.should_add_schema,
-            should_add_special_tokens=inf_config.should_add_special_tokens,
             tokenizer=inf_config.tokenizer,
             batch_size=inf_config.test_batch_size,
             eval_batch_size=inf_config.test_batch_size,
