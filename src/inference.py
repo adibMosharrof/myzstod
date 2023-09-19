@@ -114,7 +114,7 @@ class Inference:
                 self.tod_metrics.update(references=refs, predictions=preds)
                 self.combined_metrics.update(references=refs, predictions=preds)
             self.cfg.accelerator.wait_for_everyone()
-            if self.cfg.accelerator.is_main_process():
+            if self.cfg.accelerator.is_main_process:
                 headers = ["dialog_id", "turn_id", "context", "target", "prediction"]
                 utils.write_csv(headers, test_csv_out_data, text_csv_out_path)
                 self.cfg.logger.info(f"Testing {domains_str}")
