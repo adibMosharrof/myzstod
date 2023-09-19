@@ -113,21 +113,23 @@ class Inference:
                 preds, refs = inf_records.get_data_for_multitask()
                 self.tod_metrics.update(references=refs, predictions=preds)
                 self.combined_metrics.update(references=refs, predictions=preds)
-            headers = ["dialog_id", "turn_id", "context", "target", "prediction"]
-            utils.write_csv(headers, test_csv_out_data, text_csv_out_path)
-            self.cfg.logger.info(f"Testing {domains_str}")
-            cols, values = self._print_metrics()
-            metric_results.append([domains_str, cols, values])
-            self.cfg.logger.info(str(self.cfg.out_dir))
-            [
-                self.tod_metrics[m].visualize(Path(self.cfg.predictions_log_dir))
-                for m in self.tod_metrics
-            ]
+            self.cfg.accelerator.wait_for_everyone()
+            if self.cfg.accelerator.is_main_process():
+                headers = ["dialog_id", "turn_id", "context", "target", "prediction"]
+                utils.write_csv(headers, test_csv_out_data, text_csv_out_path)
+                self.cfg.logger.info(f"Testing {domains_str}")
+                cols, values = self._print_metrics()
+                metric_results.append([domains_str, cols, values])
+                self.cfg.logger.info(str(self.cfg.out_dir))
+                [
+                    self.tod_metrics[m].visualize(Path(self.cfg.predictions_log_dir))
+                    for m in self.tod_metrics
+                ]
         if len(metric_results):
             self.log_metrics_wandb(metric_results)
-        self.cfg.logger.info("Start token counts")
-        for token, count in sorted(Counter(start_tokens).items()):
-            self.cfg.logger.info(f"{token}:{count}")
+        # self.cfg.logger.info("Start token counts")
+        # for token, count in sorted(Counter(start_tokens).items()):
+        #     self.cfg.logger.info(f"{token}:{count}")
         # r = ReconstructDialog(ReconstructDialogConfig.from_inference_config(self.cfg))
         # r.run()
 
