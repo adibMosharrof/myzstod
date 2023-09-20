@@ -29,10 +29,6 @@ class MultiTaskGeneration(GenerationBase):
         for task in self.task_names:
             adapter_path = model_dir / task.value
             self.model.load_adapter(adapter_path, task.value)
-            # self.model.set_adapter(task.value)
-            # with torch.backends.cuda.sdp_kernel(
-            #     enable_flash=True, enable_math=False, enable_mem_efficient=False
-            # ):
             with torch.cuda.amp.autocast():
                 gen = self.model.generate(
                     inputs=batch.input_ids,
@@ -42,10 +38,9 @@ class MultiTaskGeneration(GenerationBase):
                     pad_token_id=self.tokenizer.pad_token_id,
                     use_cache=True,
                 )
-            gens.append(gen)
+            gen_padded = self.pad_gen_to_max_len(gen, max_len)
+            gens.append(gen_padded)
         return gens
-        out = torch.stack(gens)
-        return out
 
     def remove_context(
         self, gen: list[Tensor], context_len: int, max_len: int

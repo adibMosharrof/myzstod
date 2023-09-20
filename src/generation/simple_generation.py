@@ -29,7 +29,7 @@ class SimpleGeneration(GenerationBase):
                 use_cache=True,
                 # bos_token_id=self.tokenizer.bos_token_id,
             )
-        return gen
+        return self.pad_gen_to_max_len(gen, max_len)
 
     def remove_context(self, gen, context_len: int, max_len: int):
         return gen[:, context_len:]

@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Union
 
 from dotmap import DotMap
+import torch
 from my_enums import SpecialTokens
 from transformers import AutoModel, AutoTokenizer
 from simple_tod_dataclasses import TodTestDataBatch
@@ -103,3 +104,14 @@ class GenerationBase(ABC):
 
     def remove_padding(self, gen):
         return [row[row != self.tokenizer.pad_token_id] for row in gen]
+
+    def pad_gen_to_max_len(self, gen, max_len: int):
+        pad_amount = max_len - gen.shape[1]
+        pad = torch.full(
+            [gen.shape[0], pad_amount],
+            fill_value=self.tokenizer.pad_token_id,
+            dtype=torch.int,
+            device=gen.device,
+        )
+        out = torch.hstack([gen, pad])
+        return out
