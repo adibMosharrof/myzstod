@@ -51,24 +51,27 @@ class GenerationBase(ABC):
     ) -> list[str]:
         batch_gpu = self.move_to_gpu(batch, accelerator)
         curr_gen = self._get_generation(batch_gpu, max_len)
-        curr_gen = curr_gen.to(accelerator.device)
+        gen_without_context = self.remove_context(curr_gen, context_len, max_len)
+        # gen_after_hook = self.hook_before_remove_pad(gen_without_context)
+        # gen_after_hook = gen_without_context
         (
-            gen,
+            gen_after_hook,
             target,
             contexts,
             dialog_ids,
             turn_ids,
         ) = accelerator.gather_for_metrics(
             (
-                curr_gen,
+                gen_without_context,
                 batch_gpu.targets_text,
                 batch_gpu.contexts_text,
                 batch_gpu.dialog_ids,
                 batch_gpu.turn_ids,
             )
         )
-        gen_without_context = self.remove_context(gen, context_len, max_len)
-        gen_after_hook = self.hook_before_remove_pad(gen_without_context)
+        # gen_without_context = self.remove_context(gen, context_len, max_len)
+        # gen_after_hook = self.hook_before_remove_pad(gen_without_context)
+        # if accelerator.is_main_process:
         gen_txt = self.remove_pad_decode(gen_after_hook)
         target_txt = self.remove_pad_decode(target)
         dialog_ids = self.remove_pad_decode(dialog_ids, skip_special_tokens=True)
@@ -78,6 +81,8 @@ class GenerationBase(ABC):
         if should_post_process:
             gen_txt = self.postprocess_generation(gen_txt)
         return target_txt, gen_txt, contexts, dialog_ids, turn_ids
+        # else:
+        #     return None, None, None, None, None
 
     def hook_before_remove_pad(self, gen: Union[Tensor, list[Tensor]]):
         return gen

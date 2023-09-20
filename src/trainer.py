@@ -61,7 +61,6 @@ class SimpleTODTrainer:
         trainer_config: TrainerConfig,
     ) -> None:
         self.cfg = trainer_config
-        
 
     def print_cuda_info(self, step=""):
         see_memory_usage(step, force=True)
@@ -69,13 +68,15 @@ class SimpleTODTrainer:
     def multi_task_run(self):
         dms = self._get_multi_task_dms()
         for dm in dms:
-            model_path = self.train_multi_task_model(dm)
+            # model_path = self.train_multi_task_model(dm)
+            model = self.train_multi_task_model(dm)
 
         if self.cfg.should_test:
             curr_dir = Path(os.getcwd())
-            model_out_path = curr_dir / model_path
+            # model_out_path = curr_dir / model_path
             inf = Inference(
-                InferenceConfig.from_trainer_config(self.cfg, model_out_path),
+                # InferenceConfig.from_trainer_config(self.cfg, model_out_path),
+                InferenceConfig.from_trainer_config(self.cfg, model),
             )
             inf.test()
         print(str(self.cfg.out_dir.absolute()))
@@ -396,11 +397,11 @@ class SimpleTODTrainer:
         pre_trainer.train()
         # pre_trainer.save_model()
         model.save_pretrained(training_args.output_dir)
-        del model
-        gc.collect()
-        torch.cuda.empty_cache()
-        return training_args.output_dir
-        # return model
+        # del model
+        # gc.collect()
+        # torch.cuda.empty_cache()
+        # return training_args.output_dir
+        return model
 
 
 # @hydra.main(config_path="../config/trainer/", config_name="multi_adapter")

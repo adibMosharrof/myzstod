@@ -85,6 +85,7 @@ class Inference:
                     self.cfg.postprocess_generation,
                     self.cfg.accelerator,
                 )
+                # if self.cfg.accelerator.is_main_process:
                 if not self.cfg.is_multi_task:
                     self.tod_metrics.update(
                         references=targets_text, predictions=pred_text_no_pad
@@ -99,6 +100,7 @@ class Inference:
                     turn_ids,
                     contexts,
                 )
+                # self.cfg.accelerator.wait_for_everyone()
             inf_records.concat_data()
             test_csv_out_data = np.column_stack(
                 [
@@ -127,7 +129,6 @@ class Inference:
                 self.tod_metrics[m].visualize(Path(self.cfg.predictions_log_dir))
                 for m in self.tod_metrics
             ]
-
             # self.cfg.accelerator.wait_for_everyone()
         if len(metric_results):
             self.log_metrics_wandb(metric_results)

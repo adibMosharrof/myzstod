@@ -1,3 +1,5 @@
+import os
+from pathlib import Path
 from typing import Union
 
 from dotmap import DotMap
@@ -22,11 +24,16 @@ class MultiTaskGeneration(GenerationBase):
 
     def _get_generation(self, batch, max_len: int) -> list[Tensor]:
         gens = []
+        cur_dir = Path(os.getcwd())
+        model_dir = cur_dir / "results" / "multi_task"
         for task in self.task_names:
-            self.model.set_adapter(task.value)
-            with torch.backends.cuda.sdp_kernel(
-                enable_flash=True, enable_math=False, enable_mem_efficient=False
-            ):
+            adapter_path = model_dir / task.value
+            self.model.load_adapter(adapter_path, task.value)
+            # self.model.set_adapter(task.value)
+            # with torch.backends.cuda.sdp_kernel(
+            #     enable_flash=True, enable_math=False, enable_mem_efficient=False
+            # ):
+            with torch.cuda.amp.autocast():
                 gen = self.model.generate(
                     inputs=batch.input_ids,
                     attention_mask=batch.attention_masks,
@@ -37,10 +44,19 @@ class MultiTaskGeneration(GenerationBase):
                 )
             gens.append(gen)
         return gens
+        out = torch.stack(gens)
+        return out
 
     def remove_context(
         self, gen: list[Tensor], context_len: int, max_len: int
     ) -> list[Tensor]:
+        no_c = []
+        for g in gen:
+            out = g[:, context_len:]
+            no_c.append(out)
+        gen_cat = torch.hstack([*no_c])
+        return gen_cat
+
         out = torch.full(
             [len(gen), gen[0].shape[0], max_len - context_len],
             fill_value=self.tokenizer.pad_token_id,
