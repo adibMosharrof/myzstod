@@ -22,7 +22,7 @@ class MultiTaskGeneration(GenerationBase):
         super().__init__(model, tokenizer)
         self.task_names = task_names
 
-    def _get_generation(self, batch, max_len: int) -> list[Tensor]:
+    def _get_generation(self, batch,min_len:int, max_len: int) -> list[Tensor]:
         gens = []
         cur_dir = Path(os.getcwd())
         model_dir = cur_dir / "results" / "multi_task"
@@ -33,7 +33,7 @@ class MultiTaskGeneration(GenerationBase):
                 gen = self.model.generate(
                     inputs=batch.input_ids,
                     attention_mask=batch.attention_masks,
-                    max_length=max_len,
+                    min_len=min_len,
                     eos_token_id=self.tokenizer.eos_token_id,
                     pad_token_id=self.tokenizer.pad_token_id,
                     use_cache=True,

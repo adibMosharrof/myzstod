@@ -80,6 +80,7 @@ class Inference:
                     turn_ids,
                 ) = self.cfg.generation_handler.get_generation(
                     curr_batch,
+                    self.cfg.max_token_len - self.cfg.test_prompt_max_len,
                     self.cfg.max_token_len,
                     self.cfg.test_prompt_max_len,
                     self.cfg.postprocess_generation,

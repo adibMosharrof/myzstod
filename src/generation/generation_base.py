@@ -45,13 +45,14 @@ class GenerationBase(ABC):
     def get_generation(
         self,
         batch: TodTestDataBatch,
+        min_gen_len: int,
         max_len: int,
         context_len: int,
         should_post_process: bool,
         accelerator,
     ) -> list[str]:
         batch_gpu = self.move_to_gpu(batch, accelerator)
-        curr_gen = self._get_generation(batch_gpu, max_len)
+        curr_gen = self._get_generation(batch_gpu, min_gen_len, max_len)
         gen_without_context = self.remove_context(curr_gen, context_len, max_len)
         # gen_after_hook = self.hook_before_remove_pad(gen_without_context)
         # gen_after_hook = gen_without_context
