@@ -36,6 +36,8 @@ class TaskArithmeticConfig:
         test_batch_size: int = 32,
         postprocess_generation: bool = True,
         quantization: bool = True,
+        quantization_dtype: int = 16,
+        tokenizer_name: str = None,
     ) -> None:
         self.project_root = Path(project_root)
         self.data_prep_out_root = Path(data_prep_out_root)
@@ -45,6 +47,8 @@ class TaskArithmeticConfig:
         self.raw_data_root = self.project_root / raw_data_root
         self.wandb = wandb
         self.quantization = quantization
+        self.quantization_dtype = quantization_dtype
+        self.tokenizer_name = tokenizer_name or model_name
         self.model_a = ModelForTaskArithmetic(project_root=self.project_root, **model_a)
         self.model_b = ModelForTaskArithmetic(project_root=self.project_root, **model_b)
         self.model_multi_domain = ModelForTaskArithmetic(
