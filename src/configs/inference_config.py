@@ -92,7 +92,7 @@ class InferenceConfig:
         self.quantization_dtype = quantization_dtype
         self.model_name = model_name
         self.tokenizer_name = tokenizer_name
-        self.tokenizer = tokenizer if tokenizer else self._get_tokenizer(model)
+        self.tokenizer = tokenizer if tokenizer else self._get_tokenizer(tokenizer_name)
         self.mh_fact = (
             mh_fact
             if mh_fact
@@ -186,9 +186,14 @@ class InferenceConfig:
                 # return model_class.from_pretrained(model_path).cuda()
                 device_map = "auto"
                 if self.quantization_dtype == 16:
-                    device_map = None
+                    # device_map = None
+                    device_map = self.accelerator.device
                 return utils.load_quantized_model(
-                    model_path, self.tokenizer, is_inference=True, device_map=device_map
+                    model_path,
+                    self.tokenizer,
+                    is_inference=True,
+                    device_map=device_map,
+                    quantization_dtype=self.quantization_dtype,
                 )
             model_args = self.mh_fact if model_class == GPT2MultiLMHeadModel else {}
             model_kwargs = (
@@ -314,4 +319,8 @@ class InferenceConfig:
             postprocess_generation=task_arithmetic_config.postprocess_generation,
             data_split_percent=task_arithmetic_config.data_split_percent,
             quantization=task_arithmetic_config.quantization,
+            quantization_dtype=task_arithmetic_config.quantization_dtype,
+            should_add_schema=task_arithmetic_config.should_add_schema,
+            should_add_user_actions=task_arithmetic_config.should_add_user_actions,
+            should_add_service_results=task_arithmetic_config.should_add_service_results,
         )
