@@ -121,7 +121,28 @@ class InferenceRecords:
         )
 
 
-def get_multi_task_special_tokens() -> list[MultiTaskSpecialToken]:
+def get_multi_task_special_tokens() -> dict[str, MultiTaskSpecialToken]:
+    return {
+        MultiTaskNames.DSTS.value: MultiTaskSpecialToken(
+            [SpecialTokens.begin_dsts],
+            [SpecialTokens.end_dsts],
+            SpecialTokens.prompt_dst,
+            MultiTaskNames.DSTS,
+        ),
+        MultiTaskNames.ACTIONS.value: MultiTaskSpecialToken(
+            [SpecialTokens.begin_user_action, SpecialTokens.begin_action],
+            [SpecialTokens.end_user_action, SpecialTokens.end_action],
+            SpecialTokens.prompt_action,
+            MultiTaskNames.ACTIONS,
+        ),
+        MultiTaskNames.NLG.value: MultiTaskSpecialToken(
+            [SpecialTokens.begin_response],
+            [SpecialTokens.end_response],
+            SpecialTokens.prompt_response,
+            MultiTaskNames.NLG,
+        ),
+    }
+
     return [
         MultiTaskSpecialToken(
             [SpecialTokens.begin_dsts],

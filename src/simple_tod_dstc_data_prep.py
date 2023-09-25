@@ -244,11 +244,13 @@ class SimpleTODDSTCDataPrep:
         out = []
         multi_task_special_tokens = get_multi_task_special_tokens()
 
-        for mtst, should_perform_task in zip(
-            multi_task_special_tokens, self.cfg.multi_tasks
-        ):
-            if not should_perform_task:
-                continue
+        # for mtst, should_perform_task in zip(
+        #     multi_task_special_tokens, self.cfg.multi_tasks
+        # ):
+        for task in self.cfg.multi_tasks:
+            mtst = multi_task_special_tokens[task]
+            # if not should_perform_task:
+            #     continue
             text = self._extract_from_target(
                 str(turn.target), mtst.start_tokens, mtst.end_tokens
             )
