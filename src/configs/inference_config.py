@@ -41,7 +41,8 @@ class InferenceConfig:
         predictions_log_dir: str = "predictions_logs",
         num_test_dialogs: int = 17,
         delexicalize: bool = False,
-        model: str = "",
+        model_paths: dict[str, str] = None,
+        model: str = None,
         model_name: str = "gpt2",
         generate_max_len: int = 1024,
         num_turns: int = 10,
@@ -123,11 +124,13 @@ class InferenceConfig:
             if self.is_multi_task
             else None
         )
+        self.model_paths = model_paths
         self.model = self._get_model(model)
-        self.model.eval()
-        print(
-            f"Inference: Model Size of {type(self.model)}: {dstc_utils.get_model_size(self.model)}"
-        )
+        if self.model:
+            self.model.eval()
+            print(
+                f"Inference: Model Size of {type(self.model)}: {dstc_utils.get_model_size(self.model)}"
+            )
         self.is_multi_decoder = is_multi_decoder
         self.should_add_schema = should_add_schema
         self.should_add_sys_actions = should_add_sys_actions
@@ -211,9 +214,14 @@ class InferenceConfig:
             return model.cuda()
         if isinstance(model, PeftModelForCausalLM):
             return model
-        raise ValueError(
-            "model must be either a string or a model class, but model is:{model}"
+        if not model and not self.model_name:
+            raise ValueError("must provide model_name if model is none")
+        # loading model for multi-task
+        model = utils.get_8bit_model(
+            self.model_name, is_inference=True, device_map=self.accelerator.device
         )
+        model.resize_token_embeddings(len(self.tokenizer))
+        return model
 
     def load_lora_adapter_model(self, model_dir):
         model_dir = Path(model_dir)
