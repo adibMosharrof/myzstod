@@ -64,7 +64,8 @@ class SuccessMetric(TodMetricsBase):
             # self.all_success.append(np.mean(batch_success))
 
     def _compute(self) -> float:
-        return torch.mean(self.all_success, dtype=torch.float)
+        success_tensor = utils.create_tensor(self.all_success, dtype=torch.float)
+        return torch.mean(success_tensor, dtype=torch.float)
 
     def __str__(self) -> str:
         avg_success = self.compute()
@@ -116,7 +117,8 @@ class InformMetric(TodMetricsBase):
             # self.all_inform.append(np.mean(batch_inform))
 
     def _compute(self) -> float:
-        return torch.mean(self.all_inform,dtype=torch.float)
+        inform_tensor = utils.create_tensor(self.all_inform, dtype=torch.float)
+        return torch.mean(inform_tensor, dtype=torch.float)
 
     def __str__(self) -> str:
         avg_inform = self.compute()

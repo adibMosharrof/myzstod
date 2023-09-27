@@ -1,13 +1,14 @@
 data_split_percent:
   - 1
   - 1
-  - 1
+  - 0.01
 eval_batch_size: 6
 test_batch_size: 10
-max_token_len: 1024
-test_prompt_max_len: 750
+max_token_len: 1000
+test_prompt_max_len: 650
 num_test_dialogs: 1
 # num_test_dialogs: 5
+project_root: /mounts/u-amo-d1/adibm-data/projects/ZSToD/
 wandb:
   project: ZSTodLocal
   entity: adibm
@@ -17,7 +18,9 @@ wandb:
 # model: outputs/2023-05-31/20-33-34/results/pretrain
 # model: outputs/2023-06-05/15-00-51/results/pretrain
 # model: outputs/2023-06-07/23-27-31/results/multi_task/dsts
-model : outputs/2023-07-08/22-14-55/results/multi_task
+model_paths : 
+  # dsts: outputs/2023-09-24/02-09-01/results/multi_task
+  actions: outputs/2023-09-25/17-17-28/results/multi_task
 num_turns: 26
 data_prep_multi_process: true
 # overwrite:
@@ -26,31 +29,25 @@ data_prep_multi_process: true
 #   - true
 test_domain_settings:
   - [all]
-  - [seen]
-  - [unseen]
+  # - [seen]
+  # - [unseen]
   # - [Travel_1]
   # - [RentalCars_3]
   # - - Restaurants_1
     # - Movies_1
-# base_model_name: facebook/opt-2.7b
-base_model_name: huggyllama/llama-7b
-model_name: huggyllama/llama-7b
+tokenizer_name: adibm/sgd-opt-tokenizer
+base_model_name: facebook/opt-2.7b
+# base_model_name: huggyllama/llama-7b
+model_name: facebook/opt-2.7b
 # is_multi_head: true
 should_add_schema: true
 should_add_user_actions: true
-should_add_sys_actions: true
+# should_add_sys_actions: true
 should_add_service_results: true
 # context_type: default
 postprocess_generation: false
-should_add_special_tokens: true
-# test_num_turns_groups:
-#   - 4
-#   - 8
-#   - 12
-#   - 16
-#   - 20
-#   - 26
 quantization: true
+quantization_dtype: 16
 create_data_from_train: false
 create_data_from_train_splits:
   - 0.01
@@ -58,6 +55,6 @@ create_data_from_train_splits:
 num_train_dialogs: 1
 is_multi_task: true
 multi_tasks:
-  - dsts
+  # - dsts
   - actions
-  - nlg
+  # - nlg
