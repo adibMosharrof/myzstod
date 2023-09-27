@@ -152,6 +152,7 @@ class InferenceConfig:
         self.datamodule = datamodule or self._get_datamodule(self.test_domain_settings)
 
     def _get_tokenizer(self, model_path_str: str):
+        return utils.get_tokenizer(model_path_str)
         model_path: Path = self.project_root / model_path_str
         try:
             # with specifig checkpoint number (results/train/checkpoint-1000)
