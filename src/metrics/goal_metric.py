@@ -122,19 +122,24 @@ class GoalMetric(TodMetricsBase):
                 else utils.create_tensor(0)
             )
             self.all_accuracies.append(
-                utils.create_tensor(torch.mean(turn_predictions, dtype=torch.float)) if len(turn_predictions) else utils.create_tensor(0)
+                utils.create_tensor(
+                    torch.mean(turn_predictions, dtype=torch.float), dtype=torch.float
+                )
+                if len(turn_predictions)
+                else utils.create_tensor(0)
             )
 
-
-    def _compute(self) -> Tuple[float,float]:
+    def _compute(self) -> Tuple[float, float]:
         avg_ga = 0
         joint_ga = 0
+        all_acc_tensor = utils.create_tensor(self.all_accuracies, dtype=torch.float)
+        joint_acc_tensor = utils.create_tensor(self.joint_accuracies, dtype=torch.float)
         try:
-            avg_ga = torch.mean(self.all_accuracies, dtype=torch.float)
+            avg_ga = torch.mean(all_acc_tensor, dtype=torch.float)
         except Exception as e:
             print("avg ga exception")
         try:
-            joint_ga = torch.mean(self.joint_accuracies, dtype=torch.float)
+            joint_ga = torch.mean(joint_acc_tensor, dtype=torch.float)
         except Exception as e:
             print("joint ga exception")
         return avg_ga, joint_ga

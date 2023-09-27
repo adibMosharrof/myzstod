@@ -10,6 +10,7 @@ from torchmetrics import F1Score
 from collections import Counter
 import utils
 
+
 class RequestedSlotsMetric(TodMetricsBase):
     # def __init__(self) -> None:
     def __init_old__(self) -> None:
@@ -119,4 +120,5 @@ class RequestedSlotsMetric(TodMetricsBase):
             self.all_f1.append(utils.create_tensor(f1, dtype=torch.float))
 
     def _compute(self) -> float:
-        return torch.mean(self.all_f1, dtype=torch.float) * 100
+        f1_tensors = utils.create_tensor(self.all_f1, dtype=torch.float)
+        return torch.mean(f1_tensors, dtype=torch.float) * 100
