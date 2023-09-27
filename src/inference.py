@@ -32,6 +32,7 @@ from simple_tod_dataclasses import (
 from sgd_dstc8_data_model.dstc_dataclasses import get_slot_categories
 import os
 from accelerate import Accelerator
+import cProfile
 
 os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
 
@@ -302,10 +303,12 @@ def init_wandb(cfg: InferenceConfig, omega_cfg: DictConfig):
 
 @hydra.main(config_path="../config/inference/", config_name="simple_tod_inference")
 def hydra_start(cfg: DictConfig) -> None:
-    inf_config = InferenceConfig(**cfg)
-    utils.init_wandb(inf_config, cfg, "inference")
-    inf = Inference(inf_config)
-    inf.run()
+    with cProfile.Profile() as pr:
+        inf_config = InferenceConfig(**cfg)
+        utils.init_wandb(inf_config, cfg, "inference")
+        inf = Inference(inf_config)
+        inf.run()
+        pr.dump_stats("inference.prof")
 
 
 if __name__ == "__main__":
