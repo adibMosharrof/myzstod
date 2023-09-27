@@ -70,6 +70,7 @@ class SimpleTODTrainer:
         for dm in dms:
             # model_path = self.train_multi_task_model(dm)
             model = self.train_multi_task_model(dm)
+            torch.cuda.empty_cache()
 
         if self.cfg.should_test:
             curr_dir = Path(os.getcwd())
