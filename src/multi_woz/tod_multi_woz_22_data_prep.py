@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 sys.path.insert(0, os.path.abspath("./src"))
 
-from tod.zs_target import ZsTodTarget
+from tod.zs_tod_target import ZsTodTarget
 from tod.zs_tod_action import ZsTodAction
 from tod.zs_tod_belief import ZsTodBelief
 from tod.zs_tod_dst import ZsTodDst
