@@ -17,3 +17,6 @@ class MultiTaskCsvRow(TurnCsvRowBase):
         row += [tod_turn.multi_task_token.name.value, target_str]
 
         return row
+
+    def hook_before_adding_target(self, row: list[str], tod_turn: ZsTodTurn):
+        row.append(tod_turn.multi_task_token.name.value)

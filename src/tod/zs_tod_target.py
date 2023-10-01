@@ -46,6 +46,18 @@ class ZsTodTarget:
     def __repr__(self) -> str:
         return self.__str__()
 
+    def get_nlg_target_str(self) -> str:
+        out = "".join(
+            [
+                SpecialTokens.begin_target,
+                SpecialTokens.begin_response,
+                self.response,
+                SpecialTokens.end_response,
+                SpecialTokens.end_target,
+            ]
+        )
+        return out
+
     def __str__(self) -> str:
         out = "".join(
             [

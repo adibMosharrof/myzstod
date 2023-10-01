@@ -225,6 +225,11 @@ class ContrastiveConstants(str, Enum):
 class ContextType(str, Enum):
     SHORT_REPR = "short_repr"
     DEFAULT = "default"
+    NLG = "nlg"
+
+    @classmethod
+    def list(cls):
+        return [c for c in cls]
 
 
 class ResponseMetricType(str, Enum):

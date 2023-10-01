@@ -1,11 +1,10 @@
-
-
 from collections import deque
 from dataclasses import dataclass, field
 from itertools import zip_longest
 from typing import Optional
 
 from my_enums import DstcSystemActions, SpecialTokens
+
 
 @dataclass
 class ZsTodContext:
@@ -35,6 +34,21 @@ class ZsTodContext:
                 SpecialTokens.end_context,
             ]
         )
+
+    def get_nlg_repr(self):
+        out = SpecialTokens.begin_context
+        for user, system in zip_longest(
+            self.user_utterances, self.system_utterances, fillvalue=""
+        ):
+            if user:
+                out += SpecialTokens.user + user
+            if system:
+                out += SpecialTokens.system + system
+
+        out += self._get_service_results()
+        out += self._get_last_user_utterance()
+        out += SpecialTokens.end_context
+        return out
 
     def _get_service_results(self) -> str:
         out = ""

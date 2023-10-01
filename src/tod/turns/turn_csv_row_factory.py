@@ -1,7 +1,7 @@
 from configs.dataprep_config import DataPrepConfig
 from tod.turns.general_turn_csv_row import GeneralTurnCsvRow
 from tod.turns.mh_turn_csv_row import MhTurnCsvRow
-from tod.turns.multi_turn_csv_row import MultiTaskCsvRow
+from tod.turns.multi_task_csv_row import MultiTaskCsvRow
 from tod.turns.turn_csv_row import TurnCsvRowBase
 
 
