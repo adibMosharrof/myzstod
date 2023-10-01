@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Union
 from base_datamodule import StepData
 from my_enums import ContextType, Steps
-import dstc.dstc_utils as dstc_utils
+import utils
 
 
 @dataclass
@@ -38,6 +38,9 @@ class TaskArithmeticConfig:
         quantization: bool = True,
         quantization_dtype: int = 16,
         tokenizer_name: str = None,
+        should_add_schema: bool = True,
+        should_add_user_actions: bool = True,
+        should_add_service_results: bool = True,
     ) -> None:
         self.project_root = Path(project_root)
         self.data_prep_out_root = Path(data_prep_out_root)
@@ -49,6 +52,8 @@ class TaskArithmeticConfig:
         self.quantization = quantization
         self.quantization_dtype = quantization_dtype
         self.tokenizer_name = tokenizer_name or model_name
+
+        self.tokenizer = utils.get_tokenizer(self.tokenizer_name)
         self.model_a = ModelForTaskArithmetic(project_root=self.project_root, **model_a)
         self.model_b = ModelForTaskArithmetic(project_root=self.project_root, **model_b)
         self.model_multi_domain = ModelForTaskArithmetic(
@@ -60,3 +65,6 @@ class TaskArithmeticConfig:
         self.create_data_from_train_splits = create_data_from_train_splits
         self.test_batch_size = test_batch_size
         self.postprocess_generation = postprocess_generation
+        self.should_add_schema = should_add_schema
+        self.should_add_user_actions = should_add_user_actions
+        self.should_add_service_results = should_add_service_results

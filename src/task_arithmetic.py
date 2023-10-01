@@ -31,28 +31,29 @@ class TaskArithmetic:
     def run(self):
         # model_a = self.load_model(self.cfg.model_name)
         base_model = utils.get_8bit_model(self.cfg.model_name, is_inference=True)
-        model_a = self.load_model(self.cfg.model_a.path, self.cfg.tokenizer_name)
+        base_model.resize_token_embeddings(len(self.cfg.tokenizer))
+        # model_a = self.load_model(self.cfg.model_a.path, self.cfg.tokenizer_name)
         # model_b = self.load_model(self.cfg.model_b.path, self.cfg.tokenizer_name)
         # base_model.load_adapter(self.cfg.model_a.path, "default")
-        # task_vector_a = self.get_task_vector(base_model, self.cfg.model_a.path)
+        task_vector_a = self.get_task_vector(base_model, self.cfg.model_a.path)
         # task_vector_b = self.get_task_vector(base_model, self.cfg.model_b.path)
 
         # task_vector_a_b = task_vector_a.__add__(task_vector_b)
         scaling_coef = 1.0
 
+        multi_model_using_task_vector = task_vector_a.apply_to(base_model, scaling_coef)
         # multi_model_using_task_vector = task_vector_a_b.apply_to(
         # multi_model_using_task_vector = task_vector_a.apply_to(base_model, scaling_coef)
 
         # model_multi_domain = self.load_model(self.cfg.model_multi_domain.path)
         # tok_path = self.cfg.model_multi_domain.path.parent.parent / "tokenizer"
-        tokenizer = dstc_utils.get_tokenizer(self.cfg.model_name)
 
         inf_ta = Inference(
             InferenceConfig.from_task_arithmetic_config(
                 self.cfg,
-                # multi_model_using_task_vector,
-                model_a,
-                tokenizer,
+                multi_model_using_task_vector,
+                # model_a,
+                self.cfg.tokenizer,
                 # self.cfg.model_multi_domain.domains,
                 self.cfg.model_a.domains,
             )
@@ -63,16 +64,17 @@ class TaskArithmetic:
         torch.cuda.empty_cache()
         inf_ta.test()
 
-        a = 1
-
     def get_task_vector(self, base_model, model_path):
-        model = self.load_model(model_path)
+        model = self.load_model(model_path, self.cfg.tokenizer)
         return TaskVector(base_model, model)
 
-    def load_model(self, model_name_or_path, tokenizer_name:str):
+    def load_model(self, model_name_or_path, tokenizer_name: str):
         if not self.cfg.quantization:
             return AutoModel.from_pretrained(model_name_or_path)
-        return utils.load_quantized_model(model_name_or_path, tokenizer_name, self.cfg.quantization_dtype)
+        return utils.load_quantized_model(
+            model_name_or_path, tokenizer_name, self.cfg.quantization_dtype
+        )
+
 
 @hydra.main(config_path="../config/task_arithmetic/", config_name="task_arithmetic")
 def hydra_start(cfg: DictConfig) -> None:
