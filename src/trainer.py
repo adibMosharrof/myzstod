@@ -53,6 +53,7 @@ from peft import (
 )
 import bitsandbytes as bnb
 from torch import nn
+import deepspeed
 
 
 class SimpleTODTrainer:
@@ -263,6 +264,7 @@ class SimpleTODTrainer:
             load_best_model_at_end=True,
             save_strategy=IntervalStrategy.STEPS,
             save_total_limit=5,
+            save_steps=self.cfg.save_steps,
             evaluation_strategy=IntervalStrategy.STEPS,
             eval_steps=self.cfg.eval_steps,
             gradient_accumulation_steps=self.cfg.gradient_accumulation_steps,
@@ -279,7 +281,7 @@ class SimpleTODTrainer:
             dataloader_drop_last=True,
             run_name=step_name,
             learning_rate=5e-4,
-            optim="adamw_bnb_8bit",
+            # optim="adamw_bnb_8bit",
             # sharded_ddp="zero_dp_3",
             deepspeed=deepspeed_path,
             # fsdp_config=str(self.cfg.project_root / "config/ds_config.json"),
@@ -425,5 +427,6 @@ def create_out_dir():
 
 
 if __name__ == "__main__":
+    deepspeed.init_distributed()
     hydra_start()
     wandb.finish()
