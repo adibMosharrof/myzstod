@@ -21,6 +21,8 @@ from typing import TYPE_CHECKING, Tuple
 from configs.dm_config import DataModuleConfig
 from accelerate import Accelerator
 from peft import PeftModelForCausalLM, PeftConfig, PeftModel, get_peft_model
+import deepspeed
+import os
 
 if TYPE_CHECKING:
     from configs.trainer_config import TrainerConfig
@@ -131,6 +133,17 @@ class InferenceConfig:
             print(
                 f"Inference: Model Size of {type(self.model)}: {dstc_utils.get_model_size(self.model)}"
             )
+        local_rank = int(os.getenv("LOCAL_RANK", "0"))
+        world_size = int(os.getenv("WORLD_SIZE", "1"))
+        deepspeed_path = str(self.project_root / "config/ds_inference_config.json")
+        ds_engine = deepspeed.init_inference(
+            self.model,
+            config=deepspeed_path,
+            mp_size=world_size,
+            dtype=torch.half,
+            replace_with_kernel_inject=True,
+        )
+        self.model = ds_engine.module
         self.is_multi_decoder = is_multi_decoder
         self.should_add_schema = should_add_schema
         self.should_add_sys_actions = should_add_sys_actions

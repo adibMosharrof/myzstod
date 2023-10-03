@@ -409,7 +409,7 @@ class BaseDataModule(ABC):
         if not dont_create_labels and len(target_tokens) > max_length:
             raise ValueError("Target is too long")
         if unused_len < 0:
-            raise ValueError("Need larger token length")
+            # raise ValueError("Need larger token length")
             context_start_tokens = context_tokens[:1]
             trimmed_context = context_tokens[unused_len * -1 + 1 :]
             context_tokens = torch.cat([context_start_tokens, trimmed_context], axis=0)

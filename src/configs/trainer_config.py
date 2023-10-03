@@ -78,8 +78,8 @@ class TrainerConfig:
         self.num_workers = num_workers
         self.data_split_percent = data_size.data_split_percent or [1, 1, 1]
         self.early_stopping_patience = early_stopping_patience
-        self.eval_steps = data_size.eval_steps
-        self.save_steps = data_size.save_steps
+        self.eval_steps = data_size.eval_steps or 100
+        self.save_steps = data_size.save_steps or 500
         self.eval_batch_size = batch.eval_batch_size
         self.test_batch_size = batch.test_batch_size
         self.gradient_accumulation_steps = data_size.gradient_accumulation_steps
