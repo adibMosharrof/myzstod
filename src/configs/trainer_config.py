@@ -29,9 +29,7 @@ class TrainerConfig:
         num_turns: int = 10,
         overwrite: list[bool] = None,
         train_domain_percentage: float = 1.0,
-        train_domain_settings: list[str] = None,
-        dev_domain_settings: list[str] = None,
-        test_domain_settings: list[list[str]] = None,
+        domains: dict[str, list[str]] = None,
         create_data_from_train: bool = False,
         create_data_from_train_splits: list[float] = None,
         out_dir: str = "results",
@@ -98,13 +96,16 @@ class TrainerConfig:
         self.contrastive_train_epochs = contrastive_train_epochs
         self.quantization = quantization
         self.quantization_dtype = quantization_dtype
-        self.dev_domain_settings = dev_domain_settings or ["seen"]
-        self.train_domain_settings = train_domain_settings or ["seen"]
-        self.test_domain_settings = test_domain_settings or [
-            ["all"],
-            ["seen"],
-            ["unseen"],
-        ]
+        # self.dev_domain_settings = dev_domain_settings or ["seen"]
+        # self.train_domain_settings = train_domain_settings or ["seen"]
+        # self.test_domain_settings = test_domain_settings or [
+        #     ["all"],
+        #     ["seen"],
+        #     ["unseen"],
+        # ]
+        self.dev_domain_settings = domains.dev_domain_settings
+        self.train_domain_settings = domains.train_domain_settings
+        self.test_domain_settings = domains.test_domain_settings
         self.create_data_from_train = create_data_from_train
         self.create_data_from_train_splits = create_data_from_train_splits or [0.1, 0.1]
         self.train_domain_percentage = train_domain_percentage
