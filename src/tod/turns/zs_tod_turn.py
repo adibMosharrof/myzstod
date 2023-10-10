@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from typing import Optional
-from dstc.dstc_dataclasses import DstcSchema
+from sgd_dstc8_data_model.dstc_dataclasses import DstcSchema
 from my_enums import SpecialTokens
 
 from simple_tod_dataclasses import MultiTaskSpecialToken
@@ -35,6 +35,11 @@ class TodTurnMultiHeadCsvRow:
 @dataclass
 class TodTurnMultiTaskCsvRow(TodTurnCsvRow):
     task: Optional[str] = ""
+
+
+@dataclass
+class TodTurnScaleGradCsvRow(TodTurnMultiTaskCsvRow):
+    special_tokens: Optional[str] = ""
 
 
 @dataclass

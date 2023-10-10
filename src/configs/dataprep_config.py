@@ -1,16 +1,11 @@
-import os
 from pathlib import Path
-import random
-from typing import Union
 
-import numpy as np
 from configs.dm_config import DataModuleConfig
-from dstc.dstc_dataclasses import DstcSchema
 from dstc.dstc_domains import DstcDomainBuilder
 from multi_head.mh_dataclasses import MultiHeadDictFactory
 from my_enums import ContextType, Steps
-import utils
 from accelerate import Accelerator
+
 
 class DataPrepConfig:
     def __init__(
@@ -19,11 +14,12 @@ class DataPrepConfig:
         raw_data_root: str,
         processed_data_root: str,
         num_dialogs: int = 1,
-        delexicalize: bool = True,
+        delexicalize: bool = False,
         overwrite: bool = False,
         domain_setting: str = None,
         train_domain_percentage: float = 1.0,
         num_turns: int = 26,
+        is_scale_grad: bool = False,
         is_multi_task: bool = False,
         is_multi_head: bool = False,
         multi_tasks: list[int] = None,
@@ -51,6 +47,7 @@ class DataPrepConfig:
             self.raw_data_root, train_domain_percentage
         ).get_domains(self.domain_setting)
         self.num_turns = num_turns
+        self.is_scale_grad = is_scale_grad
         self.is_multi_task = is_multi_task
         self.is_multi_head = is_multi_head
         self.multi_tasks = (
@@ -76,6 +73,7 @@ class DataPrepConfig:
             delexicalize=dm_config.delexicalize,
             overwrite=dm_config.overwrite,
             num_turns=dm_config.num_turns,
+            is_scale_grad=dm_config.is_scale_grad,
             is_multi_head=dm_config.is_multi_head,
             is_multi_task=dm_config.is_multi_task,
             multi_tasks=dm_config.multi_tasks,

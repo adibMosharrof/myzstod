@@ -7,7 +7,11 @@ import numpy as np
 import pandas as pd
 
 from torch import nn
-from dstc.dstc_dataclasses import DstcRequestedSlot, DstcSchema, DstcServiceCall
+from sgd_dstc8_data_model.dstc_dataclasses import (
+    DstcRequestedSlot,
+    DstcSchema,
+    DstcServiceCall,
+)
 from multi_head.mh_dataclasses import MultiHeadDictFactory, MultiHeadInstance
 
 from my_enums import (

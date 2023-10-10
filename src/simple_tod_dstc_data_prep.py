@@ -13,7 +13,7 @@ from multi_head.mh_dataclasses import MultiHeadDictFactory
 from my_enums import Steps, ZsTodConstants
 from tod.turns.general_turn_csv_row import GeneralTurnCsvRow
 from tod.turns.mh_turn_csv_row import MhTurnCsvRow
-from tod.turns.turn_csv_row import TurnCsvRowBase
+from tod.turns.turn_csv_row_base import TurnCsvRowBase
 from tod.turns.turn_csv_row_factory import TurnCsvRowFactory
 from tod.turns.zs_tod_turn import ZsTodTurn
 from tod.zs_tod_target import ZsTodTarget
@@ -24,7 +24,7 @@ from tod.zs_tod_dst import ZsTodDst
 import utils
 from pathos.multiprocessing import ProcessingPool as Pool
 
-from dstc.dstc_dataclasses import (
+from sgd_dstc8_data_model.dstc_dataclasses import (
     DstcDialog,
     DstcFrame,
     DstcSchema,

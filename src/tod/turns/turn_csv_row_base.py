@@ -3,6 +3,13 @@ from abc import ABC, abstractmethod
 from my_enums import ContextType
 from tod.turns.zs_tod_turn import ZsTodTurn
 
+""" Prepares the csv rows for turns
+
+Extended by [GeneralTurnCsvRow, MultiTaskCsvRow] which can be further extended by [ScaleGradTurnCsvRow]
+Provides default headers and row structure for generating csv
+Override hook_before_adding_taget to add additional columns to csv
+"""
+
 
 class TurnCsvRowBase(ABC):
     @abstractmethod

@@ -4,7 +4,7 @@ import hydra
 from omegaconf import DictConfig
 from tqdm import tqdm
 from configs.reconstruct_dialog_config import ReconstructDialogConfig
-from dstc.dstc_dataclasses import (
+from sgd_dstc8_data_model.dstc_dataclasses import (
     DstcAction,
     DstcDialog,
     DstcFrame,

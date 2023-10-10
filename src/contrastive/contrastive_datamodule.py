@@ -16,7 +16,7 @@ from my_enums import (
 )
 import dstc.dstc_utils as dstc_utils
 import random
-from dstc.dstc_dataclasses import get_schemas
+from sgd_dstc8_data_model.dstc_dataclasses import get_schemas
 from itertools import combinations
 from tod.turns.zs_tod_turn import TodTurnCsvRow
 from tod.zs_tod_action import ZsTodAction

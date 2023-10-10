@@ -37,6 +37,20 @@ class StepData:
     domain_settings: Union[list[str], str]
 
 
+@dataclass(frozen=False)
+class TodTrainRowCollator:
+    input_tokens: torch.IntTensor
+    label: torch.IntTensor
+    attention_mask: torch.IntTensor
+
+
+@dataclass(frozen=False)
+class ScaleGradRowCollator(TodTrainRowCollator):
+    mt_prompt_token_ids: Optional[torch.IntTensor] = None
+    special_tokens_target_mask: Optional[torch.IntTensor] = None
+    special_tokens_vocab_mask: Optional[torch.IntTensor] = None
+
+
 class BaseDataModule(ABC):
     _huggingface_ignore_label_id = -100
     domain_step_map = {
@@ -392,15 +406,13 @@ class BaseDataModule(ABC):
 
     def collate_single_item(
         self,
-        context: str,
-        schema: str,
-        target: str,
+        item: TodTurnCsvRow,
         max_length: int,
         dont_create_labels: bool,
-    ):
-        context_tokens = self.train_tokenizer(context)[0]
-        schema_tokens = self.train_tokenizer(schema)[0]
-        target_tokens = self.train_tokenizer(target)[0]
+    ) -> TodTrainRowCollator:
+        context_tokens = self.train_tokenizer(item.context)[0]
+        schema_tokens = self.train_tokenizer(item.schema)[0]
+        target_tokens = self.train_tokenizer(item.target)[0]
         unused_len = (
             max_length - len(context_tokens) - len(schema_tokens) - len(target_tokens)
         )
@@ -432,7 +444,61 @@ class BaseDataModule(ABC):
         attention_mask = input_tokens.ne(self.cfg.tokenizer.pad_token_id).to(
             torch.int32
         )
+        special_tokens_mask = None
+        if not self.cfg.is_scale_grad:
+            return TodTrainRowCollator(input_tokens, label, attention_mask)
+
+        special_tokens_mask, special_tokens_vocab_mask = self.get_special_tokens(
+            input_tokens,
+            item.special_tokens,
+            context_tokens,
+            schema_tokens,
+            target_tokens,
+            unused_len,
+            max_length,
+        )
+        return ScaleGradRowCollator(
+            input_tokens,
+            label,
+            attention_mask,
+            special_tokens_target_mask=special_tokens_mask,
+            special_tokens_vocab_mask=special_tokens_vocab_mask,
+        )
         return input_tokens, label, attention_mask
+
+    def get_special_tokens(
+        self,
+        input_tokens,
+        special_tokens,
+        context_tokens,
+        schema_tokens,
+        target_tokens,
+        unused_len,
+        max_length,
+    ):
+        special_token_ids = self.train_tokenizer(special_tokens)
+        ignore_ids = torch.tensor([3, 140, 142])
+        ignore_ids = torch.tensor([2, 139])
+        filtered_ids = torch.masked_select(
+            special_token_ids, ~torch.isin(special_token_ids, ignore_ids)
+        )
+        context_schema_len = len(context_tokens) + len(schema_tokens)
+        mask = torch.isin(
+            input_tokens[context_schema_len : context_schema_len + len(target_tokens)],
+            filtered_ids,
+        )
+        special_tokens_target_mask = torch.cat(
+            [
+                torch.full([context_schema_len], 0),
+                mask,
+                torch.full([unused_len], 0),
+            ]
+        )
+        special_tokens_vocab_mask = torch.zeros(
+            max_length, len(self.cfg.tokenizer), dtype=torch.bool
+        )
+        special_tokens_vocab_mask.scatter_(1, special_token_ids.long(), 1)
+        return special_tokens_target_mask, special_tokens_vocab_mask
 
 
 class SimpleTodDataSet(Dataset):

@@ -6,7 +6,7 @@ from typing import Union
 
 import numpy as np
 from omegaconf import ListConfig
-from dstc.dstc_dataclasses import DstcSchema
+from sgd_dstc8_data_model.dstc_dataclasses import DstcSchema
 from my_enums import Steps
 import utils
 

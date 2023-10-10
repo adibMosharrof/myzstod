@@ -42,6 +42,7 @@ class DataModuleConfig:
         train_domain_percentage: float = 1.0,
         create_data_from_train: bool = False,
         create_data_from_train_splits: list[float] = None,
+        is_scale_grad: bool = False,
         is_multi_task: bool = False,
         is_multi_head: bool = False,
         multi_tasks: list[MultiTaskNames] = None,
@@ -79,6 +80,7 @@ class DataModuleConfig:
         self.delexicalize = delexicalize
         self.overwrite = overwrite or [False] * len(Steps)
         self.num_turns = num_turns
+        self.is_scale_grad = is_scale_grad
         self.is_multi_task = is_multi_task
         self.is_multi_head = is_multi_head
         self.multi_tasks = (
@@ -91,6 +93,10 @@ class DataModuleConfig:
         self.single_action_neg_samples = (
             single_action_neg_samples if single_action_neg_samples else 5
         )
+        if self.is_scale_grad and not self.should_add_schema:
+            raise ValueError(
+                "is_scale_grad is true but should_add_schema is false, which is not allowed"
+            )
         self.contrast_with = contrast_with
         self.contrastive_max_token_len = contrastive_max_token_len
         self.context_type = context_type
@@ -132,6 +138,7 @@ class DataModuleConfig:
             delexicalize=trainer_config.delexicalize,
             overwrite=trainer_config.overwrite,
             num_turns=trainer_config.num_turns,
+            is_scale_grad=trainer_config.is_scale_grad,
             is_multi_head=trainer_config.is_multi_head,
             is_multi_task=trainer_config.is_multi_task,
             multi_tasks=trainer_config.multi_tasks,
@@ -166,7 +173,7 @@ class DataModuleConfig:
         train_step_data: "StepData" = None,
     ) -> "DataModuleConfig":
         return self(
-            accelerator = inf_config.accelerator,
+            accelerator=inf_config.accelerator,
             num_workers=inf_config.num_workers,
             project_root=inf_config.project_root,
             raw_data_root=inf_config.raw_data_root,
@@ -181,6 +188,7 @@ class DataModuleConfig:
             train_domain_percentage=inf_config.train_domain_percentage,
             create_data_from_train=inf_config.create_data_from_train,
             create_data_from_train_splits=inf_config.create_data_from_train_splits,
+            is_scale_grad=inf_config.is_scale_grad,
             is_multi_head=inf_config.is_multi_head,
             is_multi_task=inf_config.is_multi_task,
             multi_tasks=inf_config.multi_tasks,

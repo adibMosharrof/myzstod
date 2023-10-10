@@ -1,6 +1,13 @@
 from my_enums import ContextType
-from tod.turns.turn_csv_row import TurnCsvRowBase
+from tod.turns.turn_csv_row_base import TurnCsvRowBase
 from tod.turns.zs_tod_turn import ZsTodTurn
+
+""" Prepares the csv rows for multi task turns
+
+This class adds functionality on top of TurnCsvRowBase. 
+Adds additional rows to the csv header
+Provides implementation of hook_before_adding_target to add multi task token to csv
+"""
 
 
 class MultiTaskCsvRow(TurnCsvRowBase):

@@ -58,6 +58,7 @@ class InferenceConfig:
         tokenizer_name: str = "",
         test_prompt_max_len: int = 750,
         base_model_name: str = "",
+        is_scale_grad: bool = False,
         is_multi_task: bool = False,
         is_multi_head: bool = False,
         is_multi_decoder: bool = False,
@@ -120,6 +121,7 @@ class InferenceConfig:
         self.predictions_log_dir = Path(predictions_log_dir)
         self.predictions_log_dir.mkdir(parents=True, exist_ok=True)
         self.is_multi_task = is_multi_task
+        self.is_scale_grad = is_scale_grad
         self.base_model_name = base_model_name
         self.multi_tasks = (
             MultiTaskNames.get_multi_task_names(multi_tasks)
@@ -302,6 +304,7 @@ class InferenceConfig:
             tokenizer_name=trainer_config.tokenizer_name,
             tokenizer=trainer_config.tokenizer,
             test_prompt_max_len=trainer_config.test_prompt_max_len,
+            is_scale_grad=trainer_config.is_scale_grad,
             is_multi_task=trainer_config.is_multi_task,
             is_multi_head=trainer_config.is_multi_head,
             mh_fact=trainer_config.mh_fact,
