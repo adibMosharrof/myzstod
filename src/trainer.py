@@ -30,7 +30,8 @@ from contrastive.contrastive_trainer import (
 from inference import Inference
 from multi_head.mh_dataclasses import MultiHeadDictFactory
 from multi_head.mh_datamodule import MultiLMHeadDatamodule
-from tod.turns.zs_tod_turn import TodTurnMultiTaskCsvRow
+from tod.turns.turn_csv_row_factory import TurnCsvRowFactory
+from tod.turns.zs_tod_turn import TodTurnMultiTaskCsvRow, TodTurnScaleGradCsvRow
 from tod_datamodules import TodDataModule
 import os
 import warnings
@@ -147,6 +148,12 @@ class SimpleTODTrainer:
             return ContrastiveDataModule(
                 DataModuleConfig.from_trainer_config(self.cfg), steps
             )
+        if self.cfg.is_scale_grad:
+            return TodDataModule(
+                DataModuleConfig.from_trainer_config(self.cfg),
+                steps,
+                tod_turn_row_cls=TodTurnScaleGradCsvRow,
+            )
         return TodDataModule(DataModuleConfig.from_trainer_config(self.cfg), steps)
 
     def _setup_contrastive(self) -> Optional[AutoTokenizer]:
@@ -254,9 +261,9 @@ class SimpleTODTrainer:
     ) -> TrainingArguments:
         deepspeed_path = None
         if self.cfg.quantization_dtype == 16:
-            deepspeed_path = self.cfg.project_root / "config/ds_config.json"
+            # deepspeed_path = self.cfg.project_root / "config/ds_config.json"
             # deepspeed_path = self.cfg.project_root / "config/ds_zero2.json"
-            # deepspeed_path = self.cfg.project_root / "config/ds_zero1.json"
+            deepspeed_path = self.cfg.project_root / "config/ds_zero1.json"
         return TrainingArguments(
             output_dir=str(self.cfg.out_dir / step_name),
             num_train_epochs=epochs,
@@ -308,7 +315,11 @@ class SimpleTODTrainer:
             model = utils.load_quantized_model(path, self.cfg.tokenizer)
         else:
             device_map = {"": torch.cuda.current_device()}
-            if self.cfg.quantization_dtype == 16:
+            if self.cfg.is_scale_grad:
+                model = utils.get_scalegrad_model(
+                    self.cfg.model_name, self.cfg.scale_grad_gamma, device_map=None
+                )
+            elif self.cfg.quantization_dtype == 16:
                 model = utils.get_8bit_model(
                     self.cfg.model_name, is_inference=True, device_map=None
                 )

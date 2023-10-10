@@ -9,14 +9,16 @@ from transformers.generation.stopping_criteria import StoppingCriteriaList
 from transformers.generation.logits_process import LogitsProcessorList
 from transformers.generation.utils import GenerateOutput
 from transformers.generation.beam_constraints import Constraint
-from multi_head.mh_dataclasses import MultiHeadDictFactory
+
+# from multi_head.mh_dataclasses import MultiHeadDictFactory
 from transformers.utils import logging
 import wandb
+
 logger = logging.get_logger(__name__)
 
 
 class GPT2MultiLMHeadModel(GPT2LMHeadModel):
-    def __init__(self, config, mh_fact: MultiHeadDictFactory, kwargs=None):
+    def __init__(self, config, mh_fact, kwargs=None):
         super().__init__(config)
         self.mh_fact = mh_fact
         self.tok = kwargs.get("tok", None)
@@ -132,7 +134,6 @@ class GPT2MultiLMHeadModel(GPT2LMHeadModel):
         return_dict: Optional[bool] = None,
         lm_head: Optional[nn.Module] = None,
     ) -> Union[Tuple, CausalLMOutputWithCrossAttentions]:
-
         return_dict = (
             return_dict if return_dict is not None else self.config.use_return_dict
         )

@@ -44,6 +44,8 @@ class TrainerConfig:
         logging_steps: int = 50,
         test_prompt_max_len: int = 799,
         max_token_len: int = 1024,
+        is_scale_grad: bool = False,
+        scale_grad_gamma: float = 0.2,
         is_multi_head: bool = False,
         is_multi_task: bool = False,
         is_multi_decoder: bool = False,
@@ -120,6 +122,8 @@ class TrainerConfig:
         self.test_prompt_max_len = test_prompt_max_len
         self.eval_accumulation_steps = data_size.eval_accumulation_steps
         self.fp16 = fp16
+        self.is_scale_grad = is_scale_grad
+        self.scale_grad_gamma = scale_grad_gamma
         self.is_multi_head = is_multi_head
         self.is_multi_task = is_multi_task
         self.is_multi_decoder = is_multi_decoder

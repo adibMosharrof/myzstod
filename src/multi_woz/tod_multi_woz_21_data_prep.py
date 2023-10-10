@@ -15,7 +15,7 @@ from tod.zs_tod_belief import ZsTodBelief
 from tod.zs_tod_dst import ZsTodDst
 
 from tod.turns.zs_tod_turn import ZsTodTurn
-from tod.turns.turn_csv_row import TurnCsvRowBase
+from tod.turns.turn_csv_row_base import TurnCsvRowBase
 from tod.turns.turn_csv_row_factory import TurnCsvRowFactory
 from tod.zs_tod_context import ZsTodContext
 

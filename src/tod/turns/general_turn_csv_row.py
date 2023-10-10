@@ -1,6 +1,9 @@
 from my_enums import ContextType
-from tod.turns.turn_csv_row import TurnCsvRowBase
+from tod.turns.turn_csv_row_base import TurnCsvRowBase
 from tod.turns.zs_tod_turn import ZsTodTurn
+
+""" Prepares the csv rows for general turns
+"""
 
 
 class GeneralTurnCsvRow(TurnCsvRowBase):

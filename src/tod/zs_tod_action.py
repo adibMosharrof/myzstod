@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from typing import Optional
-from dstc.dstc_dataclasses import DstcRequestedSlot
+from sgd_dstc8_data_model.dstc_dataclasses import DstcRequestedSlot
 
 from my_enums import ZsTodConstants
 import dstc.dstc_utils as dstc_utils

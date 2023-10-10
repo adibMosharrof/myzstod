@@ -2,7 +2,7 @@ import random
 import numpy as np
 from sklearn.metrics import f1_score
 import torch
-from dstc.dstc_dataclasses import DstcRequestedSlot
+from sgd_dstc8_data_model.dstc_dataclasses import DstcRequestedSlot
 from metrics.tod_metrics_base import TodMetricsBase
 from my_enums import SpecialPredictions, SpecialTokens
 from predictions_logger import PredictionLoggerFactory, TodMetricsEnum

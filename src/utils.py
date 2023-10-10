@@ -22,6 +22,8 @@ if TYPE_CHECKING:
     from configs.trainer_config import TrainerConfig
     from configs.task_arithmetic_config import TaskArithmeticConfig
 
+from scale_grad.scale_grad_model import ScaleGradModel
+
 # from transformers.utils import logging
 import logging
 import peft
@@ -80,8 +82,8 @@ def get_csv_data_path(
                 version,
                 "context_type",
                 cfg.context_type,
-                # "multi_head",
-                # str(cfg.is_multi_head),
+                "scale_grad",
+                str(cfg.is_scale_grad),
                 "multi_task",
                 str(cfg.is_multi_task),
                 "_".join(map(str, cfg.multi_tasks)),
@@ -320,6 +322,18 @@ def get_8bit_model(
     return AutoModelForCausalLM.from_pretrained(
         model_name,
         load_in_8bit=load_in_8bit,
+        device_map=device_map,
+        torch_dtype=torch.bfloat16,
+    )
+
+
+def get_scalegrad_model(
+    model_name: str, gamma: float, device_map="auto"
+) -> ScaleGradModel:
+    # load_in_8bit = False
+    return ScaleGradModel.from_pretrained(
+        model_name,
+        {"gamma": gamma},
         device_map=device_map,
         torch_dtype=torch.bfloat16,
     )

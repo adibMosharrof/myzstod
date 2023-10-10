@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from typing import Optional
-from dstc.dstc_dataclasses import DstcRequestedSlot
+from sgd_dstc8_data_model.dstc_dataclasses import DstcRequestedSlot
 
 from my_enums import ZsTodConstants, SpecialTokens
 from tod.zs_tod_belief import ZsTodBelief

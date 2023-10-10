@@ -51,18 +51,33 @@ class TodDataModule(BaseDataModule):
         labels = []
         targets_text = []
         mt_prompt_ids = []
+        all_special_tokens_target_mask = []
+        all_special_tokens_vocab_mask = []
         for item in batch:
-            input_tokens, label, attention_mask = self.collate_single_item(
-                item.context,
-                item.schema,
-                item.target,
+            row = self.collate_single_item(
+                item,
                 self.cfg.max_token_len,
                 is_pretrain,
+            )
+            (
+                input_tokens,
+                label,
+                attention_mask,
+                special_tokens_target_mask,
+                special_tokens_vocab_mask,
+            ) = (
+                row.input_tokens,
+                row.label,
+                row.attention_mask,
+                row.special_tokens_target_mask,
+                row.special_tokens_vocab_mask,
             )
             input_ids.append(input_tokens)
             attention_masks.append(attention_mask)
             labels.append(label)
             targets_text.append(item.target)
+            all_special_tokens_target_mask.append(special_tokens_target_mask)
+            all_special_tokens_vocab_mask.append(special_tokens_vocab_mask)
 
         out = {
             "input_ids": torch.stack(input_ids),
@@ -72,7 +87,13 @@ class TodDataModule(BaseDataModule):
 
         if not is_pretrain and self.cfg.contrast_with and self.cfg.is_multi_task:
             out["mt_prompt_token_ids"] = torch.tensor(mt_prompt_ids)
-
+        if self.cfg.is_scale_grad:
+            out["special_tokens_target_mask"] = torch.stack(
+                all_special_tokens_target_mask
+            )
+            out["special_tokens_vocab_mask"] = torch.stack(
+                all_special_tokens_vocab_mask
+            )
         return out
 
     def my_test_collate(self, batch: list[TodTurnCsvRow]) -> TodTestDataBatch:
@@ -97,28 +118,21 @@ class TodDataModule(BaseDataModule):
             target=self.cfg.max_token_len - self.cfg.test_prompt_max_len,
         )
         for item in batch:
-            data.dialog_ids.append(self.tokenizer_text(item.dialog_id, max_lengths.dialog_id))
+            data.dialog_ids.append(
+                self.tokenizer_text(item.dialog_id, max_lengths.dialog_id)
+            )
             data.turn_ids.append(self.tokenizer_text(item.turn_id, max_lengths.turn_id))
             data.contexts.append(self.tokenizer_text(item.context, max_lengths.context))
             data.targets.append(self.tokenizer_text(item.target, max_lengths.target))
             # data.schemas.append(item.schema)
 
-            input_tokens, _, attention_mask = self.collate_single_item(
-                "".join(
-                    [
-                        item.context,
-                        # SpecialTokens.begin_target,
-                        # SpecialTokens.begin_dsts,
-                        # SpecialTokens.begin_dst,
-                    ]
-                ),
-                item.schema,
-                "",
+            row = self.collate_single_item(
+                item,
                 self.cfg.test_prompt_max_len,
                 True,
             )
-            data.input_ids.append(input_tokens)
-            data.attention_masks.append(attention_mask)
+            data.input_ids.append(row.input_tokens)
+            data.attention_masks.append(row.attention_mask)
 
         return TodTestDataBatch(
             input_ids=torch.stack(data.input_ids),
