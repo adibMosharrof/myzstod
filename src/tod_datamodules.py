@@ -63,21 +63,23 @@ class TodDataModule(BaseDataModule):
                 input_tokens,
                 label,
                 attention_mask,
-                special_tokens_target_mask,
-                special_tokens_vocab_mask,
             ) = (
                 row.input_tokens,
                 row.label,
                 row.attention_mask,
-                row.special_tokens_target_mask,
-                row.special_tokens_vocab_mask,
             )
+            if self.cfg.is_scale_grad:
+                special_tokens_target_mask, special_tokens_vocab_mask = (
+                    row.special_tokens_target_mask,
+                    row.special_tokens_vocab_mask,
+                )
             input_ids.append(input_tokens)
             attention_masks.append(attention_mask)
             labels.append(label)
             targets_text.append(item.target)
-            all_special_tokens_target_mask.append(special_tokens_target_mask)
-            all_special_tokens_vocab_mask.append(special_tokens_vocab_mask)
+            if self.cfg.is_scale_grad:
+                all_special_tokens_target_mask.append(special_tokens_target_mask)
+                all_special_tokens_vocab_mask.append(special_tokens_vocab_mask)
 
         out = {
             "input_ids": torch.stack(input_ids),
