@@ -120,8 +120,8 @@ class Inference:
             # self.cfg.accelerator.wait_for_everyone()
             # if self.cfg.accelerator.is_main_process:
             # with self.cfg.accelerator.main_process_first():
-            headers = ["dialog_id", "turn_id", "context", "target", "prediction"]
-            if not os.path.exists(text_csv_out_path):
+            if self.cfg.accelerator.is_main_process:
+                headers = ["dialog_id", "turn_id", "context", "target", "prediction"]
                 utils.write_csv(headers, test_csv_out_data, text_csv_out_path)
             self.cfg.logger.info(f"Testing {domains_str}")
             cols, values = self._print_metrics()
