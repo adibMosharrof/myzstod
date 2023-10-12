@@ -122,7 +122,10 @@ class Inference:
             # with self.cfg.accelerator.main_process_first():
             if self.cfg.accelerator.is_main_process:
                 headers = ["dialog_id", "turn_id", "context", "target", "prediction"]
-                utils.write_csv(headers, test_csv_out_data, text_csv_out_path)
+                try:
+                    utils.write_csv(headers, test_csv_out_data, text_csv_out_path)
+                except Exception as e:
+                    print("Could not write csv file as output")
             self.cfg.logger.info(f"Testing {domains_str}")
             cols, values = self._print_metrics()
             metric_results.append([domains_str, cols, values])
