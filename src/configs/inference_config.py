@@ -229,7 +229,9 @@ class InferenceConfig:
                 model.tok = self.tokenizer
                 model.is_inference = True
             return model.cuda()
-        if isinstance(model, PeftModelForCausalLM):
+        if isinstance(model, PeftModelForCausalLM) or isinstance(
+            model, GPT2LMHeadModel
+        ):
             return model
         if not model and not self.model_name:
             raise ValueError("must provide model_name if model is none")
