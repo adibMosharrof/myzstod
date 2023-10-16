@@ -229,17 +229,14 @@ class InferenceConfig:
                 model.tok = self.tokenizer
                 model.is_inference = True
             return model.cuda()
-        if isinstance(model, PeftModelForCausalLM) or isinstance(
-            model, GPT2LMHeadModel
-        ):
-            return model
         if not model and not self.model_name:
             raise ValueError("must provide model_name if model is none")
         # loading model for multi-task
-        model = utils.get_8bit_model(
-            self.model_name, is_inference=True, device_map=self.accelerator.device
-        )
-        model.resize_token_embeddings(len(self.tokenizer))
+        if self.is_multi_task:
+            model = utils.get_8bit_model(
+                self.model_name, is_inference=True, device_map=self.accelerator.device
+            )
+            model.resize_token_embeddings(len(self.tokenizer))
         return model
 
     def load_lora_adapter_model(self, model_dir):

@@ -13,6 +13,7 @@ from transformers import (
     GPTJForCausalLM,
     AutoModelWithLMHead,
     LlamaForCausalLM,
+    T5ForConditionalGeneration,
 )
 import os
 from multi_head.mh_model import GPT2MultiLMHeadModel
@@ -147,6 +148,8 @@ def get_model_class(model_name: str, is_mh_head: bool = False):
         return GPTJForCausalLM
     if "llama" in model_name:
         return LlamaForCausalLM
+    if "t5" in model_name:
+        return T5ForConditionalGeneration
     else:
         return AutoModelWithLMHead
 

@@ -47,13 +47,11 @@ class ZsTodTarget:
         return self.__str__()
 
     def get_nlg_target_str(self) -> str:
-        out = "".join(
+        out = " ".join(
             [
-                SpecialTokens.begin_target,
-                SpecialTokens.begin_response,
+                "System Response",
                 self.response,
-                SpecialTokens.end_response,
-                SpecialTokens.end_target,
+                "End System Response",
             ]
         )
         return out

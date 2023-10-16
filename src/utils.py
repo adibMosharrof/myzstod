@@ -8,13 +8,14 @@ from pathlib import Path
 from typing import Optional, Tuple, Union
 
 from dataclass_csv import DataclassReader
+from dotmap import DotMap
 from omegaconf import DictConfig
 import omegaconf
 from omegaconf.listconfig import ListConfig
 import torch
 import wandb
 from typing import TYPE_CHECKING
-from peft import PeftModel, PeftConfig, LoraConfig, get_peft_model
+from peft import PeftModel, PeftConfig, LoraConfig, TaskType
 from transformers.trainer_callback import TrainerCallback
 
 if TYPE_CHECKING:
@@ -26,8 +27,6 @@ from scale_grad.scale_grad_model import ScaleGradModel
 
 # from transformers.utils import logging
 import logging
-import peft
-from peft import PeftConfig, PeftModel
 from transformers import (
     AutoModelForCausalLM,
     AutoTokenizer,
@@ -35,8 +34,8 @@ from transformers import (
     GPT2LMHeadModel,
     T5ForConditionalGeneration,
     AutoModel,
+    AutoModelForSeq2SeqLM,
 )
-from accelerate import Accelerator
 
 import csv
 from itertools import zip_longest
@@ -54,6 +53,10 @@ from fuzzywuzzy import fuzz
 
 from my_enums import SpecialTokens, ZsTodConstants
 from hurry.filesize import size
+
+
+def remove_underscore(item: str):
+    return item.replace("_", " ")
 
 
 def get_dialog_file_paths(data_root, step):
@@ -229,15 +232,17 @@ def get_tokenizer(
     tok_path = Path(tokenizer_path)
     # if tok_path.exists():
     #     return AutoTokenizer.from_pretrained(tok_path)
-    tokenizer = AutoTokenizer.from_pretrained(
-        tokenizer_name,
+    args = DotMap(
         pad_token=SpecialTokens.pad_token.value,
         bos_token=SpecialTokens.bos_token.value,
         eos_token=SpecialTokens.end_target.value,
         additional_special_tokens=SpecialTokens.list(),
-        add_prefix_space=add_prefix_space,
     )
-    # tokenizer.save_pretrained(tokenizer_path)
+    if "t5" in tokenizer_name:
+        args.extra_ids = 0
+    else:
+        args.add_prefix_space = add_prefix_space
+    tokenizer = AutoTokenizer.from_pretrained(tokenizer_name, **args)
     return tokenizer
 
 
@@ -316,9 +321,17 @@ def init_wandb(
 
 def get_8bit_model(
     model_name: str, is_inference: bool = False, device_map="auto"
-) -> AutoModelForCausalLM:
+) -> Union[AutoModelForSeq2SeqLM, AutoModelForCausalLM]:
     load_in_8bit = False if is_inference else True
     # load_in_8bit = False
+    if "t5" in model_name:
+        model = AutoModelForSeq2SeqLM.from_pretrained(
+            model_name,
+            load_in_8bit=load_in_8bit,
+            device_map=device_map,
+            torch_dtype=torch.bfloat16,
+        )
+        return model
     return AutoModelForCausalLM.from_pretrained(
         model_name,
         load_in_8bit=load_in_8bit,
@@ -389,17 +402,28 @@ def load_quantized_model(
 def get_modules_to_save(model_name: str):
     if "gpt-j" in model_name:
         return ["lm_head", "wte"]
+    if "t5" in model_name:
+        return ["encoder.embed_tokens", "decoder.embed_tokens", "lm_head", "shared"]
+        modules.append("shared")
     return ["lm_head", "embed_tokens"]
 
 
 def get_lora_config(model_name: str) -> LoraConfig:
+    target_modules = ["q", "v"]
+    rank = 16
+    # target_modules = None
+    if "t5" in model_name:
+        task = TaskType.SEQ_2_SEQ_LM
+    else:
+        task = TaskType.CAUSAL_LM
     return LoraConfig(
-        r=16,
+        r=rank,
         lora_alpha=32,
         lora_dropout=0.05,
         bias="none",
-        task_type="CAUSAL_LM",
+        task_type=task,
         base_model_name_or_path=model_name,
+        target_modules=target_modules,
         modules_to_save=get_modules_to_save(model_name),
     )
 
