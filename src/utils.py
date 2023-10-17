@@ -409,13 +409,11 @@ def get_modules_to_save(model_name: str):
 
 
 def get_lora_config(model_name: str) -> LoraConfig:
-    target_modules = ["q", "v"]
+    target_modules = None
     rank = 16
-    # target_modules = None
     if "t5" in model_name:
         task = TaskType.SEQ_2_SEQ_LM
-        target_modules.append("k")
-        target_modules.append("o")
+        target_modules = ["q", "v"]
     else:
         task = TaskType.CAUSAL_LM
     return LoraConfig(
