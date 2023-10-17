@@ -264,12 +264,7 @@ class SimpleTODTrainer:
             # deepspeed_path = self.cfg.project_root / "config/ds_config.json"
             # deepspeed_path = self.cfg.project_root / "config/ds_zero2.json"
             deepspeed_path = self.cfg.project_root / "config/ds_zero1.json"
-        should_use_fp16, should_use_bf16 = False, False
-        if self.cfg.fp16:
-            if torch.cuda.is_bf16_supported():
-                should_use_bf16 = True
-            else:
-                should_use_fp16 = True
+
         return TrainingArguments(
             output_dir=str(self.cfg.out_dir / step_name),
             num_train_epochs=epochs,
@@ -292,12 +287,10 @@ class SimpleTODTrainer:
             report_to="wandb",
             fp16_full_eval=should_use_fp16,
             fp16=should_use_fp16,
-            bf16_full_eval=should_use_bf16,
-            bf16=should_use_bf16,
             dataloader_drop_last=True,
             run_name=step_name,
-            learning_rate=5e-4,
-            # optim="adamw_bnb_8bit",
+            learning_rate=3e-4,
+            optim=self.cfg.optim,
             # sharded_ddp="zero_dp_3",
             deepspeed=deepspeed_path,
             # fsdp_config=str(self.cfg.project_root / "config/ds_config.json"),
