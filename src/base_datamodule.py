@@ -410,7 +410,7 @@ class BaseDataModule(ABC):
         context_tokens = self.train_tokenizer(item.context)[0]
         schema_tokens = self.train_tokenizer(item.schema)[0]
         target_tokens = self.train_tokenizer(item.target)[0]
-        
+
         prompt_text = "\n".join(
             [
                 "Instructions: Given the Dialog History and the Dialog Schemas, please generate the system response.\n",
@@ -434,11 +434,11 @@ class BaseDataModule(ABC):
             raise ValueError("Target is too long")
 
         if context_unused_len < 0:
-            trimmed_context = context_tokens[context_unused_len * -1 :]
+            context_tokens = context_tokens[context_unused_len * -1 :]
             context_unused_len = 0
         pad = torch.full([context_unused_len], self.cfg.tokenizer.pad_token_id)
         input_tokens = torch.cat(
-            [prompt_tokens, trimmed_context, schema_prompt_tokens, schema_tokens, pad]
+            [prompt_tokens, context_tokens, schema_prompt_tokens, schema_tokens, pad]
         )
 
         target_unused_len = target_max_len - len(target_tokens)

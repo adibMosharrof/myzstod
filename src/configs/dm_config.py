@@ -65,6 +65,7 @@ class DataModuleConfig:
         self.kwargs = kwargs
         self.accelerator = accelerator or Accelerator()
         self.num_workers = num_workers
+        self.model_name = model_name
         self.preprocessing_model_name = preprocessing_model_name
         self.project_root = Path(project_root)
         self.processed_data_root = self.project_root / data_prep_out_root
@@ -140,6 +141,7 @@ class DataModuleConfig:
             delexicalize=trainer_config.delexicalize,
             overwrite=trainer_config.overwrite,
             num_turns=trainer_config.num_turns,
+            model_name=trainer_config.model_name,
             is_scale_grad=trainer_config.is_scale_grad,
             is_multi_head=trainer_config.is_multi_head,
             is_multi_task=trainer_config.is_multi_task,
