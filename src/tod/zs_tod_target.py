@@ -51,7 +51,6 @@ class ZsTodTarget:
             [
                 "System Response",
                 self.response,
-                "End System Response",
             ]
         )
         return out

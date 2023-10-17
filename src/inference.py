@@ -235,7 +235,9 @@ class Inference:
                 {
                     # "response_bleu": ResponseMetric(metric_name="bleu"),
                     "response_bleu": ResponseMetric(
-                        metric_name="bleu", metric_key_name="google_bleu"
+                        metric_name="bleu",
+                        metric_key_name="google_bleu",
+                        context_type=self.cfg.context_type,
                     ),
                     # "response_rouge": ResponseMetric(
                     #     # metric_name="rouge", metric_key_name="rouge2_fmeasure"
