@@ -409,12 +409,28 @@ class BaseDataModule(ABC):
         item: TodTurnCsvRow,
         max_length: int,
         dont_create_labels: bool,
+        is_t5_model: bool = False,
     ) -> TodTrainRowCollator:
         context_tokens = self.train_tokenizer(item.context)[0]
         schema_tokens = self.train_tokenizer(item.schema)[0]
         target_tokens = self.train_tokenizer(item.target)[0]
+        prompt_tokens = torch.tensor([], dtype=torch.torch.int32)
+        if is_t5_model:
+            prompt_text = "\n".join(
+                [
+                    "Instructions: Given the dialog history and the schemas, please generate the system response.\n\n",
+                    "Begin Context",
+                    "Dialog History",
+                ]
+            )
+            prompt_tokens = self.train_tokenizer(prompt_text)[0]
+
         unused_len = (
-            max_length - len(context_tokens) - len(schema_tokens) - len(target_tokens)
+            max_length
+            - len(context_tokens)
+            - len(schema_tokens)
+            - len(target_tokens)
+            - len(prompt_tokens)
         )
         if len(schema_tokens) > max_length:
             raise ValueError("Schema is too long")
@@ -424,11 +440,21 @@ class BaseDataModule(ABC):
             # raise ValueError("Need larger token length")
             context_start_tokens = context_tokens[:1]
             trimmed_context = context_tokens[unused_len * -1 + 1 :]
-            context_tokens = torch.cat([context_start_tokens, trimmed_context], axis=0)
+            context_tokens = torch.cat(
+                [prompt_tokens, context_start_tokens, trimmed_context], axis=0
+            )
             unused_len = 0
         pad = torch.full([unused_len], self.cfg.tokenizer.pad_token_id)
         input_tokens = torch.cat([schema_tokens, context_tokens, target_tokens, pad])
-        if dont_create_labels:
+        if is_t5_model:
+            label = torch.cat(
+                [
+                    input_tokens,
+                    torch.full([unused_len], self._huggingface_ignore_label_id),
+                ]
+            )
+
+        elif dont_create_labels:
             label = input_tokens
         else:
             label = torch.cat(

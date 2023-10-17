@@ -10,7 +10,7 @@ from tqdm import tqdm
 import humps
 from configs.dataprep_config import DataPrepConfig
 from multi_head.mh_dataclasses import MultiHeadDictFactory
-from my_enums import Steps, ZsTodConstants
+from my_enums import ContextType, Steps, ZsTodConstants
 from tod.turns.general_turn_csv_row import GeneralTurnCsvRow
 from tod.turns.mh_turn_csv_row import MhTurnCsvRow
 from tod.turns.turn_csv_row_base import TurnCsvRowBase
@@ -192,7 +192,11 @@ class SimpleTODDSTCDataPrep:
         turn_schema_str = None
         if self.cfg.should_add_schema:
             turn_schemas = [schemas[s] for s in services]
-            turn_schema_str = "".join([str(s) for s in turn_schemas])
+
+            if self.cfg.context_type == ContextType.NLG:
+                turn_schema_str = "".join([s.get_nlg_repr() for s in turn_schemas])
+            else:
+                turn_schema_str = "".join([str(s) for s in turn_schemas])
         context = self._prepare_context(user_turn, system_turn, prev_tod_turn, schemas)
         target = self._prepare_target(user_turn, system_turn, schemas)
         return ZsTodTurn(

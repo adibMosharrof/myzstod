@@ -37,7 +37,7 @@ class ZsTodContext:
         )
 
     def get_nlg_repr(self):
-        out = "\n".join(["Begin Context", "Dialog History:"])
+        out = ""
         for user, system in zip_longest(
             self.user_utterances, self.system_utterances, fillvalue=""
         ):
@@ -52,7 +52,6 @@ class ZsTodContext:
                 "End Dialog History",
                 self._get_service_results(),
                 "End Context",
-                "Given the dialog history and the domain schemas, please generate the system response.",
             ]
         )
         return out
