@@ -60,7 +60,9 @@ class DataModuleConfig:
         test_num_turns_groups: list[Tuple[int, int]] = None,
         train_step_data: "StepData" = None,
         accelerator: "Accelerator" = None,
+        **kwargs,
     ):
+        self.kwargs = kwargs
         self.accelerator = accelerator or Accelerator()
         self.num_workers = num_workers
         self.preprocessing_model_name = preprocessing_model_name
