@@ -54,11 +54,17 @@ class TodDataModule(BaseDataModule):
         all_special_tokens_target_mask = []
         all_special_tokens_vocab_mask = []
         for item in batch:
-            row = self.collate_single_item(
-                item,
-                self.cfg.max_token_len,
-                is_pretrain,
-            )
+            if "t5" in self.cfg.model_name:
+                row = self.t5_collate_single_item(
+                    item,
+                    self.cfg.max_token_len,
+                )
+            else:
+                row = self.collate_single_item(
+                    item,
+                    self.cfg.max_token_len,
+                    is_pretrain,
+                )
             (
                 input_tokens,
                 label,

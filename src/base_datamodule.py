@@ -404,6 +404,57 @@ class BaseDataModule(ABC):
         out = torch.cat([context_tokens, torch.tensor([prompt_token])])
         return out
 
+    def t5_collate_single_item(
+        self, item: TodTurnCsvRow, max_length: int
+    ) -> TodTrainRowCollator:
+        context_tokens = self.train_tokenizer(item.context)[0]
+        schema_tokens = self.train_tokenizer(item.schema)[0]
+        target_tokens = self.train_tokenizer(item.target)[0]
+        
+        prompt_text = "\n".join(
+            [
+                "Instructions: Given the Dialog History and the Dialog Schemas, please generate the system response.\n",
+                "Dialog History\n",
+            ]
+        )
+        prompt_tokens = self.train_tokenizer(prompt_text)[0]
+        schema_prompt_text = "\n\nDialog Schemas\n"
+        schema_prompt_tokens = self.train_tokenizer(schema_prompt_text)[0]
+        context_unused_len = (
+            self.cfg.test_prompt_max_len
+            - len(prompt_tokens)
+            - len(context_tokens)
+            - len(schema_prompt_tokens)
+            - len(schema_tokens)
+        )
+        if len(schema_tokens) > self.cfg.test_prompt_max_len:
+            raise ValueError("Schema is too long")
+        target_max_len = max_length - self.cfg.test_prompt_max_len
+        if len(target_tokens) > target_max_len:
+            raise ValueError("Target is too long")
+
+        if context_unused_len < 0:
+            trimmed_context = context_tokens[context_unused_len * -1 :]
+            context_unused_len = 0
+        pad = torch.full([context_unused_len], self.cfg.tokenizer.pad_token_id)
+        input_tokens = torch.cat(
+            [prompt_tokens, trimmed_context, schema_prompt_tokens, schema_tokens, pad]
+        )
+
+        target_unused_len = target_max_len - len(target_tokens)
+        label = torch.cat(
+            [
+                target_tokens,
+                torch.full([target_unused_len], self._huggingface_ignore_label_id),
+            ]
+        )
+
+        attention_mask = input_tokens.ne(self.cfg.tokenizer.pad_token_id).to(
+            torch.int32
+        )
+
+        return TodTrainRowCollator(input_tokens, label, attention_mask)
+
     def collate_single_item(
         self,
         item: TodTurnCsvRow,
