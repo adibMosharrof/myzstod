@@ -18,6 +18,7 @@ class TrainerConfig:
         model_name: str = "gpt2",
         contrastive_model_name: str = "sentence-transformers/stsb-roberta-base-v2",
         tokenizer_name: str = None,
+        optim: str = "adamw_torch",
         num_workers: int = 8,
         early_stopping_patience: int = 3,
         batch: dict[str, int] = None,
@@ -74,6 +75,7 @@ class TrainerConfig:
         self.accelerator = Accelerator()
         self.project_root = Path(machine.project_root)
         self.data_prep_out_root = Path(data_prep_out_root)
+        self.optim = optim
         self.model_name = model_name
         self.num_workers = num_workers
         self.data_split_percent = data_size.data_split_percent or [1, 1, 1]
