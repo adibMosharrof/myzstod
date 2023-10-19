@@ -264,6 +264,7 @@ class SimpleTODTrainer:
             # deepspeed_path = self.cfg.project_root / "config/ds_config.json"
             # deepspeed_path = self.cfg.project_root / "config/ds_zero2.json"
             deepspeed_path = self.cfg.project_root / "config/ds_zero1.json"
+            deepspeed_path = ""
 
         return TrainingArguments(
             output_dir=str(self.cfg.out_dir / step_name),
@@ -292,7 +293,7 @@ class SimpleTODTrainer:
             learning_rate=3e-4,
             optim=self.cfg.optim,
             # sharded_ddp="zero_dp_3",
-            deepspeed=deepspeed_path,
+            # deepspeed=deepspeed_path,
             # fsdp_config=str(self.cfg.project_root / "config/ds_config.json"),
             # fsdp="full_shard",
         )
@@ -322,8 +323,11 @@ class SimpleTODTrainer:
                     self.cfg.model_name, self.cfg.scale_grad_gamma, device_map=None
                 )
             elif self.cfg.quantization_dtype == 16:
+                dtype = torch.bfloat16
+                if not self.cfg.fp16:
+                    dtype = torch.float32
                 model = utils.get_8bit_model(
-                    self.cfg.model_name, is_inference=True, device_map=None
+                    self.cfg.model_name, is_inference=True, device_map=None, dtype=dtype
                 )
             elif self.cfg.quantization_dtype == 8:
                 model = utils.get_8bit_model(self.cfg.model_name, device_map=device_map)
