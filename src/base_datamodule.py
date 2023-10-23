@@ -441,11 +441,12 @@ class BaseDataModule(ABC):
             [prompt_tokens, context_tokens, schema_prompt_tokens, schema_tokens, pad]
         )
 
-        target_unused_len = target_max_len - len(target_tokens)
+        target_unused_len = target_max_len - len(target_tokens) - 1
         label = torch.cat(
             [
                 target_tokens,
                 torch.full([target_unused_len], self._huggingface_ignore_label_id),
+                torch.full([1], self.cfg.tokenizer.eos_token_id),
             ]
         )
 

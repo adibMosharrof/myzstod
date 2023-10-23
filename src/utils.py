@@ -320,7 +320,7 @@ def init_wandb(
 
 
 def get_8bit_model(
-    model_name: str, is_inference: bool = False, device_map="auto"
+    model_name: str, is_inference: bool = False, device_map="auto", dtype=torch.bfloat16
 ) -> Union[AutoModelForSeq2SeqLM, AutoModelForCausalLM]:
     load_in_8bit = False if is_inference else True
     # load_in_8bit = False
@@ -329,14 +329,14 @@ def get_8bit_model(
             model_name,
             load_in_8bit=load_in_8bit,
             device_map=device_map,
-            torch_dtype=torch.bfloat16,
+            torch_dtype=dtype,
         )
         return model
     return AutoModelForCausalLM.from_pretrained(
         model_name,
         load_in_8bit=load_in_8bit,
         device_map=device_map,
-        torch_dtype=torch.bfloat16,
+        torch_dtype=dtype,
     )
 
 
