@@ -264,7 +264,7 @@ class SimpleTODTrainer:
             # deepspeed_path = self.cfg.project_root / "config/ds_config.json"
             # deepspeed_path = self.cfg.project_root / "config/ds_zero2.json"
             deepspeed_path = self.cfg.project_root / "config/ds_zero1.json"
-
+            deepspeed_path = ""
         return TrainingArguments(
             output_dir=str(self.cfg.out_dir / step_name),
             num_train_epochs=epochs,
@@ -292,7 +292,7 @@ class SimpleTODTrainer:
             learning_rate=3e-4,
             optim=self.cfg.optim,
             # sharded_ddp="zero_dp_3",
-            deepspeed=deepspeed_path,
+            # deepspeed=deepspeed_path,
             # fsdp_config=str(self.cfg.project_root / "config/ds_config.json"),
             # fsdp="full_shard",
         )
@@ -365,8 +365,8 @@ class SimpleTODTrainer:
         )
         model.config.use_cache = False
         model.train()
-        with torch.autocast("cuda"):
-            pre_trainer.train()
+        # with torch.autocast("cuda"):
+        pre_trainer.train()
         pre_trainer.save_model()
         model.save_pretrained(training_args.output_dir)
         return model
@@ -440,6 +440,6 @@ def create_out_dir():
 
 
 if __name__ == "__main__":
-    deepspeed.init_distributed()
+    # deepspeed.init_distributed()
     hydra_start()
     wandb.finish()
