@@ -133,12 +133,17 @@ class TodDataModule(BaseDataModule):
             data.contexts.append(self.tokenizer_text(item.context, max_lengths.context))
             data.targets.append(self.tokenizer_text(item.target, max_lengths.target))
             # data.schemas.append(item.schema)
-
-            row = self.collate_single_item(
-                item,
-                self.cfg.test_prompt_max_len,
-                True,
-            )
+            if "t5" in self.cfg.model_name:
+                row = self.t5_collate_single_item(
+                    item,
+                    self.cfg.max_token_len,
+                )
+            else:
+                row = self.collate_single_item(
+                    item,
+                    self.cfg.max_token_len,
+                    True,
+                )
             data.input_ids.append(row.input_tokens)
             data.attention_masks.append(row.attention_mask)
 
