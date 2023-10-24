@@ -236,12 +236,13 @@ def get_tokenizer(
         pad_token=SpecialTokens.pad_token.value,
         bos_token=SpecialTokens.bos_token.value,
         eos_token=SpecialTokens.end_target.value,
-        additional_special_tokens=SpecialTokens.list(),
+        # additional_special_tokens=SpecialTokens.list(),
     )
     if "t5" in tokenizer_name:
         args.extra_ids = 0
     else:
         args.add_prefix_space = add_prefix_space
+        args.additional_special_tokens = SpecialTokens.list()
     tokenizer = AutoTokenizer.from_pretrained(tokenizer_name, **args)
     return tokenizer
 
