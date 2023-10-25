@@ -429,7 +429,7 @@ class BaseDataModule(ABC):
         )
         if len(schema_tokens) > self.cfg.test_prompt_max_len:
             raise ValueError("Schema is too long")
-        target_max_len = max_length - self.cfg.test_prompt_max_len
+        target_max_len = self.cfg.max_token_len - self.cfg.test_prompt_max_len
         if len(target_tokens) > target_max_len:
             raise ValueError("Target is too long")
 

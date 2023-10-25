@@ -136,12 +136,12 @@ class TodDataModule(BaseDataModule):
             if "t5" in self.cfg.model_name:
                 row = self.t5_collate_single_item(
                     item,
-                    self.cfg.max_token_len,
+                    self.cfg.test_prompt_max_len,
                 )
             else:
                 row = self.collate_single_item(
                     item,
-                    self.cfg.max_token_len,
+                    self.cfg.test_prompt_max_len,
                     True,
                 )
             data.input_ids.append(row.input_tokens)
