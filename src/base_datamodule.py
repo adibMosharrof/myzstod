@@ -582,7 +582,7 @@ class BaseDataModule(ABC):
 class SimpleTodDataSet(Dataset):
     def __init__(
         self,
-        data: List[TodTurnCsvRow] = [],
+        data: List[TodTurnCsvRow],
     ):
         self.data: list[TodTurnCsvRow] = data
 
