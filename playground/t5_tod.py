@@ -1,5 +1,6 @@
 import os
 import sys
+import uuid
 
 
 sys.path.insert(0, os.path.abspath("./src"))
@@ -17,11 +18,14 @@ from transformers import (
     T5ForConditionalGeneration,
     Trainer,
     TrainingArguments,
+    IntervalStrategy,
 )
 from datetime import datetime
 import utils
 from tqdm import tqdm
 import numpy as np
+import evaluate
+import logging
 
 
 class T5DataModule:
@@ -93,6 +97,24 @@ class T5DataModule:
             }
         )
 
+    def load_data_from_files(self):
+        train_fp = (
+            self.cfg.project_root / "playground" / "data" / "train" / self.cfg.csv_file
+        )
+        val_fp = (
+            self.cfg.project_root / "playground" / "data" / "dev" / self.cfg.csv_file
+        )
+        test_fp = (
+            self.cfg.project_root / "playground" / "data" / "test" / self.cfg.csv_file
+        )
+        train_data = utils.read_csv_dataclass(train_fp, TodTurnCsvRow)
+        val_data = utils.read_csv_dataclass(val_fp, TodTurnCsvRow)
+        test_data = utils.read_csv_dataclass(test_fp, TodTurnCsvRow)
+        datasets = [
+            SimpleTodDataSet(data) for data in [train_data, val_data, test_data]
+        ]
+        return (*datasets,)
+
     def load_data(self):
         fp = self.cfg.project_root / "playground" / "data" / self.cfg.csv_file
         data = utils.read_csv_dataclass(fp, TodTurnCsvRow)
@@ -125,6 +147,8 @@ class T5Tod:
         self.cfg.out_dir = base_out_dir / date_str / time_str
         self.cfg.out_dir.mkdir(parents=True, exist_ok=True)
         os.chdir(self.cfg.out_dir)
+        log_file = self.cfg.out_dir / "t5_tod.log"
+        logging.basicConfig(filename=log_file, level=logging.INFO, encoding="utf-8")
 
     def run(self):
         accelerator = Accelerator()
@@ -146,21 +170,29 @@ class T5Tod:
             ).cuda()
             model.resize_token_embeddings(len(tokenizer))
         self.dm = T5DataModule(self.cfg, tokenizer)
-        train_dataset, val_dataset, test_dataset = self.dm.load_data()
+        if self.cfg.separate_dev_test:
+            train_dataset, val_dataset, test_dataset = self.dm.load_data_from_files()
+        else:
+            train_dataset, val_dataset, test_dataset = self.dm.load_data()
 
         training_args = TrainingArguments(
             output_dir=str(self.cfg.out_dir),
             num_train_epochs=self.cfg.epochs,
             logging_steps=10,
+            save_total_limit=5,
+            save_steps=self.cfg.save_steps,
+            eval_steps=self.cfg.eval_steps,
             load_best_model_at_end=True,
-            save_strategy="epoch",
-            evaluation_strategy="epoch",
+            save_strategy=IntervalStrategy.STEPS,
+            evaluation_strategy=IntervalStrategy.STEPS,
             per_device_train_batch_size=self.cfg.train_batch_size,
             per_device_eval_batch_size=self.cfg.eval_batch_size,
             warmup_steps=100,
             weight_decay=0.01,
             dataloader_drop_last=True,
             dataloader_num_workers=1,
+            gradient_accumulation_steps=self.cfg.gradient_accumulation_steps,
+            eval_accumulation_steps=self.cfg.eval_accumulation_steps,
         )
         trainer = Trainer(
             model=model,
@@ -199,20 +231,30 @@ class T5Tod:
             all_labels.append(target_text)
             all_preds.append(pred_text)
 
+        concat_labels = np.concatenate(all_labels, axis=0)
+        concat_preds = np.concatenate(all_preds, axis=0)
         df = pd.DataFrame(
             {
-                "target_text": np.concatenate(all_labels, axis=0),
-                "pred_text": np.concatenate(all_preds, axis=0),
+                "target_text": concat_labels,
+                "pred_text": concat_preds,
             }
         )
         out_path = self.cfg.out_dir / "t5_tod.csv"
         df.to_csv(out_path, index=False, encoding="utf-8")
+        google_bleu = evaluate.load("google_bleu", experiment_id=str(uuid.uuid4()))
+        gleu_labels = np.expand_dims(concat_labels, axis=1)
+        result = google_bleu.compute(predictions=concat_preds, references=gleu_labels)
+        score_str = f"GLEU score: {result['google_bleu']}"
+        logging.info(score_str)
+        print(score_str)
 
 
 if __name__ == "__main__":
     tt = T5Tod(
         DotMap(
-            csv_file="nlg_data.csv",
+            # csv_file="nlg_data.csv",
+            csv_file="v0_context_type_nlg_scale_grad_False_multi_task_False_1_1_1_schema_True_user_actions_True_sys_actions_False_turns_26_service_results_True_dialogs_1_domain_setting_all_train_domains_1.0.csv",
+            separate_dev_test=True,
             project_root=Path("/mounts/u-amo-d1/adibm-data/projects/ZSToD"),
             tokenizer_name="adibm/sgd-flan-t5-nlg-tokenizer",
             model_name="google/flan-t5-base",
@@ -220,10 +262,14 @@ if __name__ == "__main__":
             model_path="",
             max_token_len=1000,
             prompt_len=800,
-            train_batch_size=7,
-            eval_batch_size=35,
+            train_batch_size=6,
+            eval_batch_size=30,
             test_batch_size=60,
-            epochs=15,
+            epochs=1,
+            gradient_accumulation_steps=32,
+            eval_accumulation_steps=32,
+            save_steps=50,
+            eval_steps=50,
         )
     )
     tt.run()
