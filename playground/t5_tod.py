@@ -4,7 +4,6 @@ import uuid
 
 
 sys.path.insert(0, os.path.abspath("./src"))
-
 from tod.turns.zs_tod_turn import TodTurnCsvRow
 from base_datamodule import SimpleTodDataSet
 from pathlib import Path
@@ -224,10 +223,12 @@ class T5Tod:
                 do_sample=False,
                 max_length=self.cfg.max_token_len,
             )
-            sample_outputs = accelerator.gather_for_metrics(sample_outputs)
+            sample_outputs, labels = accelerator.gather_for_metrics(
+                (sample_outputs, batch.labels)
+            )
             # decode the predicted tokens into texts
             pred_text = tokenizer.batch_decode(sample_outputs, skip_special_tokens=True)
-            target_text = tokenizer.batch_decode(batch.labels, skip_special_tokens=True)
+            target_text = tokenizer.batch_decode(labels, skip_special_tokens=True)
             all_labels.append(target_text)
             all_preds.append(pred_text)
 
@@ -252,19 +253,19 @@ class T5Tod:
 if __name__ == "__main__":
     tt = T5Tod(
         DotMap(
-            # csv_file="nlg_data.csv",
-            csv_file="v0_context_type_nlg_scale_grad_False_multi_task_False_1_1_1_schema_True_user_actions_True_sys_actions_False_turns_26_service_results_True_dialogs_1_domain_setting_all_train_domains_1.0.csv",
-            separate_dev_test=True,
+            csv_file="nlg_data.csv",
+            # csv_file="v0_context_type_nlg_scale_grad_False_multi_task_False_1_1_1_schema_True_user_actions_True_sys_actions_False_turns_26_service_results_True_dialogs_1_domain_setting_all_train_domains_1.0.csv",
+            separate_dev_test=False,
             project_root=Path("/mounts/u-amo-d1/adibm-data/projects/ZSToD"),
             tokenizer_name="adibm/sgd-flan-t5-nlg-tokenizer",
             model_name="google/flan-t5-base",
-            # model_path="playground/t5_tod_out/2023-10-26/01-38-02/checkpoint-137",
-            model_path="",
+            model_path="playground/t5_tod_out/2023-10-26/02-28-43/checkpoint-137",
+            # model_path="",
             max_token_len=1000,
             prompt_len=800,
             train_batch_size=6,
             eval_batch_size=30,
-            test_batch_size=60,
+            test_batch_size=40,
             epochs=1,
             gradient_accumulation_steps=32,
             eval_accumulation_steps=32,
