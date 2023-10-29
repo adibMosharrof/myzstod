@@ -55,6 +55,10 @@ from my_enums import SpecialTokens, ZsTodConstants
 from hurry.filesize import size
 
 
+def is_t5_model(model_name: str):
+    return "t5" in model_name
+
+
 def remove_underscore(item: str):
     return item.replace("_", " ")
 
