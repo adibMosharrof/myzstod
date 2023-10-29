@@ -96,6 +96,11 @@ class T5DataModule:
             }
         )
 
+    def get_data_by_split_percent(
+        self, data: list[TodTurnCsvRow], split_percent: float
+    ):
+        return data[: int(len(data) * split_percent)]
+
     def load_data_from_files(self):
         train_fp = (
             self.cfg.project_root / "playground" / "data" / "train" / self.cfg.csv_file
@@ -110,7 +115,10 @@ class T5DataModule:
         val_data = utils.read_csv_dataclass(val_fp, TodTurnCsvRow)
         test_data = utils.read_csv_dataclass(test_fp, TodTurnCsvRow)
         datasets = [
-            SimpleTodDataSet(data) for data in [train_data, val_data, test_data]
+            SimpleTodDataSet(self.get_data_by_split_percent(data, split))
+            for data, split in zip(
+                [train_data, val_data, test_data], self.cfg.data_split_percent
+            )
         ]
         return (*datasets,)
 
@@ -148,6 +156,17 @@ class T5Tod:
         os.chdir(self.cfg.out_dir)
         log_file = self.cfg.out_dir / "t5_tod.log"
         logging.basicConfig(filename=log_file, level=logging.INFO, encoding="utf-8")
+
+    def pad_gen_to_max_len(self, gen, max_len: int, tokenizer):
+        pad_amount = max_len - gen.shape[1]
+        pad = torch.full(
+            [gen.shape[0], pad_amount],
+            fill_value=tokenizer.pad_token_id,
+            dtype=torch.int,
+            device=gen.device,
+        )
+        out = torch.hstack([gen, pad])
+        return out
 
     def run(self):
         accelerator = Accelerator()
@@ -202,6 +221,7 @@ class T5Tod:
         )
         if not self.cfg.model_path:
             trainer.train()
+            model.save_pretrained(self.cfg.out_dir)
 
         test_dl = DataLoader(
             test_dataset,
@@ -217,14 +237,16 @@ class T5Tod:
         all_labels, all_preds = [], []
         test_dl = accelerator.prepare(test_dl)
         for batch in tqdm(test_dl):
+            max_gen_len = self.cfg.max_token_len - self.cfg.prompt_len
             sample_outputs = model.generate(
                 inputs=batch.input_ids.to(accelerator.device),
                 attention_mask=batch.attention_mask.to(accelerator.device),
                 do_sample=False,
-                max_length=self.cfg.max_token_len,
+                max_length=max_gen_len,
             )
+            out_padded = self.pad_gen_to_max_len(sample_outputs, max_gen_len, tokenizer)
             sample_outputs, labels = accelerator.gather_for_metrics(
-                (sample_outputs, batch.labels)
+                (out_padded, batch.labels)
             )
             # decode the predicted tokens into texts
             pred_text = tokenizer.batch_decode(sample_outputs, skip_special_tokens=True)
@@ -253,24 +275,26 @@ class T5Tod:
 if __name__ == "__main__":
     tt = T5Tod(
         DotMap(
-            csv_file="nlg_data.csv",
-            # csv_file="v0_context_type_nlg_scale_grad_False_multi_task_False_1_1_1_schema_True_user_actions_True_sys_actions_False_turns_26_service_results_True_dialogs_1_domain_setting_all_train_domains_1.0.csv",
-            separate_dev_test=False,
-            project_root=Path("/mounts/u-amo-d1/adibm-data/projects/ZSToD"),
+            # csv_file="nlg_data.csv",
+            csv_file="v0_context_type_nlg_scale_grad_False_multi_task_False_1_1_1_schema_True_user_actions_True_sys_actions_False_turns_10_service_results_True_dialogs_5_domain_setting_all_train_domains_1.0.csv",
+            separate_dev_test=True,
+            project_root=Path("/projects/bbyl/amosharrof/ZSToD"),
             tokenizer_name="adibm/sgd-flan-t5-nlg-tokenizer",
-            model_name="google/flan-t5-base",
-            model_path="playground/t5_tod_out/2023-10-26/02-28-43/checkpoint-137",
-            # model_path="",
-            max_token_len=1000,
-            prompt_len=800,
-            train_batch_size=6,
-            eval_batch_size=30,
-            test_batch_size=40,
-            epochs=1,
-            gradient_accumulation_steps=32,
-            eval_accumulation_steps=32,
+            model_name="google/flan-t5-large",
+            # model_path="playground/t5_tod_out/2023-10-27/00-42-59",
+            # model_path="outputs/2023-10-25/11-49-15/results/pretrain",
+            model_path="",
+            max_token_len=1024,
+            prompt_len=750,
+            train_batch_size=4,
+            eval_batch_size=20,
+            test_batch_size=50,
+            epochs=20,
+            gradient_accumulation_steps=64,
+            eval_accumulation_steps=64,
             save_steps=50,
-            eval_steps=50,
+            eval_steps=25,
+            data_split_percent=[1, 1, 0.5],
         )
     )
     tt.run()
