@@ -25,6 +25,7 @@ from tqdm import tqdm
 import numpy as np
 import evaluate
 import logging
+from peft import prepare_model_for_kbit_training, PeftModelForCausalLM, get_peft_config
 
 
 class T5DataModule:
@@ -168,6 +169,35 @@ class T5Tod:
         out = torch.hstack([gen, pad])
         return out
 
+    def get_model(self, model_name: str, tokenizer: AutoTokenizer):
+        model_path = model_name
+        if self.cfg.model_path:
+            model_path = self.cfg.project_root / self.cfg.model_path
+        if not self.cfg.quantization:
+            model = T5ForConditionalGeneration.from_pretrained(model_path).cuda()
+            return model
+        model = utils.get_8bit_model(
+            model_path, is_inference=True, device_map=None, dtype=torch.float32
+        )
+        model.resize_token_embeddings(len(tokenizer))
+        model = prepare_model_for_kbit_training(model)
+        config = {
+            "peft_type": "LORA",
+            "task_type": "SEQ_2_SEQ_LM",
+            "inference_mode": False,
+            "r": 8,
+            "target_modules": ["q", "v"],
+            "lora_alpha": 32,
+            "lora_dropout": 0.1,
+            "fan_in_fan_out": False,
+            "enable_lora": None,
+            "bias": "none",
+            "modules_to_save": utils.get_modules_to_save(model_name),
+        }
+        peft_config = get_peft_config(config)
+        model = PeftModelForCausalLM(model, peft_config)
+        return model
+
     def run(self):
         accelerator = Accelerator()
         torch.manual_seed(420)
@@ -295,6 +325,7 @@ if __name__ == "__main__":
             save_steps=50,
             eval_steps=25,
             data_split_percent=[1, 1, 0.5],
+            quantization=True,
         )
     )
     tt.run()
