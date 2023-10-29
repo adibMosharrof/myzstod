@@ -21,3 +21,5 @@ GenTodPaper/.olauth
 .nfs*
 wandb/
 data_exploration/
+playground/data
+playground/t5_tod_out
