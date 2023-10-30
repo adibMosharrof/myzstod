@@ -1,6 +1,8 @@
 import os
 import sys
 import uuid
+from logger.inference_logger import InferenceLogger
+from metric_managers.nlg_metric_manager import NlgMetricManager
 
 
 sys.path.insert(0, os.path.abspath("./src"))
@@ -148,7 +150,9 @@ class T5Tod:
         self.cfg.out_dir.mkdir(parents=True, exist_ok=True)
         os.chdir(self.cfg.out_dir)
         log_file = self.cfg.out_dir / "t5_tod.log"
-        logging.basicConfig(filename=log_file, level=logging.INFO, encoding="utf-8")
+        self.logger = logging.basicConfig(
+            filename=log_file, level=logging.INFO, encoding="utf-8"
+        )
 
     def get_model(self, model_name: str, tokenizer: AutoTokenizer):
         model_path = model_name
@@ -244,7 +248,8 @@ class T5Tod:
         _ = model.eval()
         print("starting inference")
 
-        all_labels, all_preds = [], []
+        inf_logger = InferenceLogger(self.cfg.out_dir / "t5_tod.csv", tokenizer)
+
         test_dl = accelerator.prepare(test_dl)
         for batch in tqdm(test_dl):
             sample_outputs = model.generate(
@@ -253,31 +258,15 @@ class T5Tod:
                 do_sample=False,
                 max_length=self.cfg.max_token_len,
             )
-            sample_outputs, labels = accelerator.gather_for_metrics(
-                (sample_outputs, batch.labels)
+            sample_outputs, label_tokens, input_tokens = accelerator.gather_for_metrics(
+                (sample_outputs, batch.labels, batch.input_ids)
             )
             # decode the predicted tokens into texts
-            pred_text = tokenizer.batch_decode(sample_outputs, skip_special_tokens=True)
-            target_text = tokenizer.batch_decode(labels, skip_special_tokens=True)
-            all_labels.append(target_text)
-            all_preds.append(pred_text)
+            inf_logger.add_batch(input_tokens, label_tokens, sample_outputs)
 
-        concat_labels = np.concatenate(all_labels, axis=0)
-        concat_preds = np.concatenate(all_preds, axis=0)
-        df = pd.DataFrame(
-            {
-                "target_text": concat_labels,
-                "pred_text": concat_preds,
-            }
-        )
-        out_path = self.cfg.out_dir / "t5_tod.csv"
-        df.to_csv(out_path, index=False, encoding="utf-8")
-        google_bleu = evaluate.load("google_bleu", experiment_id=str(uuid.uuid4()))
-        gleu_labels = np.expand_dims(concat_labels, axis=1)
-        result = google_bleu.compute(predictions=concat_preds, references=gleu_labels)
-        score_str = f"GLEU score: {result['google_bleu']}"
-        logging.info(score_str)
-        print(score_str)
+        inf_logger.write_csv()
+        metric_manager = NlgMetricManager(self.logger)
+        metric_manager.compute_metrics(inf_logger, inf_logger)
 
 
 if __name__ == "__main__":
