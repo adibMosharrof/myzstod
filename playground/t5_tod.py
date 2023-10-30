@@ -25,7 +25,11 @@ from tqdm import tqdm
 import numpy as np
 import evaluate
 import logging
-from peft import prepare_model_for_kbit_training, PeftModelForCausalLM, get_peft_config
+from peft import (
+    prepare_model_for_kbit_training,
+    PeftModelForSeq2SeqLM,
+    get_peft_config,
+)
 
 
 class T5DataModule:
@@ -195,7 +199,7 @@ class T5Tod:
             "modules_to_save": utils.get_modules_to_save(model_name),
         }
         peft_config = get_peft_config(config)
-        model = PeftModelForCausalLM(model, peft_config)
+        model = PeftModelForSeq2SeqLM(model, peft_config)
         return model
 
     def run(self):
@@ -319,12 +323,12 @@ if __name__ == "__main__":
             train_batch_size=4,
             eval_batch_size=20,
             test_batch_size=50,
-            epochs=20,
+            epochs=3,
             gradient_accumulation_steps=64,
             eval_accumulation_steps=64,
             save_steps=50,
-            eval_steps=25,
-            data_split_percent=[1, 1, 0.5],
+            eval_steps=10,
+            data_split_percent=[1, 0.5, 0.2],
             quantization=True,
         )
     )
