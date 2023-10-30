@@ -89,7 +89,7 @@ class ZsTodContext:
 
     def _get_last_user_utterance(self, should_add_special_token=True) -> str:
         if not should_add_special_token:
-            return "".join([SpecialTokens.user, self.current_user_utterance])
+            return "".join([self.current_user_utterance])
         return "".join(
             [
                 SpecialTokens.begin_last_user_utterance,
