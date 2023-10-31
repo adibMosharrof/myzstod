@@ -1,11 +1,16 @@
 import os
 import sys
 import uuid
-from logger.inference_logger import InferenceLogger
-from metric_managers.nlg_metric_manager import NlgMetricManager
 
+from omegaconf import DictConfig
 
 sys.path.insert(0, os.path.abspath("./src"))
+from my_enums import Steps
+from tod_datamodules import TodDataModule
+from configs.dm_config import DataModuleConfig
+import hydra
+from logger.inference_logger import InferenceLogger
+from metric_managers.nlg_metric_manager import NlgMetricManager
 from tod.turns.zs_tod_turn import TodTurnCsvRow
 from base_datamodule import SimpleTodDataSet
 from pathlib import Path
@@ -20,6 +25,9 @@ from transformers import (
     Trainer,
     TrainingArguments,
     IntervalStrategy,
+    AutoModelForSeq2SeqLM,
+    Seq2SeqTrainer,
+    Seq2SeqTrainingArguments,
 )
 from datetime import datetime
 import utils
@@ -31,6 +39,11 @@ from peft import (
     prepare_model_for_kbit_training,
     PeftModelForSeq2SeqLM,
     get_peft_config,
+    PeftConfig,
+    PeftModel,
+    TaskType,
+    LoraConfig,
+    get_peft_model,
 )
 
 
@@ -55,12 +68,12 @@ class T5DataModule:
         )
         prompt_tokens = self.my_tokenize(prompt_text)
         schema_prompt_tokens = self.my_tokenize("\n\nDialog Schemas\n")
-        target_max_len = self.cfg.max_token_len - self.cfg.prompt_len
+        target_max_len = self.cfg.max_token_len - self.cfg.test_prompt_max_len
         for item in batch:
             context_tokens = self.my_tokenize(item.context)
             schema_tokens = self.my_tokenize(item.schema)
             context_unused_len = (
-                self.cfg.prompt_len
+                self.cfg.test_prompt_max_len
                 - len(prompt_tokens)
                 - len(context_tokens)
                 - len(schema_prompt_tokens)
@@ -108,6 +121,16 @@ class T5DataModule:
     ):
         return data[: int(len(data) * split_percent)]
 
+    def get_dms(self):
+        steps = Steps.list()
+
+        return [
+            TodDataModule(
+                DataModuleConfig(tokenizer=self.tokenizer, **self.cfg),
+                steps=steps,
+            )
+        ]
+
     def load_data_from_files(self):
         train_fp = (
             self.cfg.project_root / "playground" / "data" / "train" / self.cfg.csv_file
@@ -131,8 +154,8 @@ class T5DataModule:
 
     def load_data(self):
         fp = self.cfg.project_root / "playground" / "data" / self.cfg.csv_file
+        # a = self.get_dms()
         data = utils.read_csv_dataclass(fp, TodTurnCsvRow)
-
         df = pd.DataFrame([vars(d) for d in data])
         # df = pd.read_csv(fp, encoding="ISO-8859-1", header=None)
 
@@ -153,18 +176,19 @@ class T5DataModule:
 
 
 class T5Tod:
-    def __init__(self, cfg):
-        self.cfg = cfg
-        base_out_dir = self.cfg.project_root / "playground" / "t5_tod_out"
-        date_str = datetime.now().strftime("%Y-%m-%d")
-        time_str = datetime.now().strftime("%H-%M-%S")
-        self.cfg.out_dir = base_out_dir / date_str / time_str
-        self.cfg.out_dir.mkdir(parents=True, exist_ok=True)
-        os.chdir(self.cfg.out_dir)
+    def __init__(self, cfg, **kwargs):
+        self.cfg = DotMap(dict(cfg))
+        # base_out_dir = self.cfg.project_root / "playground" / "t5_tod_out"
+        # date_str = datetime.now().strftime("%Y-%m-%d")
+        # time_str = datetime.now().strftime("%H-%M-%S")
+        # self.cfg.out_dir = base_out_dir / date_str / time_str
+        # self.cfg.out_dir.mkdir(parents=True, exist_ok=True)
+        # os.chdir(self.cfg.out_dir)
+        self.cfg.project_root = Path(self.cfg.project_root)
+        self.cfg.out_dir = Path(os.getcwd())
         log_file = self.cfg.out_dir / "t5_tod.log"
-        self.logger = logging.basicConfig(
-            filename=log_file, level=logging.INFO, encoding="utf-8"
-        )
+        logging.basicConfig(filename=log_file, level=logging.INFO, encoding="utf-8")
+        self.logger = logging
 
     def pad_gen_to_max_len(self, gen, max_len: int, tokenizer):
         pad_amount = max_len - gen.shape[1]
@@ -184,26 +208,19 @@ class T5Tod:
         if not self.cfg.quantization:
             model = T5ForConditionalGeneration.from_pretrained(model_path).cuda()
             return model
-        model = utils.get_8bit_model(
-            model_path, is_inference=True, device_map=None, dtype=torch.float32
-        )
+        model = AutoModelForSeq2SeqLM.from_pretrained(model_path, load_in_8bit=True)
         model.resize_token_embeddings(len(tokenizer))
         model = prepare_model_for_kbit_training(model)
-        config = {
-            "peft_type": "LORA",
-            "task_type": "SEQ_2_SEQ_LM",
-            "inference_mode": False,
-            "r": 8,
-            "target_modules": ["q", "v"],
-            "lora_alpha": 32,
-            "lora_dropout": 0.1,
-            "fan_in_fan_out": False,
-            "enable_lora": None,
-            "bias": "none",
-            "modules_to_save": utils.get_modules_to_save(model_name),
-        }
-        peft_config = get_peft_config(config)
-        model = PeftModelForSeq2SeqLM(model, peft_config)
+        lora_config = LoraConfig(
+            r=16,
+            lora_alpha=32,
+            target_modules=["q", "v"],
+            lora_dropout=0.05,
+            bias="none",
+            task_type=TaskType.SEQ_2_SEQ_LM,
+            modules_to_save=utils.get_modules_to_save(model_name),
+        )
+        model = get_peft_model(model, lora_config)
         return model
 
     def run(self):
@@ -211,27 +228,31 @@ class T5Tod:
         torch.manual_seed(420)
 
         tokenizer = AutoTokenizer.from_pretrained(
-            self.cfg.tokenizer_name,
+            self.cfg.tokenizer_name or self.cfg.model_name,
             bos_token="<|startoftext|>",
             eos_token="<|endoftext|>",
             pad_token="<|pad|>",
         )
+        # tokenizer.add_tokens(["<|user|>", "<|system|>"])
         if self.cfg.model_path:
             model = T5ForConditionalGeneration.from_pretrained(
                 self.cfg.project_root / self.cfg.model_path
             ).cuda()
+        elif self.cfg.quantization:
+            model = self.get_model(self.cfg.model_name, tokenizer)
         else:
             model = T5ForConditionalGeneration.from_pretrained(
                 self.cfg.model_name
             ).cuda()
             model.resize_token_embeddings(len(tokenizer))
+
         self.dm = T5DataModule(self.cfg, tokenizer)
         if self.cfg.separate_dev_test:
             train_dataset, val_dataset, test_dataset = self.dm.load_data_from_files()
         else:
             train_dataset, val_dataset, test_dataset = self.dm.load_data()
 
-        training_args = TrainingArguments(
+        training_args = Seq2SeqTrainingArguments(
             output_dir=str(self.cfg.out_dir),
             num_train_epochs=self.cfg.epochs,
             logging_steps=10,
@@ -249,8 +270,9 @@ class T5Tod:
             dataloader_num_workers=1,
             gradient_accumulation_steps=self.cfg.gradient_accumulation_steps,
             eval_accumulation_steps=self.cfg.eval_accumulation_steps,
+            learning_rate=1e-3,
         )
-        trainer = Trainer(
+        trainer = Seq2SeqTrainer(
             model=model,
             args=training_args,
             train_dataset=train_dataset,
@@ -259,7 +281,11 @@ class T5Tod:
         )
         if not self.cfg.model_path:
             trainer.train()
-            model.save_pretrained(self.cfg.out_dir)
+            # trainer.save_model()
+            # model.save_pretrained(self.cfg.out_dir)
+            if accelerator.is_main_process:
+                trainer.model.save_pretrained(self.cfg.out_dir)
+            accelerator.wait_for_everyone()
 
         test_dl = DataLoader(
             test_dataset,
@@ -273,10 +299,23 @@ class T5Tod:
         print("starting inference")
 
         inf_logger = InferenceLogger(self.cfg.out_dir / "t5_tod.csv", tokenizer)
+        if self.cfg.quantization:
+            config = PeftConfig.from_pretrained(self.cfg.out_dir)
+            device_map = {"": accelerator.device}
+            model = AutoModelForSeq2SeqLM.from_pretrained(
+                config.base_model_name_or_path,
+                load_in_8bit=False,
+                device_map=device_map,
+            )
+            model.resize_token_embeddings(len(tokenizer))
+            model = PeftModel.from_pretrained(
+                model, self.cfg.out_dir, device_map=device_map
+            )
+            model.eval()
 
         test_dl = accelerator.prepare(test_dl)
         for batch in tqdm(test_dl):
-            max_gen_len = self.cfg.max_token_len - self.cfg.prompt_len
+            max_gen_len = self.cfg.max_token_len - self.cfg.test_prompt_max_len
             sample_outputs = model.generate(
                 inputs=batch.input_ids.to(accelerator.device),
                 attention_mask=batch.attention_mask.to(accelerator.device),
@@ -284,41 +323,58 @@ class T5Tod:
                 max_length=max_gen_len,
             )
             out_padded = self.pad_gen_to_max_len(sample_outputs, max_gen_len, tokenizer)
-            sample_outputs, label_tokens, input_tokens = accelerator.gather_for_metrics(
-                (sample_outputs, batch.labels, batch.input_ids)
+            padded_outputs, label_tokens, input_tokens = accelerator.gather_for_metrics(
+                (out_padded, batch.labels, batch.input_ids)
             )
             # decode the predicted tokens into texts
-            inf_logger.add_batch(input_tokens, label_tokens, sample_outputs)
+            inf_logger.add_batch(input_tokens, label_tokens, padded_outputs)
 
         inf_logger.write_csv()
         metric_manager = NlgMetricManager(self.logger)
-        metric_manager.compute_metrics(inf_logger, inf_logger)
+        metric_manager.compute_metrics(inf_logger)
 
 
-if __name__ == "__main__":
+# if __name__ == "__main__":
+def old_main():
     tt = T5Tod(
         DotMap(
             # csv_file="nlg_data.csv",
-            csv_file="v0_context_type_nlg_scale_grad_False_multi_task_False_1_1_1_schema_True_user_actions_True_sys_actions_False_turns_10_service_results_True_dialogs_5_domain_setting_all_train_domains_1.0.csv",
+            csv_file="v0_context_type_nlg_scale_grad_False_multi_task_False_1_1_1_schema_True_user_actions_True_sys_actions_False_turns_26_service_results_True_dialogs_1_domain_setting_all_train_domains_1.0.csv",
             separate_dev_test=True,
-            project_root=Path("/projects/bbyl/amosharrof/ZSToD"),
-            tokenizer_name="adibm/sgd-flan-t5-nlg-tokenizer",
+            # project_root=Path("/projects/bbyl/amosharrof/ZSToD"),
+            project_root=Path("/mounts/u-amo-d1/adibm-data/projects/ZSToD/"),
+            # tokenizer_name="adibm/sgd-flan-t5-nlg-tokenizer",
             model_name="google/flan-t5-large",
             # model_path="playground/t5_tod_out/2023-10-27/00-42-59",
             # model_path="outputs/2023-10-25/11-49-15/results/pretrain",
             model_path="",
             max_token_len=1024,
-            prompt_len=750,
-            train_batch_size=4,
+            test_prompt_max_len=750,
+            train_batch_size=10,
             eval_batch_size=20,
-            test_batch_size=50,
-            epochs=3,
+            test_batch_size=20,
+            epochs=2,
             gradient_accumulation_steps=64,
             eval_accumulation_steps=64,
             save_steps=50,
             eval_steps=10,
-            data_split_percent=[1, 0.5, 0.2],
+            data_split_percent=[0.1, 0.5, 0.1],
             quantization=True,
         )
     )
     tt.run()
+
+
+@hydra.main(config_path="../config/t5_trainer/", config_name="t5_trainer")
+def hydra_start(cfg: DictConfig) -> None:
+    print(os.getcwd())
+    t5tod = T5Tod(cfg)
+    t5tod.run()
+    sys.stdout.close()
+
+
+if __name__ == "__main__":
+    # deepspeed.init_distributed()
+    # hydra_start()
+    # wandb.finish()
+    old_main()

@@ -4,13 +4,14 @@ import pandas as pd
 
 
 class InferenceLogger:
-    def __init__(self, csv_path):
+    def __init__(self, csv_path, tokenizer):
         self.all_input_texts = []
         self.all_labels = []
         self.all_preds = []
         self.csv_path = csv_path
         self.concat_labels = None
         self.concat_preds = None
+        self.tokenizer = tokenizer
 
     def add_batch(self, input_tokens, label_tokens, pred_tokens):
         input_texts = self.tokenizer.batch_decode(
