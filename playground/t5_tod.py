@@ -208,7 +208,9 @@ class T5Tod:
         if not self.cfg.quantization:
             model = T5ForConditionalGeneration.from_pretrained(model_path).cuda()
             return model
-        model = AutoModelForSeq2SeqLM.from_pretrained(model_path, load_in_8bit=True)
+        model = AutoModelForSeq2SeqLM.from_pretrained(
+            model_path, load_in_8bit=True, torch_dtype=torch.bfloat16
+        )
         model.resize_token_embeddings(len(tokenizer))
         model = prepare_model_for_kbit_training(model)
         lora_config = LoraConfig(
