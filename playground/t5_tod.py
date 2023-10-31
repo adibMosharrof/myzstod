@@ -178,12 +178,12 @@ class T5DataModule:
 class T5Tod:
     def __init__(self, cfg, **kwargs):
         self.cfg = DotMap(dict(cfg))
-        # base_out_dir = self.cfg.project_root / "playground" / "t5_tod_out"
-        # date_str = datetime.now().strftime("%Y-%m-%d")
-        # time_str = datetime.now().strftime("%H-%M-%S")
-        # self.cfg.out_dir = base_out_dir / date_str / time_str
-        # self.cfg.out_dir.mkdir(parents=True, exist_ok=True)
-        # os.chdir(self.cfg.out_dir)
+        base_out_dir = self.cfg.project_root / "playground" / "t5_tod_out"
+        date_str = datetime.now().strftime("%Y-%m-%d")
+        time_str = datetime.now().strftime("%H-%M-%S")
+        self.cfg.out_dir = base_out_dir / date_str / time_str
+        self.cfg.out_dir.mkdir(parents=True, exist_ok=True)
+        os.chdir(self.cfg.out_dir)
         self.cfg.project_root = Path(self.cfg.project_root)
         self.cfg.out_dir = Path(os.getcwd())
         log_file = self.cfg.out_dir / "t5_tod.log"
@@ -380,3 +380,4 @@ if __name__ == "__main__":
     # hydra_start()
     # wandb.finish()
     old_main()
+    print(os.getcwd())
