@@ -45,6 +45,7 @@ from peft import (
     LoraConfig,
     get_peft_model,
 )
+from accelerate import Accelerator
 
 
 class T5DataModule:
@@ -133,13 +134,25 @@ class T5DataModule:
 
     def load_data_from_files(self):
         train_fp = (
-            self.cfg.project_root / "playground" / "data" / "train" / self.cfg.csv_file
+            self.cfg.project_root
+            / "playground"
+            / "data"
+            / "train"
+            / self.cfg.train_csv_file
         )
         val_fp = (
-            self.cfg.project_root / "playground" / "data" / "dev" / self.cfg.csv_file
+            self.cfg.project_root
+            / "playground"
+            / "data"
+            / "dev"
+            / self.cfg.dev_csv_file
         )
         test_fp = (
-            self.cfg.project_root / "playground" / "data" / "test" / self.cfg.csv_file
+            self.cfg.project_root
+            / "playground"
+            / "data"
+            / "test"
+            / self.cfg.test_csv_file
         )
         train_data = utils.read_csv_dataclass(train_fp, TodTurnCsvRow)
         val_data = utils.read_csv_dataclass(val_fp, TodTurnCsvRow)
@@ -210,6 +223,7 @@ class T5Tod:
             return model
         model = AutoModelForSeq2SeqLM.from_pretrained(
             model_path, load_in_8bit=True, torch_dtype=torch.bfloat16
+            # model_path, load_in_8bit=False
         )
         model.resize_token_embeddings(len(tokenizer))
         model = prepare_model_for_kbit_training(model)
@@ -273,6 +287,10 @@ class T5Tod:
             gradient_accumulation_steps=self.cfg.gradient_accumulation_steps,
             eval_accumulation_steps=self.cfg.eval_accumulation_steps,
             learning_rate=1e-3,
+            # bf16_full_eval=True,
+            # bf16=True,
+            # gradient_checkpointing=False,
+            # ddp_find_unused_parameters=False,
         )
         trainer = Seq2SeqTrainer(
             model=model,
@@ -282,6 +300,9 @@ class T5Tod:
             data_collator=self.dm.tod_train_collate,
         )
         if not self.cfg.model_path:
+            # model.gradient_checkpointing_disable()
+            # with accelerator.no_sync(model):
+            # trainer.train()
             trainer.train()
             # trainer.save_model()
             # model.save_pretrained(self.cfg.out_dir)
@@ -318,12 +339,13 @@ class T5Tod:
         test_dl = accelerator.prepare(test_dl)
         for batch in tqdm(test_dl):
             max_gen_len = self.cfg.max_token_len - self.cfg.test_prompt_max_len
-            sample_outputs = model.generate(
-                inputs=batch.input_ids.to(accelerator.device),
-                attention_mask=batch.attention_mask.to(accelerator.device),
-                do_sample=False,
-                max_length=max_gen_len,
-            )
+            with torch.no_grad():
+                sample_outputs = model.generate(
+                    inputs=batch.input_ids.to(accelerator.device),
+                    attention_mask=batch.attention_mask.to(accelerator.device),
+                    do_sample=False,
+                    max_length=max_gen_len,
+                )
             out_padded = self.pad_gen_to_max_len(sample_outputs, max_gen_len, tokenizer)
             padded_outputs, label_tokens, input_tokens = accelerator.gather_for_metrics(
                 (out_padded, batch.labels, batch.input_ids)
