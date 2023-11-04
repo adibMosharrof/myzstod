@@ -50,8 +50,7 @@ class ZsTodContext:
             [
                 self._get_last_user_utterance(should_add_special_token=False),
                 "End Dialog History",
-                self._get_service_results(),
-                "End Context",
+                self._get_service_results(should_add_special_tokens=False),
             ]
         )
         return out
@@ -61,7 +60,7 @@ class ZsTodContext:
         if not self.service_results:
             return out
         if not should_add_special_tokens:
-            out += "Search Results:\n"
+            out += "\nSearch Results:\n"
         for service_result in self.service_results[:1]:
             if should_add_special_tokens:
                 out += "".join(
