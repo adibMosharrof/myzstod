@@ -166,8 +166,9 @@ class T5DataModule:
         return (*datasets,)
 
     def load_data(self):
+        tod_dms = self.get_dms()[0].datasets
+        return tod_dms["train"], tod_dms["dev"], tod_dms["test"]
         fp = self.cfg.project_root / "playground" / "data" / self.cfg.csv_file
-        # a = self.get_dms()
         data = utils.read_csv_dataclass(fp, TodTurnCsvRow)
         df = pd.DataFrame([vars(d) for d in data])
         # df = pd.read_csv(fp, encoding="ISO-8859-1", header=None)
@@ -343,8 +344,10 @@ class T5Tod:
                 sample_outputs = model.generate(
                     inputs=batch.input_ids.to(accelerator.device),
                     attention_mask=batch.attention_mask.to(accelerator.device),
-                    do_sample=False,
+                    # do_sample=False,
                     max_length=max_gen_len,
+                    penalty_alpha=0.6,
+                    top_k=4,
                 )
             out_padded = self.pad_gen_to_max_len(sample_outputs, max_gen_len, tokenizer)
             padded_outputs, label_tokens, input_tokens = accelerator.gather_for_metrics(
@@ -382,8 +385,17 @@ def old_main():
             eval_accumulation_steps=64,
             save_steps=50,
             eval_steps=10,
-            data_split_percent=[0.1, 0.5, 0.1],
+            data_split_percent=[1, 1, 1],
+            num_dialogs=[10, 5, 1],
             quantization=True,
+            num_turns=26,
+            should_add_schema=True,
+            should_add_user_actions=True,
+            should_add_service_results=True,
+            train_domain_settings="seen",
+            dev_domain_settings="all",
+            test_domain_settings=["all"],
+            context_type="nlg",
         )
     )
     tt.run()
