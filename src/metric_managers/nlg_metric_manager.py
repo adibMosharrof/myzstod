@@ -20,6 +20,5 @@ class NlgMetricManager:
         print(score_str)
 
     def compute_single_row(self, preds, labels):
-        gleu_labels = np.expand_dims(labels, axis=1)
-        result = self.google_bleu.compute(predictions=preds, references=gleu_labels)
+        result = self.google_bleu.compute(predictions=[preds], references=[[labels]])
         return result["google_bleu"]

@@ -29,22 +29,20 @@ class InferenceLogger:
         self.all_input_texts.append(input_texts)
         self.all_labels.append(labels)
         self.all_preds.append(preds)
-        self.all_gleu_scores.append(
-            self.metric_manager.compute_single_row(preds, labels)
-        )
+        for p, l in zip(preds, labels):
+            self.all_gleu_scores.append(self.metric_manager.compute_single_row(p, l))
 
     def write_csv(self):
         self.concat_labels = np.concatenate(self.all_labels, axis=0)
         self.concat_preds = np.concatenate(self.all_preds, axis=0)
         concat_input_texts = np.concatenate(self.all_input_texts, axis=0)
-        concat_gleu_scores = np.concatenate(self.all_gleu_scores, axis=0)
 
         df = pd.DataFrame(
             {
                 "input_texts": concat_input_texts,
                 "target_text": self.concat_labels,
                 "pred_text": self.concat_preds,
-                "gleu_score": concat_gleu_scores,
+                "gleu_score": self.all_gleu_scores,
             }
         )
 
