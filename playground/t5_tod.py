@@ -69,6 +69,7 @@ class T5DataModule:
         )
         prompt_tokens = self.my_tokenize(prompt_text)
         schema_prompt_tokens = self.my_tokenize("\n\nDialog Schemas\n")
+        end_schema_prompt_tokens = self.my_tokenize("\n\nEnd Dialog Schemas\n")
         target_max_len = self.cfg.max_token_len - self.cfg.test_prompt_max_len
         for item in batch:
             context_tokens = self.my_tokenize(item.context)
@@ -78,6 +79,7 @@ class T5DataModule:
                 - len(prompt_tokens)
                 - len(context_tokens)
                 - len(schema_prompt_tokens)
+                - len(end_schema_prompt_tokens)
                 - len(schema_tokens)
             )
             if context_unused_len < 0:
@@ -90,6 +92,7 @@ class T5DataModule:
                     context_tokens,
                     schema_prompt_tokens,
                     schema_tokens,
+                    end_schema_prompt_tokens,
                     pad,
                 ]
             )
@@ -223,7 +226,10 @@ class T5Tod:
             model = T5ForConditionalGeneration.from_pretrained(model_path).cuda()
             return model
         model = AutoModelForSeq2SeqLM.from_pretrained(
-            model_path, load_in_8bit=True, torch_dtype=torch.bfloat16
+            # model_path, load_in_8bit=True, torch_dtype=torch.bfloat16
+            model_path,
+            load_in_8bit=False,
+            torch_dtype=torch.bfloat16
             # model_path, load_in_8bit=False
         )
         model.resize_token_embeddings(len(tokenizer))
@@ -250,11 +256,10 @@ class T5Tod:
             eos_token="<|endoftext|>",
             pad_token="<|pad|>",
         )
+        model = None
         # tokenizer.add_tokens(["<|user|>", "<|system|>"])
         if self.cfg.model_path:
-            model = T5ForConditionalGeneration.from_pretrained(
-                self.cfg.project_root / self.cfg.model_path
-            ).cuda()
+            model_out_dir = str(self.cfg.project_root / self.cfg.model_path)
         elif self.cfg.quantization:
             model = self.get_model(self.cfg.model_name, tokenizer)
         else:
@@ -269,38 +274,38 @@ class T5Tod:
         else:
             train_dataset, val_dataset, test_dataset = self.dm.load_data()
 
-        training_args = Seq2SeqTrainingArguments(
-            output_dir=str(self.cfg.out_dir),
-            num_train_epochs=self.cfg.epochs,
-            logging_steps=10,
-            save_total_limit=5,
-            save_steps=self.cfg.save_steps,
-            eval_steps=self.cfg.eval_steps,
-            load_best_model_at_end=True,
-            save_strategy=IntervalStrategy.STEPS,
-            evaluation_strategy=IntervalStrategy.STEPS,
-            per_device_train_batch_size=self.cfg.train_batch_size,
-            per_device_eval_batch_size=self.cfg.eval_batch_size,
-            warmup_steps=100,
-            weight_decay=0.01,
-            dataloader_drop_last=True,
-            dataloader_num_workers=1,
-            gradient_accumulation_steps=self.cfg.gradient_accumulation_steps,
-            eval_accumulation_steps=self.cfg.eval_accumulation_steps,
-            learning_rate=1e-3,
-            # bf16_full_eval=True,
-            # bf16=True,
-            # gradient_checkpointing=False,
-            # ddp_find_unused_parameters=False,
-        )
-        trainer = Seq2SeqTrainer(
-            model=model,
-            args=training_args,
-            train_dataset=train_dataset,
-            eval_dataset=val_dataset,
-            data_collator=self.dm.tod_train_collate,
-        )
         if not self.cfg.model_path:
+            training_args = Seq2SeqTrainingArguments(
+                output_dir=str(self.cfg.out_dir),
+                num_train_epochs=self.cfg.epochs,
+                logging_steps=10,
+                save_total_limit=5,
+                save_steps=self.cfg.save_steps,
+                eval_steps=self.cfg.eval_steps,
+                load_best_model_at_end=True,
+                save_strategy=IntervalStrategy.STEPS,
+                evaluation_strategy=IntervalStrategy.STEPS,
+                per_device_train_batch_size=self.cfg.train_batch_size,
+                per_device_eval_batch_size=self.cfg.eval_batch_size,
+                warmup_steps=100,
+                weight_decay=0.01,
+                dataloader_drop_last=True,
+                dataloader_num_workers=8,
+                gradient_accumulation_steps=self.cfg.gradient_accumulation_steps,
+                eval_accumulation_steps=self.cfg.eval_accumulation_steps,
+                learning_rate=1e-3,
+                bf16_full_eval=True,
+                bf16=True,
+                # gradient_checkpointing=False,
+                # ddp_find_unused_parameters=False,
+            )
+            trainer = Seq2SeqTrainer(
+                model=model,
+                args=training_args,
+                train_dataset=train_dataset,
+                eval_dataset=val_dataset,
+                data_collator=self.dm.tod_train_collate,
+            )
             # model.gradient_checkpointing_disable()
             # with accelerator.no_sync(model):
             # trainer.train()
@@ -310,6 +315,7 @@ class T5Tod:
             if accelerator.is_main_process:
                 trainer.model.save_pretrained(self.cfg.out_dir)
             accelerator.wait_for_everyone()
+            model_out_dir = self.cfg.out_dir
 
         test_dl = DataLoader(
             test_dataset,
@@ -318,13 +324,15 @@ class T5Tod:
             pin_memory=True,
             num_workers=8,
         )
-
-        _ = model.eval()
+        if not self.cfg.model_path:
+            _ = model.eval()
         print("starting inference")
-
-        inf_logger = InferenceLogger(self.cfg.out_dir / "t5_tod.csv", tokenizer)
+        metric_manager = NlgMetricManager(self.logger)
+        inf_logger = InferenceLogger(
+            self.cfg.out_dir / "t5_tod.csv", tokenizer, metric_manager
+        )
         if self.cfg.quantization:
-            config = PeftConfig.from_pretrained(self.cfg.out_dir)
+            config = PeftConfig.from_pretrained(model_out_dir)
             device_map = {"": accelerator.device}
             model = AutoModelForSeq2SeqLM.from_pretrained(
                 config.base_model_name_or_path,
@@ -333,7 +341,7 @@ class T5Tod:
             )
             model.resize_token_embeddings(len(tokenizer))
             model = PeftModel.from_pretrained(
-                model, self.cfg.out_dir, device_map=device_map
+                model, model_out_dir, device_map=device_map
             )
             model.eval()
 
@@ -346,9 +354,15 @@ class T5Tod:
                     attention_mask=batch.attention_mask.to(accelerator.device),
                     # do_sample=False,
                     max_length=max_gen_len,
-                    penalty_alpha=0.6,
-                    top_k=4,
+                    # penalty_alpha=0.6,
+                    do_sample=True,
+                    top_k=50,
+                    top_p=0.92,
+                    num_return_sequences=1,
                 )
+                # sample_outputs = (
+                #     sample_outputs[0] if len(sample_outputs) == 1 else sample_outputs
+                # )
             out_padded = self.pad_gen_to_max_len(sample_outputs, max_gen_len, tokenizer)
             padded_outputs, label_tokens, input_tokens = accelerator.gather_for_metrics(
                 (out_padded, batch.labels, batch.input_ids)
@@ -357,7 +371,7 @@ class T5Tod:
             inf_logger.add_batch(input_tokens, label_tokens, padded_outputs)
 
         inf_logger.write_csv()
-        metric_manager = NlgMetricManager(self.logger)
+
         metric_manager.compute_metrics(inf_logger)
 
 
