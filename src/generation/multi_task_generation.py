@@ -43,15 +43,15 @@ class MultiTaskGeneration(GenerationBase):
             # adapter_path = self.get_model_path(task.value)
             # adapter_path = str(model_dir / task.value)
             self.model.set_adapter(task.value)
-            with torch.cuda.amp.autocast():
-                gen = self.model.generate(
-                    inputs=batch.input_ids,
-                    attention_mask=batch.attention_masks,
-                    max_length=max_len,
-                    eos_token_id=self.tokenizer.eos_token_id,
-                    pad_token_id=self.tokenizer.pad_token_id,
-                    use_cache=True,
-                )
+            # with torch.cuda.amp.autocast():
+            gen = self.model.generate(
+                inputs=batch.input_ids,
+                attention_mask=batch.attention_masks,
+                max_length=max_len,
+                eos_token_id=self.tokenizer.eos_token_id,
+                pad_token_id=self.tokenizer.pad_token_id,
+                use_cache=True,
+            )
             gen_padded = self.pad_gen_to_max_len(gen, max_len)
             gens.append(gen_padded)
         return gens
