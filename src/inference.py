@@ -62,7 +62,9 @@ class Inference:
             if self.cfg.test_num_turns_groups
             else self.cfg.datamodule.test_dataloader
         )
-
+        max_gen_len = self.cfg.max_token_len
+        if utils.is_t5_model(self.cfg.model_name):
+            max_gen_len = self.cfg.max_token_len - self.cfg.test_prompt_max_len
         for test_dataloader, domain_setting in test_dl_func():
             domains_str = utils.get_domain_setting_str(domain_setting)
             test_csv_out_data = []
@@ -82,7 +84,7 @@ class Inference:
                 ) = self.cfg.generation_handler.get_generation(
                     curr_batch,
                     self.cfg.max_token_len - self.cfg.test_prompt_max_len,
-                    self.cfg.max_token_len,
+                    max_gen_len,
                     self.cfg.test_prompt_max_len,
                     self.cfg.postprocess_generation,
                     self.cfg.accelerator,

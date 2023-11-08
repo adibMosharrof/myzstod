@@ -69,17 +69,20 @@ class SimpleTODTrainer:
 
     def multi_task_run(self):
         dms = self._get_multi_task_dms()
+        model_paths = []
         for dm in dms:
-            # model_path = self.train_multi_task_model(dm)
-            model = self.train_multi_task_model(dm)
+            model_path = self.train_multi_task_model(dm)
+            model_paths.append(model_path)
+            # model = self.train_multi_task_model(dm)
             torch.cuda.empty_cache()
-
+        self.cfg.model_paths = model_paths
         if self.cfg.should_test:
             curr_dir = Path(os.getcwd())
-            # model_out_path = curr_dir / model_path
             inf = Inference(
-                # InferenceConfig.from_trainer_config(self.cfg, model_out_path),
-                InferenceConfig.from_trainer_config(self.cfg, model),
+                InferenceConfig.from_trainer_config(
+                    self.cfg, str(curr_dir / "results" / "multi_task")
+                ),
+                # InferenceConfig.from_trainer_config(self.cfg, model),
             )
             inf.test()
         print(str(self.cfg.out_dir.absolute()))
@@ -371,11 +374,13 @@ class SimpleTODTrainer:
         model.train()
         # with torch.autocast("cuda"):
         pre_trainer.train()
-        pre_trainer.save_model()
-        model.save_pretrained(training_args.output_dir)
-        return model
-        del model
-        torch.cuda.empty_cache()
+        if self.cfg.accelerator.is_main_process:
+            pre_trainer.save_model()
+            model.save_pretrained(training_args.output_dir)
+        self.cfg.accelerator.wait_for_everyone()
+        # return model
+        # del model
+        # torch.cuda.empty_cache()
         return str(Path(os.getcwd()) / training_args.output_dir)
 
     def train_model(self, path, dm) -> str:
@@ -420,8 +425,8 @@ class SimpleTODTrainer:
         # del model
         # gc.collect()
         # torch.cuda.empty_cache()
-        # return training_args.output_dir
-        return model
+        return training_args.output_dir
+        # return model
 
 
 # @hydra.main(config_path="../config/trainer/", config_name="multi_adapter")

@@ -26,7 +26,7 @@ class TurnCsvRowBase(ABC):
             return tod_turn.context.get_short_repr()
         if context_type == ContextType.NLG:
             return tod_turn.context.get_nlg_repr()
-        return ValueError(
+        raise ValueError(
             f"Unknown context type: {context_type}, expected on from {ContextType.list()}"
         )
 

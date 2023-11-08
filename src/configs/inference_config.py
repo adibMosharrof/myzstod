@@ -204,10 +204,10 @@ class InferenceConfig:
                 if not self.quantization:
                     return model_class.from_pretrained(model_path).cuda()
                 # return model_class.from_pretrained(model_path).cuda()
-                device_map = "auto"
+
                 if self.quantization_dtype == 16:
                     # device_map = None
-                    device_map = self.accelerator.device
+                    device_map = {"": self.accelerator.device}
                 return utils.load_quantized_model(
                     model_path,
                     self.tokenizer,
@@ -253,7 +253,9 @@ class InferenceConfig:
         self, model_name: str, model_dir: str, tasks: list[MultiTaskNames]
     ) -> AutoModel:
         model_dir = Path(model_dir)
-        model = utils.get_8bit_model(model_name, is_inference=True)
+        model = utils.get_8bit_model(
+            model_name, is_inference=True, device_map=self.accelerator.device
+        )
         model.resize_token_embeddings(len(self.tokenizer))
         model = get_peft_model(model, utils.get_lora_config(self.model_name))
         for task in tasks:
@@ -295,6 +297,7 @@ class InferenceConfig:
             num_test_dialogs=trainer_config.num_dialogs[2],
             delexicalize=trainer_config.delexicalize,
             model=model,
+            model_paths=trainer_config.model_paths,
             model_name=trainer_config.model_name,
             generate_max_len=trainer_config.generate_max_len,
             test_domain_settings=trainer_config.test_domain_settings,
