@@ -231,11 +231,12 @@ class T5Tod:
         if not self.cfg.quantization:
             model = T5ForConditionalGeneration.from_pretrained(model_path).cuda()
             return model
+        dtype = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
         model = AutoModelForSeq2SeqLM.from_pretrained(
             # model_path, load_in_8bit=True, torch_dtype=torch.bfloat16
             model_path,
             load_in_8bit=False,
-            torch_dtype=torch.bfloat16
+            torch_dtype=dtype
             # model_path, load_in_8bit=False
         )
         model.resize_token_embeddings(len(tokenizer))
@@ -278,7 +279,7 @@ class T5Tod:
         if self.cfg.separate_dev_test:
             train_dataset, val_dataset, test_dataset = self.dm.load_data_from_files()
         else:
-            train_dataset, val_dataset, test_dataset = self.dm.load_data()
+            train_dataset, val_dataset, test_datasets = self.dm.load_data()
 
         if not self.cfg.model_path:
             training_args = Seq2SeqTrainingArguments(
@@ -300,8 +301,10 @@ class T5Tod:
                 gradient_accumulation_steps=self.cfg.gradient_accumulation_steps,
                 eval_accumulation_steps=self.cfg.eval_accumulation_steps,
                 learning_rate=1e-3,
-                bf16_full_eval=True,
-                bf16=True,
+                # bf16_full_eval=True,
+                # bf16=True,
+                fp16=True,
+                fp16_full_eval=True,
                 # gradient_checkpointing=False,
                 # ddp_find_unused_parameters=False,
             )
@@ -323,20 +326,11 @@ class T5Tod:
             accelerator.wait_for_everyone()
             model_out_dir = self.cfg.out_dir
 
-        test_dl = DataLoader(
-            test_dataset,
-            batch_size=self.cfg.test_batch_size,
-            collate_fn=self.dm.tod_train_collate,
-            pin_memory=True,
-            num_workers=8,
-        )
         if not self.cfg.model_path:
             _ = model.eval()
         print("starting inference")
         metric_manager = NlgMetricManager(self.logger)
-        inf_logger = InferenceLogger(
-            self.cfg.out_dir / "t5_tod.csv", tokenizer, metric_manager
-        )
+        inf_logger = InferenceLogger(tokenizer, metric_manager)
         if self.cfg.quantization:
             config = PeftConfig.from_pretrained(model_out_dir)
             device_map = {"": accelerator.device}
@@ -351,34 +345,51 @@ class T5Tod:
             )
             model.eval()
 
-        test_dl = accelerator.prepare(test_dl)
-        for batch in tqdm(test_dl):
-            max_gen_len = self.cfg.max_token_len - self.cfg.test_prompt_max_len
-            with torch.no_grad():
-                sample_outputs = model.generate(
-                    inputs=batch.input_ids.to(accelerator.device),
-                    attention_mask=batch.attention_mask.to(accelerator.device),
-                    # do_sample=False,
-                    max_length=max_gen_len,
-                    # penalty_alpha=0.6,
-                    do_sample=True,
-                    top_k=50,
-                    top_p=0.92,
-                    num_return_sequences=1,
-                )
-                # sample_outputs = (
-                #     sample_outputs[0] if len(sample_outputs) == 1 else sample_outputs
-                # )
-            out_padded = self.pad_gen_to_max_len(sample_outputs, max_gen_len, tokenizer)
-            padded_outputs, label_tokens, input_tokens = accelerator.gather_for_metrics(
-                (out_padded, batch.labels, batch.input_ids)
+        for test_dataset, domain_names_list in zip(
+            test_datasets, self.cfg.test_domain_settings
+        ):
+            domain_names = ",".join(domain_names_list)
+            if not len(test_dataset):
+                print(f"No data for {domain_names}")
+                continue
+            test_dl = DataLoader(
+                test_dataset,
+                batch_size=self.cfg.test_batch_size,
+                collate_fn=self.dm.tod_train_collate,
+                pin_memory=True,
+                num_workers=8,
             )
-            # decode the predicted tokens into texts
-            inf_logger.add_batch(input_tokens, label_tokens, padded_outputs)
+            test_dl = accelerator.prepare(test_dl)
+            for batch in tqdm(test_dl):
+                max_gen_len = self.cfg.max_token_len - self.cfg.test_prompt_max_len
+                with torch.no_grad():
+                    sample_outputs = model.generate(
+                        inputs=batch.input_ids.to(accelerator.device),
+                        attention_mask=batch.attention_mask.to(accelerator.device),
+                        # do_sample=False,
+                        max_length=max_gen_len,
+                        # penalty_alpha=0.6,
+                        do_sample=True,
+                        top_k=50,
+                        top_p=0.92,
+                        num_return_sequences=1,
+                    )
+                out_padded = self.pad_gen_to_max_len(
+                    sample_outputs, max_gen_len, tokenizer
+                )
+                (
+                    padded_outputs,
+                    label_tokens,
+                    input_tokens,
+                ) = accelerator.gather_for_metrics(
+                    (out_padded, batch.labels, batch.input_ids)
+                )
+                # decode the predicted tokens into texts
+                inf_logger.add_batch(input_tokens, label_tokens, padded_outputs)
+            csv_path = self.cfg.out_dir / f"{domain_names}.csv"
+            inf_logger.write_csv(csv_path)
 
-        inf_logger.write_csv()
-
-        metric_manager.compute_metrics(inf_logger)
+            metric_manager.compute_metrics(inf_logger)
 
 
 # if __name__ == "__main__":

@@ -4,12 +4,11 @@ import pandas as pd
 
 
 class InferenceLogger:
-    def __init__(self, csv_path, tokenizer, metric_manager):
+    def __init__(self, tokenizer, metric_manager):
         self.all_input_texts = []
         self.all_labels = []
         self.all_preds = []
         self.all_gleu_scores = []
-        self.csv_path = csv_path
         self.concat_labels = None
         self.concat_preds = None
         self.tokenizer = tokenizer
@@ -32,7 +31,7 @@ class InferenceLogger:
         for p, l in zip(preds, labels):
             self.all_gleu_scores.append(self.metric_manager.compute_single_row(p, l))
 
-    def write_csv(self):
+    def write_csv(self, csv_path):
         self.concat_labels = np.concatenate(self.all_labels, axis=0)
         self.concat_preds = np.concatenate(self.all_preds, axis=0)
         concat_input_texts = np.concatenate(self.all_input_texts, axis=0)
@@ -46,4 +45,4 @@ class InferenceLogger:
             }
         )
 
-        df.to_csv(self.csv_path, index=False, encoding="utf-8")
+        df.to_csv(csv_path, index=False, encoding="utf-8")
