@@ -32,6 +32,7 @@ from sgd_dstc8_data_model.dstc_dataclasses import (
     get_schemas,
 )
 from utils import get_csv_data_path, get_dialog_file_paths
+from utilities.text_utilities import get_nlg_service_name
 
 from simple_tod_dataclasses import (
     MultiTaskSpecialToken,
@@ -199,8 +200,13 @@ class SimpleTODDSTCDataPrep:
                 turn_schema_str = "".join([str(s) for s in turn_schemas])
         context = self._prepare_context(user_turn, system_turn, prev_tod_turn, schemas)
         target = self._prepare_target(user_turn, system_turn, schemas)
+        domains = [get_nlg_service_name(s) for s in services]
         return ZsTodTurn(
-            context, target, schemas=turn_schemas, schema_str=turn_schema_str
+            context,
+            target,
+            schemas=turn_schemas,
+            schema_str=turn_schema_str,
+            domains=domains,
         )
 
     def _is_dialogue_in_domain(self, dialogue_services: List[str]) -> bool:

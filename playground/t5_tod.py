@@ -72,10 +72,15 @@ class T5DataModule:
         end_schema_prompt_tokens = self.my_tokenize("\n\nEnd Dialog Schemas\n")
         target_max_len = self.cfg.max_token_len - self.cfg.test_prompt_max_len
         for item in batch:
+            domain_prompt = (
+                f"You are a chat assistant for the domains: {item.domains}.\n"
+            )
+            domain_prompt_tokens = self.my_tokenize(domain_prompt)
             context_tokens = self.my_tokenize(item.context)
             schema_tokens = self.my_tokenize(item.schema)
             context_unused_len = (
                 self.cfg.test_prompt_max_len
+                - len(domain_prompt_tokens)
                 - len(prompt_tokens)
                 - len(context_tokens)
                 - len(schema_prompt_tokens)
@@ -88,6 +93,7 @@ class T5DataModule:
             pad = torch.full([context_unused_len], self.tokenizer.pad_token_id)
             input_tokens = torch.cat(
                 [
+                    domain_prompt_tokens,
                     prompt_tokens,
                     context_tokens,
                     schema_prompt_tokens,

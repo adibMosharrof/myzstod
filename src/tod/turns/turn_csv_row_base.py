@@ -14,7 +14,7 @@ Override hook_before_adding_taget to add additional columns to csv
 class TurnCsvRowBase(ABC):
     @abstractmethod
     def get_csv_headers(self, should_add_schema: bool) -> list[str]:
-        headers = ["dialog_id", "turn_id", "context"]
+        headers = ["dialog_id", "turn_id", "domains", "context"]
         if should_add_schema:
             headers.append("schema")
         return headers
@@ -38,7 +38,8 @@ class TurnCsvRowBase(ABC):
     ) -> list[str]:
         context_str = self.get_context(tod_turn, context_type)
         context_str += tod_turn.prompt_token if tod_turn.prompt_token else ""
-        row = [tod_turn.dialog_id, tod_turn.turn_id, context_str]
+        domains_str = ",".join(tod_turn.domains) if tod_turn.domains else ""
+        row = [tod_turn.dialog_id, tod_turn.turn_id, domains_str, context_str]
         if should_add_schema:
             row.append(tod_turn.schema_str)
         self.hook_before_adding_target(row, tod_turn)

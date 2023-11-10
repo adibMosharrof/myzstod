@@ -15,10 +15,10 @@ class NlgMetricManager:
         result = self.google_bleu.compute(
             predictions=inf_logger.concat_preds, references=gleu_labels
         )
-        score_str = f"GLEU score: {result['google_bleu']}"
+        score_str = f"GLEU score: {result['google_bleu']:.4f}"
         self.logger.info(score_str)
         print(score_str)
 
     def compute_single_row(self, preds, labels):
         result = self.google_bleu.compute(predictions=[preds], references=[[labels]])
-        return result["google_bleu"]
+        return round(result["google_bleu"], 4)
