@@ -78,7 +78,7 @@ class ZsTodContext:
                     ]
                 )
         if not should_add_special_tokens:
-            out += "End Search Results:\n"
+            out += "\nEnd Search Results:\n"
         return out
 
     def _get_sys_actions(self) -> str:
