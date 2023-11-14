@@ -56,13 +56,13 @@ class T5DataModule:
         self.tokenizer = tokenizer
         self.nlg_prompt_cls = NlgPromptFactory.get_handler(cfg.prompt_type)
 
-    def my_tokenize(self, text: str):
-        tokens = self.tokenizer.encode(text, return_tensors="pt")
+    def my_tokenize(self, text: str, max_len: int = None):
+        tokens = self.tokenizer.encode(text, return_tensors="pt", max_length=max_len)
         return tokens.to(dtype=torch.int32)[0]
 
     def trim_dialog_history(self, item: TodTurnCsvRow, trim_len: int):
         dialog_history_tokens = self.my_tokenize(item.context)
-        trimmed_history_tokens = dialog_history_tokens[trim_len:]
+        trimmed_history_tokens = dialog_history_tokens[trim_len + 5 :]
         trimmed_history_text = self.tokenizer.decode(trimmed_history_tokens)
         context_text = self.nlg_prompt_cls.get_prompt(
             item.domains, item.schema, trimmed_history_text
