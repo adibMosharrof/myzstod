@@ -49,7 +49,7 @@ class ZsTodTarget:
     def get_nlg_target_str(self) -> str:
         out = " ".join(
             [
-                "System Response",
+                # "System Response",
                 self.response,
             ]
         )

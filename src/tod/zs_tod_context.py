@@ -37,15 +37,26 @@ class ZsTodContext:
         )
 
     def get_nlg_repr(self):
-        out = ""
+        history = []
+        # out = ""
         for user, system in zip_longest(
             self.user_utterances, self.system_utterances, fillvalue=""
         ):
             if user:
-                out += f"User: {user}"
+                # out += f"User: {user}\n"
+                history.append(f"User: {user}")
             if system:
-                out += f"System: {system}"
-
+                # out += f"System: {system}\n"
+                history.append(f"System: {system}")
+        history_text = "\n".join(history)
+        return "\n".join(
+            [
+                history_text,
+                self._get_last_user_utterance(should_add_special_token=False),
+                "End Dialog History",
+                self._get_service_results(should_add_special_tokens=False),
+            ]
+        )
         out += "\n".join(
             [
                 self._get_last_user_utterance(should_add_special_token=False),
@@ -78,7 +89,7 @@ class ZsTodContext:
                     ]
                 )
         if not should_add_special_tokens:
-            out += "End Search Results:\n"
+            out += "\nEnd Search Results\n"
         return out
 
     def _get_sys_actions(self) -> str:
@@ -88,7 +99,7 @@ class ZsTodContext:
 
     def _get_last_user_utterance(self, should_add_special_token=True) -> str:
         if not should_add_special_token:
-            return "".join([self.current_user_utterance])
+            return "".join(["Last User Utterance:", self.current_user_utterance])
         return "".join(
             [
                 SpecialTokens.begin_last_user_utterance,

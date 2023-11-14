@@ -4,8 +4,10 @@ import uuid
 
 from omegaconf import DictConfig
 
+
 sys.path.insert(0, os.path.abspath("./src"))
 from my_enums import Steps
+from prompts.nlg_prompt_manager import NlgPromptFactory
 from tod_datamodules import TodDataModule
 from configs.dm_config import DataModuleConfig
 import hydra
@@ -52,53 +54,41 @@ class T5DataModule:
     def __init__(self, cfg, tokenizer):
         self.cfg = cfg
         self.tokenizer = tokenizer
+        self.nlg_prompt_cls = NlgPromptFactory.get_handler(cfg.prompt_type)
 
     def my_tokenize(self, text: str):
         tokens = self.tokenizer.encode(text, return_tensors="pt")
         return tokens.to(dtype=torch.int32)[0]
 
+    def trim_dialog_history(self, item: TodTurnCsvRow, trim_len: int):
+        dialog_history_tokens = self.my_tokenize(item.context)
+        trimmed_history_tokens = dialog_history_tokens[trim_len:]
+        trimmed_history_text = self.tokenizer.decode(trimmed_history_tokens)
+        context_text = self.nlg_prompt_cls.get_prompt(
+            item.domains, item.schema, trimmed_history_text
+        )
+        context_tokens = self.my_tokenize(context_text)
+        return context_tokens
+
     def tod_train_collate(self, batch: list[TodTurnCsvRow]):
         all_input_tokens = []
         all_labels = []
         all_attention_masks = []
-        prompt_text = "\n".join(
-            [
-                "Instructions: Given the Dialog History and the Dialog Schemas, please generate the system response.\n",
-                "Dialog History\n",
-            ]
-        )
-        prompt_tokens = self.my_tokenize(prompt_text)
-        schema_prompt_tokens = self.my_tokenize("\n\nDialog Schemas\n")
-        end_schema_prompt_tokens = self.my_tokenize("\n\nEnd Dialog Schemas\n")
+
         target_max_len = self.cfg.max_token_len - self.cfg.test_prompt_max_len
         for item in batch:
-            domain_prompt = (
-                f"You are a chat assistant for the domains: {item.domains}.\n"
+            context_text = self.nlg_prompt_cls.get_prompt(
+                item.domains, item.schema, item.context
             )
-            domain_prompt_tokens = self.my_tokenize(domain_prompt)
-            context_tokens = self.my_tokenize(item.context)
-            schema_tokens = self.my_tokenize(item.schema)
-            context_unused_len = (
-                self.cfg.test_prompt_max_len
-                - len(domain_prompt_tokens)
-                - len(prompt_tokens)
-                - len(context_tokens)
-                - len(schema_prompt_tokens)
-                - len(end_schema_prompt_tokens)
-                - len(schema_tokens)
-            )
+            context_tokens = self.my_tokenize(context_text)
+            context_unused_len = self.cfg.test_prompt_max_len - len(context_tokens)
             if context_unused_len < 0:
-                context_tokens = context_tokens[context_unused_len * -1 :]
+                context_tokens = self.trim_dialog_history(item, -context_unused_len)
                 context_unused_len = 0
             pad = torch.full([context_unused_len], self.tokenizer.pad_token_id)
             input_tokens = torch.cat(
                 [
-                    domain_prompt_tokens,
-                    prompt_tokens,
                     context_tokens,
-                    schema_prompt_tokens,
-                    schema_tokens,
-                    end_schema_prompt_tokens,
                     pad,
                 ]
             )
@@ -427,6 +417,7 @@ def old_main():
             dev_domain_settings="all",
             test_domain_settings=["all"],
             context_type="nlg",
+            prompt_type="default",
         )
     )
     tt.run()
