@@ -84,7 +84,7 @@ class T5DataModule:
             context_unused_len = self.cfg.test_prompt_max_len - len(context_tokens)
             if context_unused_len < 0:
                 context_tokens = self.trim_dialog_history(item, -context_unused_len)
-                context_unused_len = 0
+                context_unused_len = self.cfg.test_prompt_max_len - len(context_tokens)
             pad = torch.full([context_unused_len], self.tokenizer.pad_token_id)
             input_tokens = torch.cat(
                 [
