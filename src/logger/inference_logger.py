@@ -9,6 +9,9 @@ class InferenceLogger:
         self.all_labels = []
         self.all_preds = []
         self.all_gleu_scores = []
+        self.all_bert_score_precision = []
+        self.all_bert_score_recall = []
+        self.all_bert_score_f1 = []
         self.concat_labels = None
         self.concat_preds = None
         self.tokenizer = tokenizer
@@ -29,7 +32,16 @@ class InferenceLogger:
         self.all_labels.append(labels)
         self.all_preds.append(preds)
         for p, l in zip(preds, labels):
-            self.all_gleu_scores.append(self.metric_manager.compute_single_row(p, l))
+            (
+                gleu_score,
+                b_precision,
+                b_recall,
+                b_f1,
+            ) = self.metric_manager.compute_single_row(p, l)
+            self.all_gleu_scores.append(gleu_score)
+            self.all_bert_score_precision.append(b_precision)
+            self.all_bert_score_recall.append(b_recall)
+            self.all_bert_score_f1.append(b_f1)
 
     def write_csv(self, csv_path):
         self.concat_labels = np.concatenate(self.all_labels, axis=0)
@@ -42,6 +54,9 @@ class InferenceLogger:
                 "target_text": self.concat_labels,
                 "pred_text": self.concat_preds,
                 "gleu_score": self.all_gleu_scores,
+                "bs_precision": self.all_bert_score_precision,
+                "bs_recall": self.all_bert_score_recall,
+                "bs_f1": self.all_bert_score_f1,
             }
         )
 
