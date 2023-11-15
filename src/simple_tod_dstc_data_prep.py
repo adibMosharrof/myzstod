@@ -207,6 +207,7 @@ class SimpleTODDSTCDataPrep:
             schemas=turn_schemas,
             schema_str=turn_schema_str,
             domains=domains,
+            domains_original=services,
         )
 
     def _is_dialogue_in_domain(self, dialogue_services: List[str]) -> bool:

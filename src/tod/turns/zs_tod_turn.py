@@ -16,6 +16,7 @@ class TodTurnCsvRow:
     target: str = None
     schema: Optional[str] = None
     domains: Optional[str] = None
+    domains_original: Optional[str] = None
 
 
 @dataclass
@@ -55,3 +56,4 @@ class ZsTodTurn:
     schema_str: Optional[str] = None
     prompt_token: Optional[SpecialTokens] = None
     domains: Optional[list[str]] = None
+    domains_original: Optional[list[str]] = None

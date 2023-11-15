@@ -6,6 +6,7 @@ from omegaconf import DictConfig
 
 
 sys.path.insert(0, os.path.abspath("./src"))
+from prompts.prompt_constants import NlgPromptType
 from my_enums import Steps
 from prompts.nlg_prompt_manager import NlgPromptFactory
 from tod_datamodules import TodDataModule
@@ -48,27 +49,50 @@ from peft import (
     get_peft_model,
 )
 from accelerate import Accelerator
+from utilities import text_utilities
+from sgd_dstc8_data_model.dstc_dataclasses import get_schemas
 
 
 class T5DataModule:
-    def __init__(self, cfg, tokenizer):
+    def __init__(self, cfg, tokenizer, schemas):
         self.cfg = cfg
         self.tokenizer = tokenizer
+        self.schemas = schemas
         self.nlg_prompt_cls = NlgPromptFactory.get_handler(cfg.prompt_type)
 
     def my_tokenize(self, text: str, max_len: int = None):
         tokens = self.tokenizer.encode(text, return_tensors="pt", max_length=max_len)
         return tokens.to(dtype=torch.int32)[0]
 
-    def trim_dialog_history(self, item: TodTurnCsvRow, trim_len: int):
+    def trim_dialog_history(
+        self,
+        item: TodTurnCsvRow,
+        trim_len: int,
+        other_domain: str,
+        other_domain_schema: str,
+    ):
         dialog_history_tokens = self.my_tokenize(item.context)
         trimmed_history_tokens = dialog_history_tokens[trim_len + 5 :]
         trimmed_history_text = self.tokenizer.decode(trimmed_history_tokens)
         context_text = self.nlg_prompt_cls.get_prompt(
-            item.domains, item.schema, trimmed_history_text
+            item.domains,
+            item.schema,
+            trimmed_history_text,
+            other_domain,
+            other_domain_schema,
         )
         context_tokens = self.my_tokenize(context_text)
         return context_tokens
+
+    def get_other_domain(self, item):
+        domain = item.domains_original
+        filtered_domains = [d for d in self.cfg.train_domain_settings if d != domain]
+        other_domain = np.random.choice(filtered_domains)
+        other_domain_schema = self.schemas[other_domain]
+        return (
+            text_utilities.get_nlg_service_name(other_domain),
+            other_domain_schema.get_nlg_repr(),
+        )
 
     def tod_train_collate(self, batch: list[TodTurnCsvRow]):
         all_input_tokens = []
@@ -77,13 +101,22 @@ class T5DataModule:
 
         target_max_len = self.cfg.max_token_len - self.cfg.test_prompt_max_len
         for item in batch:
+            other_domain, other_domain_schema = None, None
+            if self.cfg.prompt_type == NlgPromptType.MULTI_DOMAIN.value:
+                other_domain, other_domain_schema = self.get_other_domain(item)
             context_text = self.nlg_prompt_cls.get_prompt(
-                item.domains, item.schema, item.context
+                item.domains,
+                item.schema,
+                item.context,
+                other_domain,
+                other_domain_schema,
             )
             context_tokens = self.my_tokenize(context_text)
             context_unused_len = self.cfg.test_prompt_max_len - len(context_tokens)
             if context_unused_len < 0:
-                context_tokens = self.trim_dialog_history(item, -context_unused_len)
+                context_tokens = self.trim_dialog_history(
+                    item, -context_unused_len, other_domain, other_domain_schema
+                )
                 context_unused_len = self.cfg.test_prompt_max_len - len(context_tokens)
             pad = torch.full([context_unused_len], self.tokenizer.pad_token_id)
             input_tokens = torch.cat(
@@ -202,6 +235,7 @@ class T5Tod:
         log_file = self.cfg.out_dir / "t5_tod.log"
         logging.basicConfig(filename=log_file, level=logging.INFO, encoding="utf-8")
         self.logger = logging
+        self.cfg.raw_data_root = self.cfg.project_root / self.cfg.raw_data_root
 
     def pad_gen_to_max_len(self, gen, max_len: int, tokenizer):
         pad_amount = max_len - gen.shape[1]
@@ -264,8 +298,11 @@ class T5Tod:
                 self.cfg.model_name
             ).cuda()
             model.resize_token_embeddings(len(tokenizer))
-
-        self.dm = T5DataModule(self.cfg, tokenizer)
+        steps = Steps.list()
+        schemas = {}
+        for d in [get_schemas(self.cfg.raw_data_root, step) for step in steps]:
+            schemas.update(d)
+        self.dm = T5DataModule(self.cfg, tokenizer, schemas)
         if self.cfg.separate_dev_test:
             train_dataset, val_dataset, test_dataset = self.dm.load_data_from_files()
         else:
