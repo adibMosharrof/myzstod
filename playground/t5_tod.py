@@ -236,6 +236,7 @@ class T5Tod:
         logging.basicConfig(filename=log_file, level=logging.INFO, encoding="utf-8")
         self.logger = logging
         self.cfg.raw_data_root = self.cfg.project_root / self.cfg.raw_data_root
+        self.logger.info(self.cfg)
 
     def pad_gen_to_max_len(self, gen, max_len: int, tokenizer):
         pad_amount = max_len - gen.shape[1]
@@ -287,6 +288,7 @@ class T5Tod:
             eos_token="<|endoftext|>",
             pad_token="<|pad|>",
         )
+        tokenizer.model_max_length = 1024
         model = None
         # tokenizer.add_tokens(["<|user|>", "<|system|>"])
         if self.cfg.model_path:
