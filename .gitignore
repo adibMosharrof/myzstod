@@ -1,4 +1,5 @@
 .pytest_cache/
+.idea/
 data/
 out/
 envs/
@@ -23,3 +24,6 @@ wandb/
 data_exploration/
 playground/data
 playground/t5_tod_out
+playground/summary_data/
+playground/t5_sum_out/
+config/

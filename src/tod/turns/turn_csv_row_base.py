@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-
 from my_enums import ContextType
 from tod.turns.zs_tod_turn import ZsTodTurn
 
@@ -20,15 +19,13 @@ class TurnCsvRowBase(ABC):
         return headers
 
     def get_context(self, tod_turn: ZsTodTurn, context_type: ContextType) -> str:
-        if context_type == ContextType.DEFAULT:
-            return str(tod_turn.context)
+        if context_type not in ContextType.list():
+            raise ValueError(
+                f"Unknown context type: {context_type}, expected on from {ContextType.list()}"
+            )
         if context_type == ContextType.SHORT_REPR:
             return tod_turn.context.get_short_repr()
-        if context_type == ContextType.NLG:
-            return tod_turn.context.get_nlg_repr()
-        raise ValueError(
-            f"Unknown context type: {context_type}, expected on from {ContextType.list()}"
-        )
+        return str(tod_turn.context)
 
     def hook_before_adding_target(self, row: list[str], tod_turn: ZsTodTurn):
         pass
@@ -37,7 +34,9 @@ class TurnCsvRowBase(ABC):
         self, context_type: ContextType, tod_turn: ZsTodTurn, should_add_schema: bool
     ) -> list[str]:
         context_str = self.get_context(tod_turn, context_type)
-        context_str += tod_turn.prompt_token if tod_turn.prompt_token else ""
+
+        context_str += getattr(tod_turn, "prompt_token", "")
+        # context_str += tod_turn.prompt_token if tod_turn.prompt_token else ""
         domains_str = ",".join(tod_turn.domains) if tod_turn.domains else ""
         domains_orig_str = (
             ",".join(tod_turn.domains_original) if tod_turn.domains else ""
@@ -59,7 +58,4 @@ class TurnCsvRowBase(ABC):
     def get_target_str(
         self, tod_turn: ZsTodTurn, context_type: ContextType = ContextType.DEFAULT
     ) -> str:
-        if context_type == ContextType.NLG:
-            return tod_turn.target.get_nlg_target_str()
-
         return str(tod_turn.target)

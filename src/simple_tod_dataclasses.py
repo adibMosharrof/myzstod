@@ -42,6 +42,7 @@ class TodTestDataBatch:
     targets_text: list[str]
     dialog_ids: list[int]
     turn_ids: list[int]
+    is_service_call: Optional[list[bool]] = field(default_factory=list)
 
 
 @dataclass

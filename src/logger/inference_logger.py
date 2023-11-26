@@ -17,7 +17,7 @@ class InferenceLogger:
         self.tokenizer = tokenizer
         self.metric_manager = metric_manager
 
-    def add_batch(self, input_tokens, label_tokens, pred_tokens):
+    def add_batch(self, input_tokens, label_tokens, pred_tokens, service_calls):
         input_texts = self.tokenizer.batch_decode(
             input_tokens, skip_special_tokens=True, clean_up_tokenization_spaces=True
         )
@@ -31,7 +31,8 @@ class InferenceLogger:
         self.all_input_texts.append(input_texts)
         self.all_labels.append(labels)
         self.all_preds.append(preds)
-        for p, l in zip(preds, labels):
+
+        for p, l, s in zip(preds, labels, service_calls):
             (
                 gleu_score,
                 b_precision,

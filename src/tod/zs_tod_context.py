@@ -16,6 +16,7 @@ class ZsTodContext:
     should_add_sys_actions: bool = None
     prev_tod_turn: Optional[any] = None
     service_results: Optional[list[dict[str, str]]] = None
+    service_call: Optional[dict[str, str]] = None
 
     def __init__(self, max_length: int = 10):
         self.user_utterances = deque(maxlen=max_length)
@@ -55,6 +56,7 @@ class ZsTodContext:
                 self._get_last_user_utterance(should_add_special_token=False),
                 "End Dialog History",
                 self._get_service_results(should_add_special_tokens=False),
+                self.get_service_call(),
             ]
         )
         out += "\n".join(
@@ -64,6 +66,14 @@ class ZsTodContext:
                 self._get_service_results(should_add_special_tokens=False),
             ]
         )
+        return out
+
+    def get_service_call(self) -> str:
+        out = ""
+        if not self.service_call:
+            return out
+        self.service_call.__class__.__qualname__ = "ServiceCall"
+        out += str(self.service_call)
         return out
 
     def _get_service_results(self, should_add_special_tokens: bool = True) -> str:
@@ -82,12 +92,15 @@ class ZsTodContext:
                     ]
                 )
             else:
-                out += "\n".join(
-                    [
-                        ":".join([utils.remove_underscore(k), v])
-                        for k, v in service_result.items()
-                    ]
-                )
+                # out += "\n".join(
+                #     [
+                #         ":".join([utils.remove_underscore(k), v])
+                #         for k, v in service_result.items()
+                #     ]
+                # )
+                s_res = {"search_results": service_result}
+                out += str(s_res)
+
         if not should_add_special_tokens:
             out += "\nEnd Search Results\n"
         return out
