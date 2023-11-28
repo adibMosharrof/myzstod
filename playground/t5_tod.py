@@ -71,6 +71,7 @@ class T5Tod:
         self.logger = logging
         self.cfg.raw_data_root = self.cfg.project_root / self.cfg.raw_data_root
         self.logger.info(self.cfg)
+        print(self.cfg)
 
     def get_metric_manager(self, context_type: str, tokenizer):
         if context_type == ContextType.NLG_SERVICE_CALL.value:
@@ -134,6 +135,7 @@ class T5Tod:
             model_out_dir = str(self.cfg.project_root / self.cfg.model_path)
         elif self.cfg.quantization:
             model = self.get_model(self.cfg.model_name, tokenizer)
+            deepspeed_path = self.cfg.project_root / "config/ds_zero1.json"
         else:
             model = T5ForConditionalGeneration.from_pretrained(
                 self.cfg.model_name
@@ -169,12 +171,13 @@ class T5Tod:
                 gradient_accumulation_steps=self.cfg.gradient_accumulation_steps,
                 eval_accumulation_steps=self.cfg.eval_accumulation_steps,
                 learning_rate=1e-3,
-                # bf16_full_eval=True,
-                # bf16=True,
-                fp16=True,
-                fp16_full_eval=True,
+                bf16_full_eval=True,
+                bf16=True,
+                # fp16=True,
+                # fp16_full_eval=True,
                 # gradient_checkpointing=False,
                 # ddp_find_unused_parameters=False,
+                deepspeed=deepspeed_path,
             )
             trainer = Seq2SeqTrainer(
                 model=model,
@@ -225,6 +228,7 @@ class T5Tod:
             if not len(test_dataset):
                 print(f"No data for {domain_names}")
                 continue
+            print(f"testing {domain_names}")
             test_dl = DataLoader(
                 test_dataset,
                 batch_size=self.cfg.test_batch_size,
@@ -264,7 +268,7 @@ class T5Tod:
             csv_path = self.cfg.out_dir / f"{domain_names}.csv"
             metric_manager.write_csv(csv_path)
 
-            metric_manager.compute_metrics()
+            metric_manager.compute_metrics(domain_names)
 
 
 # if __name__ == "__main__":

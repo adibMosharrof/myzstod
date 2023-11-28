@@ -107,6 +107,7 @@ class NlgServiceCallDataPrep(DataPrepStrategy):
             return turn_id
         new_turn = copy.deepcopy(tod_turn)
         new_turn.context.service_call = None
+        new_turn.context.service_results = None
         new_turn.is_service_call = True
         new_turn.target.response = tod_turn.context._get_service_call()
         new_turn.dialog_id = dialog_id

@@ -4,7 +4,7 @@ import uuid
 import evaluate
 import numpy as np
 import pandas as pd
-from prettytable import PrettyTable
+from prettytable import PrettyTable,MARKDOWN 
 
 from logger.inference_logger import InferenceLogger
 from logger.inference_logger_dataclasses import (
@@ -46,7 +46,7 @@ class NlgServiceCallMetricManager:
         gleu_score = gleu_result["google_bleu"]
         return gleu_score
 
-    def compute_metrics(self):
+    def compute_metrics(self, domain_names:str):
         pt = PrettyTable()
         pt.field_names = [
             "Setting",
@@ -120,6 +120,7 @@ class NlgServiceCallMetricManager:
                 -1,
             ]
         )
+        pt.set_style(MARKDOWN)
         self.logger.info(pt)
         print(pt)
         score_str = f"Api call score {api_call_score}"
