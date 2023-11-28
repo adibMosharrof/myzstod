@@ -2,6 +2,7 @@ from dotmap import DotMap
 import numpy as np
 import torch
 from base_datamodule import SimpleTodDataSet, TodTrainRowCollator
+from dstc.dstc_domains import DstcDomainBuilder
 from my_enums import Steps
 from prompts.nlg_prompt_manager import NlgPromptFactory
 from prompts.prompt_constants import NlgPromptType
@@ -22,6 +23,9 @@ class T5DataModule:
         self.tokenizer = tokenizer
         self.schemas = schemas
         self.nlg_prompt_cls = NlgPromptFactory.get_handler(cfg.prompt_type)
+        self.domain_builder = DstcDomainBuilder(
+            self.cfg.raw_data_root, self.cfg.data_split_percent[0]
+        )
 
     def my_tokenize(self, text: str, max_len: int = None):
         tokens = self.tokenizer.encode(text, return_tensors="pt", max_length=max_len)
@@ -49,7 +53,8 @@ class T5DataModule:
 
     def get_other_domain(self, item):
         domain = item.domains_original
-        filtered_domains = [d for d in self.cfg.train_domain_settings if d != domain]
+        train_domains = self.domain_builder.get_domains(self.cfg.train_domain_settings)
+        filtered_domains = [d for d in train_domains if d != domain]
         other_domain = np.random.choice(filtered_domains)
         other_domain_schema = self.schemas[other_domain]
         return (
