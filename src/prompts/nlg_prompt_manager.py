@@ -55,7 +55,7 @@ class NlgMultidomainPrompt:
                 other_domain_schema,
                 f"You were provided with a Schema for the domain: {other_domain}.",
                 f"Now you have switched domains and are an expert chat assistant for the domain: {current_domain}",
-                cu1rrent_domain_schema,
+                current_domain_schema,
                 f"You have been provided with a Schema for domain: {current_domain}, which is in the same format as the {other_domain} and contains the relevant Intents for the {current_domain}.",
                 f"Use the {current_domain} schema in a similar way you used it in the {other_domain}.",
                 "Dialog History:",
