@@ -93,6 +93,8 @@ class T5DataModule:
 
         target_tokens = self.my_tokenize(item.target)
         target_unused_len = target_max_len - len(target_tokens)
+        if target_unused_len < 0:
+            raise Exception("Target is too long")
         label = torch.cat(
             [
                 target_tokens,

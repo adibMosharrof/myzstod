@@ -62,6 +62,8 @@ class NlgServiceCallDataPrep(DataPrepStrategy):
             tod_turn = self.prepare_turn(
                 user_turn, system_turn, tod_turn, schemas, dstc_dialog.services
             )
+            if tod_turn.target.response == "":
+                continue
             i = self.prepare_nlg_service_call_turn(
                 turn_csv_row_handler,
                 system_turn,
