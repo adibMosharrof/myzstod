@@ -4,7 +4,7 @@ import uuid
 import evaluate
 import numpy as np
 import pandas as pd
-from prettytable import PrettyTable,MARKDOWN 
+from prettytable import PrettyTable, MARKDOWN
 
 from logger.inference_logger import InferenceLogger
 from logger.inference_logger_dataclasses import (
@@ -46,7 +46,7 @@ class NlgServiceCallMetricManager:
         gleu_score = gleu_result["google_bleu"]
         return gleu_score
 
-    def compute_metrics(self, domain_names:str):
+    def compute_metrics(self, domain_names: str):
         pt = PrettyTable()
         pt.field_names = [
             "Setting",
@@ -161,10 +161,10 @@ class NlgServiceCallMetricManager:
             for i, p, l, s in zip(input_texts, preds, labels, service_calls)
         ]
 
-        for d in self.data:
-            gleu_score, bert_score_data = self.compute_single_row(d.pred, d.label)
-            d.gleu_score = gleu_score
-            d.bert_score_data = str(bert_score_data)
+        # for d in self.data:
+        #     gleu_score, bert_score_data = self.compute_single_row(d.pred, d.label)
+        #     d.gleu_score = gleu_score
+        #     d.bert_score_data = str(bert_score_data)
 
     def write_csv(self, csv_path):
         df = pd.DataFrame(self.data)
