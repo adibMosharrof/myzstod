@@ -26,6 +26,7 @@ class T5DataModule:
         self.domain_builder = DstcDomainBuilder(
             self.cfg.raw_data_root, self.cfg.data_split_percent[0]
         )
+        self.train_domains = self.domain_builder.get_domains(self.cfg.train_domain_settings)
 
     def my_tokenize(self, text: str, max_len: int = None):
         tokens = self.tokenizer.encode(text, return_tensors="pt", max_length=max_len)
@@ -53,8 +54,7 @@ class T5DataModule:
 
     def get_other_domain(self, item):
         domain = item.domains_original
-        train_domains = self.domain_builder.get_domains(self.cfg.train_domain_settings)
-        filtered_domains = [d for d in train_domains if d != domain]
+        filtered_domains = [d for d in self.train_domains if d != domain]
         other_domain = np.random.choice(filtered_domains)
         other_domain_schema = self.schemas[other_domain]
         return (

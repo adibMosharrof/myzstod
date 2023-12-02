@@ -43,7 +43,7 @@ class NlgServiceCallDataPrep(DataPrepStrategy):
         pass
 
     def get_turn_schema_str(self, turn_schemas) -> str:
-        return "".join([s.get_nlg_repr() for s in turn_schemas])
+        return "\n".join([s.get_nlg_repr() for s in turn_schemas])
 
     def prepare_dialog(
         self,
