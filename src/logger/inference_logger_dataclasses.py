@@ -9,7 +9,7 @@ class BertScoreData:
     f1: float
 
     def __str__(self):
-        return f"precision {self.precision:.4f}, recall {self.recall:.4f}, f1 {self.f1:.4f}"
+        return f"Bert Score: precision {self.precision:.4f}, recall {self.recall:.4f}, f1 {self.f1:.4f}"
 
 
 @dataclass
@@ -23,4 +23,4 @@ class InferenceLogData:
 
 @dataclass
 class ServiceCallInferenceLogData(InferenceLogData):
-    is_service_call: Optional[int] = None
+    is_api_call: Optional[int] = None

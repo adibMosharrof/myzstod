@@ -1,5 +1,5 @@
 from data_prep.nlg_data_prep import NlgDataPrep
-from data_prep.nlg_service_call_data_prep import NlgServiceCallDataPrep
+from data_prep.nlg_api_call_data_prep import NlgApiCallDataPrep
 from data_prep.zstod_data_prep import ZsTodDataPrep
 from my_enums import ContextType
 
@@ -18,6 +18,6 @@ class DataPrepStrategyResolver:
             return NlgDataPrep(cfg)
         if cfg.context_type == ContextType.SHORT_REPR.value:
             return ZsTodDataPrep(cfg)
-        if cfg.context_type == ContextType.NLG_SERVICE_CALL.value:
-            return NlgServiceCallDataPrep(cfg)
+        if cfg.context_type == ContextType.NLG_API_CALL.value:
+            return NlgApiCallDataPrep(cfg)
         raise ValueError(f"Unknown data prep step: {cfg.context_type}")

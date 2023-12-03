@@ -175,7 +175,7 @@ class ContextType(str, Enum):
     SHORT_REPR = "short_repr"
     DEFAULT = "default"
     NLG = "nlg"
-    NLG_SERVICE_CALL = "nlg_service_call"
+    NLG_API_CALL = "nlg_api_call"
 
     @classmethod
     def list(cls):

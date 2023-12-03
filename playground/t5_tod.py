@@ -8,7 +8,7 @@ from omegaconf import DictConfig
 sys.path.insert(0, os.path.abspath("./src"))
 from prompts.prompt_constants import NlgPromptType
 from logger.service_call_inference_logger import ServiceCallInferenceLogger
-from metric_managers.nlg_service_call_metric_manager import NlgServiceCallMetricManager
+from metric_managers.nlg_api_call_metric_manager import NlgApiCallMetricManager
 from my_enums import Steps, ContextType
 from prompts.nlg_prompt_manager import NlgPromptFactory
 from tod_datamodules import TodDataModule
@@ -74,8 +74,8 @@ class T5Tod:
         print(self.cfg)
 
     def get_metric_manager(self, context_type: str, tokenizer):
-        if context_type == ContextType.NLG_SERVICE_CALL.value:
-            return NlgServiceCallMetricManager(self.logger, tokenizer)
+        if context_type == ContextType.NLG_API_CALL.value:
+            return NlgApiCallMetricManager(self.logger, tokenizer)
         return NlgMetricManager(self.logger, tokenizer)
 
     def pad_gen_to_max_len(self, gen, max_len: int, tokenizer):
@@ -171,10 +171,10 @@ class T5Tod:
                 gradient_accumulation_steps=self.cfg.gradient_accumulation_steps,
                 eval_accumulation_steps=self.cfg.eval_accumulation_steps,
                 learning_rate=1e-3,
-                bf16_full_eval=True,
-                bf16=True,
-                # fp16=True,
-                # fp16_full_eval=True,
+                # bf16_full_eval=True,
+                # bf16=True,
+                fp16=True,
+                fp16_full_eval=True,
                 # gradient_checkpointing=False,
                 # ddp_find_unused_parameters=False,
                 deepspeed=deepspeed_path,
@@ -218,7 +218,7 @@ class T5Tod:
 
         collate_fn = (
             self.dm.tod_test_collate
-            if self.cfg.context_type == ContextType.NLG_SERVICE_CALL.value
+            if self.cfg.context_type == ContextType.NLG_API_CALL.value
             else self.dm.tod_train_collate
         )
         for test_dataset, domain_names_list in zip(
@@ -249,7 +249,7 @@ class T5Tod:
                         top_p=0.92,
                         num_return_sequences=1,
                     )
-                service_calls = getattr(batch, "is_service_call", None)
+                api_calls = getattr(batch, "is_api_call", None)
                 out_padded = self.pad_gen_to_max_len(
                     sample_outputs, max_gen_len, tokenizer
                 )
@@ -257,13 +257,13 @@ class T5Tod:
                     padded_outputs,
                     label_tokens,
                     input_tokens,
-                    service_calls,
+                    api_calls,
                 ) = accelerator.gather_for_metrics(
-                    (out_padded, batch.labels, batch.input_ids, service_calls)
+                    (out_padded, batch.labels, batch.input_ids, api_calls)
                 )
                 # decode the predicted tokens into texts
                 metric_manager.add_batch(
-                    input_tokens, label_tokens, padded_outputs, service_calls
+                    input_tokens, label_tokens, padded_outputs, api_calls
                 )
             csv_path = self.cfg.out_dir / f"{domain_names}.csv"
             metric_manager.write_csv(csv_path)

@@ -25,9 +25,7 @@ class ServiceCallInferenceLogger:
         ]
 
         self.data += [
-            ServiceCallInferenceLogData(
-                input_text=i, label=l, pred=p, is_service_call=s
-            )
+            ServiceCallInferenceLogData(input_text=i, label=l, pred=p, is_api_call=s)
             for i, p, l, s in zip(input_texts, preds, labels, service_calls)
         ]
 
@@ -35,7 +33,7 @@ class ServiceCallInferenceLogger:
             gleu_score, bert_score_data = self.metric_manager.compute_single_row(
                 d.pred, d.label
             )
-            if d.is_service_call:
+            if d.is_api_call:
                 d.service_call_gleu_score = gleu_score
                 d.service_call_bert_score = bert_score_data
             else:

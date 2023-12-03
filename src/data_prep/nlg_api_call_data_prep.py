@@ -22,7 +22,7 @@ import utils
 import data_prep.data_prep_utils as data_prep_utils
 
 
-class NlgServiceCallDataPrep(DataPrepStrategy):
+class NlgApiCallDataPrep(DataPrepStrategy):
     def __init__(self, cfg: DataPrepConfig):
         super().__init__(cfg, tod_turn_cls=NlgTodTurn, tod_context_cls=NlgTodContext)
         # self.cfg = cfg
@@ -36,10 +36,10 @@ class NlgServiceCallDataPrep(DataPrepStrategy):
         response = self._prepare_response(system_turn)
         return NlgTodTarget(response=response)
 
-    def prepare_service_call_target(self):
+    def prepare_api_call_target(self):
         pass
 
-    def prepare_service_call_context(self):
+    def prepare_api_call_context(self):
         pass
 
     def get_turn_schema_str(self, turn_schemas) -> str:
@@ -64,7 +64,7 @@ class NlgServiceCallDataPrep(DataPrepStrategy):
             )
             if tod_turn.target.response == "":
                 continue
-            i = self.prepare_nlg_service_call_turn(
+            i = self.prepare_nlg_api_call_turn(
                 turn_csv_row_handler,
                 system_turn,
                 tod_turn,
@@ -94,7 +94,7 @@ class NlgServiceCallDataPrep(DataPrepStrategy):
             )
         )
 
-    def prepare_nlg_service_call_turn(
+    def prepare_nlg_api_call_turn(
         self,
         turn_csv_row_handler: TurnCsvRowBase,
         system_turn: DstcTurn,
@@ -105,13 +105,13 @@ class NlgServiceCallDataPrep(DataPrepStrategy):
     ) -> int:
         if not system_turn:
             return turn_id
-        if not tod_turn.context.service_call:
+        if not tod_turn.context.api_call:
             return turn_id
         new_turn = copy.deepcopy(tod_turn)
-        new_turn.context.service_call = None
+        new_turn.context.api_call = None
         new_turn.context.service_results = None
-        new_turn.is_service_call = True
-        new_turn.target.response = tod_turn.context._get_service_call()
+        new_turn.is_api_call = True
+        new_turn.target.response = tod_turn.context._get_api_call()
         new_turn.dialog_id = dialog_id
         new_turn.turn_id = turn_id
         self.add_tod_turn(turn_csv_row_handler, tod_turns, new_turn, dialog_id, turn_id)

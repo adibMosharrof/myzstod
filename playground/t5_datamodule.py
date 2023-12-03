@@ -26,7 +26,9 @@ class T5DataModule:
         self.domain_builder = DstcDomainBuilder(
             self.cfg.raw_data_root, self.cfg.data_split_percent[0]
         )
-        self.train_domains = self.domain_builder.get_domains(self.cfg.train_domain_settings)
+        self.train_domains = self.domain_builder.get_domains(
+            self.cfg.train_domain_settings
+        )
 
     def my_tokenize(self, text: str, max_len: int = None):
         tokens = self.tokenizer.encode(text, return_tensors="pt", max_length=max_len)
@@ -127,7 +129,7 @@ class T5DataModule:
         all_input_tokens = []
         all_labels = []
         all_attention_masks = []
-        all_service_call = []
+        all_api_call = []
 
         target_max_len = self.cfg.max_token_len - self.cfg.test_prompt_max_len
         for item in batch:
@@ -135,13 +137,13 @@ class T5DataModule:
             all_input_tokens.append(row.input_tokens)
             all_attention_masks.append(row.attention_mask)
             all_labels.append(row.label)
-            all_service_call.append(torch.tensor(item.is_service_call))
+            all_api_call.append(torch.tensor(item.is_api_call))
         return DotMap(
             {
                 "input_ids": torch.stack(all_input_tokens),
                 "labels": torch.stack(all_labels),
                 "attention_mask": torch.stack(all_attention_masks),
-                "is_service_call": torch.stack(all_service_call),
+                "is_api_call": torch.stack(all_api_call),
             }
         )
 

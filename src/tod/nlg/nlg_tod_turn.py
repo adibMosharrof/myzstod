@@ -16,4 +16,4 @@ class NlgTodTurn:
     domains_original: list[str]
     dialog_id: Optional[str] = None
     turn_id: Optional[int] = None
-    is_service_call: Optional[bool] = False
+    is_api_call: Optional[bool] = False

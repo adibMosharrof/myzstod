@@ -16,7 +16,7 @@ class ZsTodContext:
     should_add_sys_actions: bool = None
     prev_tod_turn: Optional[any] = None
     service_results: Optional[list[dict[str, str]]] = None
-    service_call: Optional[dict[str, str]] = None
+    api_call: Optional[dict[str, str]] = None
 
     def __init__(self, max_length: int = 10):
         self.user_utterances = deque(maxlen=max_length)
@@ -70,10 +70,10 @@ class ZsTodContext:
 
     def get_service_call(self) -> str:
         out = ""
-        if not self.service_call:
+        if not self.api_call:
             return out
-        self.service_call.__class__.__qualname__ = "ServiceCall"
-        out += str(self.service_call)
+        self.api_call.__class__.__qualname__ = "ServiceCall"
+        out += str(self.api_call)
         return out
 
     def _get_service_results(self, should_add_special_tokens: bool = True) -> str:

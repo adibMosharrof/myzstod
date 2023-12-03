@@ -88,7 +88,7 @@ class SimpleTODDSTCDataPrep:
                     raise ValueError("More than one frame in system turn")
                 for frame in system_turn.frames:
                     context.service_results = frame.service_results
-                    context.service_call = frame.service_call
+                    context.api_call = frame.service_call
         return context
 
     def _prepare_dst(self, user_turn: DstcTurn) -> List[ZsTodBelief]:
