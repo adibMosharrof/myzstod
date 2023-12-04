@@ -4,6 +4,7 @@ data/
 out/
 envs/
 .venvs/
+venvs/
 processed_data/
 lightning_logs/
 __pycache__/
