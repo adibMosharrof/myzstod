@@ -17,8 +17,8 @@ class InferenceLogData:
     input_text: str
     label: str
     pred: str
-    gleu_score: Optional[float] = None
-    bert_score_data: Optional[BertScoreData] = None
+    # gleu_score: Optional[float] = None
+    # bert_score_data: Optional[BertScoreData] = None
 
 
 @dataclass

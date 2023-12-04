@@ -1,7 +1,6 @@
 import uuid
 import evaluate
 import pandas as pd
-from prettytable import PrettyTable, MARKDOWN
 
 from logger.inference_logger_dataclasses import (
     BertScoreData,
@@ -56,7 +55,7 @@ class NlgApiCallMetricManager:
         response_preds, response_labels, sc_preds, sc_labels = [], [], [], []
 
         for i, p, l, s in zip(input_texts, preds, labels, api_calls):
-            row = ServiceCallInferenceLogData(i, l, p, s)
+            row = ServiceCallInferenceLogData(i, l, p, int(s))
             self.data.append(row)
             if s == 0:
                 response_preds.append(row.pred)
