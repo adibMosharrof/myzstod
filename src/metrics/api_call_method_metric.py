@@ -32,6 +32,13 @@ class ApiCallMethodMetric(TodMetricsBase):
         accs = utils.create_tensor(self.method_accuracies)
         return torch.mean(accs, dtype=torch.float)
 
+    def compute_row(self, pred, ref):
+        pred = self._get_method_from_text(pred)
+        ref = self._get_method_from_text(ref)
+        if ref == "":
+            return ref
+        return int(pred == ref)
+
     def __str__(self):
         res = self._compute()
         return f"Service Call Method Accuracy: {res*100:.2f}"

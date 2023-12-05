@@ -2,6 +2,7 @@ import torch
 from metrics.tod_metrics_base import TodMetricsBase
 import re
 import utils
+import numpy as np
 
 
 class ApiCallParametersMetric(TodMetricsBase):
@@ -40,6 +41,25 @@ class ApiCallParametersMetric(TodMetricsBase):
         param_acc = torch.mean(params_tensor, dtype=torch.float)
         value_acc = torch.mean(values_tensor, dtype=torch.float)
         return param_acc, value_acc
+
+    def compute_row(self, pred, ref):
+        ref_params = self._get_parameters_from_text(ref)
+        if ref_params == {}:
+            return ""
+        pred_params = self._get_parameters_from_text(pred)
+
+        param_accs, value_accs = [], []
+        for k, v in ref_params.items():
+            if k in pred_params.keys():
+                param_accs.append(1)
+                fuzz_score = utils.fuzzy_string_match(pred_params[k], v)
+                value_accs.append(fuzz_score)
+            else:
+                param_accs.append(0)
+                value_accs.append(0)
+        param_acc = np.mean(param_accs)
+        value_acc = np.mean(value_accs)
+        return round(param_acc, 4), round(value_acc, 4)
 
     def __str__(self) -> str:
         params, values = self._compute()

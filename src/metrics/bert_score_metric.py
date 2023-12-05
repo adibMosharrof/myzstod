@@ -23,16 +23,27 @@ class BertScoreMetric(TodMetricsBase):
         self.metric.add_batch(predictions=predictions, references=references)
 
     def _compute(self) -> BertScoreData:
-        # try:
-        score = self.metric.compute(model_type=self.bert_score_model)
+        try:
+            score = self.metric.compute(model_type=self.bert_score_model)
+            res = BertScoreData(
+                precision=np.mean(score["precision"]),
+                recall=np.mean(score["recall"]),
+                f1=np.mean(score["f1"]),
+            )
+        except ValueError:
+            res = BertScoreData(precision=0.0, recall=0.0, f1=0.0)
+        return res
+
+    def compute_row(self, pred: str, ref: str) -> BertScoreData:
+        score = self.metric.compute(
+            predictions=[pred], references=[ref], model_type=self.bert_score_model
+        )
         res = BertScoreData(
             precision=np.mean(score["precision"]),
             recall=np.mean(score["recall"]),
             f1=np.mean(score["f1"]),
         )
-        # except:
-        #     res = BertScoreData(precision=0.0, recall=0.0, f1=0.0)
-        return res
+        return round(res.f1, 4)
 
     def __str__(self):
         res = self._compute()

@@ -26,6 +26,15 @@ class NlgGleuMetric(TodMetricsBase):
             res = 0.0
         return res
 
+    def compute_row(self, pred: str, ref: str) -> None:
+        try:
+            res = self.metric.compute(predictions=[pred], references=[[ref]])[
+                "google_bleu"
+            ]
+        except:
+            res = 0.0
+        return round(res, 4)
+
     def __str__(self):
         res = self._compute()
         return f"Response GLEU: {res:.4f}"

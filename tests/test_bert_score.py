@@ -1,6 +1,4 @@
 import sys
-import os
-
 
 sys.path.append("./src")
 from metrics.bert_score_metric import BertScoreMetric

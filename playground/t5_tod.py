@@ -265,10 +265,11 @@ class T5Tod:
                 metric_manager.add_batch(
                     input_tokens, label_tokens, padded_outputs, api_calls
                 )
+            # must call this first
+            metric_manager.compute_row_wise_metrics()
+            metric_manager.compute_metrics(domain_names)
             csv_path = self.cfg.out_dir / f"{domain_names}.csv"
             metric_manager.write_csv(csv_path)
-
-            metric_manager.compute_metrics(domain_names)
 
 
 # if __name__ == "__main__":
