@@ -13,6 +13,9 @@ from metrics.bert_score_metric import BertScoreMetric
 from metrics.nlg_gleu_metric import NlgGleuMetric
 from metrics.api_call_method_metric import ApiCallMethodMetric
 from torchmetrics import MetricCollection
+from accelerate import Accelerator
+
+accelerator = Accelerator()
 
 
 class NlgApiCallMetricManager:
@@ -39,6 +42,7 @@ class NlgApiCallMetricManager:
         )
         self.complete_api_call = CompleteApiCallMetric()
 
+    @accelerator.on_main_process
     def compute_metrics(self, domain_names: str):
         all_metrics = (
             list(self.response_metrics.values())
