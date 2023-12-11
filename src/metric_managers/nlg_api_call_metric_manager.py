@@ -28,7 +28,7 @@ class NlgApiCallMetricManager:
         self.response_metrics = MetricCollection(
             {
                 "response_gleu": NlgGleuMetric(tokenizer),
-                "response_bertscore": BertScoreMetric(tokenizer),
+                # "response_bertscore": BertScoreMetric(tokenizer),
             }
         )
         self.api_call_metrics = MetricCollection(

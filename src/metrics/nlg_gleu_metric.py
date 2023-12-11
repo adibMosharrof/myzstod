@@ -14,6 +14,7 @@ class NlgGleuMetric(TodMetricsBase):
         super().__init__()
         self.tokenizer = tokenizer
         self.metric = evaluate.load("google_bleu", experiment_id=str(uuid.uuid4()))
+        self.row_metric = evaluate.load("google_bleu", experiment_id=str(uuid.uuid4()))
 
     def _update(self, predictions: list[str], references: list[str]) -> None:
         refs = np.expand_dims(references, axis=1)
@@ -28,7 +29,7 @@ class NlgGleuMetric(TodMetricsBase):
 
     def compute_row(self, pred: str, ref: str) -> None:
         try:
-            res = self.metric.compute(predictions=[pred], references=[[ref]])[
+            res = self.row_metric.compute(predictions=[pred], references=[[ref]])[
                 "google_bleu"
             ]
         except:

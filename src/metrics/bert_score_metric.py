@@ -17,6 +17,7 @@ class BertScoreMetric(TodMetricsBase):
         super().__init__()
         self.tokenizer = tokenizer
         self.metric = evaluate.load("bertscore", experiment_id=str(uuid.uuid4()))
+        self.row_metric = evaluate.load("bertscore", experiment_id=str(uuid.uuid4()))
         self.bert_score_model = bert_score_model
 
     def _update(self, predictions: list[str], references: list[str]) -> None:
@@ -35,7 +36,7 @@ class BertScoreMetric(TodMetricsBase):
         return res
 
     def compute_row(self, pred: str, ref: str) -> BertScoreData:
-        score = self.metric.compute(
+        score = self.row_metric.compute(
             predictions=[pred], references=[ref], model_type=self.bert_score_model
         )
         res = BertScoreData(
