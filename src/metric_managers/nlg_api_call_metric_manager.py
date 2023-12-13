@@ -42,7 +42,7 @@ class NlgApiCallMetricManager:
         )
         self.complete_api_call = CompleteApiCallMetric()
 
-    @accelerator.on_main_process
+    # @accelerator.on_main_process
     def compute_metrics(self, domain_names: str):
         all_metrics = (
             list(self.response_metrics.values())
@@ -85,18 +85,39 @@ class NlgApiCallMetricManager:
         df.to_csv(csv_path, index=False, encoding="utf-8")
 
     def compute_row_wise_metrics(self):
-        metric_objects = list(self.response_metrics.values()) + list(
-            self.api_call_metrics.values()
-        )
-        metric_names = list(self.response_metrics.keys()) + list(
-            self.api_call_metrics.keys()
-        )
         for row in self.data:
             row_dict = DotMap(row.__dict__)
-            for k, v in zip(metric_names, metric_objects):
-                res = v.compute_row(row_dict.pred, row_dict.label)
-                row_dict[k] = res
-            row_dict.complete_api_call = self.complete_api_call.compute_row(
-                row_dict.api_call_method, row_dict.api_call_params
-            )
+            if row.is_api_call == 0:
+                for k, v in zip(
+                    list(self.response_metrics.keys()),
+                    list(self.response_metrics.values()),
+                ):
+                    res = v.compute_row(row.pred, row.label)
+                    row_dict[k] = res
+            else:
+                for k, v in zip(
+                    list(self.api_call_metrics.keys()),
+                    list(self.api_call_metrics.values()),
+                ):
+                    res = v.compute_row(row.pred, row.label)
+                    row_dict[k] = res
+                row_dict.complete_api_call = self.complete_api_call.update(
+                    [row_dict.api_call_method], [row_dict.api_call_params]
+                )
             row = ServiceCallInferenceLogData(**row_dict)
+        # metric_objects = list(self.response_metrics.values()) + list(
+        #     self.api_call_metrics.values()
+        # )
+        # metric_names = list(self.response_metrics.keys()) + list(
+        #     self.api_call_metrics.keys()
+        # )
+
+        # for row in self.data:
+        #     row_dict = DotMap(row.__dict__)
+        #     for k, v in zip(metric_names, metric_objects):
+        #         res = v.compute_row(row_dict.pred, row_dict.label)
+        #         row_dict[k] = res
+        #     row_dict.complete_api_call = self.complete_api_call.compute_row(
+        #         row_dict.api_call_method, row_dict.api_call_params
+        #     )
+        #     row = ServiceCallInferenceLogData(**row_dict)

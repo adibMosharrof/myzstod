@@ -1,21 +1,32 @@
-import numpy as np
+import torch
+
+import utils
+from torchmetrics import Metric
+from metrics.tod_metrics_base import TodMetricsBase
 
 
-class CompleteApiCallMetric:
+class CompleteApiCallMetric(TodMetricsBase):
     def __init__(self):
-        self.results = []
+        super().__init__()
+        # self.results = []
+        self.add_state("results", [], dist_reduce_fx="cat")
 
-    def compute_row(self, method_metric, params_metric) -> int:
-        res = 1
-        if not method_metric or not params_metric:
-            res = 0
+    def _update(self, method_metrics, params_metrics) -> int:
+        method_metric = method_metrics[0]
+        params_metric = params_metrics[0]
+        res = utils.create_tensor(0)
+        if method_metric == 1:
+            if params_metric[0] * params_metric[1] == 1.0:
+                self.results.append(utils.create_tensor(1))
+                return res
         self.results.append(res)
         return res
 
-    def compute(self):
-        if not (self.results):
+    def _compute(self):
+        if not len(self.results):
             raise ValueError("You must call compute row before calling compute")
-        res = np.mean(self.results)
+
+        res = torch.mean(utils.create_tensor(self.results), dtype=torch.float)
         return res
 
     def __str__(self) -> str:

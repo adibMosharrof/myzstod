@@ -44,10 +44,12 @@ class ApiCallParametersMetric(TodMetricsBase):
 
     def compute_row(self, pred, ref):
         ref_params = self._get_parameters_from_text(ref)
-        if ref_params == {}:
-            return ""
         pred_params = self._get_parameters_from_text(pred)
-
+        if ref_params == {}:
+            if pred_params == {}:
+                return 1.0, 1.0
+            else:
+                return 0.0, 0.0
         param_accs, value_accs = [], []
         for k, v in ref_params.items():
             if k in pred_params.keys():

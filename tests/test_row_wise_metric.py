@@ -33,7 +33,7 @@ def test_row_wise_gleu_score():
         for k, v in metric_coll.items():
             res = v.compute_row(row["pred"], row["label"])
             row[k] = res
-        row[complete_api_call] = complete_api_call_metric.compute_row(
+        row[complete_api_call] = complete_api_call_metric.update(
             row["api_call_method"], row["api_call_params_metric"]
         )
         a = 1
