@@ -42,9 +42,6 @@ class NlgApiCallDataPrep(DataPrepStrategy):
     def prepare_api_call_context(self):
         pass
 
-    def get_turn_schema_str(self, turn_schemas) -> str:
-        return "\n".join([s.get_nlg_repr() for s in turn_schemas])
-
     def prepare_dialog(
         self,
         dstc_dialog: DstcDialog,
@@ -78,22 +75,6 @@ class NlgApiCallDataPrep(DataPrepStrategy):
             i += 1
         return tod_turns
 
-    def add_tod_turn(
-        self,
-        turn_csv_row_handler: TurnCsvRowBase,
-        tod_turns: list[NlgTodTurn],
-        tod_turn: NlgTodTurn,
-        dialog_id: int,
-        turn_id: int,
-    ):
-        tod_turn.dialog_id = dialog_id
-        tod_turn.turn_id = turn_id
-        tod_turns.append(
-            turn_csv_row_handler.to_csv_row(
-                self.cfg.context_type, tod_turn, self.cfg.should_add_schema
-            )
-        )
-
     def prepare_nlg_api_call_turn(
         self,
         turn_csv_row_handler: TurnCsvRowBase,
@@ -111,7 +92,7 @@ class NlgApiCallDataPrep(DataPrepStrategy):
         new_turn.context.api_call = None
         new_turn.context.service_results = None
         new_turn.is_api_call = True
-        new_turn.target.response = tod_turn.context._get_api_call()
+        new_turn.target.response = tod_turn.context.get_api_call()
         new_turn.dialog_id = dialog_id
         new_turn.turn_id = turn_id
         self.add_tod_turn(turn_csv_row_handler, tod_turns, new_turn, dialog_id, turn_id)

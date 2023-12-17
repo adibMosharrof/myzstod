@@ -1,6 +1,6 @@
 import uuid
 
-from logger.inference_logger_dataclasses import ServiceCallInferenceLogData
+from logger.inference_logger_dataclasses import ApiCallInferenceLogData
 from metrics.tod_metrics_base import TodMetricsBase
 from transformers import AutoTokenizer
 import evaluate

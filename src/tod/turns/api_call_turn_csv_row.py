@@ -4,7 +4,7 @@ from tod.turns.turn_csv_row_base import TurnCsvRowBase
 
 
 class ApiCallTurnCsvRow(TurnCsvRowBase):
-    def get_csv_headers(self, should_add_schema: bool) -> list[str]:
+    def get_csv_headers(self, should_add_schema: bool = True) -> list[str]:
         headers = super().get_csv_headers(should_add_schema)
         headers += ["target", "is_api_call"]
         return headers

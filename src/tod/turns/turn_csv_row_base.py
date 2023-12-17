@@ -12,7 +12,7 @@ Override hook_before_adding_taget to add additional columns to csv
 
 class TurnCsvRowBase(ABC):
     @abstractmethod
-    def get_csv_headers(self, should_add_schema: bool) -> list[str]:
+    def get_csv_headers(self, should_add_schema: bool = True) -> list[str]:
         headers = ["dialog_id", "turn_id", "domains", "domains_original", "context"]
         if should_add_schema:
             headers.append("schema")

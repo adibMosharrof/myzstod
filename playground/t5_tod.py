@@ -6,6 +6,7 @@ from omegaconf import DictConfig
 
 
 sys.path.insert(0, os.path.abspath("./src"))
+from metric_managers.ketod_metric_manager import KeTodMetricManager
 from prompts.prompt_constants import NlgPromptType
 from logger.service_call_inference_logger import ServiceCallInferenceLogger
 from metric_managers.nlg_api_call_metric_manager import NlgApiCallMetricManager
@@ -76,6 +77,8 @@ class T5Tod:
     def get_metric_manager(self, context_type: str, tokenizer):
         if context_type == ContextType.NLG_API_CALL.value:
             return NlgApiCallMetricManager(self.logger, tokenizer)
+        if context_type == ContextType.KETOD_API_CALL:
+            return KeTodMetricManager(self.logger, tokenizer)
         return NlgMetricManager(self.logger, tokenizer)
 
     def pad_gen_to_max_len(self, gen, max_len: int, tokenizer):
@@ -127,6 +130,9 @@ class T5Tod:
             bos_token="<|startoftext|>",
             eos_token="<|endoftext|>",
             pad_token="<|pad|>",
+        )
+        tokenizer.add_special_tokens(
+            {"additional_special_tokens": ["<SYSTEM>", "<USER>"]}
         )
         tokenizer.model_max_length = 1024
         model = None
@@ -218,7 +224,8 @@ class T5Tod:
 
         collate_fn = (
             self.dm.tod_test_collate
-            if self.cfg.context_type == ContextType.NLG_API_CALL.value
+            if self.cfg.context_type
+            in [ContextType.NLG_API_CALL.value, ContextType.KETOD_API_CALL.value]
             else self.dm.tod_train_collate
         )
         for test_dataset, domain_names_list in zip(
@@ -249,7 +256,7 @@ class T5Tod:
                         top_p=0.92,
                         num_return_sequences=1,
                     )
-                api_calls = getattr(batch, "is_api_call", None)
+                turn_row_types = getattr(batch, "turn_row_type", None)
                 out_padded = self.pad_gen_to_max_len(
                     sample_outputs, max_gen_len, tokenizer
                 )
@@ -257,13 +264,13 @@ class T5Tod:
                     padded_outputs,
                     label_tokens,
                     input_tokens,
-                    api_calls,
+                    turn_row_types,
                 ) = accelerator.gather_for_metrics(
-                    (out_padded, batch.labels, batch.input_ids, api_calls)
+                    (out_padded, batch.labels, batch.input_ids, turn_row_types)
                 )
                 # decode the predicted tokens into texts
                 metric_manager.add_batch(
-                    input_tokens, label_tokens, padded_outputs, api_calls
+                    input_tokens, label_tokens, padded_outputs, turn_row_types
                 )
             # must call this first
             metric_manager.compute_row_wise_metrics()

@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from logger.inference_logger_dataclasses import (
     BertScoreData,
-    ServiceCallInferenceLogData,
+    ApiCallInferenceLogData,
 )
 import utils
 import numpy as np
@@ -14,7 +14,7 @@ class ServiceCallInferenceLogger:
         self.concat_preds = None
         self.tokenizer = tokenizer
         self.metric_manager = metric_manager
-        self.data: list[ServiceCallInferenceLogData] = []
+        self.data: list[ApiCallInferenceLogData] = []
 
     def add_batch(self, input_tokens, label_tokens, pred_tokens, service_calls):
         input_texts, preds, labels = [
@@ -25,7 +25,7 @@ class ServiceCallInferenceLogger:
         ]
 
         self.data += [
-            ServiceCallInferenceLogData(input_text=i, label=l, pred=p, is_api_call=s)
+            ApiCallInferenceLogData(input_text=i, label=l, pred=p, is_api_call=s)
             for i, p, l, s in zip(input_texts, preds, labels, service_calls)
         ]
 

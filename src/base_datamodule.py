@@ -13,6 +13,7 @@ from configs.dm_config import DataModuleConfig
 from configs.multi_woz_data_prep_config import MultiWozDataPrepConfig
 from data_prep.data_prep_strategy_resolver import DataPrepStrategyResolver
 from data_prep.dstc_base_data_prep import DstcBaseDataPrep
+from data_prep.ketod.ketod_base_data_prep import KetodBaseDataPrep
 
 from multi_woz.tod_multi_woz_21_data_prep import TodMultiWoz21DataPrep
 from multi_woz.tod_multi_woz_22_data_prep import TodMultiWoz22DataPrep
@@ -98,11 +99,13 @@ class BaseDataModule(ABC):
     def get_data_prep_class(self, cfg: DataModuleConfig):
         if isinstance(cfg.raw_data_root, str):
             cfg.raw_data_root = Path(cfg.raw_data_root)
-        try:
-            dp_cfg = DataPrepConfig.from_dm_config(cfg)
-            return DstcBaseDataPrep(dp_cfg, DataPrepStrategyResolver.resolve(dp_cfg))
-        except ValueError:
-            pass
+        dp_cfg = DataPrepConfig.from_dm_config(cfg)
+        strategy = DataPrepStrategyResolver.resolve(dp_cfg)
+        if "ketod" in cfg.raw_data_root.name:
+            return KetodBaseDataPrep(dp_cfg, strategy)
+        else:
+            return DstcBaseDataPrep(dp_cfg, strategy)
+
         if "MultiWOZ_2.2" in cfg.raw_data_root.name:
             return TodMultiWoz22DataPrep(MultiWozDataPrepConfig.from_dm_config(cfg))
         if "MultiWOZ_2.1" in cfg.raw_data_root.name:

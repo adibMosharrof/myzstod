@@ -9,7 +9,7 @@ from prompts.prompt_constants import NlgPromptType
 from tod.turns.zs_tod_turn import (
     TodTurnCsvRow,
     TodTurnCsvRowFactory,
-    TodTurnServiceCallCsvRow,
+    TodTurnApiCallCsvRow,
 )
 from tod_datamodules import TodDataModule
 import utils
@@ -22,7 +22,9 @@ class T5DataModule:
         self.cfg = cfg
         self.tokenizer = tokenizer
         self.schemas = schemas
-        self.nlg_prompt_cls = NlgPromptFactory.get_handler(cfg.prompt_type)
+        self.nlg_prompt_cls = NlgPromptFactory.get_handler(
+            cfg.prompt_type, cfg.context_type
+        )
         self.domain_builder = DstcDomainBuilder(
             self.cfg.raw_data_root, self.cfg.data_split_percent[0]
         )
@@ -125,11 +127,11 @@ class T5DataModule:
             }
         )
 
-    def tod_test_collate(self, batch: list[TodTurnServiceCallCsvRow]):
+    def tod_test_collate(self, batch: list[TodTurnApiCallCsvRow]):
         all_input_tokens = []
         all_labels = []
         all_attention_masks = []
-        all_api_call = []
+        all_turn_row_type = []
 
         target_max_len = self.cfg.max_token_len - self.cfg.test_prompt_max_len
         for item in batch:
@@ -137,13 +139,13 @@ class T5DataModule:
             all_input_tokens.append(row.input_tokens)
             all_attention_masks.append(row.attention_mask)
             all_labels.append(row.label)
-            all_api_call.append(torch.tensor(item.is_api_call))
+            all_turn_row_type.append(torch.tensor(item.turn_row_type))
         return DotMap(
             {
                 "input_ids": torch.stack(all_input_tokens),
                 "labels": torch.stack(all_labels),
                 "attention_mask": torch.stack(all_attention_masks),
-                "is_api_call": torch.stack(all_api_call),
+                "turn_row_type": torch.stack(all_turn_row_type),
             }
         )
 

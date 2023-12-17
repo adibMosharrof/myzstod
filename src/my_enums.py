@@ -176,6 +176,7 @@ class ContextType(str, Enum):
     DEFAULT = "default"
     NLG = "nlg"
     NLG_API_CALL = "nlg_api_call"
+    KETOD_API_CALL = "ketod_api_call"
 
     @classmethod
     def list(cls):
@@ -219,3 +220,9 @@ class MultiTaskNames(str, Enum):
     @classmethod
     def list(cls):
         return [c for c in cls]
+
+
+class TurnRowType(int, Enum):
+    RESPONSE = 0
+    API_CALL = 1
+    KE_QUERY = 2

@@ -133,6 +133,7 @@ def append_csv(data, file_name: Path):
 
 
 def write_csv(headers: list[str], data, file_name: Path):
+    file_name.parent.mkdir(parents=True, exist_ok=True)
     with open(file_name, "w", encoding="UTF8", newline="") as f:
         csvwriter = csv.writer(f, quoting=csv.QUOTE_NONNUMERIC)
         csvwriter.writerow(headers)

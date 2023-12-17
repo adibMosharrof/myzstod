@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from typing import Optional
 
+from my_enums import TurnRowType
+
 
 @dataclass
 class BertScoreData:
@@ -23,10 +25,22 @@ class InferenceLogData:
 
 
 @dataclass
-class ServiceCallInferenceLogData(InferenceLogData):
-    is_api_call: Optional[int] = None
+class ApiCallInferenceLogData(InferenceLogData):
+    turn_row_type: Optional[int] = None
     complete_api_call: Optional[int] = None
     api_call_method: Optional[float] = None
     api_call_params: Optional[float] = None
     response_gleu: Optional[float] = None
-    response_bertscore: Optional[BertScoreData] = None
+    # response_bertscore: Optional[BertScoreData] = None
+
+
+@dataclass
+class KetodInferenceLogData(InferenceLogData):
+    turn_row_type: Optional[TurnRowType] = None
+    complete_api_call: Optional[int] = None
+    api_call_method: Optional[float] = None
+    api_call_params: Optional[float] = None
+    complete_kb_call: Optional[int] = None
+    ke_method: Optional[float] = None
+    ke_params: Optional[float] = None
+    response_gleu: Optional[float] = None

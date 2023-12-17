@@ -45,8 +45,8 @@ class TodTurnScaleGradCsvRow(TodTurnMultiTaskCsvRow):
 
 
 @dataclass
-class TodTurnServiceCallCsvRow(TodTurnCsvRow):
-    is_api_call: Optional[int] = ""
+class TodTurnApiCallCsvRow(TodTurnCsvRow):
+    turn_row_type: Optional[int] = None
 
 
 @dataclass
@@ -69,6 +69,9 @@ class TodTurnCsvRowFactory:
     def get_handler(self, cfg):
         if cfg.is_scale_grad:
             return TodTurnScaleGradCsvRow
-        if cfg.context_type == ContextType.NLG_API_CALL:
-            return TodTurnServiceCallCsvRow
+        if (
+            cfg.context_type == ContextType.NLG_API_CALL
+            or cfg.context_type == ContextType.KETOD_API_CALL
+        ):
+            return TodTurnApiCallCsvRow
         return TodTurnCsvRow

@@ -43,6 +43,9 @@ class DataPrepStrategy(ABC):
     ) -> Union[NlgTodTarget, ZsTodTarget]:
         raise NotImplementedError()
 
+    def get_turn_schema_str(self, turn_schemas) -> str:
+        return "\n".join([s.get_nlg_repr() for s in turn_schemas])
+
     def _prepare_response(self, system_turn: DstcTurn) -> str:
         if not system_turn:
             return None
@@ -139,3 +142,19 @@ class DataPrepStrategy(ABC):
                     context.service_results = frame.service_results
                     context.api_call = frame.service_call
         return context
+
+    def add_tod_turn(
+        self,
+        turn_csv_row_handler: TurnCsvRowBase,
+        tod_turns: list[NlgTodTurn],
+        tod_turn: NlgTodTurn,
+        dialog_id: int,
+        turn_id: int,
+    ):
+        tod_turn.dialog_id = dialog_id
+        tod_turn.turn_id = turn_id
+        tod_turns.append(
+            turn_csv_row_handler.to_csv_row(
+                self.cfg.context_type, tod_turn, self.cfg.should_add_schema
+            )
+        )

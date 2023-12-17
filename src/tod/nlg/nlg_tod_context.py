@@ -23,7 +23,7 @@ class NlgTodContext:
     def _get_last_user_utterance(self) -> str:
         return "".join(["Last User Utterance:", self.current_user_utterance])
 
-    def _get_api_call(self) -> str:
+    def get_api_call(self) -> str:
         out = ""
         if not self.api_call:
             return out
@@ -31,14 +31,14 @@ class NlgTodContext:
         out += str(self.api_call)
         return out
 
-    def _get_service_results(self) -> str:
+    def get_service_results(self) -> str:
         out = ""
         if not self.service_results:
             return out
         for service_result in self.service_results[:1]:
             s_res = {"search_results": service_result}
             out += str(s_res)
-        return "\n".join(["\nSearch Results:", out, "End Search Results"])
+        return "\n".join([out])
 
     def __str__(self):
         history = []
@@ -55,7 +55,7 @@ class NlgTodContext:
                 history_text,
                 self._get_last_user_utterance(),
                 "End Dialog History",
-                self._get_service_results(),
-                self._get_api_call(),
+                self.get_service_results(),
+                self.get_api_call(),
             ]
         )

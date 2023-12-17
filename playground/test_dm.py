@@ -27,6 +27,9 @@ class TestDM:
             eos_token="<|endoftext|>",
             pad_token="<|pad|>",
         )
+        tokenizer.add_special_tokens(
+            {"additional_special_tokens": ["<SYSTEM>", "<USER>"]}
+        )
         tokenizer.model_max_length = 1024
         schemas = {}
         steps = Steps.list()
@@ -62,7 +65,9 @@ if __name__ == "__main__":
             separate_dev_test=False,
             # project_root=Path("/projects/bbyl/amosharrof/ZSToD"),
             project_root=Path("/mounts/u-amo-d1/adibm-data/projects/ZSToD/"),
-            raw_data_root="data/dstc8-schema-guided-dialogue/",
+            data_prep_out_root="processed_data/ketod",
+            # raw_data_root="data/dstc8-schema-guided-dialogue/",
+            raw_data_root="data/ketod/",
             # tokenizer_name="adibm/sgd-flan-t5-nlg-tokenizer",
             model_name="google/flan-t5-base",
             model_path="playground/t5_tod_out/2023-11-28/03-15-51",
@@ -80,10 +85,11 @@ if __name__ == "__main__":
             save_steps=50,
             # eval_steps=1,
             eval_steps=10,
-            data_split_percent=[0.1, 1, 0.5],
-            # data_split_percent=[1, 1, 1],
+            # data_split_percent=[0.1, 1, 0.5],
+            data_split_percent=[1, 1, 1],
             # num_dialogs=[127, 20, 34],
-            num_dialogs=[1, 1, 1],
+            # num_dialogs=[1, 1, 1],
+            num_dialogs=[10, 10, 10],
             quantization=True,
             num_turns=26,
             should_add_schema=True,
@@ -98,9 +104,10 @@ if __name__ == "__main__":
             test_domain_settings=[["all"]],
             # test_domain_settings=[["Hotels_4"], ["Restaurants_2"]],
             # context_type="nlg",
-            context_type="nlg_api_call",
-            # prompt_type="default",
-            prompt_type="multi_domain",
+            # context_type="nlg_api_call",
+            context_type="ketod_api_call",
+            prompt_type="default",
+            # prompt_type="multi_domain",
             # overwrite=[1, 1, 1],
             # data_prep_multi_process=False,
         )
