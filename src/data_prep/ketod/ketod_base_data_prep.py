@@ -41,8 +41,8 @@ class KetodBaseDataPrep:
     def __init__(self, cfg: DataPrepConfig, data_prep_strategy: DataPrepStrategy):
         self.cfg = cfg
         self.data_prep_strategy = data_prep_strategy
-        # if self.cfg.step_name == Steps.DEV.value:
-        #     self.cfg.step_name = "validation"
+        if self.cfg.step_name == Steps.DEV.value:
+            self.cfg.step_name = "validation"
 
     def prepare_target(
         self,
@@ -81,10 +81,7 @@ class KetodBaseDataPrep:
         turn_csv_row_handler: TurnCsvRowBase = TurnCsvRowFactory.get_handler(self.cfg)
         out_data = []
         dataset = load_dataset("Salesforce/dialogstudio", "KETOD")
-        step_name = self.cfg.step_name
-        if step_name == Steps.DEV.value:
-            step_name = "validation"
-        ds = dataset[step_name]
+        ds = dataset[self.cfg.step_name]
         if self.cfg.num_dialogs < 1:
             self.cfg.num_dialogs = len(ds)
         subset_data = Subset(ds, range(self.cfg.num_dialogs))
