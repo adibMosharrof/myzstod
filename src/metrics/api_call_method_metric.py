@@ -7,9 +7,11 @@ import utils
 class ApiCallMethodMetric(TodMetricsBase):
     def __init__(
         self,
+        name:str = ""
     ):
         super().__init__()
         self.add_state("method_accuracies", [], dist_reduce_fx="cat")
+        self.name = name
 
     def _update(self, predictions: list[str], references: list[str]) -> None:
         for pred_str, ref_str in zip(predictions, references):
@@ -41,4 +43,4 @@ class ApiCallMethodMetric(TodMetricsBase):
 
     def __str__(self):
         res = self._compute()
-        return f"Service Call Method Accuracy: {res*100:.2f}"
+        return f"{self.name} Service Call Method Accuracy: {res*100:.2f}"

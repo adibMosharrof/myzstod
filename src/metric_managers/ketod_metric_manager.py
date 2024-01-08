@@ -42,8 +42,8 @@ class KeTodMetricManager:
 
         self.ke_metrics = MetricCollection(
             {
-                "ke_method": ApiCallMethodMetric(),
-                "ke_params": ApiCallParametersMetric(),
+                "ke_method": ApiCallMethodMetric(name="ke"),
+                "ke_params": ApiCallParametersMetric(name="ke"),
             }
         )
         self.complete_kb_call = CompleteApiCallMetric()

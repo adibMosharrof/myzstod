@@ -8,10 +8,12 @@ import numpy as np
 class ApiCallParametersMetric(TodMetricsBase):
     def __init__(
         self,
+        name:str = ""
     ):
         super().__init__()
         self.add_state("param_preds", [], dist_reduce_fx="cat")
         self.add_state("value_preds", [], dist_reduce_fx="cat")
+        self.name = name
 
     def _update(self, predictions: list[str], references: list[str]) -> None:
         for pred, ref in zip(predictions, references):
@@ -65,4 +67,4 @@ class ApiCallParametersMetric(TodMetricsBase):
 
     def __str__(self) -> str:
         params, values = self._compute()
-        return f"Api Call Parameters Accuracy: {params*100:.2f}, Values Accuracy: {values*100:.2f}"
+        return f"{self.name} Api Call Parameters Accuracy: {params*100:.2f}, Values Accuracy: {values*100:.2f}"

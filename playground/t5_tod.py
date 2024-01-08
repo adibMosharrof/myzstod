@@ -177,13 +177,14 @@ class T5Tod:
                 gradient_accumulation_steps=self.cfg.gradient_accumulation_steps,
                 eval_accumulation_steps=self.cfg.eval_accumulation_steps,
                 learning_rate=1e-3,
-                # bf16_full_eval=True,
-                # bf16=True,
-                fp16=True,
-                fp16_full_eval=True,
+                bf16_full_eval=True,
+                bf16=True,
+                # fp16=True,
+                # fp16_full_eval=True,
                 # gradient_checkpointing=False,
                 # ddp_find_unused_parameters=False,
                 deepspeed=deepspeed_path,
+                gradient_checkpointing_kwargs={"use_reentrant": False},
             )
             trainer = Seq2SeqTrainer(
                 model=model,
@@ -206,7 +207,7 @@ class T5Tod:
         if not self.cfg.model_path:
             _ = model.eval()
         print("starting inference")
-        metric_manager = self.get_metric_manager(self.cfg.context_type, tokenizer)
+        
 
         if self.cfg.quantization:
             config = PeftConfig.from_pretrained(model_out_dir)
@@ -214,6 +215,7 @@ class T5Tod:
             model = AutoModelForSeq2SeqLM.from_pretrained(
                 config.base_model_name_or_path,
                 load_in_8bit=False,
+                # load_in_8bit=True,
                 device_map=device_map,
             )
             model.resize_token_embeddings(len(tokenizer))
@@ -244,6 +246,7 @@ class T5Tod:
                 num_workers=8,
             )
             test_dl = accelerator.prepare(test_dl)
+            metric_manager = self.get_metric_manager(self.cfg.context_type, tokenizer)
             for batch in tqdm(test_dl):
                 max_gen_len = self.cfg.max_token_len - self.cfg.test_prompt_max_len
                 with torch.no_grad():
