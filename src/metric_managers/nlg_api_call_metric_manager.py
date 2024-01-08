@@ -7,6 +7,7 @@ from logger.inference_logger_dataclasses import (
     BertScoreData,
     ApiCallInferenceLogData,
 )
+from metrics.api_call_invoke_metric import ApiCallInvokeMetric
 from metrics.complete_api_call_metric import CompleteApiCallMetric
 from metrics.api_call_parameters_metric import ApiCallParametersMetric
 from metrics.bert_score_metric import BertScoreMetric
@@ -38,6 +39,7 @@ class NlgApiCallMetricManager:
             {
                 "api_call_method": ApiCallMethodMetric(),
                 "api_call_params": ApiCallParametersMetric(),
+                "api_call_invoke": ApiCallInvokeMetric(invoke_text="ApiCall"),
             }
         )
         self.complete_api_call = CompleteApiCallMetric()

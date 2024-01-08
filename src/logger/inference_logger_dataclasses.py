@@ -31,16 +31,14 @@ class ApiCallInferenceLogData(InferenceLogData):
     api_call_method: Optional[float] = None
     api_call_params: Optional[float] = None
     response_gleu: Optional[float] = None
+    api_call_invoke: Optional[float] = None
     # response_bertscore: Optional[BertScoreData] = None
 
 
 @dataclass
-class KetodInferenceLogData(InferenceLogData):
-    turn_row_type: Optional[TurnRowType] = None
-    complete_api_call: Optional[int] = None
-    api_call_method: Optional[float] = None
-    api_call_params: Optional[float] = None
+class KetodInferenceLogData(ApiCallInferenceLogData):
     complete_kb_call: Optional[int] = None
     ke_method: Optional[float] = None
     ke_params: Optional[float] = None
+    ke_api_call_invoke: Optional[float] = None
     response_gleu: Optional[float] = None
