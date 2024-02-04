@@ -14,7 +14,7 @@ class ApiCallInvokeMetric(TodMetricsBase):
         self.invoke_text = invoke_text
 
     def _update(self, predictions: list[str], references: list[str]) -> None:
-        for pred_str in zip(predictions):
+        for pred_str in predictions:
             if self.invoke_text in pred_str:
                 self.invoke_accuracies.append(utils.create_tensor(1))
             else:
