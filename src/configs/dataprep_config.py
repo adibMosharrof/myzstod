@@ -46,6 +46,7 @@ class DataPrepConfig:
         self.domains = DstcDomainBuilder(
             self.raw_data_root, train_domain_percentage
         ).get_domains(self.domain_setting)
+        # self.domains = None
         self.num_turns = num_turns
         self.is_scale_grad = is_scale_grad
         self.is_multi_task = is_multi_task
