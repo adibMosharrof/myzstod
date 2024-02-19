@@ -17,4 +17,4 @@ class KeTodTurn:
     domains_original: list[str]
     dialog_id: Optional[str] = None
     turn_id: Optional[int] = None
-    turn_row_type: Optional[TurnRowType] = TurnRowType.RESPONSE
+    turn_row_type: Optional[TurnRowType] = TurnRowType.RESPONSE.value

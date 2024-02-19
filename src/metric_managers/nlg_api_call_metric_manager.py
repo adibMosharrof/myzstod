@@ -16,6 +16,8 @@ from metrics.api_call_method_metric import ApiCallMethodMetric
 from torchmetrics import MetricCollection
 from accelerate import Accelerator
 
+from my_enums import TurnRowType
+
 accelerator = Accelerator()
 
 
@@ -89,7 +91,7 @@ class NlgApiCallMetricManager:
     def compute_row_wise_metrics(self):
         for row in self.data:
             row_dict = DotMap(row.__dict__)
-            if row.is_api_call == 0:
+            if row.turn_row_type == TurnRowType.RESPONSE.value:
                 for k, v in zip(
                     list(self.response_metrics.keys()),
                     list(self.response_metrics.values()),

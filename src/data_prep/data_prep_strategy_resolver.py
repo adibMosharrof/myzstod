@@ -1,3 +1,4 @@
+from data_prep.bitod.bitod_strategy import BitodStrategy
 from data_prep.ketod.ketod_nlg_api_call_strategy import KetodNlgApiCallStrategy
 from data_prep.nlg_data_prep import NlgDataPrep
 from data_prep.nlg_api_call_data_prep import NlgApiCallDataPrep
@@ -23,4 +24,6 @@ class DataPrepStrategyResolver:
             return NlgApiCallDataPrep(cfg)
         if cfg.context_type == ContextType.KETOD_API_CALL.value:
             return KetodNlgApiCallStrategy(cfg)
+        if cfg.context_type == ContextType.BITOD.value:
+            return BitodStrategy(cfg)
         raise ValueError(f"Unknown data prep step: {cfg.context_type}")

@@ -1,4 +1,4 @@
-from my_enums import SpecialTokens, ZsTodConstants
+from my_enums import SpecialTokens, Steps, ZsTodConstants
 
 from sgd_dstc8_data_model.dstc_dataclasses import (
     DstcDialog,
@@ -51,3 +51,9 @@ def delexicalize_utterance(turn: DstcTurn, schemas: dict[str, DstcSchema]) -> st
                     value, replacement
                 )
     return delexicalized_utterance
+
+
+def get_dialog_studio_step_data(step_name: str, dataset: any):
+    if step_name == Steps.DEV.value:
+        step_name = "validation"
+    return dataset[step_name]

@@ -72,6 +72,7 @@ class TodTurnCsvRowFactory:
         if (
             cfg.context_type == ContextType.NLG_API_CALL
             or cfg.context_type == ContextType.KETOD_API_CALL
+            or cfg.context_type == ContextType.BITOD
         ):
             return TodTurnApiCallCsvRow
         return TodTurnCsvRow

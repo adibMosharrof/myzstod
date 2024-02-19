@@ -1,0 +1,15 @@
+project_root: /mounts/u-amo-d1/adibm-data/projects/ZSToD/
+raw_data_root: data/ketod
+processed_data_root: processed_data/ketod
+num_dialogs: 1
+step_name: dev
+delexicalize: false
+overwrite: true
+num_turns: 26
+is_scale_grad: false
+domain_setting: all
+should_add_schema: true
+data_prep_multi_process: false
+should_add_service_results: true
+context_type: ketod_api_call
+# context_type: short_repr

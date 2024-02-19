@@ -32,6 +32,7 @@ class DataPrepConfig:
         data_prep_multi_process: bool = True,
         step_name: str = Steps.TRAIN.value,
         accelerator: "Accelerator" = None,
+        **kwargs,
     ):
         self.accelerator = accelerator or Accelerator()
         self.project_root = Path(project_root)

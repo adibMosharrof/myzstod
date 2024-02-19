@@ -5,7 +5,7 @@ from torchmetrics import Metric
 from metrics.tod_metrics_base import TodMetricsBase
 
 
-class CompleteApiCallMetric(TodMetricsBase):
+class BitodCompleteApiCallMetric(TodMetricsBase):
     def __init__(self):
         super().__init__()
         self.add_state("results", [], dist_reduce_fx="cat")
@@ -16,7 +16,7 @@ class CompleteApiCallMetric(TodMetricsBase):
         res = utils.create_tensor(0)
         if method_metric == 1:
             p_res = torch.prod(torch.tensor(params_metric))
-            if p_res == 1.0:
+            if p_res == 1:
                 res = utils.create_tensor(1)
                 self.results.append(res)
                 return res

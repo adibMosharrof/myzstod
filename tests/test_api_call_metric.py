@@ -4,7 +4,7 @@ import os
 
 sys.path.append("./src")
 
-from metrics.api_call_parameters_metric import ServiceCallParametersMetric
+from metrics.api_call_parameters_metric import ApiCallParametersMetric
 from metrics.api_call_method_metric import ApiCallMethodMetric
 
 
@@ -20,6 +20,6 @@ def test_method_extract():
 
 def test_parameters_extract():
     input_string = "ServiceCall(method='GetTrainTickets', parameters='from': 'San Diego', 'leaving': '2019-03-14')"
-    scpm = ServiceCallParametersMetric()
+    scpm = ApiCallParametersMetric()
     res = scpm._get_parameters_from_text(input_string)
     assert res == {"from": "San Diego", "leaving": "2019-03-14"}

@@ -55,6 +55,8 @@ from accelerate import Accelerator
 
 from sgd_dstc8_data_model.dstc_dataclasses import get_schemas
 
+from metric_managers.bitod_metric_manager import BitodMetricManager
+
 
 class T5Tod:
     def __init__(self, cfg, **kwargs):
@@ -77,8 +79,10 @@ class T5Tod:
     def get_metric_manager(self, context_type: str, tokenizer):
         if context_type == ContextType.NLG_API_CALL.value:
             return NlgApiCallMetricManager(self.logger, tokenizer)
-        if context_type == ContextType.KETOD_API_CALL:
+        if context_type == ContextType.KETOD_API_CALL.value:
             return KeTodMetricManager(self.logger, tokenizer)
+        if context_type == ContextType.BITOD.value:
+            return BitodMetricManager(self.logger, tokenizer)
         return NlgMetricManager(self.logger, tokenizer)
 
     def pad_gen_to_max_len(self, gen, max_len: int, tokenizer):
@@ -104,7 +108,7 @@ class T5Tod:
             # model_path, load_in_8bit=True, torch_dtype=torch.bfloat16
             model_path,
             load_in_8bit=False,
-            torch_dtype=dtype
+            torch_dtype=dtype,
             # model_path, load_in_8bit=False
         )
         model.resize_token_embeddings(len(tokenizer))
@@ -177,10 +181,10 @@ class T5Tod:
                 gradient_accumulation_steps=self.cfg.gradient_accumulation_steps,
                 eval_accumulation_steps=self.cfg.eval_accumulation_steps,
                 learning_rate=1e-3,
-                bf16_full_eval=True,
-                bf16=True,
-                # fp16=True,
-                # fp16_full_eval=True,
+                # bf16_full_eval=True,
+                # bf16=True,
+                fp16=True,
+                fp16_full_eval=True,
                 # gradient_checkpointing=False,
                 # ddp_find_unused_parameters=False,
                 deepspeed=deepspeed_path,
@@ -207,7 +211,6 @@ class T5Tod:
         if not self.cfg.model_path:
             _ = model.eval()
         print("starting inference")
-        
 
         if self.cfg.quantization:
             config = PeftConfig.from_pretrained(model_out_dir)
@@ -227,7 +230,11 @@ class T5Tod:
         collate_fn = (
             self.dm.tod_test_collate
             if self.cfg.context_type
-            in [ContextType.NLG_API_CALL.value, ContextType.KETOD_API_CALL.value]
+            in [
+                ContextType.NLG_API_CALL.value,
+                ContextType.KETOD_API_CALL.value,
+                ContextType.BITOD.value,
+            ]
             else self.dm.tod_train_collate
         )
         for test_dataset, domain_names_list in zip(

@@ -81,10 +81,7 @@ class KetodBaseDataPrep:
         turn_csv_row_handler: TurnCsvRowBase = TurnCsvRowFactory.get_handler(self.cfg)
         out_data = []
         dataset = load_dataset("Salesforce/dialogstudio", "KETOD")
-        step_name = self.cfg.step_name
-        if step_name == Steps.DEV.value:
-            step_name = "validation"
-        ds = dataset[step_name]
+        ds = data_prep_utils.get_dialog_studio_step_data(self.cfg.step_name, dataset)
         if self.cfg.num_dialogs < 1:
             self.cfg.num_dialogs = len(ds)
         subset_data = Subset(ds, range(self.cfg.num_dialogs))
