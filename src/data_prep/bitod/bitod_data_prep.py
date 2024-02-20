@@ -48,11 +48,7 @@ class BitodDataPrep:
                 f"{self.cfg.step_name} csv file already exists and overwrite is false, so skipping"
             )
             return
-        step_name = "valid" if self.cfg.step_name == Steps.DEV else self.cfg.step_name
 
-        json_data_path = self.cfg.raw_data_root / f"en_{step_name}.json"
-        json_data = utils.read_json(json_data_path)
-        en_ids = list(json_data.keys())
         dataset = load_dataset("Salesforce/dialogstudio", "BiTOD")
         turn_csv_row_handler: TurnCsvRowBase = TurnCsvRowFactory.get_handler(self.cfg)
         ds = data_prep_utils.get_dialog_studio_step_data(self.cfg.step_name, dataset)
