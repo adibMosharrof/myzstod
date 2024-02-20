@@ -25,6 +25,7 @@ from my_enums import Steps
 from utilities.dialog_studio_dataclasses import DsDialog
 
 from sgd_dstc8_data_model.dstc_dataclasses import DstcSchema
+from langdetect import detect
 
 
 class BitodDataPrep:
@@ -47,12 +48,25 @@ class BitodDataPrep:
                 f"{self.cfg.step_name} csv file already exists and overwrite is false, so skipping"
             )
             return
+        step_name = "valid" if self.cfg.step_name == Steps.DEV else self.cfg.step_name
+
+        json_data_path = self.cfg.raw_data_root / f"en_{step_name}.json"
+        json_data = utils.read_json(json_data_path)
+        en_ids = list(json_data.keys())
         dataset = load_dataset("Salesforce/dialogstudio", "BiTOD")
         turn_csv_row_handler: TurnCsvRowBase = TurnCsvRowFactory.get_handler(self.cfg)
         ds = data_prep_utils.get_dialog_studio_step_data(self.cfg.step_name, dataset)
+        en_row_ids = []
+        for i, row in enumerate(ds):
+            dialog = DsDialog(row)
+            lang = detect(dialog.log[0].user_utterance)
+            if lang == "en":
+                en_row_ids.append(i)
+        en_data = Subset(ds, en_row_ids)
+
         if self.cfg.num_dialogs < 1:
-            self.cfg.num_dialogs = len(ds)
-        subset_data = Subset(ds, range(self.cfg.num_dialogs))
+            self.cfg.num_dialogs = len(en_data)
+        subset_data = Subset(en_data, range(self.cfg.num_dialogs))
         out_data = []
         for row in subset_data:
             dialog = DsDialog(row)

@@ -37,6 +37,32 @@ class TestDM:
             schemas.update(d)
         dm = T5DataModule(self.cfg, tokenizer, schemas)
         train_dataset, val_dataset, test_datasets = dm.load_data()
+
+        train_dl = DataLoader(
+            train_dataset,
+            batch_size=self.cfg.train_batch_size,
+            collate_fn=dm.tod_train_collate,
+            pin_memory=True,
+            num_workers=1,
+        )
+        train_dl = accelerator.prepare(train_dl)
+        print("train_dl")
+        for batch in tqdm(train_dl):
+            max_gen_len = self.cfg.max_token_len - self.cfg.test_prompt_max_len
+
+        val_dl = DataLoader(
+            val_dataset,
+            batch_size=self.cfg.eval_batch_size,
+            collate_fn=dm.tod_train_collate,
+            pin_memory=True,
+            num_workers=1,
+        )
+        val_dl = accelerator.prepare(val_dl)
+        print("val_dl")
+        for batch in tqdm(val_dl):
+            max_gen_len = self.cfg.max_token_len - self.cfg.test_prompt_max_len
+
+        print("test_dl")
         for test_dataset, domain_names_list in zip(
             test_datasets, self.cfg.test_domain_settings
         ):
@@ -65,17 +91,17 @@ if __name__ == "__main__":
             separate_dev_test=False,
             # project_root=Path("/projects/bbyl/amosharrof/ZSToD"),
             project_root=Path("/mounts/u-amo-d1/adibm-data/projects/ZSToD/"),
-            data_prep_out_root="processed_data/ketod",
+            data_prep_out_root="processed_data/bitod",
             # raw_data_root="data/dstc8-schema-guided-dialogue/",
-            raw_data_root="data/ketod/",
+            raw_data_root="data/bitod/",
             # tokenizer_name="adibm/sgd-flan-t5-nlg-tokenizer",
             model_name="google/flan-t5-base",
             model_path="playground/t5_tod_out/2023-11-28/03-15-51",
             # model_path="outputs/2023-10-25/11-49-15/results/pretrain",
             # model_path="",
             max_token_len=1024,
-            test_prompt_max_len=850,
-            train_batch_size=10,
+            test_prompt_max_len=800,
+            train_batch_size=50,
             eval_batch_size=20,
             test_batch_size=60,
             # epochs=3,
@@ -88,14 +114,14 @@ if __name__ == "__main__":
             # data_split_percent=[0.1, 1, 0.5],
             data_split_percent=[1, 1, 1],
             # num_dialogs=[127, 20, 34],
-            # num_dialogs=[1, 1, 1],
-            num_dialogs=[10, 10, 10],
+            num_dialogs=[-1, -1, -1],
+            # num_dialogs=[10, 10, 10],
             quantization=True,
             num_turns=26,
             should_add_schema=True,
             should_add_user_actions=True,
             should_add_service_results=True,
-            train_domain_settings="seen",
+            train_domain_settings="all",
             is_scale_grad=False,
             # train_domain_settings=["Banks_1", "Hotels_2"],
             dev_domain_settings=["all"],
@@ -105,7 +131,7 @@ if __name__ == "__main__":
             # test_domain_settings=[["Hotels_4"], ["Restaurants_2"]],
             # context_type="nlg",
             # context_type="nlg_api_call",
-            context_type="ketod_api_call",
+            context_type="bitod",
             prompt_type="default",
             # prompt_type="multi_domain",
             # overwrite=[1, 1, 1],
