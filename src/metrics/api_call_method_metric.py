@@ -5,13 +5,11 @@ import utils
 
 
 class ApiCallMethodMetric(TodMetricsBase):
-    def __init__(
-        self,
-        name:str = ""
-    ):
+    def __init__(self, name: str = "", reg_exp: str = r"method='([^']+)'"):
         super().__init__()
         self.add_state("method_accuracies", [], dist_reduce_fx="cat")
         self.name = name
+        self.reg_exp = reg_exp
 
     def _update(self, predictions: list[str], references: list[str]) -> None:
         for pred_str, ref_str in zip(predictions, references):
@@ -23,9 +21,9 @@ class ApiCallMethodMetric(TodMetricsBase):
                 self.method_accuracies.append(utils.create_tensor(0))
 
     def _get_method_from_text(self, text: str) -> str:
-        reg_exp = r"method='([^']+)'"
+        # reg_exp = r"method='([^']+)'"
         try:
-            match = re.search(reg_exp, text).group(1)
+            match = re.search(self.reg_exp, text).group(1)
         except:
             match = ""
         return match

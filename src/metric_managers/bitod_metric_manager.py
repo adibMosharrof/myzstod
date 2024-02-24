@@ -4,6 +4,7 @@ import uuid
 from logger.inference_logger_dataclasses import ApiCallInferenceLogData
 from metric_managers.nlg_api_call_metric_manager import NlgApiCallMetricManager
 from metrics.api_call_invoke_metric import ApiCallInvokeMetric
+from metrics.api_call_method_metric import ApiCallMethodMetric
 from metrics.bitod_api_call_parameters_metric import BitodApiCallParametersMetric
 from metrics.bitod_complete_api_call_metric import BitodCompleteApiCallMetric
 from metrics.complete_api_call_metric import CompleteApiCallMetric
@@ -22,7 +23,8 @@ class BitodMetricManager(NlgApiCallMetricManager):
         self.api_call_metrics = MetricCollection(
             {
                 "api_call_params": BitodApiCallParametersMetric(),
+                "api_call_method": ApiCallMethodMetric(reg_exp=r"method=([^\s,]+)"),
                 "api_call_invoke": ApiCallInvokeMetric(invoke_text="ApiCall"),
             }
         )
-        self.complete_api_call = CompleteApiCallMetric()
+        self.complete_api_call = BitodCompleteApiCallMetric()
