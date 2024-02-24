@@ -38,8 +38,12 @@ class BitodApiCallParametersMetric(TodMetricsBase):
             return []
         parameters = parameters_content.split("|")
         out = []
+        items_num = range(3)
         for item in parameters:
             item = item.split(" ")
+            for i in items_num:
+                if i >= 0 and i < len(item):
+                    item.append("")
             out.append(
                 BitodApiCallParams(slot_name=item[0], relation=item[1], value=item[2:])
             )
