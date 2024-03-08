@@ -141,6 +141,8 @@ class DataPrepStrategy(ABC):
                 for frame in system_turn.frames:
                     context.service_results = frame.service_results
                     context.api_call = frame.service_call
+                if prev_tod_turn and not context.service_results:
+                    context.service_results = prev_tod_turn.context.service_results
         return context
 
     def add_tod_turn(
