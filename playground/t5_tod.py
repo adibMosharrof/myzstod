@@ -68,6 +68,7 @@ class T5Tod:
             filename=str(log_file), level=logging.INFO, encoding="utf-8"
         )
         self.logger = logging
+        self.cfg.out_dir = Path("results")
 
     def __old_init__(self, cfg, **kwargs):
         self.cfg = DotMap(dict(cfg))
