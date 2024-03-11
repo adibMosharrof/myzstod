@@ -11,7 +11,7 @@ from sgd_dstc8_data_model.dstc_dataclasses import (
 )
 import copy
 from data_prep.data_prep_strategy import DataPrepStrategy
-from my_enums import ContextType, ZsTodConstants
+from my_enums import ContextType, TurnRowType, ZsTodConstants
 from tod.nlg.nlg_tod_context import NlgTodContext
 from tod.nlg.nlg_tod_target import NlgTodTarget
 from tod.nlg.nlg_tod_turn import NlgTodTurn
@@ -91,7 +91,7 @@ class NlgApiCallDataPrep(DataPrepStrategy):
         new_turn = copy.deepcopy(tod_turn)
         new_turn.context.api_call = None
         new_turn.context.service_results = None
-        new_turn.is_api_call = True
+        new_turn.turn_row_type = TurnRowType.API_CALL.value
         new_turn.target.response = tod_turn.context.get_api_call()
         new_turn.dialog_id = dialog_id
         new_turn.turn_id = turn_id
