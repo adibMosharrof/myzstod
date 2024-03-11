@@ -59,8 +59,19 @@ from metric_managers.bitod_metric_manager import BitodMetricManager
 
 
 class T5Tod:
-    def __init__(self, cfg, **kwargs):
+    def __init__(self, cfg):
+        self.cfg = DotMap(cfg)
+        self.cfg.project_root = Path(cfg.project_root)
+        self.cfg.raw_data_root = self.cfg.project_root / self.cfg.raw_data_root
+        log_file = self.cfg.project_root / self.cfg.out_dir / "t5_tod.log"
+        logging.basicConfig(
+            filename=str(log_file), level=logging.INFO, encoding="utf-8"
+        )
+        self.logger = logging
+
+    def __old_init__(self, cfg, **kwargs):
         self.cfg = DotMap(dict(cfg))
+        self.cfg.project_root = Path(self.cfg.project_root)
         base_out_dir = self.cfg.project_root / "playground" / "t5_tod_out"
         date_str = datetime.now().strftime("%Y-%m-%d")
         time_str = datetime.now().strftime("%H-%M-%S")
@@ -332,15 +343,14 @@ def old_main():
 
 @hydra.main(config_path="../config/t5_trainer/", config_name="t5_trainer")
 def hydra_start(cfg: DictConfig) -> None:
-    print(os.getcwd())
     t5tod = T5Tod(cfg)
     t5tod.run()
-    sys.stdout.close()
+    # sys.stdout.close()
 
 
 if __name__ == "__main__":
     # deepspeed.init_distributed()
-    # hydra_start()
+    hydra_start()
     # wandb.finish()
-    old_main()
+    # old_main()
     print(os.getcwd())
