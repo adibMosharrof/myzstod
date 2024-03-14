@@ -60,6 +60,7 @@ class DataModuleConfig:
         test_num_turns_groups: list[Tuple[int, int]] = None,
         train_step_data: "StepData" = None,
         accelerator: "Accelerator" = None,
+        service_results_num_items: int = 1,
         **kwargs,
     ):
         self.kwargs = kwargs
@@ -108,9 +109,7 @@ class DataModuleConfig:
         self.mh_fact = (
             mh_fact
             if mh_fact
-            else MultiHeadDictFactory(self.tokenizer)
-            if is_multi_head
-            else None
+            else MultiHeadDictFactory(self.tokenizer) if is_multi_head else None
         )
         self.data_prep_multi_process = data_prep_multi_process
         self.train_domain_settings = train_domain_settings
@@ -123,6 +122,7 @@ class DataModuleConfig:
         self.domain_setting = None
         self.test_num_turns_groups = test_num_turns_groups
         self.train_step_data = train_step_data
+        self.service_results_num_items = service_results_num_items
 
     @classmethod
     def from_trainer_config(
@@ -167,6 +167,7 @@ class DataModuleConfig:
             mh_fact=trainer_config.mh_fact,
             data_prep_multi_process=trainer_config.data_prep_multi_process,
             test_num_turns_groups=trainer_config.test_num_turns_groups,
+            service_results_num_items=trainer_config.service_results_num_items,
         )
 
     @classmethod

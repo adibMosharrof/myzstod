@@ -28,6 +28,7 @@ class DataPrepConfig:
         should_add_user_actions: bool = False,
         context_type: str = ContextType.SHORT_REPR,
         should_add_service_results: bool = False,
+        service_results_num_items: int = 1,
         mh_fact: MultiHeadDictFactory = None,
         data_prep_multi_process: bool = True,
         step_name: str = Steps.TRAIN.value,
@@ -63,6 +64,7 @@ class DataPrepConfig:
         self.mh_fact = mh_fact if mh_fact else None
         self.data_prep_multi_process = data_prep_multi_process
         self.step_name = step_name
+        self.service_results_num_items = service_results_num_items
 
     @classmethod
     def from_dm_config(self, dm_config: DataModuleConfig) -> "DataPrepConfig":
@@ -89,4 +91,5 @@ class DataPrepConfig:
             mh_fact=dm_config.mh_fact,
             data_prep_multi_process=dm_config.data_prep_multi_process,
             step_name=dm_config.step_name,
+            service_results_num_items=dm_config.service_results_num_items,
         )

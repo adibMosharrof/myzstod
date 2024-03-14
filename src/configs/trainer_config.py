@@ -71,6 +71,7 @@ class TrainerConfig:
         two_step_training: bool = True,
         quantization: bool = False,
         quantization_dtype: int = 8,
+        service_results_num_items: int = 1,
     ) -> None:
         self.accelerator = Accelerator()
         self.project_root = Path(machine.project_root)
@@ -105,6 +106,7 @@ class TrainerConfig:
         #     ["seen"],
         #     ["unseen"],
         # ]
+        self.service_results_num_items = service_results_num_items
         self.dev_domain_settings = domains.dev_domain_settings
         self.train_domain_settings = domains.train_domain_settings
         self.test_domain_settings = domains.test_domain_settings
