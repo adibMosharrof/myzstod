@@ -21,7 +21,9 @@ class NlgTodContext:
         self.system_utterances = deque(maxlen=max_length)
 
     def _get_last_user_utterance(self) -> str:
-        return "".join(["Last User Utterance:", self.current_user_utterance])
+        if self.current_user_utterance:
+            return "".join(["Last User Utterance:", self.current_user_utterance])
+        return ""
 
     def get_api_call(self) -> str:
         out = ""
@@ -31,10 +33,12 @@ class NlgTodContext:
         out += str(self.api_call)
         return out
 
-    def get_service_results(self) -> str:
+    def get_service_results(self, num_items: int = 1) -> str:
         out = ""
         if not self.service_results:
             return out
+        results = self.service_results[:num_items]
+        return str(results)
         for service_result in self.service_results[:1]:
             s_res = {"search_results": service_result}
             out += str(s_res)
@@ -55,7 +59,7 @@ class NlgTodContext:
                 history_text,
                 self._get_last_user_utterance(),
                 "End Dialog History",
-                self.get_service_results(),
-                self.get_api_call(),
+                # self.get_service_results(),
+                # self.get_api_call(),
             ]
         )
