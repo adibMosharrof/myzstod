@@ -53,11 +53,11 @@ from peft import (
     get_peft_model,
 )
 from accelerate import Accelerator
-
+import deepspeed
 from sgd_dstc8_data_model.dstc_dataclasses import get_schemas
 
 from metric_managers.bitod_metric_manager import BitodMetricManager
-
+import wandb
 
 class T5Tod:
     def __init__(self, cfg):
@@ -81,7 +81,7 @@ class T5Tod:
         self.cfg.out_dir.mkdir(parents=True, exist_ok=True)
         os.chdir(self.cfg.out_dir)
         self.cfg.project_root = Path(self.cfg.project_root)
-        self.cfg.out_dir = Path(os.getcwd())
+        self.cfg.out_dir = Path(os.getcwd()) 
         log_file = self.cfg.out_dir / "t5_tod.log"
         logging.basicConfig(filename=log_file, level=logging.INFO, encoding="utf-8")
         self.logger = logging
@@ -203,10 +203,10 @@ class T5Tod:
                 gradient_accumulation_steps=self.cfg.gradient_accumulation_steps,
                 eval_accumulation_steps=self.cfg.eval_accumulation_steps,
                 learning_rate=1e-3,
-                # bf16_full_eval=True,
-                # bf16=True,
-                fp16=True,
-                fp16_full_eval=True,
+                bf16_full_eval=True,
+                bf16=True,
+                # fp16=True,
+                # fp16_full_eval=True,
                 # gradient_checkpointing=False,
                 # ddp_find_unused_parameters=False,
                 deepspeed=deepspeed_path,
@@ -229,6 +229,15 @@ class T5Tod:
                 if accelerator.is_main_process:
                     trainer.model.save_pretrained(self.cfg.out_dir)
                 accelerator.wait_for_everyone()
+            if self.cfg.resume_checkpoint:
+                trainer.train(str(self.cfg.project_root / self.cfg.resume_checkpoint))
+            else:
+                trainer.train()
+            # trainer.save_model()
+            # model.save_pretrained(self.cfg.out_dir)
+            if accelerator.is_main_process:
+                trainer.model.save_pretrained(self.cfg.out_dir)
+            accelerator.wait_for_everyone()
             model_out_dir = self.cfg.out_dir
 
         if not self.cfg.model_path:
