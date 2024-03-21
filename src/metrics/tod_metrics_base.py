@@ -92,10 +92,11 @@ class TodMetricsBase(Metric):
         # return section_txts.split(separator)
 
     def update(self, predictions: list[str], references: list[str]) -> None:
+        if not len(references):
+            return
+            raise ValueError("You must provide at least one reference.")
         if not len(predictions):
             raise ValueError("You must provide at least one prediction.")
-        if not len(references):
-            raise ValueError("You must provide at least one reference.")
         if not len(predictions) == len(references):
             raise ValueError(
                 f"Predictions {len(predictions)} and references {len(references)} must have the same length"

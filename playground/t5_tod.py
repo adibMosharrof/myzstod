@@ -34,6 +34,7 @@ from transformers import (
     AutoModelForSeq2SeqLM,
     Seq2SeqTrainer,
     Seq2SeqTrainingArguments,
+    AutoModelForCausalLM,
 )
 from datetime import datetime
 import utils
@@ -137,6 +138,14 @@ class T5Tod:
         model = get_peft_model(model, lora_config)
         return model
 
+    def get_model_class(self, model_name: str):
+        if "t5" in model_name:
+            return T5ForConditionalGeneration
+        lmhead_models = ["alpaca", "llama", "santacoder"]
+        if any([m in model_name.lower() for m in lmhead_models]):
+            return AutoModelForCausalLM
+        raise ValueError(f"model_name {model_name} not supported")
+
     def run(self):
         accelerator = Accelerator()
         torch.manual_seed(420)
@@ -152,6 +161,7 @@ class T5Tod:
         )
         tokenizer.model_max_length = 1024
         model = None
+        deepspeed_path = None
         # tokenizer.add_tokens(["<|user|>", "<|system|>"])
         if self.cfg.model_path:
             model_out_dir = str(self.cfg.project_root / self.cfg.model_path)
@@ -159,9 +169,9 @@ class T5Tod:
             model = self.get_model(self.cfg.model_name, tokenizer)
             deepspeed_path = self.cfg.project_root / "config/ds_zero1.json"
         else:
-            model = T5ForConditionalGeneration.from_pretrained(
-                self.cfg.model_name
-            ).cuda()
+            # model = T5ForConditionalGeneration.from_pretrained(
+            model_cls = self.get_model_class(self.cfg.model_name)
+            model = model_cls.from_pretrained(self.cfg.model_name).cuda()
             model.resize_token_embeddings(len(tokenizer))
         steps = Steps.list()
         schemas = {}
@@ -200,7 +210,7 @@ class T5Tod:
                 # gradient_checkpointing=False,
                 # ddp_find_unused_parameters=False,
                 deepspeed=deepspeed_path,
-                gradient_checkpointing_kwargs={"use_reentrant": False},
+                # gradient_checkpointing_kwargs={"use_reentrant": False},
             )
             trainer = Seq2SeqTrainer(
                 model=model,
@@ -212,12 +222,13 @@ class T5Tod:
             # model.gradient_checkpointing_disable()
             # with accelerator.no_sync(model):
             # trainer.train()
-            trainer.train()
-            # trainer.save_model()
-            # model.save_pretrained(self.cfg.out_dir)
-            if accelerator.is_main_process:
-                trainer.model.save_pretrained(self.cfg.out_dir)
-            accelerator.wait_for_everyone()
+            if self.cfg.should_train:
+                trainer.train()
+                # trainer.save_model()
+                # model.save_pretrained(self.cfg.out_dir)
+                if accelerator.is_main_process:
+                    trainer.model.save_pretrained(self.cfg.out_dir)
+                accelerator.wait_for_everyone()
             model_out_dir = self.cfg.out_dir
 
         if not self.cfg.model_path:
@@ -267,7 +278,8 @@ class T5Tod:
             test_dl = accelerator.prepare(test_dl)
             metric_manager = self.get_metric_manager(self.cfg.context_type, tokenizer)
             for batch in tqdm(test_dl):
-                max_gen_len = self.cfg.max_token_len - self.cfg.test_prompt_max_len
+                # max_gen_len = self.cfg.max_token_len - self.cfg.test_prompt_max_len
+                max_gen_len = self.cfg.max_token_len
                 with torch.no_grad():
                     sample_outputs = model.generate(
                         inputs=batch.input_ids.to(accelerator.device),
