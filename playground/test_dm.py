@@ -28,7 +28,7 @@ class TestDM:
             pad_token="<|pad|>",
         )
         tokenizer.add_special_tokens(
-            {"additional_special_tokens": ["<SYSTEM>", "<USER>"]}
+            {"additional_special_tokens": ["<SYSTEM>", "<USER>", "{", "}"]}
         )
         tokenizer.model_max_length = 1024
         schemas = {}
@@ -91,16 +91,17 @@ if __name__ == "__main__":
             separate_dev_test=False,
             # project_root=Path("/projects/bbyl/amosharrof/ZSToD"),
             project_root=Path("/mounts/u-amo-d1/adibm-data/projects/ZSToD/"),
-            data_prep_out_root="processed_data/bitod",
-            # raw_data_root="data/dstc8-schema-guided-dialogue/",
-            raw_data_root="data/bitod/",
+            data_prep_out_root="processed_data/simple_tod",
+            raw_data_root="data/dstc8-schema-guided-dialogue/",
+            # data_prep_out_root="processed_data/bitod",
+            # raw_data_root="data/bitod/",
             # tokenizer_name="adibm/sgd-flan-t5-nlg-tokenizer",
-            model_name="google/flan-t5-base",
-            model_path="playground/t5_tod_out/2023-11-28/03-15-51",
+            model_name="google/flan-t5-large",
+            # model_path="playground/t5_tod_out/2023-11-28/03-15-51",
             # model_path="outputs/2023-10-25/11-49-15/results/pretrain",
-            # model_path="",
+            model_path="",
             max_token_len=1024,
-            test_prompt_max_len=800,
+            test_prompt_max_len=700,
             train_batch_size=50,
             eval_batch_size=20,
             test_batch_size=60,
@@ -113,8 +114,8 @@ if __name__ == "__main__":
             eval_steps=10,
             # data_split_percent=[0.1, 1, 0.5],
             data_split_percent=[1, 1, 1],
-            # num_dialogs=[127, 20, 34],
-            num_dialogs=[-1, -1, -1],
+            num_dialogs=[127, 20, 34],
+            # num_dialogs=[-1, -1, -1],
             # num_dialogs=[10, 10, 10],
             quantization=True,
             num_turns=26,
@@ -130,12 +131,12 @@ if __name__ == "__main__":
             test_domain_settings=[["all"]],
             # test_domain_settings=[["Hotels_4"], ["Restaurants_2"]],
             # context_type="nlg",
-            # context_type="nlg_api_call",
-            context_type="bitod",
+            context_type="nlg_api_call",
+            # context_type="bitod",
             prompt_type="default",
             # prompt_type="multi_domain",
             # overwrite=[1, 1, 1],
-            # data_prep_multi_process=False,
+            data_prep_multi_process=True,
         )
     )
     test_dm.run()

@@ -157,7 +157,7 @@ class T5Tod:
             pad_token="<|pad|>",
         )
         tokenizer.add_special_tokens(
-            {"additional_special_tokens": ["<SYSTEM>", "<USER>"]}
+            {"additional_special_tokens": ["<SYSTEM>", "<USER>", "{", "}"]}
         )
         tokenizer.model_max_length = 1024
         model = None
