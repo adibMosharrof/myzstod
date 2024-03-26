@@ -54,6 +54,11 @@ class T5DataModule:
             other_domain_schema,
         )
         context_tokens = self.my_tokenize(context_text)
+        if len(context_tokens) > self.cfg.test_prompt_max_len:
+            overflow_tokens = len(context_tokens) - self.cfg.test_prompt_max_len
+            return self.trim_dialog_history(
+                item, -overflow_tokens, other_domain, other_domain_schema
+            )
         return context_tokens
 
     def get_other_domain(self, item):
