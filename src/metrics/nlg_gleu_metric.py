@@ -1,5 +1,7 @@
 import uuid
 
+from dotmap import DotMap
+
 from logger.inference_logger_dataclasses import ApiCallInferenceLogData
 from metrics.tod_metrics_base import TodMetricsBase
 from transformers import AutoTokenizer
@@ -10,11 +12,24 @@ import numpy as np
 
 
 class NlgGleuMetric(TodMetricsBase):
-    def __init__(self, tokenizer: AutoTokenizer):
+    def __init__(
+        self,
+        metric_name: str = "gleu",
+    ):
         super().__init__()
-        self.tokenizer = tokenizer
-        self.metric = evaluate.load("google_bleu", experiment_id=str(uuid.uuid4()))
-        self.row_metric = evaluate.load("google_bleu", experiment_id=str(uuid.uuid4()))
+        metric_maps = DotMap(
+            {
+                "gleu": {"metric": "google_bleu", "text": "Response GLEU"},
+                "bleu": {"metric": "bleu", "text": "Response BLEU"},
+            }
+        )
+        self.metric_map = metric_maps[metric_name]
+        self.metric = evaluate.load(
+            self.metric_map.metric, experiment_id=str(uuid.uuid4())
+        )
+        self.row_metric = evaluate.load(
+            self.metric_map.metric, experiment_id=str(uuid.uuid4())
+        )
 
     def _update(self, predictions: list[str], references: list[str]) -> None:
         refs = np.expand_dims(references, axis=1)
@@ -22,7 +37,7 @@ class NlgGleuMetric(TodMetricsBase):
 
     def _compute(self) -> float:
         try:
-            res = self.metric.compute()["google_bleu"]
+            res = self.metric.compute()[self.metric_map.metric]
         except:
             res = 0.0
         return res
@@ -30,7 +45,7 @@ class NlgGleuMetric(TodMetricsBase):
     def compute_row(self, pred: str, ref: str) -> None:
         try:
             res = self.row_metric.compute(predictions=[pred], references=[[ref]])[
-                "google_bleu"
+                self.metric_map.metric
             ]
         except:
             res = 0.0
@@ -38,4 +53,4 @@ class NlgGleuMetric(TodMetricsBase):
 
     def __str__(self):
         res = self._compute()
-        return f"Response GLEU: {res:.4f}"
+        return f"{self.metric_map.text}: {res:.4f}"

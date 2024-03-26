@@ -31,6 +31,7 @@ class ApiCallInferenceLogData(InferenceLogData):
     api_call_method: Optional[float] = None
     api_call_params: Optional[float] = None
     response_gleu: Optional[float] = None
+    response_bleu: Optional[float] = None
     api_call_invoke: Optional[float] = None
     # response_bertscore: Optional[BertScoreData] = None
 
