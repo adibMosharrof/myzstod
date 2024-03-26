@@ -7,7 +7,7 @@ import utils
 class ApiCallInvokeMetric(TodMetricsBase):
     def __init__(
         self,
-        invoke_text: str,
+        invoke_text: str = "ApiCall",
     ):
         super().__init__()
         self.add_state("invoke_accuracies", [], dist_reduce_fx="cat")
