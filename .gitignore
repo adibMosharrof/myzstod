@@ -3,6 +3,7 @@
 data/
 out/
 envs/
+env/
 .venvs/
 venvs/
 processed_data/

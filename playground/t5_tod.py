@@ -141,7 +141,7 @@ class T5Tod:
     def get_model_class(self, model_name: str):
         if "t5" in model_name:
             return T5ForConditionalGeneration
-        lmhead_models = ["alpaca", "llama", "santacoder", "vicuna"]
+        lmhead_models = ["alpaca", "llama", "santacoder", "vicuna","koala"]
         if any([m in model_name.lower() for m in lmhead_models]):
             return AutoModelForCausalLM
         raise ValueError(f"model_name {model_name} not supported")
@@ -183,7 +183,7 @@ class T5Tod:
         else:
             train_dataset, val_dataset, test_datasets = self.dm.load_data()
 
-        if not self.cfg.model_path:
+        if not self.cfg.model_path and self.cfg.should_train:
             bf16 = False
             fp16 = False
             if torch.cuda.is_bf16_supported():
@@ -228,13 +228,13 @@ class T5Tod:
             # model.gradient_checkpointing_disable()
             # with accelerator.no_sync(model):
             # trainer.train()
-            if self.cfg.should_train:
-                trainer.train()
-                # trainer.save_model()
-                # model.save_pretrained(self.cfg.out_dir)
-                if accelerator.is_main_process:
-                    trainer.model.save_pretrained(self.cfg.out_dir)
-                accelerator.wait_for_everyone()
+            
+            trainer.train()
+            # trainer.save_model()
+            # model.save_pretrained(self.cfg.out_dir)
+            if accelerator.is_main_process:
+                trainer.model.save_pretrained(self.cfg.out_dir)
+            accelerator.wait_for_everyone()
             if self.cfg.resume_checkpoint:
                 trainer.train(str(self.cfg.project_root / self.cfg.resume_checkpoint))
             else:
@@ -325,6 +325,7 @@ class T5Tod:
             metric_manager.compute_row_wise_metrics()
             metric_manager.compute_metrics(domain_names)
             csv_path = self.cfg.out_dir / f"{domain_names}.csv"
+            csv_path.parent.mkdir(parents=True, exist_ok=True)
             metric_manager.write_csv(csv_path)
 
 

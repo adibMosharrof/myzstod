@@ -44,7 +44,7 @@ class T5DataModule:
         other_domain_schema: str,
     ):
         dialog_history_tokens = self.my_tokenize(item.context)
-        trimmed_history_tokens = dialog_history_tokens[trim_len + 10 :]
+        trimmed_history_tokens = dialog_history_tokens[trim_len + 15 :]
         trimmed_history_text = self.tokenizer.decode(trimmed_history_tokens)
         context_text = self.nlg_prompt_cls.get_prompt(
             item.domains,
