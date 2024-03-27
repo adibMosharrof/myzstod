@@ -1,10 +1,12 @@
 from dataclasses import dataclass, field
 from typing import Optional
-from dstc.dstc_dataclasses import DstcRequestedSlot
+from sgd_dstc8_data_model.dstc_dataclasses import DstcRequestedSlot
 
-from my_enums import SimpleTodConstants, SpecialTokens
+from my_enums import ZsTodConstants, SpecialTokens
 from tod.zs_tod_action import ZsTodAction
 from tod.zs_tod_dst import ZsTodDst
+
+
 @dataclass
 class ZsTodTarget:
     actions: list[ZsTodAction]
@@ -27,7 +29,7 @@ class ZsTodTarget:
         return "".join(
             [
                 SpecialTokens.begin_action,
-                SimpleTodConstants.ITEM_SEPARATOR.join(map(str, self.actions)),
+                ZsTodConstants.ITEM_SEPARATOR.join(map(str, self.actions)),
                 SpecialTokens.end_action,
             ]
         )
@@ -44,6 +46,15 @@ class ZsTodTarget:
     def __repr__(self) -> str:
         return self.__str__()
 
+    def get_nlg_target_str(self) -> str:
+        out = " ".join(
+            [
+                # "System Response",
+                self.response,
+            ]
+        )
+        return out
+
     def __str__(self) -> str:
         out = "".join(
             [
@@ -51,18 +62,22 @@ class ZsTodTarget:
                 SpecialTokens.begin_dsts,
                 "".join(map(str, self.dsts)),
                 SpecialTokens.end_dsts,
-                # SimpleTodConstants.NEW_LINES,
+                # ZsTodConstants.NEW_LINES,
                 SpecialTokens.begin_user_action,
-                SimpleTodConstants.ITEM_SEPARATOR.join(map(str, self.user_actions)),
+                ZsTodConstants.ITEM_SEPARATOR.join(map(str, self.user_actions))
+                if self.user_actions
+                else "",
                 SpecialTokens.end_user_action,
                 SpecialTokens.begin_action,
-                SimpleTodConstants.ITEM_SEPARATOR.join(map(str, self.actions)),
+                ZsTodConstants.ITEM_SEPARATOR.join(map(str, self.actions))
+                if self.actions
+                else "",
                 SpecialTokens.end_action,
                 SpecialTokens.begin_response,
                 self.response,
                 SpecialTokens.end_response,
                 SpecialTokens.end_target,
-                # SimpleTodConstants.NEW_LINES,
+                # ZsTodConstants.NEW_LINES,
             ]
         )
         return out

@@ -1,9 +1,11 @@
 .pytest_cache/
+.idea/
 data/
 out/
 envs/
 env/
 .venvs/
+venvs/
 processed_data/
 lightning_logs/
 __pycache__/
@@ -21,3 +23,10 @@ tokenizer/
 GenTodPaper/.olauth
 .nfs*
 wandb/
+data_exploration/
+playground/data
+playground/t5_tod_out
+playground/summary_data/
+playground/t5_sum_out/
+config/
+GenTodPaper/

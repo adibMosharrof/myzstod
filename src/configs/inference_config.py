@@ -8,7 +8,6 @@ from configs.task_arithmetic_config import TaskArithmeticConfig
 import torch
 from generation.generation_base import GenerationBase
 from generation.generation_handler_factory import GenerationHandlerFactory
-
 from multi_head.mh_dataclasses import MultiHeadDictFactory
 from multi_head.mh_datamodule import MultiLMHeadDatamodule
 from multi_head.mh_model import GPT2MultiLMHeadModel
@@ -20,8 +19,10 @@ import utils
 import dstc.dstc_utils as dstc_utils
 from typing import TYPE_CHECKING, Tuple
 from configs.dm_config import DataModuleConfig
-
+from accelerate import Accelerator
 from peft import PeftModelForCausalLM, PeftConfig, PeftModel, get_peft_model
+import deepspeed
+import os
 
 if TYPE_CHECKING:
     from configs.trainer_config import TrainerConfig
@@ -42,7 +43,8 @@ class InferenceConfig:
         predictions_log_dir: str = "predictions_logs",
         num_test_dialogs: int = 17,
         delexicalize: bool = False,
-        model: str = "",
+        model_paths: dict[str, str] = None,
+        model: str = None,
         model_name: str = "gpt2",
         generate_max_len: int = 1024,
         num_turns: int = 10,
@@ -53,8 +55,10 @@ class InferenceConfig:
         create_data_from_train_splits: list[float] = None,
         out_dir: str = "results",
         tokenizer: AutoTokenizer = None,
+        tokenizer_name: str = "",
         test_prompt_max_len: int = 750,
         base_model_name: str = "",
+        is_scale_grad: bool = False,
         is_multi_task: bool = False,
         is_multi_head: bool = False,
         is_multi_decoder: bool = False,
@@ -62,7 +66,6 @@ class InferenceConfig:
         should_add_schema: bool = False,
         should_add_user_actions: bool = False,
         should_add_sys_actions: bool = False,
-        should_add_special_tokens: bool = True,
         context_type: str = ContextType.SHORT_REPR,
         should_add_service_results: bool = False,
         postprocess_generation: bool = True,
@@ -73,8 +76,11 @@ class InferenceConfig:
         test_num_turns_groups: list[Tuple[int, int]] = None,
         train_step_data: "StepData" = None,
         quantization: bool = False,
+        quantization_dtype: int = 8,
         num_train_dialogs: int = 1,
+        accelerator: "Accelerator" = None,
     ) -> None:
+        self.accelerator = accelerator or Accelerator()
         self.num_workers = num_workers
         self.data_split_percent = data_split_percent or [1, 1, 1]
         self.eval_batch_size = eval_batch_size
@@ -87,9 +93,10 @@ class InferenceConfig:
         self.delexicalize = delexicalize
         self.is_multi_head = is_multi_head
         self.quantization = quantization
+        self.quantization_dtype = quantization_dtype
         self.model_name = model_name
-        self.should_add_special_tokens = should_add_special_tokens
-        self.tokenizer = tokenizer if tokenizer else self._get_tokenizer(model)
+        self.tokenizer_name = tokenizer_name
+        self.tokenizer = tokenizer if tokenizer else self._get_tokenizer(tokenizer_name)
         self.mh_fact = (
             mh_fact
             if mh_fact
@@ -114,14 +121,32 @@ class InferenceConfig:
         self.predictions_log_dir = Path(predictions_log_dir)
         self.predictions_log_dir.mkdir(parents=True, exist_ok=True)
         self.is_multi_task = is_multi_task
+        self.is_scale_grad = is_scale_grad
         self.base_model_name = base_model_name
         self.multi_tasks = (
             MultiTaskNames.get_multi_task_names(multi_tasks)
             if self.is_multi_task
             else None
         )
+        self.model_paths = model_paths
         self.model = self._get_model(model)
-        self.model.eval()
+        if self.model:
+            self.model.eval()
+            print(
+                f"Inference: Model Size of {type(self.model)}: {dstc_utils.get_model_size(self.model)}"
+            )
+        # local_rank = int(os.getenv("LOCAL_RANK", "0"))
+        # world_size = int(os.getenv("WORLD_SIZE", "1"))
+        # print(f"world size {world_size}")
+        # deepspeed_path = str(self.project_root / "config/ds_inference_config.json")
+        # ds_engine = deepspeed.init_inference(
+        #     self.model,
+        #     config=deepspeed_path,
+        #     mp_size=world_size,
+        #     dtype=torch.half,
+        #     replace_with_kernel_inject=False,
+        # )
+        # self.model = ds_engine.module
         self.is_multi_decoder = is_multi_decoder
         self.should_add_schema = should_add_schema
         self.should_add_sys_actions = should_add_sys_actions
@@ -146,6 +171,7 @@ class InferenceConfig:
         self.datamodule = datamodule or self._get_datamodule(self.test_domain_settings)
 
     def _get_tokenizer(self, model_path_str: str):
+        return utils.get_tokenizer(model_path_str)
         model_path: Path = self.project_root / model_path_str
         try:
             # with specifig checkpoint number (results/train/checkpoint-1000)
@@ -171,13 +197,24 @@ class InferenceConfig:
                 self.project_root / m_path if not m_path.is_absolute() else m_path
             )
             if model_class is not GPT2MultiLMHeadModel:
-                if not self.quantization:
-                    return model_class.from_pretrained(model_path).cuda()
                 if self.is_multi_task:
                     return self.load_multi_task_quantized_base_model(
                         self.model_name, model_path, self.multi_tasks
                     )
-                return utils.load_quantized_model(model_path, self.tokenizer)
+                if not self.quantization:
+                    return model_class.from_pretrained(model_path).cuda()
+                # return model_class.from_pretrained(model_path).cuda()
+
+                if self.quantization_dtype == 16:
+                    # device_map = None
+                    device_map = {"": self.accelerator.device}
+                return utils.load_quantized_model(
+                    model_path,
+                    self.tokenizer,
+                    is_inference=True,
+                    device_map=device_map,
+                    quantization_dtype=self.quantization_dtype,
+                )
             model_args = self.mh_fact if model_class == GPT2MultiLMHeadModel else {}
             model_kwargs = (
                 {"tok": self.tokenizer, "is_inference": True}
@@ -192,17 +229,33 @@ class InferenceConfig:
                 model.tok = self.tokenizer
                 model.is_inference = True
             return model.cuda()
-        if isinstance(model, PeftModelForCausalLM):
-            return model
-        raise ValueError(
-            "model must be either a string or a model class, but model is:{model}"
+        if not model and not self.model_name:
+            raise ValueError("must provide model_name if model is none")
+        # loading model for multi-task
+        if self.is_multi_task:
+            model = utils.get_8bit_model(
+                self.model_name, is_inference=True, device_map=self.accelerator.device
+            )
+            model.resize_token_embeddings(len(self.tokenizer))
+        return model
+
+    def load_lora_adapter_model(self, model_dir):
+        model_dir = Path(model_dir)
+        model = utils.get_8bit_model(
+            self.model_name, is_inference=True, device_map=None
         )
+        model.resize_token_embeddings(len(self.tokenizer))
+        model = get_peft_model(model, utils.get_lora_config(self.model_name))
+        model.load_adapter(model_dir, "default")
+        return model
 
     def load_multi_task_quantized_base_model(
         self, model_name: str, model_dir: str, tasks: list[MultiTaskNames]
     ) -> AutoModel:
         model_dir = Path(model_dir)
-        model = utils.get_8bit_model(model_name)
+        model = utils.get_8bit_model(
+            model_name, is_inference=True, device_map=self.accelerator.device
+        )
         model.resize_token_embeddings(len(self.tokenizer))
         model = get_peft_model(model, utils.get_lora_config(self.model_name))
         for task in tasks:
@@ -232,6 +285,7 @@ class InferenceConfig:
         cls, trainer_config: TrainerConfig, model: str
     ) -> "InferenceConfig":
         return cls(
+            accelerator=trainer_config.accelerator,
             num_workers=trainer_config.num_workers,
             data_split_percent=trainer_config.data_split_percent,
             eval_batch_size=trainer_config.eval_batch_size,
@@ -243,14 +297,17 @@ class InferenceConfig:
             num_test_dialogs=trainer_config.num_dialogs[2],
             delexicalize=trainer_config.delexicalize,
             model=model,
+            model_paths=trainer_config.model_paths,
             model_name=trainer_config.model_name,
             generate_max_len=trainer_config.generate_max_len,
             test_domain_settings=trainer_config.test_domain_settings,
             num_turns=trainer_config.num_turns,
             overwrite=trainer_config.overwrite,
             out_dir=trainer_config.out_dir,
+            tokenizer_name=trainer_config.tokenizer_name,
             tokenizer=trainer_config.tokenizer,
             test_prompt_max_len=trainer_config.test_prompt_max_len,
+            is_scale_grad=trainer_config.is_scale_grad,
             is_multi_task=trainer_config.is_multi_task,
             is_multi_head=trainer_config.is_multi_head,
             mh_fact=trainer_config.mh_fact,
@@ -265,6 +322,7 @@ class InferenceConfig:
             datamodule=trainer_config.datamodule,
             test_num_turns_groups=trainer_config.test_num_turns_groups,
             quantization=trainer_config.quantization,
+            quantization_dtype=trainer_config.quantization_dtype,
             # contrastive_model=trainer_config.contrastive_model,
         )
 
@@ -289,4 +347,8 @@ class InferenceConfig:
             postprocess_generation=task_arithmetic_config.postprocess_generation,
             data_split_percent=task_arithmetic_config.data_split_percent,
             quantization=task_arithmetic_config.quantization,
+            quantization_dtype=task_arithmetic_config.quantization_dtype,
+            should_add_schema=task_arithmetic_config.should_add_schema,
+            should_add_user_actions=task_arithmetic_config.should_add_user_actions,
+            should_add_service_results=task_arithmetic_config.should_add_service_results,
         )

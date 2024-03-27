@@ -1,51 +1,68 @@
-pretrain_epochs: 1
+defaults:
+  - data_size: min
+  - machine: local
+  - batch: bla
+# pretrain_epochs: 1
 # pretrain_model_path: outputs/2023-01-17/00-58-08/results/pretrain
-train_epochs: 1
-pretrain_batch_size: 1
-train_batch_size: 1
-num_workers: 1
+# train_epochs: 1
+# pretrain_batch_size: 4
+# train_batch_size: 4
+num_workers: 8
 # raw_data_root: data/dstc8-schema-guided-dialogue/sgd_x/data/v1/
 # tokenizer_name: sentence-transformers/stsb-roberta-base-v2
-data_split_percent:
-  - .1
-  - 1
-  - 1
-eval_batch_size: 4
+# data_split_percent:
+#   - 1
+#   - 1
+#   - 1
+# eval_batch_size: 4
 eval_steps: 100
-test_batch_size: 60
+# test_batch_size: 40
 test_prompt_max_len: 750
 max_token_len: 1024
 # num_dialogs: 
 #   - 127
 #   - 20
 #   - 34
-num_dialogs: 
-  - 1
-  - 1
-  - 1
+# num_dialogs: 
+#   - 1
+#   - 1
+#   - 1
 # overwrite:
 #   - true
 #   - true
 #   - true
+wandb:
+  project: ZSTodLocal
+  entity: adibm
+  notes: single domain with default context
 should_test: true
-test_domain_settings:
+train_domain_settings: 
+  - seen
+dev_domain_settings: 
   - all
-  # - seen
-  # - unseen
+test_domain_settings:
+  - [all]
+  - [seen]
+  - [unseen]
+# test_num_turns_groups:
+#   - [0 , 4]
+#   - [4, 8]
+#   - [8, 12]
+#   - [12, 20]
 num_turns: 26
-train_domain_setting: seen
+# train_domain_setting: seen
 # train_domain_percentage: .75
-# context_type: default
+context_type: default
 # is_multi_decoder: true
-is_multi_head: true
+is_multi_head: false
 # is_multi_task: true
-multi_tasks:
-  - 1
-  - 1
-  - 1
+# multi_tasks:
+#   - 1
+#   - 1
+#   - 1
 should_add_schema: true
-should_add_sys_actions: true
-should_add_user_actions: true
+# should_add_sys_actions: true
+# should_add_user_actions: true
 # contrastive_model: outputs/2023-01-04/09-19-41/results
 # contrastive_model: outputs/2023-01-10/13-54-46/results
 # contrast_with: 
@@ -56,8 +73,13 @@ contrastive_max_token_len: 512
 single_action_neg_samples: 0
 contrastive_train_epochs: 1
 contrastive_train_batch_size: 275
-should_add_service_results: true
+# should_add_service_results: true
 # model_name: t5-small
-model_name: distilgpt2
-fp16: true
-gradient_accumulation_steps: 4
+# model_name: distilgpt2
+# fp16: true
+quantization: true
+model_name: huggyllama/llama-7b
+# gradient_accumulation_steps: 4
+postprocess_generation: false
+data_prep_multi_process: false
+two_step_training: false

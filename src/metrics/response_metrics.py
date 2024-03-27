@@ -1,16 +1,23 @@
 import numpy as np
 from metrics.tod_metrics_base import TodMetricsBase
-from my_enums import ResponseMetricType, SpecialTokens
+from my_enums import ContextType, ResponseMetricType, SpecialTokens
 import evaluate
 from torchmetrics.text.rouge import ROUGEScore
 from torchmetrics import BLEUScore
 import torch
 import uuid
+import utils
 
 
 class ResponseMetric(TodMetricsBase):
-    def __init__(self, metric_name="bleu", metric_key_name=None) -> None:
+    def __init__(
+        self,
+        metric_name="bleu",
+        metric_key_name=None,
+        context_type=ContextType.SHORT_REPR.value,
+    ) -> None:
         super().__init__()
+        self.context_type = context_type
         self.metric_name = metric_name
         # self.metric = evaluate.load(metric_name, experiment_id=str(uuid.uuid4()))
         self.metric = (
@@ -29,19 +36,25 @@ class ResponseMetric(TodMetricsBase):
         pred_responses_batch = []
         target_responses_batch = []
         for pred, ref in zip(predictions, references):
-            target_response = self._extract_section_from_text(
-                ref,
-                SpecialTokens.begin_response,
-                SpecialTokens.end_response,
-            )
+            if self.context_type == ContextType.NLG.value:
+                target_response = ref
+            else:
+                target_response = self._extract_section_from_text(
+                    ref,
+                    SpecialTokens.begin_response,
+                    SpecialTokens.end_response,
+                )
             if not target_response:
                 continue
-            pred_response = self._extract_section_from_text(
-                pred,
-                SpecialTokens.begin_response,
-                SpecialTokens.end_response,
-                "",
-            )
+            if self.context_type == ContextType.NLG.value:
+                pred_response = pred
+            else:
+                pred_response = self._extract_section_from_text(
+                    pred,
+                    SpecialTokens.begin_response,
+                    SpecialTokens.end_response,
+                    "",
+                )
 
             # pred_responses_batch.append(pred_response)
             # target_responses_batch.append(target_response)
@@ -82,11 +95,11 @@ class ResponseMetric(TodMetricsBase):
             out = self.metric.compute()
             res = out[self.metric_key_name]
         except (ZeroDivisionError, ValueError):
-            return 0.0
+            return utils.create_tensor(0.0, dtype=torch.float)
 
         if self.metric_name == ResponseMetricType.ROUGE:
-            return res.mid.fmeasure
-        return res
+            return torch.tensor(res.mid.fmeasure, dtype=torch.float)
+        return torch.tensor(res, dtype=torch.float)
 
     def __str__(self) -> str:
         score = self.compute()

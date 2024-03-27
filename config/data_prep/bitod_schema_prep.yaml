@@ -1,0 +1,6 @@
+project_root: /mounts/u-amo-d1/adibm-data/projects/ZSToD/
+raw_data_root: data/bitod
+processed_data_root: processed_data/bitod
+out_file: schema.json
+overwrite: true
+otgy_file: otgy.json

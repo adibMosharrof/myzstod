@@ -1,24 +1,19 @@
-from collections import defaultdict
+import sys
 from pathlib import Path
 from typing import Optional
-from omegaconf import DictConfig
 import hydra
+from omegaconf import DictConfig
 import omegaconf
 import torch
 import gc
+from datetime import datetime
 from transformers import (
     AutoModel,
     AutoTokenizer,
-    GPT2LMHeadModel,
     Trainer,
     TrainingArguments,
-    logging,
     EarlyStoppingCallback,
     IntervalStrategy,
-    GPT2Config,
-    T5ForConditionalGeneration,
-    AutoModelForCausalLM,
-    BitsAndBytesConfig,
 )
 from base_datamodule import BaseDataModule
 from configs.contrastive_config import ContrastiveConfig
@@ -35,8 +30,8 @@ from contrastive.contrastive_trainer import (
 from inference import Inference
 from multi_head.mh_dataclasses import MultiHeadDictFactory
 from multi_head.mh_datamodule import MultiLMHeadDatamodule
-from multi_head.mh_model import GPT2MultiLMHeadModel
-from tod.turns.zs_tod_turn import TodTurnMultiTaskCsvRow
+from tod.turns.turn_csv_row_factory import TurnCsvRowFactory
+from tod.turns.zs_tod_turn import TodTurnMultiTaskCsvRow, TodTurnScaleGradCsvRow
 from tod_datamodules import TodDataModule
 import os
 import warnings
@@ -44,24 +39,22 @@ import my_enums
 import dstc.dstc_utils as dstc_utils
 import utils
 from sentence_transformers import SentenceTransformer
-from accelerate import Accelerator
+from deepspeed.runtime.utils import see_memory_usage
 
 warnings.filterwarnings("ignore")
 os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
 os.environ["TORCH_DISTRIBUTED_DEBUG"] = "DETAIL"
 # os.environ["NCCL_DEBUG"] = "INFO"
-import argparse
 import wandb
-from my_enums import MultiTaskNames, Steps, TrainingStage
-
+from my_enums import Steps, TrainingStage
+from transformers.trainer_pt_utils import get_parameter_names
 from peft import (
-    LoraConfig,
-    PeftConfig,
-    PeftModel,
     PeftModelForCausalLM,
-    get_peft_model,
-    prepare_model_for_int8_training,
+    prepare_model_for_kbit_training,
 )
+import bitsandbytes as bnb
+from torch import nn
+import deepspeed
 
 
 class SimpleTODTrainer:
@@ -72,21 +65,24 @@ class SimpleTODTrainer:
         self.cfg = trainer_config
 
     def print_cuda_info(self, step=""):
-        if step:
-            print(f"Step: {step}")
-        print(torch.cuda.memory_allocated() / 1024**2)
-        print(torch.cuda.memory_cached() / 1024**2)
+        see_memory_usage(step, force=True)
 
     def multi_task_run(self):
         dms = self._get_multi_task_dms()
+        model_paths = []
         for dm in dms:
             model_path = self.train_multi_task_model(dm)
-
+            model_paths.append(model_path)
+            # model = self.train_multi_task_model(dm)
+            torch.cuda.empty_cache()
+        self.cfg.model_paths = model_paths
         if self.cfg.should_test:
             curr_dir = Path(os.getcwd())
-            model_out_path = curr_dir / model_path
             inf = Inference(
-                InferenceConfig.from_trainer_config(self.cfg, model_out_path),
+                InferenceConfig.from_trainer_config(
+                    self.cfg, str(curr_dir / "results" / "multi_task")
+                ),
+                # InferenceConfig.from_trainer_config(self.cfg, model),
             )
             inf.test()
         print(str(self.cfg.out_dir.absolute()))
@@ -129,7 +125,7 @@ class SimpleTODTrainer:
                 InferenceConfig.from_trainer_config(self.cfg, full_out_dir),
             )
             inf.test()
-        print(full_out_dir)
+        print(current_dir)
 
     def _get_multi_task_dms(self) -> list[BaseDataModule]:
         steps = Steps.list() if self.cfg.should_test else Steps.list()[:-1]
@@ -155,6 +151,12 @@ class SimpleTODTrainer:
             return ContrastiveDataModule(
                 DataModuleConfig.from_trainer_config(self.cfg), steps
             )
+        if self.cfg.is_scale_grad:
+            return TodDataModule(
+                DataModuleConfig.from_trainer_config(self.cfg),
+                steps,
+                tod_turn_row_cls=TodTurnScaleGradCsvRow,
+            )
         return TodDataModule(DataModuleConfig.from_trainer_config(self.cfg), steps)
 
     def _setup_contrastive(self) -> Optional[AutoTokenizer]:
@@ -177,6 +179,37 @@ class SimpleTODTrainer:
             self.cfg.contrastive_loss_weight,
         )
         return self.contrastive_helper.contrastive_model.tokenizer
+
+    def _get_8bit_optimizer(self, model, training_args):
+        decay_parameters = get_parameter_names(model, [nn.LayerNorm])
+        decay_parameters = [name for name in decay_parameters if "bias" not in name]
+        optimizer_grouped_parameters = [
+            {
+                "params": [
+                    p for n, p in model.named_parameters() if n in decay_parameters
+                ],
+                "weight_decay": training_args.weight_decay,
+            },
+            {
+                "params": [
+                    p for n, p in model.named_parameters() if n not in decay_parameters
+                ],
+                "weight_decay": 0.0,
+            },
+        ]
+
+        optimizer_kwargs = {
+            "betas": (training_args.adam_beta1, training_args.adam_beta2),
+            "eps": training_args.adam_epsilon,
+        }
+        optimizer_kwargs["lr"] = training_args.learning_rate
+        adam_bnb_optim = bnb.optim.Adam8bit(
+            optimizer_grouped_parameters,
+            betas=(training_args.adam_beta1, training_args.adam_beta2),
+            eps=training_args.adam_epsilon,
+            lr=training_args.learning_rate,
+        )
+        return (adam_bnb_optim, None)
 
     def _get_trainer(
         self,
@@ -205,12 +238,18 @@ class SimpleTODTrainer:
             )
             trainer.contrastive_helper = self.contrastive_helper
             return trainer
+        # optimizer = None
+        # if self.cfg.quantization:
+        #     optimizer = self._get_8bit_optimizer(model_train, training_args)
+        # optimizer = self._get_8bit_optimizer(model_train, training_args)
+
         trainer = Trainer(
             model=model_train,
             args=training_args,
             train_dataset=dm.datasets[my_enums.Steps.TRAIN.value],
             eval_dataset=dm.datasets[my_enums.Steps.DEV.value],
             data_collator=collator,
+            # optimizers=optimizer,
             callbacks=[
                 EarlyStoppingCallback(
                     early_stopping_patience=self.cfg.early_stopping_patience
@@ -223,6 +262,13 @@ class SimpleTODTrainer:
     def _get_training_args(
         self, step_name: str, epochs: int, train_batch_size: int
     ) -> TrainingArguments:
+        deepspeed_path = None
+        if self.cfg.quantization_dtype == 16:
+            # deepspeed_path = self.cfg.project_root / "config/ds_config.json"
+            # deepspeed_path = self.cfg.project_root / "config/ds_zero2.json"
+            # deepspeed_path = self.cfg.project_root / "config/ds_zero1.json"
+            deepspeed_path = ""
+
         return TrainingArguments(
             output_dir=str(self.cfg.out_dir / step_name),
             num_train_epochs=epochs,
@@ -230,6 +276,7 @@ class SimpleTODTrainer:
             load_best_model_at_end=True,
             save_strategy=IntervalStrategy.STEPS,
             save_total_limit=5,
+            save_steps=self.cfg.save_steps,
             evaluation_strategy=IntervalStrategy.STEPS,
             eval_steps=self.cfg.eval_steps,
             gradient_accumulation_steps=self.cfg.gradient_accumulation_steps,
@@ -242,10 +289,16 @@ class SimpleTODTrainer:
             logging_dir=self.cfg.logging_dir,
             dataloader_num_workers=self.cfg.num_workers,
             report_to="wandb",
+            fp16_full_eval=self.cfg.fp16,
             fp16=self.cfg.fp16,
             dataloader_drop_last=True,
             run_name=step_name,
-            learning_rate=5e-4,
+            learning_rate=3e-4,
+            optim=self.cfg.optim,
+            # sharded_ddp="zero_dp_3",
+            # deepspeed=deepspeed_path,
+            # fsdp_config=str(self.cfg.project_root / "config/ds_config.json"),
+            # fsdp="full_shard",
         )
 
     def get_model_instance(self, path: str = None) -> AutoModel:
@@ -267,21 +320,36 @@ class SimpleTODTrainer:
         if path:
             model = utils.load_quantized_model(path, self.cfg.tokenizer)
         else:
-            model = AutoModelForCausalLM.from_pretrained(
-                self.cfg.model_name,
-                load_in_8bit=True,
-                device_map="auto",
-                torch_dtype=torch.float16,
-            )
+            device_map = {"": torch.cuda.current_device()}
+            if self.cfg.is_scale_grad:
+                model = utils.get_scalegrad_model(
+                    self.cfg.model_name, self.cfg.scale_grad_gamma, device_map=None
+                )
+            elif self.cfg.quantization_dtype == 16:
+                dtype = torch.bfloat16
+                if not self.cfg.fp16:
+                    dtype = torch.float32
+                model = utils.get_8bit_model(
+                    self.cfg.model_name, is_inference=True, device_map=None, dtype=dtype
+                )
+            elif self.cfg.quantization_dtype == 8:
+                model = utils.get_8bit_model(self.cfg.model_name, device_map=device_map)
+            elif self.cfg.quantization_dtype == 4:
+                model = utils.get_4bit_model(self.cfg.model_name, device_map=device_map)
+            else:
+                raise ValueError(
+                    f"Quantization dtype must be one of 4, 8, 16, you provided {self.cfg.quantization_dtype}"
+                )
             model.resize_token_embeddings(len(self.cfg.tokenizer))
-        model = prepare_model_for_int8_training(model)
+
+        model = prepare_model_for_kbit_training(model)
 
         config = utils.get_lora_config(self.cfg.model_name)
 
         model = PeftModelForCausalLM(model, config, adapter_name=adapter_name)
         if model.active_peft_config.base_model_name_or_path is None:
             model.active_peft_config.base_model_name_or_path = self.cfg.model_name
-        self.print_trainable_parameters(model)
+        model.print_trainable_parameters()
         return model
 
     def pretrain_model(self, dm: TodDataModule) -> str:
@@ -297,20 +365,23 @@ class SimpleTODTrainer:
             if not self.cfg.quantization
             else self.get_quantized_model()
         )
-        print(f"Model Size of {type(model)}: {dstc_utils.get_model_size(model)}")
+        print(f"Model Size of {type(model)}: {utils.get_model_size(model)}")
 
         pre_trainer = self._get_trainer(
             model, dm, training_args, training_stage=TrainingStage.PRETRAIN
         )
         model.config.use_cache = False
         model.train()
+        # with torch.autocast("cuda"):
         pre_trainer.train()
-        pre_trainer.save_model()
-        model.save_pretrained(training_args.output_dir)
+        if self.cfg.accelerator.is_main_process:
+            pre_trainer.save_model()
+            model.save_pretrained(training_args.output_dir)
+        self.cfg.accelerator.wait_for_everyone()
+        # return model
         # del model
-        torch.cuda.empty_cache()
-        # return training_args.output_dir
-        return model
+        # torch.cuda.empty_cache()
+        return str(Path(os.getcwd()) / training_args.output_dir)
 
     def train_model(self, path, dm) -> str:
         model = (
@@ -341,7 +412,7 @@ class SimpleTODTrainer:
             if not self.cfg.quantization
             else self.get_quantized_model(adapter_name=dm.task_name.value)
         )
-        print(f"Model Size of {type(model)}: {dstc_utils.get_model_size(model)}")
+        print(f"Model Size of {type(model)}: {utils.get_model_size(model)}")
 
         pre_trainer = self._get_trainer(
             model, dm, training_args, training_stage=TrainingStage.PRETRAIN
@@ -351,34 +422,33 @@ class SimpleTODTrainer:
         pre_trainer.train()
         # pre_trainer.save_model()
         model.save_pretrained(training_args.output_dir)
-        del model
-        gc.collect()
-        torch.cuda.empty_cache()
+        # del model
+        # gc.collect()
+        # torch.cuda.empty_cache()
         return training_args.output_dir
         # return model
 
-    def print_trainable_parameters(self, model):
-        """
-        Prints the number of trainable parameters in the model.
-        """
-        trainable_params = 0
-        all_param = 0
-        for _, param in model.named_parameters():
-            all_param += param.numel()
-            if param.requires_grad:
-                trainable_params += param.numel()
-        print(
-            f"trainable params: {trainable_params} || all params: {all_param} || trainable%: {100 * trainable_params / all_param}"
-        )
 
-
-@hydra.main(config_path="../config/trainer/", config_name="arithmetic_trainer")
+# @hydra.main(config_path="../config/trainer/", config_name="multi_adapter")
+@hydra.main(config_path="../config/trainer/", config_name="simple_tod_trainer")
 def hydra_start(cfg: DictConfig) -> None:
     trainer_cfg = TrainerConfig(**cfg)
-    # utils.init_wandb(trainer_cfg, cfg, "training")
+    utils.init_wandb(trainer_cfg, cfg, "training")
     stt = SimpleTODTrainer(trainer_cfg)
+    print(os.getcwd())
     stt.run()
+    sys.stdout.close()
+
+
+def create_out_dir():
+    time_now = datetime.now()
+    out_path_name = time_now.strftime("%Y-%m-%d/%H-%M-%S")
+    out_path = "outputs" / Path(out_path_name)
+    out_path.mkdir(parents=True, exist_ok=True)
+    os.chdir(out_path)
 
 
 if __name__ == "__main__":
+    # deepspeed.init_distributed()
     hydra_start()
+    wandb.finish()

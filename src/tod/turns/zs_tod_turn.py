@@ -1,10 +1,10 @@
 from dataclasses import dataclass
 from typing import Optional
-from dstc.dstc_dataclasses import DstcSchema
-from my_enums import SpecialTokens
+from sgd_dstc8_data_model.dstc_dataclasses import DstcSchema
+from my_enums import ContextType, SpecialTokens
 
 from simple_tod_dataclasses import MultiTaskSpecialToken
-from tod.zs_target import ZsTodTarget
+from tod.zs_tod_target import ZsTodTarget
 from tod.zs_tod_context import ZsTodContext
 
 
@@ -15,6 +15,8 @@ class TodTurnCsvRow:
     context: str
     target: str = None
     schema: Optional[str] = None
+    domains: Optional[str] = None
+    domains_original: Optional[str] = None
 
 
 @dataclass
@@ -38,6 +40,16 @@ class TodTurnMultiTaskCsvRow(TodTurnCsvRow):
 
 
 @dataclass
+class TodTurnScaleGradCsvRow(TodTurnMultiTaskCsvRow):
+    special_tokens: Optional[str] = ""
+
+
+@dataclass
+class TodTurnApiCallCsvRow(TodTurnCsvRow):
+    turn_row_type: Optional[int] = None
+
+
+@dataclass
 class ZsTodTurn:
     context: ZsTodContext
     target: ZsTodTarget
@@ -47,4 +59,20 @@ class ZsTodTurn:
     multi_task_token: Optional[MultiTaskSpecialToken] = None
     active_intent: Optional[str] = None
     schema_str: Optional[str] = None
-    prompt_token: Optional[SpecialTokens] = None
+    prompt_token: Optional[SpecialTokens] = ""
+    domains: Optional[list[str]] = None
+    domains_original: Optional[list[str]] = None
+
+
+class TodTurnCsvRowFactory:
+    @classmethod
+    def get_handler(self, cfg):
+        if cfg.is_scale_grad:
+            return TodTurnScaleGradCsvRow
+        if (
+            cfg.context_type == ContextType.NLG_API_CALL
+            or cfg.context_type == ContextType.KETOD_API_CALL
+            or cfg.context_type == ContextType.BITOD
+        ):
+            return TodTurnApiCallCsvRow
+        return TodTurnCsvRow

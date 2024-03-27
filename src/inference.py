@@ -11,34 +11,28 @@ from omegaconf import DictConfig
 import pandas as pd
 import torch
 from tqdm import tqdm
-from transformers import AutoTokenizer, GPT2LMHeadModel, GPT2PreTrainedModel
-from torch.utils.data import DataLoader
-from configs.dm_config import DataModuleConfig
 from configs.inference_config import InferenceConfig
 from configs.reconstruct_dialog_config import ReconstructDialogConfig
-from dstc.dstc_domains import DstcDomains
-import dstc.dstc_utils as dstc_utils
 from metrics.intent_accuracy_metric import IntentAccuracyMetric
 from metrics.response_metrics import ResponseMetric
-from collections import Counter
+from collections import Counter, defaultdict
 
-# from metrics.tod_metrics_base import MetricCollection
 from torchmetrics import MetricCollection
 from metrics.goal_metric import GoalMetric, GoalMetricConfigFactory
 from metrics.requested_slots_metric import RequestedSlotsMetric
 from metrics.dstc_metrics import InformMetric, SuccessMetric, CombinedMetric
-from multi_head.mh_datamodule import MultiLMHeadDatamodule
-from my_enums import GoalMetricConfigType, MultiTaskNames, SpecialTokens
+from multi_woz.multi_woz_schema import MultiWozSchema
+from my_enums import GoalMetricConfigType, MultiTaskNames, SpecialTokens, Steps
 from reconstruct_dialog import ReconstructDialog
 import utils
-from tod_datamodules import TodDataModule
 from simple_tod_dataclasses import (
     InferenceRecords,
-    SimpleTodConstants,
     TodTestDataBatch,
 )
-from dstc.dstc_dataclasses import get_slot_categories
+from sgd_dstc8_data_model.dstc_dataclasses import get_slot_categories
 import os
+from accelerate import Accelerator
+import cProfile
 
 os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
 
@@ -68,40 +62,49 @@ class Inference:
             if self.cfg.test_num_turns_groups
             else self.cfg.datamodule.test_dataloader
         )
-        # self.cfg.model.eval()
-        # self.cfg.model.gradient_checkpointing_disable()
-
+        max_gen_len = self.cfg.max_token_len
+        if utils.is_t5_model(self.cfg.model_name):
+            max_gen_len = self.cfg.max_token_len - self.cfg.test_prompt_max_len
         for test_dataloader, domain_setting in test_dl_func():
-            domains_str = dstc_utils.get_domain_setting_str(domain_setting)
+            domains_str = utils.get_domain_setting_str(domain_setting)
             test_csv_out_data = []
-            text_csv_out_path = f"simple_tod_dstc_predictions_{domains_str}_{self.cfg.num_turns}_dialogs_{self.cfg.num_test_dialogs}{SimpleTodConstants.DELEXICALIZED if self.cfg.delexicalize else ''}.csv"
+            text_csv_out_path = f"simple_tod_dstc_predictions_{domains_str}_{self.cfg.num_turns}_dialogs_{self.cfg.num_test_dialogs}.csv"
             if not len(test_dataloader):
                 self.cfg.logger.info(f"No data to test for {domains_str}")
                 continue
             inf_records = InferenceRecords()
-
-            for batch in tqdm(test_dataloader):
-                pred_text_no_pad = self.cfg.generation_handler.get_generation(
-                    batch,
-                    self.cfg.max_token_len,
+            test_dataloader = self.cfg.accelerator.prepare(test_dataloader)
+            for curr_batch in tqdm(test_dataloader):
+                (
+                    targets_text,
+                    pred_text_no_pad,
+                    contexts,
+                    dialog_ids,
+                    turn_ids,
+                ) = self.cfg.generation_handler.get_generation(
+                    curr_batch,
+                    self.cfg.max_token_len - self.cfg.test_prompt_max_len,
+                    max_gen_len,
                     self.cfg.test_prompt_max_len,
                     self.cfg.postprocess_generation,
+                    self.cfg.accelerator,
                 )
+                # if self.cfg.accelerator.is_main_process:
                 if not self.cfg.is_multi_task:
                     self.tod_metrics.update(
-                        references=batch.targets_text, predictions=pred_text_no_pad
+                        references=targets_text, predictions=pred_text_no_pad
                     )
                     self.combined_metrics.update(
-                        references=batch.targets_text, predictions=pred_text_no_pad
+                        references=targets_text, predictions=pred_text_no_pad
                     )
                 inf_records.add(
                     pred_text_no_pad,
-                    batch.targets_text,
-                    batch.dialog_ids,
-                    batch.turn_ids,
-                    batch.contexts_text,
+                    targets_text,
+                    dialog_ids,
+                    turn_ids,
+                    contexts,
                 )
-
+                # self.cfg.accelerator.wait_for_everyone()
             inf_records.concat_data()
             test_csv_out_data = np.column_stack(
                 [
@@ -116,8 +119,15 @@ class Inference:
                 preds, refs = inf_records.get_data_for_multitask()
                 self.tod_metrics.update(references=refs, predictions=preds)
                 self.combined_metrics.update(references=refs, predictions=preds)
-            headers = ["dialog_id", "turn_id", "context", "target", "prediction"]
-            utils.write_csv(headers, test_csv_out_data, text_csv_out_path)
+            # self.cfg.accelerator.wait_for_everyone()
+            # if self.cfg.accelerator.is_main_process:
+            # with self.cfg.accelerator.main_process_first():
+            if self.cfg.accelerator.is_main_process:
+                headers = ["dialog_id", "turn_id", "context", "target", "prediction"]
+                try:
+                    utils.write_csv(headers, test_csv_out_data, text_csv_out_path)
+                except Exception as e:
+                    print("Could not write csv file as output")
             self.cfg.logger.info(f"Testing {domains_str}")
             cols, values = self._print_metrics()
             metric_results.append([domains_str, cols, values])
@@ -126,13 +136,14 @@ class Inference:
                 self.tod_metrics[m].visualize(Path(self.cfg.predictions_log_dir))
                 for m in self.tod_metrics
             ]
+            # self.cfg.accelerator.wait_for_everyone()
         if len(metric_results):
             self.log_metrics_wandb(metric_results)
-        self.cfg.logger.info("Start token counts")
-        for token, count in sorted(Counter(start_tokens).items()):
-            self.cfg.logger.info(f"{token}:{count}")
-        r = ReconstructDialog(ReconstructDialogConfig.from_inference_config(self.cfg))
-        r.run()
+        # self.cfg.logger.info("Start token counts")
+        # for token, count in sorted(Counter(start_tokens).items()):
+        #     self.cfg.logger.info(f"{token}:{count}")
+        # r = ReconstructDialog(ReconstructDialogConfig.from_inference_config(self.cfg))
+        # r.run()
 
     def run(self):
         print("begin inference")
@@ -157,7 +168,6 @@ class Inference:
         all_metric_str = "\n".join(
             np.concatenate([tod_metrics_str, combined_metrics_str])
         )
-        # tod_metric_
         metric_strs = all_metric_str.split("\n")
         cols = []
         header_sep = []
@@ -175,7 +185,12 @@ class Inference:
         return cols, values
 
     def _set_metrics(self):
-        slot_categories = get_slot_categories(self.cfg.raw_data_root)
+        if "dstc" in self.cfg.raw_data_root.name:
+            slot_categories = get_slot_categories(self.cfg.raw_data_root)
+        elif "MultiWOZ" in self.cfg.raw_data_root.name:
+            slot_categories = self.get_woz_slot_categories(
+                self.cfg.raw_data_root.parent / "MultiWOZ_2.2"
+            )
         out = []
         if self.cfg.is_multi_task:
             for task in MultiTaskNames.list():
@@ -187,9 +202,6 @@ class Inference:
         else:
             dst, action, response = [1, 1, 1]
 
-        # dst, action, response = (
-        #     self.cfg.multi_tasks if self.cfg.is_multi_task else [1, 1, 1]
-        # )
         tod_metrics = {}
         combined_metrics = {}
         if dst:
@@ -225,7 +237,9 @@ class Inference:
                 {
                     # "response_bleu": ResponseMetric(metric_name="bleu"),
                     "response_bleu": ResponseMetric(
-                        metric_name="bleu", metric_key_name="google_bleu"
+                        metric_name="bleu",
+                        metric_key_name="google_bleu",
+                        context_type=self.cfg.context_type,
                     ),
                     # "response_rouge": ResponseMetric(
                     #     # metric_name="rouge", metric_key_name="rouge2_fmeasure"
@@ -253,6 +267,24 @@ class Inference:
     def _get_token_id(self, text: str) -> int:
         return self.cfg.tokenizer.encode(text)[0]
 
+    def get_schemas(self, data_root: Path, step: str) -> dict[str, MultiWozSchema]:
+        schemas = {}
+        path = data_root / "schema.json"
+        schema_json = utils.read_json(path)
+        for s in schema_json:
+            schema = MultiWozSchema.from_dict(s)
+            schema.step = step
+            schemas[schema.service_name] = schema
+        return schemas
+
+    def get_woz_slot_categories(self, data_root: Path) -> dict[str, bool]:
+        schemas = self.get_schemas(data_root, Steps.TEST.value)
+        out = defaultdict(bool)
+        for s in schemas.values():
+            for slot in s.slots:
+                out[slot.name] = slot.is_categorical
+        return out
+
 
 def init_wandb(cfg: InferenceConfig, omega_cfg: DictConfig):
     wandb.config = omegaconf.OmegaConf.to_container(
@@ -278,11 +310,12 @@ def init_wandb(cfg: InferenceConfig, omega_cfg: DictConfig):
 
 @hydra.main(config_path="../config/inference/", config_name="simple_tod_inference")
 def hydra_start(cfg: DictConfig) -> None:
-    # torch.cuda.set_device(1)
-    inf_config = InferenceConfig(**cfg)
-    utils.init_wandb(inf_config, cfg, "inference")
-    inf = Inference(inf_config)
-    inf.run()
+    with cProfile.Profile() as pr:
+        inf_config = InferenceConfig(**cfg)
+        utils.init_wandb(inf_config, cfg, "inference")
+        inf = Inference(inf_config)
+        inf.run()
+        pr.dump_stats("inference.prof")
 
 
 if __name__ == "__main__":

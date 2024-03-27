@@ -16,17 +16,17 @@ num_dialogs:
 - 1
 - 1
 - 1
-overwrite:
-  - true
-  - true
-  - true
+# overwrite:
+#   - true
+#   - true
+#   - true
 should_test: true
 test_domain_settings:
 - all
 wandb:
   project: ZSTodLocal
   entity: adibm
-  notes: single domain with default context
+  notes: mh base
 train_domain_setting: seen
 is_multi_head: true
 should_add_schema: true

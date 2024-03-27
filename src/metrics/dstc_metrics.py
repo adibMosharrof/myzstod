@@ -1,9 +1,11 @@
+import utils
+import torch
 import numpy as np
 from metrics.response_metrics import ResponseMetric
 from metrics.tod_metrics_base import TodMetricsBase
 from my_enums import SpecialTokens
 from predictions_logger import PredictionLoggerFactory, TodMetricsEnum
-from dstc.dstc_dataclasses import DstcRequestedSlot
+from sgd_dstc8_data_model.dstc_dataclasses import DstcRequestedSlot
 from tod.zs_tod_action import ZsTodAction
 
 
@@ -51,18 +53,19 @@ class SuccessMetric(TodMetricsBase):
             # batch_success = []
             for t in target_items:
                 if t in pred_items:
-                    self.all_success.append(1)
+                    self.all_success.append(utils.create_tensor(1))
                     self._log_prediction(ref=t, is_correct=True)
                 else:
                     self._add_wrong_pred(t)
-                    self.all_success.append(0)
+                    self.all_success.append(utils.create_tensor(0))
                     self._log_prediction(ref=t, is_correct=False)
             # if not len(batch_success):
             #     continue
             # self.all_success.append(np.mean(batch_success))
 
     def _compute(self) -> float:
-        return np.mean(self.all_success)
+        success_tensor = utils.create_tensor(self.all_success, dtype=torch.float)
+        return torch.mean(success_tensor, dtype=torch.float)
 
     def __str__(self) -> str:
         avg_success = self.compute()
@@ -104,17 +107,18 @@ class InformMetric(TodMetricsBase):
                     continue
                 # if t in pred_actions:
                 if self._check(t, pred_actions):
-                    self.all_inform.append(1)
+                    self.all_inform.append(utils.create_tensor(1))
                     self._log_prediction(ref=t, is_correct=True)
                 else:
-                    self.all_inform.append(0)
+                    self.all_inform.append(utils.create_tensor(0))
                     self._log_prediction(ref=t, is_correct=False)
             # if not len(batch_inform):
             #     continue
             # self.all_inform.append(np.mean(batch_inform))
 
     def _compute(self) -> float:
-        return np.mean(self.all_inform)
+        inform_tensor = utils.create_tensor(self.all_inform, dtype=torch.float)
+        return torch.mean(inform_tensor, dtype=torch.float)
 
     def __str__(self) -> str:
         avg_inform = self.compute()

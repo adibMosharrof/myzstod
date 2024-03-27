@@ -1,0 +1,8 @@
+train_domain_settings: 
+  - seen
+dev_domain_settings: 
+  - all
+test_domain_settings:
+  - [all]
+  - [seen]
+  - [unseen]

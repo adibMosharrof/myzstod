@@ -1,12 +1,14 @@
 import random
 import numpy as np
 from sklearn.metrics import f1_score
-from dstc.dstc_dataclasses import DstcRequestedSlot
+import torch
+from sgd_dstc8_data_model.dstc_dataclasses import DstcRequestedSlot
 from metrics.tod_metrics_base import TodMetricsBase
 from my_enums import SpecialPredictions, SpecialTokens
 from predictions_logger import PredictionLoggerFactory, TodMetricsEnum
 from torchmetrics import F1Score
 from collections import Counter
+import utils
 
 
 class RequestedSlotsMetric(TodMetricsBase):
@@ -115,7 +117,8 @@ class RequestedSlotsMetric(TodMetricsBase):
                 f1 = 2.0 * precision * recall / (precision + recall)
             else:  # The F1-score is defined to be 0 if both precision and recall are 0.
                 f1 = 0.0
-            self.all_f1.append(f1)
+            self.all_f1.append(utils.create_tensor(f1, dtype=torch.float))
 
     def _compute(self) -> float:
-        return np.mean(self.all_f1) * 100
+        f1_tensors = utils.create_tensor(self.all_f1, dtype=torch.float)
+        return torch.mean(f1_tensors, dtype=torch.float) * 100

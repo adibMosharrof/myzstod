@@ -1,0 +1,78 @@
+pretrain_epochs: 1
+train_epochs: 10
+pretrain_batch_size: 25
+train_batch_size: 1
+# num_workers: 1
+# data_split_percent:
+# - 1
+# - 1
+# - 1
+data_split_percent:
+- 1
+- 1
+- 1
+project_root: /projects/bbyl/amosharrof/ZSToD
+eval_batch_size: 25
+eval_steps: 10
+test_batch_size: 30
+test_prompt_max_len: 750
+max_token_len: 1024
+# num_dialogs:
+# - 1
+# - 1
+# - 1
+num_dialogs:
+- 10
+- 1
+- 1
+# num_dialogs:
+# - 127
+# - 1
+# - 1
+# overwrite:
+#   - true
+#   - true
+#   - true
+should_test: true
+train_domain_settings:
+  - Restaurants_1
+  # - Movies_1
+dev_domain_settings:
+  - Restaurants_1
+  # - Movies_1
+test_domain_settings:
+  - [Restaurants_1]
+  # - [Movies_1]
+# train_domain_settings:
+#   - Restaurants_1
+#   - Movies_1
+# dev_domain_settings:
+#   - Restaurants_1
+#   - Movies_1
+# test_domain_settings:
+#   - [Restaurants_1, Movies_1]
+create_data_from_train: true
+create_data_from_train_splits:
+  - 0.01
+  - 0.01
+wandb:
+  project: ZSTodLocal
+  entity: adibm
+  notes: 15 epochs for rest
+  task: arithmetic
+# model_name: EleutherAI/gpt-j-6B
+# model_name: bigscience/bloom-7b1
+# model_name: facebook/opt-6.7b
+# model_name: facebook/opt-2.7b
+model_name: huggyllama/llama-7b
+# model_name: huggyllama/llama-13b
+# model_name: gpt2-large
+postprocess_generation: true
+fp16: false
+gradient_accumulation_steps: 16
+eval_accumulation_steps: 16
+quantization: true
+two_step_training: false
+should_add_special_tokens: true
+save_wte: true
+should_add_schema: true

@@ -10,15 +10,21 @@ import torch
 from torch.utils.data import DataLoader, Dataset
 from configs.dataprep_config import DataPrepConfig
 from configs.dm_config import DataModuleConfig
+from configs.multi_woz_data_prep_config import MultiWozDataPrepConfig
+from data_prep.bitod.bitod_data_prep import BitodDataPrep
+from data_prep.data_prep_strategy_resolver import DataPrepStrategyResolver
+from data_prep.dstc_base_data_prep import DstcBaseDataPrep
+from data_prep.ketod.ketod_base_data_prep import KetodBaseDataPrep
 
-import dstc.dstc_utils as dstc_utils
+from multi_woz.tod_multi_woz_21_data_prep import TodMultiWoz21DataPrep
+from multi_woz.tod_multi_woz_22_data_prep import TodMultiWoz22DataPrep
 from tod.turns.zs_tod_turn import TodTurnCsvRow, TodTurnMultiHeadCsvRow
 import utils
 from my_enums import SpecialTokens, Steps, MultiTaskNames
 from simple_tod_dataclasses import (
     TodTestDataBatch,
 )
-from simple_tod_dstc_data_prep import SimpleTODDSTCDataPrep
+from data_prep.simple_tod_dstc_data_prep import SimpleTODDSTCDataPrep
 import copy
 import pandas as pd
 import random
@@ -33,6 +39,20 @@ class StepData:
     overwrite: bool
     split_percent: float
     domain_settings: Union[list[str], str]
+
+
+@dataclass(frozen=False)
+class TodTrainRowCollator:
+    input_tokens: torch.IntTensor
+    label: torch.IntTensor
+    attention_mask: torch.IntTensor
+
+
+@dataclass(frozen=False)
+class ScaleGradRowCollator(TodTrainRowCollator):
+    mt_prompt_token_ids: Optional[torch.IntTensor] = None
+    special_tokens_target_mask: Optional[torch.IntTensor] = None
+    special_tokens_vocab_mask: Optional[torch.IntTensor] = None
 
 
 class BaseDataModule(ABC):
@@ -74,7 +94,27 @@ class BaseDataModule(ABC):
         return ValueError("Not implemented")
 
     def prepare_data(self, stdp: SimpleTODDSTCDataPrep):
-        stdp.run()
+        with self.cfg.accelerator.main_process_first():
+            stdp.run()
+
+    def get_data_prep_class(self, cfg: DataModuleConfig):
+        if isinstance(cfg.raw_data_root, str):
+            cfg.raw_data_root = Path(cfg.raw_data_root)
+        dp_cfg = DataPrepConfig.from_dm_config(cfg)
+        strategy = DataPrepStrategyResolver.resolve(dp_cfg)
+        if "ketod" in cfg.raw_data_root.name:
+            return KetodBaseDataPrep(dp_cfg, strategy)
+        elif "bitod" in cfg.raw_data_root.name:
+            return BitodDataPrep(dp_cfg, strategy)
+        else:
+            return DstcBaseDataPrep(dp_cfg, strategy)
+
+        if "MultiWOZ_2.2" in cfg.raw_data_root.name:
+            return TodMultiWoz22DataPrep(MultiWozDataPrepConfig.from_dm_config(cfg))
+        if "MultiWOZ_2.1" in cfg.raw_data_root.name:
+            return TodMultiWoz21DataPrep(MultiWozDataPrepConfig.from_dm_config(cfg))
+        elif "dstc" in cfg.raw_data_root.name:
+            return SimpleTODDSTCDataPrep(DataPrepConfig.from_dm_config(cfg))
 
     def setup_single_run(
         self, step: str, step_data: StepData, domain_setting: Union[str, list[str]]
@@ -84,12 +124,13 @@ class BaseDataModule(ABC):
         cfg.num_dialogs = step_data.num_dialog
         cfg.overwrite = step_data.overwrite
         cfg.domain_setting = domain_setting
-        stdp = SimpleTODDSTCDataPrep(DataPrepConfig.from_dm_config(cfg))
-        self.prepare_data(stdp)
-        csv_path = dstc_utils.get_csv_data_path(
+
+        data_prep = self.get_data_prep_class(cfg)
+        self.prepare_data(data_prep)
+        csv_path = utils.get_csv_data_path(
             step,
             step_data.num_dialog,
-            cfg=stdp.cfg,
+            cfg=data_prep.cfg,
         )
         try:
             data = utils.read_csv_dataclass(csv_path, self.tod_turn_row_cls)
@@ -127,7 +168,7 @@ class BaseDataModule(ABC):
     def setup(self):
         for step in self.steps:
             step_data = self.get_step_data(step)
-            if isinstance(step_data.domain_settings[0], ListConfig):
+            if isinstance(step_data.domain_settings[0], (list, ListConfig)):
                 self.datasets[step] = []
                 for domain_setting in step_data.domain_settings:
                     self.datasets[step].append(
@@ -376,33 +417,109 @@ class BaseDataModule(ABC):
         out = torch.cat([context_tokens, torch.tensor([prompt_token])])
         return out
 
+    def t5_collate_single_item(
+        self, item: TodTurnCsvRow, max_length: int
+    ) -> TodTrainRowCollator:
+        context_tokens = self.train_tokenizer(item.context)[0]
+        schema_tokens = self.train_tokenizer(item.schema)[0]
+        target_tokens = self.train_tokenizer(item.target)[0]
+
+        prompt_text = "\n".join(
+            [
+                "Instructions: Given the Dialog History and the Dialog Schemas, please generate the system response.\n",
+                "Dialog History\n",
+            ]
+        )
+        prompt_tokens = self.train_tokenizer(prompt_text)[0]
+        schema_prompt_text = "\n\nDialog Schemas\n"
+        schema_prompt_tokens = self.train_tokenizer(schema_prompt_text)[0]
+        context_unused_len = (
+            self.cfg.test_prompt_max_len
+            - len(prompt_tokens)
+            - len(context_tokens)
+            - len(schema_prompt_tokens)
+            - len(schema_tokens)
+        )
+        if len(schema_tokens) > self.cfg.test_prompt_max_len:
+            raise ValueError("Schema is too long")
+        target_max_len = self.cfg.max_token_len - self.cfg.test_prompt_max_len
+        if len(target_tokens) > target_max_len:
+            raise ValueError("Target is too long")
+
+        if context_unused_len < 0:
+            context_tokens = context_tokens[context_unused_len * -1 :]
+            context_unused_len = 0
+        pad = torch.full([context_unused_len], self.cfg.tokenizer.pad_token_id)
+        input_tokens = torch.cat(
+            [prompt_tokens, context_tokens, schema_prompt_tokens, schema_tokens, pad]
+        )
+
+        target_unused_len = target_max_len - len(target_tokens) - 1
+        label = torch.cat(
+            [
+                target_tokens,
+                torch.full([target_unused_len], self._huggingface_ignore_label_id),
+                torch.full([1], self.cfg.tokenizer.eos_token_id),
+            ]
+        )
+
+        attention_mask = input_tokens.ne(self.cfg.tokenizer.pad_token_id).to(
+            torch.int32
+        )
+
+        return TodTrainRowCollator(input_tokens, label, attention_mask)
+
     def collate_single_item(
         self,
-        context: str,
-        schema: str,
-        target: str,
+        item: TodTurnCsvRow,
         max_length: int,
         dont_create_labels: bool,
-    ):
-        context_tokens = self.train_tokenizer(context)[0]
-        schema_tokens = self.train_tokenizer(schema)[0]
-        target_tokens = self.train_tokenizer(target)[0]
+        is_t5_model: bool = False,
+    ) -> TodTrainRowCollator:
+        context_tokens = self.train_tokenizer(item.context)[0]
+        schema_tokens = self.train_tokenizer(item.schema)[0]
+        target_tokens = self.train_tokenizer(item.target)[0]
+        prompt_tokens = torch.tensor([], dtype=torch.torch.int32)
+        if is_t5_model:
+            prompt_text = "\n".join(
+                [
+                    "Instructions: Given the dialog history and the schemas, please generate the system response.\n\n",
+                    "Begin Context",
+                    "Dialog History",
+                ]
+            )
+            prompt_tokens = self.train_tokenizer(prompt_text)[0]
+
         unused_len = (
-            max_length - len(context_tokens) - len(schema_tokens) - len(target_tokens)
+            max_length
+            - len(context_tokens)
+            - len(schema_tokens)
+            - len(target_tokens)
+            - len(prompt_tokens)
         )
         if len(schema_tokens) > max_length:
             raise ValueError("Schema is too long")
-        if len(target_tokens) > max_length:
+        if not dont_create_labels and len(target_tokens) > max_length:
             raise ValueError("Target is too long")
         if unused_len < 0:
-            raise ValueError("Need larger token length")
+            # raise ValueError("Need larger token length")
             context_start_tokens = context_tokens[:1]
             trimmed_context = context_tokens[unused_len * -1 + 1 :]
-            context_tokens = torch.cat([context_start_tokens, trimmed_context], axis=0)
+            context_tokens = torch.cat(
+                [prompt_tokens, context_start_tokens, trimmed_context], axis=0
+            )
             unused_len = 0
         pad = torch.full([unused_len], self.cfg.tokenizer.pad_token_id)
         input_tokens = torch.cat([schema_tokens, context_tokens, target_tokens, pad])
-        if dont_create_labels:
+        if is_t5_model:
+            label = torch.cat(
+                [
+                    input_tokens,
+                    torch.full([unused_len], self._huggingface_ignore_label_id),
+                ]
+            )
+
+        elif dont_create_labels:
             label = input_tokens
         else:
             label = torch.cat(
@@ -418,13 +535,67 @@ class BaseDataModule(ABC):
         attention_mask = input_tokens.ne(self.cfg.tokenizer.pad_token_id).to(
             torch.int32
         )
+        special_tokens_mask = None
+        if not self.cfg.is_scale_grad:
+            return TodTrainRowCollator(input_tokens, label, attention_mask)
+
+        special_tokens_mask, special_tokens_vocab_mask = self.get_special_tokens(
+            input_tokens,
+            item.special_tokens,
+            context_tokens,
+            schema_tokens,
+            target_tokens,
+            unused_len,
+            max_length,
+        )
+        return ScaleGradRowCollator(
+            input_tokens,
+            label,
+            attention_mask,
+            special_tokens_target_mask=special_tokens_mask,
+            special_tokens_vocab_mask=special_tokens_vocab_mask,
+        )
         return input_tokens, label, attention_mask
+
+    def get_special_tokens(
+        self,
+        input_tokens,
+        special_tokens,
+        context_tokens,
+        schema_tokens,
+        target_tokens,
+        unused_len,
+        max_length,
+    ):
+        special_token_ids = self.train_tokenizer(special_tokens)
+        ignore_ids = torch.tensor([3, 140, 142])
+        ignore_ids = torch.tensor([2, 139])
+        filtered_ids = torch.masked_select(
+            special_token_ids, ~torch.isin(special_token_ids, ignore_ids)
+        )
+        context_schema_len = len(context_tokens) + len(schema_tokens)
+        mask = torch.isin(
+            input_tokens[context_schema_len : context_schema_len + len(target_tokens)],
+            filtered_ids,
+        )
+        special_tokens_target_mask = torch.cat(
+            [
+                torch.full([context_schema_len], 0),
+                mask,
+                torch.full([unused_len], 0),
+            ]
+        )
+        special_tokens_vocab_mask = torch.zeros(
+            max_length, len(self.cfg.tokenizer), dtype=torch.bool
+        )
+        special_tokens_vocab_mask.scatter_(1, special_token_ids.long(), 1)
+        return special_tokens_target_mask, special_tokens_vocab_mask
 
 
 class SimpleTodDataSet(Dataset):
     def __init__(
         self,
-        data: List[TodTurnCsvRow] = [],
+        data: List[TodTurnCsvRow],
     ):
         self.data: list[TodTurnCsvRow] = data
 

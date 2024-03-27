@@ -1,0 +1,36 @@
+defaults:
+  - data_size: medium
+  - machine: delta
+  - batch: delta_a40_7b_1gpu
+test_prompt_max_len: 750
+max_token_len: 1024
+should_test: true
+train_domain_settings: 
+  - seen
+dev_domain_settings: 
+  - all
+test_domain_settings:
+  - [all]
+  # - [seen]
+  # - [unseen]
+create_data_from_train: false
+wandb:
+  project: ZSTodLocal
+  entity: adibm
+  notes: llama 7b full dataset
+  task: arithmetic
+model_name: huggyllama/llama-7b
+postprocess_generation: true
+fp16: false
+quantization: true
+two_step_training: false
+is_multi_task: false
+multi_tasks:
+  - dsts
+  - actions
+  - nlg
+# context_type: default
+should_add_schema: true
+# should_add_sys_actions: true
+# should_add_user_actions: true
+# should_add_service_results: true

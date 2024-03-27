@@ -6,7 +6,7 @@ from typing import Union
 
 import numpy as np
 from omegaconf import ListConfig
-from dstc.dstc_dataclasses import DstcSchema
+from sgd_dstc8_data_model.dstc_dataclasses import DstcSchema
 from my_enums import Steps
 import utils
 
@@ -51,6 +51,7 @@ class DstcDomainBuilder:
                 Steps.TEST.value,
             ],
         }
+        domain_setting = domain_setting.upper()
         step_names = domain_to_step_map[domain_setting]
         if domain_setting == DstcDomains.ALL.name:
             return self._get_domains_from_step_names(step_names)

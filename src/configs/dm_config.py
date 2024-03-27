@@ -4,6 +4,7 @@ from dstc.dstc_domains import DstcDomains
 from multi_head.mh_dataclasses import MultiHeadDictFactory
 from my_enums import ContextType, MultiTaskNames, Steps
 import dstc.dstc_utils as dstc_utils
+from accelerate import Accelerator
 
 if TYPE_CHECKING:
     from configs.trainer_config import TrainerConfig
@@ -41,13 +42,13 @@ class DataModuleConfig:
         train_domain_percentage: float = 1.0,
         create_data_from_train: bool = False,
         create_data_from_train_splits: list[float] = None,
+        is_scale_grad: bool = False,
         is_multi_task: bool = False,
         is_multi_head: bool = False,
         multi_tasks: list[MultiTaskNames] = None,
         should_add_schema: bool = False,
         should_add_sys_actions: bool = False,
         should_add_user_actions: bool = False,
-        should_add_special_tokens: bool = True,
         single_action_neg_samples: int = 5,
         contrast_with: str = None,
         contrastive_max_token_len: int = 512,
@@ -58,8 +59,14 @@ class DataModuleConfig:
         data_prep_multi_process: bool = True,
         test_num_turns_groups: list[Tuple[int, int]] = None,
         train_step_data: "StepData" = None,
+        accelerator: "Accelerator" = None,
+        service_results_num_items: int = 1,
+        **kwargs,
     ):
+        self.kwargs = kwargs
+        self.accelerator = accelerator or Accelerator()
         self.num_workers = num_workers
+        self.model_name = model_name
         self.preprocessing_model_name = preprocessing_model_name
         self.project_root = Path(project_root)
         self.processed_data_root = self.project_root / data_prep_out_root
@@ -73,10 +80,11 @@ class DataModuleConfig:
         self.num_dialogs = num_dialogs
         self.dataset_name = dataset_name
         self.datasets: any = {}
-        self.tokenizer = tokenizer or dstc_utils.get_tokenizer()
+        self.tokenizer = tokenizer or dstc_utils.get_tokenizer(model_name)
         self.delexicalize = delexicalize
         self.overwrite = overwrite or [False] * len(Steps)
         self.num_turns = num_turns
+        self.is_scale_grad = is_scale_grad
         self.is_multi_task = is_multi_task
         self.is_multi_head = is_multi_head
         self.multi_tasks = (
@@ -85,11 +93,14 @@ class DataModuleConfig:
         self.should_add_schema = should_add_schema
         self.should_add_sys_actions = should_add_sys_actions
         self.should_add_user_actions = should_add_user_actions
-        self.should_add_special_tokens = should_add_special_tokens
         self.train_domain_percentage = train_domain_percentage
         self.single_action_neg_samples = (
             single_action_neg_samples if single_action_neg_samples else 5
         )
+        if self.is_scale_grad and not self.should_add_schema:
+            raise ValueError(
+                "is_scale_grad is true but should_add_schema is false, which is not allowed"
+            )
         self.contrast_with = contrast_with
         self.contrastive_max_token_len = contrastive_max_token_len
         self.context_type = context_type
@@ -98,9 +109,7 @@ class DataModuleConfig:
         self.mh_fact = (
             mh_fact
             if mh_fact
-            else MultiHeadDictFactory(self.tokenizer)
-            if is_multi_head
-            else None
+            else MultiHeadDictFactory(self.tokenizer) if is_multi_head else None
         )
         self.data_prep_multi_process = data_prep_multi_process
         self.train_domain_settings = train_domain_settings
@@ -113,6 +122,7 @@ class DataModuleConfig:
         self.domain_setting = None
         self.test_num_turns_groups = test_num_turns_groups
         self.train_step_data = train_step_data
+        self.service_results_num_items = service_results_num_items
 
     @classmethod
     def from_trainer_config(
@@ -120,6 +130,7 @@ class DataModuleConfig:
         trainer_config: "TrainerConfig",
     ) -> "DataModuleConfig":
         return self(
+            accelerator=trainer_config.accelerator,
             num_workers=trainer_config.num_workers,
             project_root=trainer_config.project_root,
             raw_data_root=trainer_config.raw_data_root,
@@ -130,6 +141,8 @@ class DataModuleConfig:
             delexicalize=trainer_config.delexicalize,
             overwrite=trainer_config.overwrite,
             num_turns=trainer_config.num_turns,
+            model_name=trainer_config.model_name,
+            is_scale_grad=trainer_config.is_scale_grad,
             is_multi_head=trainer_config.is_multi_head,
             is_multi_task=trainer_config.is_multi_task,
             multi_tasks=trainer_config.multi_tasks,
@@ -147,7 +160,6 @@ class DataModuleConfig:
             data_split_percent=trainer_config.data_split_percent,
             should_add_user_actions=trainer_config.should_add_user_actions,
             should_add_sys_actions=trainer_config.should_add_sys_actions,
-            should_add_special_tokens=trainer_config.should_add_special_tokens,
             contrast_with=trainer_config.contrast_with,
             contrastive_max_token_len=trainer_config.contrastive_max_token_len,
             context_type=trainer_config.context_type,
@@ -155,6 +167,7 @@ class DataModuleConfig:
             mh_fact=trainer_config.mh_fact,
             data_prep_multi_process=trainer_config.data_prep_multi_process,
             test_num_turns_groups=trainer_config.test_num_turns_groups,
+            service_results_num_items=trainer_config.service_results_num_items,
         )
 
     @classmethod
@@ -165,10 +178,12 @@ class DataModuleConfig:
         train_step_data: "StepData" = None,
     ) -> "DataModuleConfig":
         return self(
+            accelerator=inf_config.accelerator,
             num_workers=inf_config.num_workers,
             project_root=inf_config.project_root,
             raw_data_root=inf_config.raw_data_root,
             data_prep_out_root=inf_config.data_prep_out_root,
+            model_name=inf_config.model_name,
             max_token_len=inf_config.max_token_len,
             test_prompt_max_len=inf_config.test_prompt_max_len,
             num_dialogs=[inf_config.num_train_dialogs, 1, inf_config.num_test_dialogs],
@@ -179,11 +194,11 @@ class DataModuleConfig:
             train_domain_percentage=inf_config.train_domain_percentage,
             create_data_from_train=inf_config.create_data_from_train,
             create_data_from_train_splits=inf_config.create_data_from_train_splits,
+            is_scale_grad=inf_config.is_scale_grad,
             is_multi_head=inf_config.is_multi_head,
             is_multi_task=inf_config.is_multi_task,
             multi_tasks=inf_config.multi_tasks,
             should_add_schema=inf_config.should_add_schema,
-            should_add_special_tokens=inf_config.should_add_special_tokens,
             tokenizer=inf_config.tokenizer,
             batch_size=inf_config.test_batch_size,
             eval_batch_size=inf_config.test_batch_size,

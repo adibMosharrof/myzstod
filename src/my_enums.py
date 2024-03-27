@@ -42,8 +42,8 @@ class SpecialTokens(str, Enum):
 
     begin_context = "<|begincontext|>"
     end_context = "<|endcontext|>"
-    system = "<|system|>"
-    user = "<|user|>"
+    system = "<SYSTEM>"
+    user = "<USER>"
     begin_last_user_utterance = "<|beginlastuserutterance|>"
     end_last_user_utterance = "<|endlastuserutterance|>"
 
@@ -100,77 +100,26 @@ class SpecialTokens(str, Enum):
     begin_service_results = "<|beginserviceresults|>"
     end_service_results = "<|endserviceresults|>"
 
+    slot_value_separator = "<|value|>"
+    domain_slot_separator = "<|domain|>"
+    item_separator = "<|item|>"
+    action_value_separator = "<|actionvalue|>"
+
     @classmethod
     def list(cls):
         return [c.value for c in cls]
 
 
-# class SpecialTokens(str, Enum):
-#     begin_target = "begin target "
-#     end_target = "end target "
-#     begin_context = "begin context "
-#     end_context = "end context "
-#     system = "system "
-#     user = "user "
-#     begin_last_user_utterance = "begin last user utterance "
-#     end_last_user_utterance = "end last user utterance"
-#     begin_dsts = "begin dsts "
-#     end_dsts = "end dsts "
-#     begin_dst = "begin dst "
-#     end_dst = "end dst "
-#     begin_belief = "begin belief "
-#     end_belief = "end belief "
-#     begin_response = "begin response "
-#     end_response = "end response "
-#     begin_action = "begin action "
-#     end_action = "end action "
-#     begin_user_action = "begin user action "
-#     end_user_action = "end user action "
-#     sys_actions = "sys actions "
-#     begin_intent = "begin intent "
-#     end_intent = "end intent "
-#     begin_requested_slots = "begin requested slots "
-#     end_requested_slots = "end requested slots "
-#     pad_token = "pad "
-#     bos_token = "start of text "
-
-
-# class SpecialTokens(str, Enum):
-#     begin_target = "begintarget"
-#     end_target = "endtarget"
-#     begin_context = "begincontext"
-#     end_context = "endcontext"
-#     system = "system"
-#     user = "user"
-#     begin_last_user_utterance = "beginlastuserutterance"
-#     end_last_user_utterance = "endlastuserutterance"
-#     begin_dsts = "begindsts"
-#     end_dsts = "enddsts"
-#     begin_dst = "begindst"
-#     end_dst = "enddst"
-#     begin_belief = "beginbelief"
-#     end_belief = "endbelief"
-#     begin_response = "beginresponse"
-#     end_response = "endresponse"
-#     begin_action = "beginaction"
-#     end_action = "endaction"
-#     begin_user_action = "beginuseraction"
-#     end_user_action = "enduseraction"
-#     sys_actions = "sysactions"
-#     begin_intent = "beginintent"
-#     end_intent = "endintent"
-#     begin_requested_slots = "beginrequestedslots"
-#     end_requested_slots = "endrequestedslots"
-#     pad_token = "pad"
-#     bos_token = "startoftext"
-
-
-class SimpleTodConstants(str, Enum):
+class ZsTodConstants(str, Enum):
     DELEXICALIZED = "_delexicalized"
-    SLOT_VALUE_SEPARATOR = "->"
-    DOMAIN_SLOT_SEPARATOR = "^"
-    ITEM_SEPARATOR = "|"
-    ACTION_VALUE_SEPARATOR = "~"
+    # SLOT_VALUE_SEPARATOR = "->"
+    # DOMAIN_SLOT_SEPARATOR = "^"
+    # ITEM_SEPARATOR = "|"
+    # ACTION_VALUE_SEPARATOR = "~"
+    SLOT_VALUE_SEPARATOR = SpecialTokens.slot_value_separator.value
+    DOMAIN_SLOT_SEPARATOR = SpecialTokens.domain_slot_separator.value
+    ITEM_SEPARATOR = SpecialTokens.item_separator.value
+    ACTION_VALUE_SEPARATOR = SpecialTokens.action_value_separator.value
     VALUE_SEPARATOR = ACTION_VALUE_SEPARATOR
     NEW_LINES = "\n\n"
     ACTION_TYPE_INFORM = "INFORM"
@@ -225,6 +174,14 @@ class ContrastiveConstants(str, Enum):
 class ContextType(str, Enum):
     SHORT_REPR = "short_repr"
     DEFAULT = "default"
+    NLG = "nlg"
+    NLG_API_CALL = "nlg_api_call"
+    KETOD_API_CALL = "ketod_api_call"
+    BITOD = "bitod"
+
+    @classmethod
+    def list(cls):
+        return [c for c in cls]
 
 
 class ResponseMetricType(str, Enum):
@@ -264,3 +221,9 @@ class MultiTaskNames(str, Enum):
     @classmethod
     def list(cls):
         return [c for c in cls]
+
+
+class TurnRowType(int, Enum):
+    RESPONSE = 0
+    API_CALL = 1
+    KE_QUERY = 2

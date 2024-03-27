@@ -12,7 +12,7 @@ from tqdm import tqdm
 
 from multi_head.mh_dataclasses import MultiHeadDictFactory
 
-from dstc.dstc_dataclasses import DstcDialog, DstcSchema
+from sgd_dstc8_data_model.dstc_dataclasses import DstcDialog, DstcSchema
 from my_enums import Steps
 import utils
 import pandas as pd

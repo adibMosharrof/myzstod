@@ -1,49 +1,76 @@
 pretrain_epochs: 1
-train_epochs: 1
-pretrain_batch_size: 8
-train_batch_size: 8
-num_workers: 1
+train_epochs: 10
+pretrain_batch_size: 10
+train_batch_size: 1
+# num_workers: 1
+# data_split_percent:
+# - 1
+# - 1
+# - 1
 data_split_percent:
 - 1
 - 1
 - 1
-eval_batch_size: 40
-eval_steps: 100
-test_batch_size: 60
+eval_batch_size: 6
+eval_steps: 5
+test_batch_size: 8
 test_prompt_max_len: 750
 max_token_len: 1024
+# num_dialogs:
+# - 1
+# - 1
+# - 1
+# num_dialogs:
+# - 10
+# - 5
+# - 1
 num_dialogs:
+- 127
 - 1
 - 1
-- 1
-# overwrite:
-#   - true
-#   - true
-#   - true
+overwrite:
+  - true
+  - true
+  - true
 should_test: true
 train_domain_settings:
   - Restaurants_1
+  # - Movies_1
 dev_domain_settings:
   - Restaurants_1
+  # - Movies_1
 test_domain_settings:
   - [Restaurants_1]
+  # - [Movies_1]
 # train_domain_settings:
 #   - Restaurants_1
-#   - RideSharing_1
+#   - Movies_1
 # dev_domain_settings:
 #   - Restaurants_1
-#   - RideSharing_1
-test_domain_settings:
-  - [Restaurants_1, RideSharing_1]
+#   - Movies_1
+# test_domain_settings:
+#   - [Restaurants_1, Movies_1]
 create_data_from_train: true
 create_data_from_train_splits:
-  - 0.1
-  - 0.1
+  - 0.01
+  - 0.01
 wandb:
   project: ZSTodLocal
   entity: adibm
-  notes: testing arithmetic
+  notes: 15 epochs for rest
   task: arithmetic
-model_name: distilgpt2
-fp16: true
-gradient_accumulation_steps: 4
+# model_name: EleutherAI/gpt-j-6B
+# model_name: bigscience/bloom-7b1
+# model_name: facebook/opt-6.7b
+# model_name: facebook/opt-2.7b
+model_name: huggyllama/llama-7b
+# model_name: huggyllama/llama-13b
+# model_name: gpt2-large
+postprocess_generation: true
+fp16: false
+gradient_accumulation_steps: 8
+eval_accumulation_steps: 8
+quantization: true
+two_step_training: false
+should_add_special_tokens: true
+save_wte: true

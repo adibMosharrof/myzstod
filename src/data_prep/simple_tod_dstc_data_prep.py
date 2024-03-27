@@ -10,13 +10,13 @@ from tqdm import tqdm
 import humps
 from configs.dataprep_config import DataPrepConfig
 from multi_head.mh_dataclasses import MultiHeadDictFactory
-from my_enums import Steps, SimpleTodConstants
+from my_enums import ContextType, Steps, ZsTodConstants
 from tod.turns.general_turn_csv_row import GeneralTurnCsvRow
 from tod.turns.mh_turn_csv_row import MhTurnCsvRow
-from tod.turns.turn_csv_row import TurnCsvRowBase
+from tod.turns.turn_csv_row_base import TurnCsvRowBase
 from tod.turns.turn_csv_row_factory import TurnCsvRowFactory
 from tod.turns.zs_tod_turn import ZsTodTurn
-from tod.zs_target import ZsTodTarget
+from tod.zs_tod_target import ZsTodTarget
 from tod.zs_tod_action import ZsTodAction
 from tod.zs_tod_belief import ZsTodBelief
 from tod.zs_tod_context import ZsTodContext
@@ -24,14 +24,15 @@ from tod.zs_tod_dst import ZsTodDst
 import utils
 from pathos.multiprocessing import ProcessingPool as Pool
 
-from dstc.dstc_dataclasses import (
+from sgd_dstc8_data_model.dstc_dataclasses import (
     DstcDialog,
     DstcFrame,
     DstcSchema,
     DstcTurn,
     get_schemas,
 )
-from dstc.dstc_utils import get_csv_data_path, get_dialog_file_paths
+from utils import get_csv_data_path, get_dialog_file_paths
+from utilities.text_utilities import get_nlg_service_name
 
 from simple_tod_dataclasses import (
     MultiTaskSpecialToken,
@@ -87,7 +88,7 @@ class SimpleTODDSTCDataPrep:
                     raise ValueError("More than one frame in system turn")
                 for frame in system_turn.frames:
                     context.service_results = frame.service_results
-                    # context.service_call = frame.service_call
+                    context.api_call = frame.service_call
         return context
 
     def _prepare_dst(self, user_turn: DstcTurn) -> List[ZsTodBelief]:
@@ -102,7 +103,7 @@ class SimpleTODDSTCDataPrep:
                 "".join(
                     [
                         frame.short_service,
-                        SimpleTodConstants.DOMAIN_SLOT_SEPARATOR,
+                        ZsTodConstants.DOMAIN_SLOT_SEPARATOR,
                         slot,
                     ]
                 )
@@ -129,33 +130,10 @@ class SimpleTODDSTCDataPrep:
                         frame.short_service,
                         action.act,
                         action.slot,
-                        SimpleTodConstants.ACTION_VALUE_SEPARATOR.join(action.values),
+                        ZsTodConstants.ACTION_VALUE_SEPARATOR.join(action.values),
                     )
                 )
         return actions
-
-    def _delexicalize_utterance(
-        self, turn: DstcTurn, schemas: Dict[str, DstcSchema]
-    ) -> str:
-        delexicalized_utterance = turn.utterance
-        for frame in turn.frames:
-            schema = schemas[frame.short_service]
-            for action in frame.actions:
-                for value in action.values:
-                    slot = next(
-                        (slot for slot in schema.slots if slot.name == action.slot),
-                        None,
-                    )
-                    if not slot:
-                        continue
-                    replacement = (
-                        # f"<{frame.short_service}_{humps.camelize(action.slot)}>"
-                        f"<{frame.short_service}{SimpleTodConstants.DOMAIN_SLOT_SEPARATOR}{action.slot}>"
-                    )
-                    delexicalized_utterance = delexicalized_utterance.replace(
-                        value, replacement
-                    )
-        return delexicalized_utterance
 
     def _prepare_response(
         self, system_turn: DstcTurn, schemas: Dict[str, DstcSchema]
@@ -192,33 +170,21 @@ class SimpleTODDSTCDataPrep:
         turn_schema_str = None
         if self.cfg.should_add_schema:
             turn_schemas = [schemas[s] for s in services]
-            turn_schema_str = "".join([str(s) for s in turn_schemas])
+
+            if self.cfg.context_type == ContextType.NLG:
+                turn_schema_str = "".join([s.get_nlg_repr() for s in turn_schemas])
+            else:
+                turn_schema_str = "".join([str(s) for s in turn_schemas])
         context = self._prepare_context(user_turn, system_turn, prev_tod_turn, schemas)
         target = self._prepare_target(user_turn, system_turn, schemas)
+        domains = [get_nlg_service_name(s) for s in services]
         return ZsTodTurn(
-            context, target, schemas=turn_schemas, schema_str=turn_schema_str
-        )
-
-    def _is_dialogue_in_domain(self, dialogue_services: List[str]) -> bool:
-        return all(ds in self.cfg.domains for ds in dialogue_services)
-
-    def _extract_from_target(
-        self, target: str, start_tokens: list[str], end_tokens: list[str]
-    ):
-        texts = []
-        for start_token, end_token in zip(start_tokens, end_tokens):
-            try:
-                start_index = target.index(start_token)
-                end_index = target.index(end_token)
-                texts.append(target[start_index : end_index + len(end_token)]),
-            except ValueError:
-                texts.append("")
-        return "".join(
-            [
-                SpecialTokens.begin_target,
-                "".join(texts),
-                SpecialTokens.end_target,
-            ]
+            context,
+            target,
+            schemas=turn_schemas,
+            schema_str=turn_schema_str,
+            domains=domains,
+            domains_original=services,
         )
 
     def _get_schema_str(
@@ -244,11 +210,13 @@ class SimpleTODDSTCDataPrep:
         out = []
         multi_task_special_tokens = get_multi_task_special_tokens()
 
-        for mtst, should_perform_task in zip(
-            multi_task_special_tokens, self.cfg.multi_tasks
-        ):
-            if not should_perform_task:
-                continue
+        # for mtst, should_perform_task in zip(
+        #     multi_task_special_tokens, self.cfg.multi_tasks
+        # ):
+        for task in self.cfg.multi_tasks:
+            mtst = multi_task_special_tokens[task]
+            # if not should_perform_task:
+            #     continue
             text = self._extract_from_target(
                 str(turn.target), mtst.start_tokens, mtst.end_tokens
             )

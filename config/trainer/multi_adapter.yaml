@@ -1,0 +1,47 @@
+defaults:
+  - data_size: min
+  - machine: local
+  - batch: bla
+test_prompt_max_len: 750
+max_token_len: 1024
+# overwrite:
+#   - true
+#   - true
+#   - true
+should_test: true
+train_domain_settings: 
+  - seen
+dev_domain_settings: 
+  - all
+test_domain_settings:
+  - [all]
+  - [seen]
+  - [unseen]
+  # - [Movies_1]
+create_data_from_train: false
+# create_data_from_train_splits:
+#   - 0.01
+#   - 0.01
+wandb:
+  project: ZSTodLocal
+  entity: adibm
+  notes: llama 7b full dataset
+  task: arithmetic
+# model_name: facebook/opt-6.7b
+# model_name: facebook/opt-2.7b
+# model_name: huggyllama/llama-30b
+model_name: huggyllama/llama-7b
+postprocess_generation: true
+fp16: false
+quantization: true
+two_step_training: false
+is_multi_task: true
+multi_tasks:
+  - dsts
+  - actions
+  - nlg
+# context_type: default
+should_add_schema: true
+# should_add_sys_actions: true
+# should_add_user_actions: true
+# should_add_service_results: true

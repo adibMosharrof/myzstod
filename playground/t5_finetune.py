@@ -1,5 +1,9 @@
 #!pip install transformers==4.8.2
+import os
+import sys
 
+sys.path.insert(0, os.path.abspath("./src"))
+from pathlib import Path
 import random
 import re
 
@@ -9,10 +13,20 @@ from sklearn.metrics import f1_score
 from sklearn.model_selection import train_test_split
 from torch.utils.data import Dataset
 from tqdm import tqdm
-from transformers import GPT2LMHeadModel, GPT2Tokenizer, Trainer, TrainingArguments
+from transformers import (
+    GPT2LMHeadModel,
+    AutoTokenizer,
+    Trainer,
+    TrainingArguments,
+    AutoModelForSeq2SeqLM,
+    T5ForConditionalGeneration,
+)
+from accelerate import Accelerator
 
 ## Define class and functions
 # --------
+accelerator = Accelerator()
+
 
 # Dataset class
 class SentimentDataset(Dataset):
@@ -30,10 +44,18 @@ class SentimentDataset(Dataset):
             encodings_dict = tokenizer(
                 prep_txt, truncation=True, max_length=max_length, padding="max_length"
             )
+            label_tokens = tokenizer.encode(
+                map_label[label],
+                truncation=True,
+                max_length=15,
+                padding="max_length",
+                return_tensors="pt",
+            )[0]
+            label_tokens[label_tokens == tokenizer.pad_token_id] = -100
             # append to list
             self.input_ids.append(torch.tensor(encodings_dict["input_ids"]))
             self.attn_masks.append(torch.tensor(encodings_dict["attention_mask"]))
-            self.labels.append(map_label[label])
+            self.labels.append(label_tokens)
 
     def __len__(self):
         return len(self.input_ids)
@@ -49,7 +71,7 @@ def load_sentiment_dataset(tokenizer):
     df = pd.read_csv(file_path, encoding="ISO-8859-1", header=None)
     df = df[[0, 5]]
     df.columns = ["label", "text"]
-    df = df.sample(10000, random_state=1)
+    df = df.sample(100, random_state=1)
 
     # divide into test and train
     X_train, X_test, y_train, y_test = train_test_split(
@@ -65,8 +87,8 @@ def load_sentiment_dataset(tokenizer):
         X_train, y_train, shuffle=True, test_size=0.1, random_state=1, stratify=y_train
     )
     # format into SentimentDataset class
-    train_dataset = SentimentDataset(X_train, y_train, tokenizer, max_length=512)
-    val_dataset = SentimentDataset(X_val, y_val, tokenizer, max_length=512)
+    train_dataset = SentimentDataset(X_train, y_train, tokenizer, max_length=400)
+    val_dataset = SentimentDataset(X_val, y_val, tokenizer, max_length=400)
 
     # return
     return train_dataset, val_dataset, (X_test, y_test)
@@ -76,18 +98,18 @@ def load_sentiment_dataset(tokenizer):
 # --------
 
 # set model name
-model_name = "gpt2"
+model_name = "google/flan-t5-large"
 # seed
 torch.manual_seed(42)
 
 # load tokenizer and model
-tokenizer = GPT2Tokenizer.from_pretrained(
+tokenizer = AutoTokenizer.from_pretrained(
     model_name,
     bos_token="<|startoftext|>",
     eos_token="<|endoftext|>",
     pad_token="<|pad|>",
 )
-model = GPT2LMHeadModel.from_pretrained(model_name).cuda()
+model = T5ForConditionalGeneration.from_pretrained(model_name).cuda()
 model.resize_token_embeddings(len(tokenizer))
 
 # prepare and load dataset
@@ -103,8 +125,8 @@ training_args = TrainingArguments(
     load_best_model_at_end=True,
     save_strategy="epoch",
     evaluation_strategy="epoch",
-    per_device_train_batch_size=16,
-    per_device_eval_batch_size=16,
+    per_device_train_batch_size=4,
+    per_device_eval_batch_size=4,
     warmup_steps=100,
     weight_decay=0.01,
     logging_dir="logs",
@@ -119,7 +141,7 @@ Trainer(
     data_collator=lambda data: {
         "input_ids": torch.stack([f[0] for f in data]),
         "attention_mask": torch.stack([f[1] for f in data]),
-        "labels": torch.stack([f[0] for f in data]),
+        "labels": torch.stack([f[2] for f in data]),
     },
 ).train()
 
@@ -128,16 +150,19 @@ Trainer(
 
 # set the model to eval mode
 _ = model.eval()
-
+print("starting inference")
 # run model inference on all test data
 original_label, predicted_label, original_text, predicted_text = [], [], [], []
 map_label = {0: "negative", 4: "positive"}
 # iter over all of the test data
+test_dataset = accelerator.prepare(test_dataset)
 for text, label in tqdm(zip(test_dataset[0], test_dataset[1])):
     # create prompt (in compliance with the one used during training)
     prompt = f"<|startoftext|>Tweet: {text}\nSentiment:"
     # generate tokens
+    # generated = tokenizer(f"{prompt}", return_tensors="pt").input_ids.cuda()
     generated = tokenizer(f"{prompt}", return_tensors="pt").input_ids.cuda()
+    label_tokens = tokenizer(map_label[label], return_tensors="pt").input_ids.cuda()
     # perform prediction
     sample_outputs = model.generate(
         generated,
@@ -148,6 +173,7 @@ for text, label in tqdm(zip(test_dataset[0], test_dataset[1])):
         temperature=0,
         num_return_sequences=0,
     )
+    sample_outputs = accelerator.gather_for_metrics(sample_outputs)
     # decode the predicted tokens into texts
     pred_text = tokenizer.decode(sample_outputs[0], skip_special_tokens=True)
     # extract the predicted sentiment
@@ -156,9 +182,9 @@ for text, label in tqdm(zip(test_dataset[0], test_dataset[1])):
     except:
         pred_sentiment = "None"
     # append results
-    original_label.append(map_label[label])
+    original_label.append(label)
     predicted_label.append(pred_sentiment)
-    original_text.append(text)
+    original_text.append(map_label.get(label, -1))
     predicted_text.append(pred_text)
 
 # transform result into dataframe
@@ -170,6 +196,9 @@ df = pd.DataFrame(
         "predicted_text": predicted_text,
     }
 )
-
+out_dir = Path("data_exploration") / "t5"
+out_dir.mkdir(parents=True, exist_ok=True)
+out_path = out_dir / "t5_sentiment.csv"
+df.to_csv(out_path, index=False, encoding="utf-8")
 # predict the accuracy
-print(f1_score(original_label, predicted_label, average="macro"))
+# print(f1_score(original_label, predicted_label, average="macro"))

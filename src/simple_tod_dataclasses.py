@@ -7,14 +7,17 @@ import numpy as np
 import pandas as pd
 
 from torch import nn
-from dstc.dstc_dataclasses import DstcRequestedSlot, DstcSchema, DstcServiceCall
+from sgd_dstc8_data_model.dstc_dataclasses import (
+    DstcRequestedSlot,
+    DstcSchema,
+    DstcServiceCall,
+)
 from multi_head.mh_dataclasses import MultiHeadDictFactory, MultiHeadInstance
 
 from my_enums import (
     ContextType,
     DstcSystemActions,
     MultiTaskNames,
-    SimpleTodConstants,
     SpecialTokens,
 )
 import dstc.dstc_utils as dstc_utils
@@ -36,10 +39,10 @@ class TodTestDataBatch:
     input_ids: list[list[int]]
     attention_masks: list[list[int]]
     contexts_text: list[str]
-    schemas_text: list[str]
     targets_text: list[str]
     dialog_ids: list[int]
     turn_ids: list[int]
+    is_api_call: Optional[list[bool]] = field(default_factory=list)
 
 
 @dataclass
@@ -123,7 +126,28 @@ class InferenceRecords:
         )
 
 
-def get_multi_task_special_tokens() -> list[MultiTaskSpecialToken]:
+def get_multi_task_special_tokens() -> dict[str, MultiTaskSpecialToken]:
+    return {
+        MultiTaskNames.DSTS.value: MultiTaskSpecialToken(
+            [SpecialTokens.begin_dsts],
+            [SpecialTokens.end_dsts],
+            SpecialTokens.prompt_dst,
+            MultiTaskNames.DSTS,
+        ),
+        MultiTaskNames.ACTIONS.value: MultiTaskSpecialToken(
+            [SpecialTokens.begin_user_action, SpecialTokens.begin_action],
+            [SpecialTokens.end_user_action, SpecialTokens.end_action],
+            SpecialTokens.prompt_action,
+            MultiTaskNames.ACTIONS,
+        ),
+        MultiTaskNames.NLG.value: MultiTaskSpecialToken(
+            [SpecialTokens.begin_response],
+            [SpecialTokens.end_response],
+            SpecialTokens.prompt_response,
+            MultiTaskNames.NLG,
+        ),
+    }
+
     return [
         MultiTaskSpecialToken(
             [SpecialTokens.begin_dsts],

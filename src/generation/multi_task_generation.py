@@ -1,3 +1,5 @@
+import os
+from pathlib import Path
 from typing import Union
 
 from dotmap import DotMap
@@ -8,6 +10,7 @@ from my_enums import MultiTaskNames, SpecialTokens
 from simple_tod_dataclasses import TodTestDataBatch
 from transformers import AutoModel, AutoTokenizer
 from torch import Tensor
+import os
 
 
 class MultiTaskGeneration(GenerationBase):
@@ -16,27 +19,53 @@ class MultiTaskGeneration(GenerationBase):
         model: AutoModel,
         tokenizer: AutoTokenizer,
         task_names: list[MultiTaskNames],
+        model_paths: dict[str, str],
+        project_root: Union[str, Path] = None,
     ):
         super().__init__(model, tokenizer)
         self.task_names = task_names
+        self.model_paths = model_paths
+        self.project_root = project_root
+        for task in self.task_names:
+            adapter_path = self.get_model_path(task.value)
+            self.model.load_adapter(adapter_path, task.value)
 
-    def _get_generation(self, batch, max_len: int) -> list[Tensor]:
+    def get_model_path(self, task_name: str) -> str:
+        if task_name not in self.model_paths:
+            cur_dir = Path(os.getcwd())
+            model_dir = cur_dir / "results" / "multi_task"
+            return str(model_dir / task_name)
+        return os.path.join(self.project_root, self.model_paths[task_name], task_name)
+
+    def _get_generation(self, batch, min_len: int, max_len: int) -> list[Tensor]:
         gens = []
         for task in self.task_names:
+            # adapter_path = self.get_model_path(task.value)
+            # adapter_path = str(model_dir / task.value)
             self.model.set_adapter(task.value)
+            # with torch.cuda.amp.autocast():
             gen = self.model.generate(
                 inputs=batch.input_ids,
                 attention_mask=batch.attention_masks,
                 max_length=max_len,
                 eos_token_id=self.tokenizer.eos_token_id,
                 pad_token_id=self.tokenizer.pad_token_id,
+                use_cache=True,
             )
-            gens.append(gen)
+            gen_padded = self.pad_gen_to_max_len(gen, max_len)
+            gens.append(gen_padded)
         return gens
 
     def remove_context(
         self, gen: list[Tensor], context_len: int, max_len: int
     ) -> list[Tensor]:
+        no_c = []
+        for g in gen:
+            out = g[:, context_len:]
+            no_c.append(out)
+        gen_cat = torch.hstack([*no_c])
+        return gen_cat
+
         out = torch.full(
             [len(gen), gen[0].shape[0], max_len - context_len],
             fill_value=self.tokenizer.pad_token_id,

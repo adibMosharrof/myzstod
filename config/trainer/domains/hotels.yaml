@@ -1,0 +1,10 @@
+train_domain_settings: 
+  - Hotels_1
+  - Hotels_2
+  - Hotels_3
+dev_domain_settings: 
+  - Hotels_1
+  - Hotels_4
+test_domain_settings:
+  - [Hotels_2]
+  - [Hotels_4]

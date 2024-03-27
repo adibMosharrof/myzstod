@@ -1,11 +1,11 @@
-
-
 from collections import deque
 from dataclasses import dataclass, field
 from itertools import zip_longest
 from typing import Optional
 
 from my_enums import DstcSystemActions, SpecialTokens
+import utils
+
 
 @dataclass
 class ZsTodContext:
@@ -16,6 +16,7 @@ class ZsTodContext:
     should_add_sys_actions: bool = None
     prev_tod_turn: Optional[any] = None
     service_results: Optional[list[dict[str, str]]] = None
+    api_call: Optional[dict[str, str]] = None
 
     def __init__(self, max_length: int = 10):
         self.user_utterances = deque(maxlen=max_length)
@@ -36,10 +37,53 @@ class ZsTodContext:
             ]
         )
 
-    def _get_service_results(self) -> str:
+    def get_nlg_repr(self):
+        history = []
+        # out = ""
+        for user, system in zip_longest(
+            self.user_utterances, self.system_utterances, fillvalue=""
+        ):
+            if user:
+                # out += f"User: {user}\n"
+                history.append(f"User: {user}")
+            if system:
+                # out += f"System: {system}\n"
+                history.append(f"System: {system}")
+        history_text = "\n".join(history)
+        return "\n".join(
+            [
+                history_text,
+                self._get_last_user_utterance(should_add_special_token=False),
+                "End Dialog History",
+                self._get_service_results(should_add_special_tokens=False),
+                self.get_service_call(),
+            ]
+        )
+        out += "\n".join(
+            [
+                self._get_last_user_utterance(should_add_special_token=False),
+                "End Dialog History",
+                self._get_service_results(should_add_special_tokens=False),
+            ]
+        )
+        return out
+
+    def get_service_call(self) -> str:
         out = ""
-        if self.service_results:
-            for service_result in self.service_results[:1]:
+        if not self.api_call:
+            return out
+        self.api_call.__class__.__qualname__ = "ServiceCall"
+        out += str(self.api_call)
+        return out
+
+    def _get_service_results(self, should_add_special_tokens: bool = True) -> str:
+        out = ""
+        if not self.service_results:
+            return out
+        if not should_add_special_tokens:
+            out += "\nSearch Results:\n"
+        for service_result in self.service_results[:1]:
+            if should_add_special_tokens:
                 out += "".join(
                     [
                         SpecialTokens.begin_service_results,
@@ -47,6 +91,18 @@ class ZsTodContext:
                         SpecialTokens.end_service_results,
                     ]
                 )
+            else:
+                # out += "\n".join(
+                #     [
+                #         ":".join([utils.remove_underscore(k), v])
+                #         for k, v in service_result.items()
+                #     ]
+                # )
+                s_res = {"search_results": service_result}
+                out += str(s_res)
+
+        if not should_add_special_tokens:
+            out += "\nEnd Search Results\n"
         return out
 
     def _get_sys_actions(self) -> str:
@@ -54,7 +110,9 @@ class ZsTodContext:
             return ""
         return "".join([SpecialTokens.sys_actions, " ".join(DstcSystemActions.list())])
 
-    def _get_last_user_utterance(self) -> str:
+    def _get_last_user_utterance(self, should_add_special_token=True) -> str:
+        if not should_add_special_token:
+            return "".join(["Last User Utterance:", self.current_user_utterance])
         return "".join(
             [
                 SpecialTokens.begin_last_user_utterance,

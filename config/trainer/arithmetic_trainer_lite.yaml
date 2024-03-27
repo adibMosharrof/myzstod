@@ -1,0 +1,71 @@
+pretrain_epochs: 1
+train_epochs: 10
+pretrain_batch_size: 5
+train_batch_size: 1
+# num_workers: 1
+# data_split_percent:
+# - 1
+# - 1
+# - 1
+data_split_percent:
+- .1
+- 1
+- .05
+eval_batch_size: 5
+eval_steps: 20
+test_batch_size: 5
+test_prompt_max_len: 750
+max_token_len: 1024
+num_dialogs:
+- 1
+- 1
+- 1
+# num_dialogs:
+# - 10
+# - 5
+# - 1
+overwrite:
+  - true
+  - true
+  - true
+should_test: true
+train_domain_settings:
+  - Restaurants_1
+  # - RideSharing_1
+dev_domain_settings:
+  - Restaurants_1
+  # - RideSharing_1
+test_domain_settings:
+  - [Restaurants_1]
+  # - [RideSharing_1]
+# train_domain_settings:
+#   - Restaurants_1
+#   - RideSharing_1
+# dev_domain_settings:
+#   - Restaurants_1
+#   - RideSharing_1
+# test_domain_settings:
+#   - [Restaurants_1, RideSharing_1]
+create_data_from_train: true
+create_data_from_train_splits:
+  - 0.1
+  - 0.1
+wandb:
+  project: ZSTodLocal
+  entity: adibm
+  notes: no spaces and save lm head
+  task: arithmetic
+# model_name: EleutherAI/gpt-j-6B
+# model_name: bigscience/bloom-7b1
+model_name: facebook/opt-6.7b
+# model_name: aleksickx/llama-7b-hf
+# model_name: decapoda-research/llama-7b-hf
+# model_name: gpt2-large
+fp16: false
+gradient_accumulation_steps: 32
+eval_accumulation_steps: 32
+quantization: true
+two_step_training: false
+should_add_special_tokens: true
+save_wte: true
+postprocess_generation: false
