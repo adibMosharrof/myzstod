@@ -81,7 +81,7 @@ class T5Tod:
         self.cfg.out_dir.mkdir(parents=True, exist_ok=True)
         os.chdir(self.cfg.out_dir)
         self.cfg.project_root = Path(self.cfg.project_root)
-        self.cfg.out_dir = Path(os.getcwd()) 
+        self.cfg.out_dir = Path(os.getcwd())
         log_file = self.cfg.out_dir / "t5_tod.log"
         logging.basicConfig(filename=log_file, level=logging.INFO, encoding="utf-8")
         self.logger = logging
@@ -141,7 +141,7 @@ class T5Tod:
     def get_model_class(self, model_name: str):
         if "t5" in model_name:
             return T5ForConditionalGeneration
-        lmhead_models = ["alpaca", "llama", "santacoder"]
+        lmhead_models = ["alpaca", "llama", "santacoder", "vicuna"]
         if any([m in model_name.lower() for m in lmhead_models]):
             return AutoModelForCausalLM
         raise ValueError(f"model_name {model_name} not supported")
@@ -184,6 +184,12 @@ class T5Tod:
             train_dataset, val_dataset, test_datasets = self.dm.load_data()
 
         if not self.cfg.model_path:
+            bf16 = False
+            fp16 = False
+            if torch.cuda.is_bf16_supported():
+                bf16 = True
+            else:
+                fp16 = True
             training_args = Seq2SeqTrainingArguments(
                 output_dir=str(self.cfg.out_dir),
                 num_train_epochs=self.cfg.epochs,
@@ -203,10 +209,10 @@ class T5Tod:
                 gradient_accumulation_steps=self.cfg.gradient_accumulation_steps,
                 eval_accumulation_steps=self.cfg.eval_accumulation_steps,
                 learning_rate=1e-3,
-                bf16_full_eval=True,
-                bf16=True,
-                # fp16=True,
-                # fp16_full_eval=True,
+                bf16_full_eval=bf16,
+                bf16=bf16,
+                fp16=fp16,
+                fp16_full_eval=fp16,
                 # gradient_checkpointing=False,
                 # ddp_find_unused_parameters=False,
                 deepspeed=deepspeed_path,
@@ -257,7 +263,7 @@ class T5Tod:
             model = PeftModel.from_pretrained(
                 model, model_out_dir, device_map=device_map
             )
-            model.eval()
+        model.eval()
 
         collate_fn = (
             self.dm.tod_test_collate
