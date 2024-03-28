@@ -149,8 +149,8 @@ class T5DataModule:
             {
                 "input_ids": torch.stack(all_input_tokens),
                 "labels": torch.stack(all_labels),
-                "attention_mask": torch.stack(all_attention_masks),
-                "turn_row_type": torch.stack(all_turn_row_type),
+                "attention_masks": torch.stack(all_attention_masks),
+                "turn_row_types": torch.stack(all_turn_row_type),
             }
         )
 

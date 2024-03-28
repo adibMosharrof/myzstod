@@ -50,18 +50,24 @@ class GenerationBase(ABC):
         context_len: int,
         should_post_process: bool,
         accelerator,
+        metric_manager,
     ) -> list[str]:
-        batch_gpu = self.move_to_gpu(batch, accelerator)
+        # batch_gpu = self.move_to_gpu(batch, accelerator)
+        batch_gpu = batch
         curr_gen = self._get_generation(batch_gpu, min_gen_len, max_len)
         gen_without_context = self.remove_context(curr_gen, context_len, max_len)
         # gen_after_hook = self.hook_before_remove_pad(gen_without_context)
         # gen_after_hook = gen_without_context
+        turn_row_types = getattr(batch, "turn_row_types", None)
         (
             gen_after_hook,
             target,
             contexts,
             dialog_ids,
             turn_ids,
+            input_tokens,
+            turn_row_types,
+            label_tokens,
         ) = accelerator.gather_for_metrics(
             (
                 gen_without_context,
@@ -69,6 +75,9 @@ class GenerationBase(ABC):
                 batch_gpu.contexts_text,
                 batch_gpu.dialog_ids,
                 batch_gpu.turn_ids,
+                batch_gpu.input_ids,
+                turn_row_types,
+                batch_gpu.labels,
             )
         )
         # gen_without_context = self.remove_context(gen, context_len, max_len)
@@ -80,11 +89,12 @@ class GenerationBase(ABC):
         turn_ids = self.remove_pad_decode(turn_ids, skip_special_tokens=True)
         contexts = self.remove_pad_decode(contexts)
 
+        metric_manager.add_batch(
+            input_tokens, label_tokens, gen_after_hook, turn_row_types
+        )
         if should_post_process:
             gen_txt = self.postprocess_generation(gen_txt)
         return target_txt, gen_txt, contexts, dialog_ids, turn_ids
-        # else:
-        #     return None, None, None, None, None
 
     def hook_before_remove_pad(self, gen: Union[Tensor, list[Tensor]]):
         return gen

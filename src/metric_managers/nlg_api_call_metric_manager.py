@@ -59,7 +59,7 @@ class NlgApiCallMetricManager:
             self.logger.info(res)
             print(res)
 
-    def add_batch(self, input_tokens, label_tokens, pred_tokens, api_calls):
+    def add_batch(self, input_tokens, label_tokens, pred_tokens, turn_row_types):
         input_texts, labels, preds = [
             self.tokenizer.batch_decode(
                 tokens, skip_special_tokens=True, clean_up_tokenization_spaces=True
@@ -69,7 +69,7 @@ class NlgApiCallMetricManager:
 
         response_preds, response_labels, sc_preds, sc_labels = [], [], [], []
 
-        for i, p, l, s in zip(input_texts, preds, labels, api_calls):
+        for i, p, l, s in zip(input_texts, preds, labels, turn_row_types):
             row = ApiCallInferenceLogData(i, l, p, int(s))
             self.data.append(row)
             if s == 0:
