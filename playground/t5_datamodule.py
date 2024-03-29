@@ -94,8 +94,8 @@ class T5DataModule:
         pad = torch.full([context_unused_len], self.tokenizer.pad_token_id)
         input_tokens = torch.cat(
             [
-                context_tokens,
                 pad,
+                context_tokens,
             ]
         )
         attention_mask = input_tokens.ne(self.tokenizer.pad_token_id).to(torch.int32)
