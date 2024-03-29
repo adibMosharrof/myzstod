@@ -6,6 +6,8 @@ from omegaconf import DictConfig
 
 
 sys.path.insert(0, os.path.abspath("./src"))
+from generation.generation_handler_factory import GenerationHandlerFactory
+from simple_tod_dataclasses import TodTestDataBatch
 from metric_managers.ketod_metric_manager import KeTodMetricManager
 from prompts.prompt_constants import NlgPromptType
 from logger.service_call_inference_logger import ServiceCallInferenceLogger
@@ -58,6 +60,7 @@ from sgd_dstc8_data_model.dstc_dataclasses import get_schemas
 
 from metric_managers.bitod_metric_manager import BitodMetricManager
 import wandb
+
 
 class T5Tod:
     def __init__(self, cfg):
@@ -141,7 +144,7 @@ class T5Tod:
     def get_model_class(self, model_name: str):
         if "t5" in model_name:
             return T5ForConditionalGeneration
-        lmhead_models = ["alpaca", "llama", "santacoder", "vicuna","koala"]
+        lmhead_models = ["alpaca", "llama", "santacoder", "vicuna", "koala", "opt"]
         if any([m in model_name.lower() for m in lmhead_models]):
             return AutoModelForCausalLM
         raise ValueError(f"model_name {model_name} not supported")
@@ -228,7 +231,7 @@ class T5Tod:
             # model.gradient_checkpointing_disable()
             # with accelerator.no_sync(model):
             # trainer.train()
-            
+
             trainer.train()
             # trainer.save_model()
             # model.save_pretrained(self.cfg.out_dir)
@@ -275,6 +278,10 @@ class T5Tod:
             ]
             else self.dm.tod_train_collate
         )
+
+        generation_handler = GenerationHandlerFactory.get_handler(
+            self.cfg, model, tokenizer
+        )
         for test_dataset, domain_names_list in zip(
             test_datasets, self.cfg.test_domain_settings
         ):
@@ -295,31 +302,49 @@ class T5Tod:
             for batch in tqdm(test_dl):
                 # max_gen_len = self.cfg.max_token_len - self.cfg.test_prompt_max_len
                 max_gen_len = self.cfg.max_token_len
-                with torch.no_grad():
-                    sample_outputs = model.generate(
-                        inputs=batch.input_ids.to(accelerator.device),
-                        attention_mask=batch.attention_mask.to(accelerator.device),
-                        max_length=max_gen_len,
-                        do_sample=True,
-                        top_k=50,
-                        top_p=0.92,
-                        num_return_sequences=1,
-                    )
-                turn_row_types = getattr(batch, "turn_row_type", None)
-                out_padded = self.pad_gen_to_max_len(
-                    sample_outputs, max_gen_len, tokenizer
-                )
-                (
-                    padded_outputs,
-                    label_tokens,
-                    input_tokens,
-                    turn_row_types,
-                ) = accelerator.gather_for_metrics(
-                    (out_padded, batch.labels, batch.input_ids, turn_row_types)
-                )
-                # decode the predicted tokens into texts
-                metric_manager.add_batch(
-                    input_tokens, label_tokens, padded_outputs, turn_row_types
+                # with torch.no_grad():
+                #     # sample_outputs = model.generate(
+                #     #     inputs=batch.input_ids.to(accelerator.device),
+                #     #     attention_mask=batch.attention_mask.to(accelerator.device),
+                #     #     max_length=max_gen_len,
+                #     #     do_sample=True,
+                #     #     top_k=50,
+                #     #     top_p=0.92,
+                #     #     num_return_sequences=1,
+                #     # )
+                #     sample_outputs = generation_handler.get_generation(
+                #         model,
+                #         max_gen_len - self.cfg.test_prompt_max_len,
+                #         max_gen_len,
+                #         self.cfg.test_prompt_max_len,
+                #         False,
+                #         accelerator,
+                #     )
+                # turn_row_types = getattr(batch, "turn_row_type", None)
+                # out_padded = self.pad_gen_to_max_len(
+                #     sample_outputs, max_gen_len, tokenizer
+                # )
+                # (
+                #     padded_outputs,
+                #     label_tokens,
+                #     input_tokens,
+                #     turn_row_types,
+                # ) = accelerator.gather_for_metrics(
+                #     (out_padded, batch.labels, batch.input_ids, turn_row_types)
+                # )
+                # # decode the predicted tokens into texts
+                # metric_manager.add_batch(
+                #     input_tokens, label_tokens, padded_outputs, turn_row_types
+                # )
+
+                sample_outputs = generation_handler.get_generation(
+                    batch,
+                    max_gen_len - self.cfg.test_prompt_max_len,
+                    max_gen_len,
+                    self.cfg.test_prompt_max_len,
+                    False,
+                    accelerator,
+                    metric_manager,
                 )
             # must call this first
             metric_manager.compute_row_wise_metrics()

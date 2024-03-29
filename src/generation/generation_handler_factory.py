@@ -7,7 +7,9 @@ import utils
 
 class GenerationHandlerFactory:
     @classmethod
-    def get_handler(self, cfg):
+    def get_handler(self, cfg, model=None, tokenizer=None):
+        model = model or cfg.model
+        tokenizer = tokenizer or cfg.tokenizer
         if cfg.is_multi_task:
             return MultiTaskGeneration(
                 cfg.model,
@@ -19,5 +21,5 @@ class GenerationHandlerFactory:
         if cfg.is_multi_head:
             return MultiHeadGeneration(cfg.model, cfg.tokenizer)
         if utils.is_t5_model(cfg.model_name):
-            return T5Generation(cfg.model, cfg.tokenizer)
-        return SimpleGeneration(cfg.model, cfg.tokenizer)
+            return T5Generation(model, tokenizer)
+        return SimpleGeneration(model, tokenizer)
