@@ -167,7 +167,7 @@ class T5Tod:
             model_out_dir = str(self.cfg.project_root / self.cfg.model_path)
         elif self.cfg.quantization:
             model = self.get_model(self.cfg.model_name, tokenizer)
-            deepspeed_path = self.cfg.project_root / "config/ds_zero1.json"
+            # deepspeed_path = self.cfg.project_root / "config/ds_zero1.json"
         else:
             # model = T5ForConditionalGeneration.from_pretrained(
             model_cls = self.get_model_class(self.cfg.model_name)
