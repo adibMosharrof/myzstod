@@ -1,6 +1,6 @@
 from configs.dataprep_config import DataPrepConfig
 from data_prep.data_prep_strategy import DataPrepStrategy
-from data_prep.nlg_api_call_data_prep import NlgApiCallDataPrep
+from data_prep.nlg_api_call_strategy import NlgApiCallStrategy
 from my_enums import TurnRowType
 from tod.nlg.bitod_api_call import BitodApiCall, BitodApiCallParams
 from tod.nlg.bitod_context import BiTodContext
