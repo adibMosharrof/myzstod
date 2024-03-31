@@ -42,4 +42,3 @@ class KetodInferenceLogData(ApiCallInferenceLogData):
     ke_method: Optional[float] = None
     ke_params: Optional[float] = None
     ke_api_call_invoke: Optional[float] = None
-    response_gleu: Optional[float] = None

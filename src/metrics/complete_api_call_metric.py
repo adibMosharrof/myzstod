@@ -25,6 +25,7 @@ class CompleteApiCallMetric(TodMetricsBase):
 
     def _compute(self):
         if not len(self.results):
+            return torch.tensor(-1)
             raise ValueError("You must call compute row before calling compute")
 
         res = torch.mean(utils.create_tensor(self.results), dtype=torch.float)
