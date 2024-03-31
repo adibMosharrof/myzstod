@@ -13,5 +13,5 @@ class KetodApiCallTurnCsvRow(TurnCsvRowBase):
         self, context_type: ContextType, tod_turn: KeTodTurn, should_add_schema: bool
     ) -> list[str]:
         row = super().to_csv_row(context_type, tod_turn, should_add_schema)
-        row.append(tod_turn.turn_row_type.value)
+        row.append(tod_turn.turn_row_type)
         return row

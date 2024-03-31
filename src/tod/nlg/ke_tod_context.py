@@ -1,5 +1,7 @@
+from collections import deque
 from dataclasses import dataclass
 from dataclasses import dataclass, field
+from itertools import zip_longest
 from typing import Optional
 
 from my_enums import TurnRowType
@@ -16,9 +18,18 @@ class KeTodContext:
     entity_query: Optional[str] = None
     kg_snippets_text: Optional[list[str]] = None
     api_call: Optional[dict[str, str]] = None
+    user_utterances: deque[str] = field(default_factory=deque)
+    system_utterances: deque[str] = field(default_factory=deque)
+    prev_tod_turn: any = None
+
+    def __init__(self, max_length: int = 10):
+        self.user_utterances = deque(maxlen=max_length)
+        self.system_utterances = deque(maxlen=max_length)
 
     def _get_last_user_utterance(self) -> str:
-        return "".join(["Last User Utterance:", self.current_user_utterance])
+        if self.current_user_utterance:
+            return "".join(["Last User Utterance:", self.current_user_utterance])
+        return ""
 
     def get_entity_query(self) -> DstcServiceCall:
         out = ""
@@ -54,24 +65,36 @@ class KeTodContext:
         dstc_api_call.__class__.__qualname__ = "ApiCall"
         return str(dstc_api_call)
 
-    def get_service_results(self) -> str:
+    def get_service_results(self, num_items: int = 1) -> str:
         out = ""
         if not self.service_results:
             return out
-        for service_result in self.service_results[:1]:
+        results = self.service_results[:num_items]
+        results = [dict(r) for r in results]
+        return str(results)
+        for service_result in self.service_results[:num_items]:
             s_res = {"search_results": dict(service_result)}
             out += str(s_res)
         return "\n".join(["\nSearch Results:", out, "End Search Results"])
 
     def __str__(self):
+        history = []
+        for user, system in zip_longest(
+            self.user_utterances, self.system_utterances, fillvalue=""
+        ):
+            if user:
+                history.append(f"User: {user}")
+            if system:
+                history.append(f"System: {system}")
+        history_text = "\n".join(history)
         return "\n".join(
             [
-                self.dialog_history,
+                history_text,
                 self._get_last_user_utterance(),
                 "End Dialog History",
-                self.get_api_call(),
-                self.get_service_results(),
-                self.get_entity_query(),
-                self.get_kg_snippets_text(),
+                # self.get_api_call(),
+                # self.get_service_results(),
+                # self.get_entity_query(),
+                # self.get_kg_snippets_text(),
             ]
         )

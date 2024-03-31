@@ -232,21 +232,15 @@ class T5Tod:
             # with accelerator.no_sync(model):
             # trainer.train()
 
-            trainer.train()
-            # trainer.save_model()
-            # model.save_pretrained(self.cfg.out_dir)
-            if accelerator.is_main_process:
-                trainer.model.save_pretrained(self.cfg.out_dir)
-            accelerator.wait_for_everyone()
             if self.cfg.resume_checkpoint:
                 trainer.train(str(self.cfg.project_root / self.cfg.resume_checkpoint))
             else:
                 trainer.train()
-            # trainer.save_model()
-            # model.save_pretrained(self.cfg.out_dir)
             if accelerator.is_main_process:
                 trainer.model.save_pretrained(self.cfg.out_dir)
             accelerator.wait_for_everyone()
+            # trainer.save_model()
+            # model.save_pretrained(self.cfg.out_dir)
             model_out_dir = self.cfg.out_dir
 
         if not self.cfg.model_path:
@@ -396,6 +390,7 @@ def old_main():
 
 
 @hydra.main(config_path="../config/t5_trainer/", config_name="t5_trainer")
+# @hydra.main(config_path="../config/t5_trainer/", config_name="t5_inference")
 def hydra_start(cfg: DictConfig) -> None:
     t5tod = T5Tod(cfg)
     t5tod.run()

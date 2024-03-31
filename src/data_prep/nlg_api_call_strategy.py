@@ -22,7 +22,7 @@ import utils
 import data_prep.data_prep_utils as data_prep_utils
 
 
-class NlgApiCallDataPrep(DataPrepStrategy):
+class NlgApiCallStrategy(DataPrepStrategy):
     def __init__(self, cfg: DataPrepConfig):
         super().__init__(cfg, tod_turn_cls=NlgTodTurn, tod_context_cls=NlgTodContext)
         # self.cfg = cfg
@@ -35,12 +35,6 @@ class NlgApiCallDataPrep(DataPrepStrategy):
     ) -> NlgTodTarget:
         response = self._prepare_response(system_turn)
         return NlgTodTarget(response=response)
-
-    def prepare_api_call_target(self):
-        pass
-
-    def prepare_api_call_context(self):
-        pass
 
     def prepare_dialog(
         self,

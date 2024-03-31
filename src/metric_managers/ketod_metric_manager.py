@@ -30,7 +30,8 @@ class KeTodMetricManager:
 
         self.response_metrics = MetricCollection(
             {
-                "response_gleu": NlgGleuMetric(tokenizer),
+                "response_gleu": NlgGleuMetric(),
+                "response_bleu": NlgGleuMetric("bleu"),
             }
         )
         self.api_call_metrics = MetricCollection(
