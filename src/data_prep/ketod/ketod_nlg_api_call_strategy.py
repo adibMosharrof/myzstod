@@ -235,11 +235,8 @@ class KetodNlgApiCallStrategy(NlgApiCallStrategy):
         context.turn_row_type = TurnRowType.RESPONSE.value
         if self.cfg.should_add_service_results:
             for frame in turn.original_system_side_information.frames:
-                if not frame.service_results:
-                    continue
-                if len(frame.service_results) > 0:
-                    context.service_results = frame.service_results
-                    context.api_call = frame.service_call
+                context.service_results = frame.service_results
+                context.api_call = frame.service_call
         if turn.original_system_side_information.entity_query:
             context.entity_query = turn.original_system_side_information.entity_query
             context.kg_snippets_text = (
