@@ -296,40 +296,6 @@ class T5Tod:
             for batch in tqdm(test_dl):
                 # max_gen_len = self.cfg.max_token_len - self.cfg.test_prompt_max_len
                 max_gen_len = self.cfg.max_token_len
-                # with torch.no_grad():
-                #     # sample_outputs = model.generate(
-                #     #     inputs=batch.input_ids.to(accelerator.device),
-                #     #     attention_mask=batch.attention_mask.to(accelerator.device),
-                #     #     max_length=max_gen_len,
-                #     #     do_sample=True,
-                #     #     top_k=50,
-                #     #     top_p=0.92,
-                #     #     num_return_sequences=1,
-                #     # )
-                #     sample_outputs = generation_handler.get_generation(
-                #         model,
-                #         max_gen_len - self.cfg.test_prompt_max_len,
-                #         max_gen_len,
-                #         self.cfg.test_prompt_max_len,
-                #         False,
-                #         accelerator,
-                #     )
-                # turn_row_types = getattr(batch, "turn_row_type", None)
-                # out_padded = self.pad_gen_to_max_len(
-                #     sample_outputs, max_gen_len, tokenizer
-                # )
-                # (
-                #     padded_outputs,
-                #     label_tokens,
-                #     input_tokens,
-                #     turn_row_types,
-                # ) = accelerator.gather_for_metrics(
-                #     (out_padded, batch.labels, batch.input_ids, turn_row_types)
-                # )
-                # # decode the predicted tokens into texts
-                # metric_manager.add_batch(
-                #     input_tokens, label_tokens, padded_outputs, turn_row_types
-                # )
 
                 sample_outputs = generation_handler.get_generation(
                     batch,
@@ -343,6 +309,7 @@ class T5Tod:
             # must call this first
             metric_manager.compute_row_wise_metrics()
             metric_manager.compute_metrics(domain_names)
+            metric_manager.compute_is_retrieval_and_slot_fill_metrics()
             csv_path = self.cfg.out_dir / f"{domain_names}.csv"
             csv_path.parent.mkdir(parents=True, exist_ok=True)
             metric_manager.write_csv(csv_path)

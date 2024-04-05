@@ -11,16 +11,20 @@ class CompleteApiCallMetric(TodMetricsBase):
         self.add_state("results", [], dist_reduce_fx="cat")
 
     def _update(self, method_metrics, params_metrics) -> int:
-        method_metric = method_metrics[0]
-        params_metric = params_metrics[0]
-        res = utils.create_tensor(0)
-        if method_metric == 1:
-            p_res = torch.prod(torch.tensor(params_metric))
-            if p_res == 1.0:
-                res = utils.create_tensor(1)
-                self.results.append(res)
-                return res
+        res = self.compute_row(method_metrics, params_metrics)
+        res = utils.create_tensor(res)
         self.results.append(res)
+        return res
+
+    def compute_row(self, method_metrics, params_metrics)->int:
+        method_metric = method_metrics[0]
+        params_metric_pair = [params_metrics[0][0],params_metrics[0][1]]
+        
+        res = 0
+        if method_metric == 1:
+            p_res = torch.prod(torch.tensor(params_metric_pair))
+            if p_res == 1.0:
+                res = 1
         return res
 
     def _compute(self):

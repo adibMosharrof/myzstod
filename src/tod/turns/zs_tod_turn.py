@@ -47,6 +47,8 @@ class TodTurnScaleGradCsvRow(TodTurnMultiTaskCsvRow):
 @dataclass
 class TodTurnApiCallCsvRow(TodTurnCsvRow):
     turn_row_type: Optional[int] = None
+    is_retrieval: Optional[int] = None
+    is_slot_fill: Optional[int] = None
 
 
 @dataclass

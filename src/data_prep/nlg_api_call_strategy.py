@@ -11,7 +11,7 @@ from sgd_dstc8_data_model.dstc_dataclasses import (
 )
 import copy
 from data_prep.data_prep_strategy import DataPrepStrategy
-from my_enums import ContextType, TurnRowType, ZsTodConstants
+from my_enums import ContextType, DstcSystemActions, TurnRowType, ZsTodConstants
 from tod.nlg.nlg_tod_context import NlgTodContext
 from tod.nlg.nlg_tod_target import NlgTodTarget
 from tod.nlg.nlg_tod_turn import NlgTodTurn
@@ -55,6 +55,8 @@ class NlgApiCallStrategy(DataPrepStrategy):
             )
             if tod_turn.target.response == "":
                 continue
+            tod_turn.is_retrieval = 1 if self.has_request_action(user_turn) else 0
+            tod_turn.is_slot_fill = 1 if self.system_has_request_action(system_turn) else 0
             i, api_turn = self.prepare_nlg_api_call_turn(
                 turn_csv_row_handler,
                 user_turn,
@@ -128,3 +130,23 @@ class NlgApiCallStrategy(DataPrepStrategy):
         self.add_tod_turn(turn_csv_row_handler, tod_turns, new_turn, dialog_id, turn_id)
         turn_id += 1
         return turn_id, new_turn
+
+    def has_request_action(self, user_turn: DstcTurn) -> bool:
+        """
+        Check if the user turn has a REQUEST action.
+        """
+        for frame in user_turn.frames:
+            for action in frame.actions:
+                if action.act == DstcSystemActions.REQUEST.value:
+                    return True
+        return False
+    
+    def system_has_request_action(self, system_turn: DstcTurn) -> bool:
+        """
+        Check if the system turn has a REQUEST action.
+        """
+        for frame in system_turn.frames:
+            for action in frame.actions:
+                if action.act == DstcSystemActions.REQUEST.value:
+                    return True
+        return False

@@ -5,7 +5,7 @@ from dotmap import DotMap
 import torch
 from my_enums import SpecialTokens
 from transformers import AutoModel, AutoTokenizer
-from simple_tod_dataclasses import TodTestDataBatch
+from simple_tod_dataclasses import NlgTestDataBatch, TodTestDataBatch
 from torch import Tensor
 
 
@@ -24,10 +24,11 @@ class GenerationBase(ABC):
         batch_gpu = DotMap()
         batch_gpu.input_ids = batch.input_ids.to(accelerator.device)
         batch_gpu.attention_masks = batch.attention_masks.to(accelerator.device)
-        batch_gpu.contexts_text = batch.contexts_text.to(accelerator.device)
-        batch_gpu.targets_text = batch.targets_text.to(accelerator.device)
+        # batch_gpu.contexts_text = batch.contexts_text.to(accelerator.device)
+        # batch_gpu.targets_text = batch.targets_text.to(accelerator.device)
         batch_gpu.dialog_ids = batch.dialog_ids.to(accelerator.device)
         batch_gpu.turn_ids = batch.turn_ids.to(accelerator.device)
+        # batch_gpu.labels = batch.labels.to(accelerator.device)
         return batch_gpu
 
     @abstractmethod
@@ -44,7 +45,7 @@ class GenerationBase(ABC):
 
     def get_generation(
         self,
-        batch: TodTestDataBatch,
+        batch: Union[TodTestDataBatch,NlgTestDataBatch],
         min_gen_len: int,
         max_len: int,
         context_len: int,
@@ -52,49 +53,53 @@ class GenerationBase(ABC):
         accelerator,
         metric_manager,
     ) -> list[str]:
-        # batch_gpu = self.move_to_gpu(batch, accelerator)
-        batch_gpu = batch
+        batch_gpu = self.move_to_gpu(batch, accelerator)
+        # batch_gpu = batch
         curr_gen = self._get_generation(batch_gpu, min_gen_len, max_len)
         gen_without_context = self.remove_context(curr_gen, context_len, max_len)
         # gen_after_hook = self.hook_before_remove_pad(gen_without_context)
         # gen_after_hook = gen_without_context
-        turn_row_types = getattr(batch, "turn_row_types", None)
         (
             gen_after_hook,
-            target,
-            contexts,
+            # target,
+            # contexts,
             dialog_ids,
             turn_ids,
             input_tokens,
             turn_row_types,
             label_tokens,
+            is_retrievals,
+            is_slot_fills,
         ) = accelerator.gather_for_metrics(
             (
                 gen_without_context,
-                batch_gpu.targets_text,
-                batch_gpu.contexts_text,
+                # batch_gpu.targets_text,
+                # batch_gpu.contexts_text,
                 batch_gpu.dialog_ids,
                 batch_gpu.turn_ids,
                 batch_gpu.input_ids,
-                turn_row_types,
-                batch_gpu.labels,
+                batch.turn_row_types,
+                batch.labels,
+                batch.is_retrievals,
+                batch.is_slot_fills,  
             )
         )
         # gen_without_context = self.remove_context(gen, context_len, max_len)
         # gen_after_hook = self.hook_before_remove_pad(gen_without_context)
         # if accelerator.is_main_process:
         gen_txt = self.remove_pad_decode(gen_after_hook)
-        target_txt = self.remove_pad_decode(target)
+        # target_txt = self.remove_pad_decode(target)
         dialog_ids = self.remove_pad_decode(dialog_ids, skip_special_tokens=True)
         turn_ids = self.remove_pad_decode(turn_ids, skip_special_tokens=True)
-        contexts = self.remove_pad_decode(contexts)
+        # contexts = self.remove_pad_decode(contexts)
 
         metric_manager.add_batch(
-            input_tokens, label_tokens, gen_after_hook, turn_row_types
+            input_tokens, label_tokens, gen_after_hook, turn_row_types,is_retrievals, is_slot_fills
         )
         if should_post_process:
             gen_txt = self.postprocess_generation(gen_txt)
-        return target_txt, gen_txt, contexts, dialog_ids, turn_ids
+        # return target_txt, gen_txt, contexts, dialog_ids, turn_ids
+        return gen_txt, dialog_ids, turn_ids
 
     def hook_before_remove_pad(self, gen: Union[Tensor, list[Tensor]]):
         return gen
