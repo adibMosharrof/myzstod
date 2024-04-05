@@ -6,6 +6,7 @@ from dstc.dstc_domains import DstcDomainBuilder
 from my_enums import Steps
 from prompts.nlg_prompt_manager import NlgPromptFactory
 from prompts.prompt_constants import NlgPromptType
+from simple_tod_dataclasses import NlgTestDataBatch
 from tod.turns.zs_tod_turn import (
     TodTurnCsvRow,
     TodTurnCsvRowFactory,
@@ -133,26 +134,68 @@ class T5DataModule:
         )
 
     def tod_test_collate(self, batch: list[TodTurnApiCallCsvRow]):
-        all_input_tokens = []
-        all_labels = []
-        all_attention_masks = []
-        all_turn_row_type = []
-
+        data = DotMap(
+            {
+                key: []
+                for key in [
+                    "input_tokens",
+                    # "contexts",
+                    "attention_masks",
+                    "dialog_ids",
+                    "turn_ids",
+                    "labels",
+                    "turn_row_types",
+                    "is_retrievals",
+                    "is_slot_fills",
+                ]
+            }
+        )
+        max_lengths = DotMap(
+            dialog_id=10,
+            turn_id=10,
+        )
         target_max_len = self.cfg.max_token_len - self.cfg.test_prompt_max_len
         for item in batch:
             row = self.collate_single_item(item, target_max_len)
-            all_input_tokens.append(row.input_tokens)
-            all_attention_masks.append(row.attention_mask)
-            all_labels.append(row.label)
-            all_turn_row_type.append(torch.tensor(item.turn_row_type))
-        return DotMap(
-            {
-                "input_ids": torch.stack(all_input_tokens),
-                "labels": torch.stack(all_labels),
-                "attention_masks": torch.stack(all_attention_masks),
-                "turn_row_types": torch.stack(all_turn_row_type),
-            }
+            data.input_tokens.append(row.input_tokens)
+            data.attention_masks.append(row.attention_mask)
+            data.labels.append(row.label)
+            data.turn_row_types.append(torch.tensor(item.turn_row_type))
+            data.is_retrievals.append(torch.tensor(item.is_retrieval))
+            data.is_slot_fills.append(torch.tensor(item.is_slot_fill))
+            data.turn_ids.append(self.my_tokenize(item.turn_id, max_lengths.turn_id))
+            data.dialog_ids.append(
+                self.my_tokenize(item.dialog_id, max_lengths.dialog_id)
+            )
+        return NlgTestDataBatch(
+            dialog_ids=torch.stack(data.dialog_ids),
+            turn_ids=torch.stack(data.turn_ids),
+            input_ids=torch.stack(data.input_tokens),
+            attention_masks=torch.stack(data.attention_masks),
+            labels=torch.stack(data.labels),
+            turn_row_types=torch.stack(data.turn_row_types),
+            is_retrievals=torch.stack(data.is_retrievals),
+            is_slot_fills=torch.stack(data.is_slot_fills),
         )
+
+        # return DotMap(
+        #     {
+        #         "input_ids": torch.stack(all_input_tokens),
+        #         "labels": torch.stack(all_labels),
+        #         "attention_masks": torch.stack(all_attention_masks),
+        #         "turn_row_types": torch.stack(all_turn_row_type),
+        #         ""
+        #     }
+        # )
+
+        # return TodTestDataBatch(
+        #     input_ids=torch.stack(data.input_ids),
+        #     attention_masks=torch.stack(data.attention_masks),
+        #     contexts_text=torch.stack(data.contexts),
+        #     targets_text=torch.stack(data.targets),
+        #     dialog_ids=torch.stack(data.dialog_ids),
+        #     turn_ids=torch.stack(data.turn_ids),
+        # )
 
     def get_data_by_split_percent(
         self, data: list[TodTurnCsvRow], split_percent: float

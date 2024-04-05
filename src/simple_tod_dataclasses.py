@@ -42,7 +42,19 @@ class TodTestDataBatch:
     targets_text: list[str]
     dialog_ids: list[int]
     turn_ids: list[int]
-    is_api_call: Optional[list[bool]] = field(default_factory=list)
+    turn_row_types: Optional[list[bool]] = field(default_factory=list)
+
+
+@dataclass
+class NlgTestDataBatch:
+    input_ids: list[list[int]]
+    attention_masks: list[list[int]]
+    labels: list[list[int]]
+    dialog_ids: list[int]
+    turn_ids: list[int]
+    turn_row_types: Optional[list[bool]] = field(default_factory=list)
+    is_retrievals: Optional[list[int]] = field(default_factory=list)
+    is_slot_fills: Optional[list[int]] = field(default_factory=list)
 
 
 @dataclass
