@@ -67,6 +67,8 @@ class NlgApiCallMetricManager:
         turn_row_types,
         is_retrievals,
         is_slot_fills,
+        dialog_ids,
+        turn_ids,
     ):
         input_texts, labels, preds = [
             self.tokenizer.batch_decode(
@@ -77,8 +79,24 @@ class NlgApiCallMetricManager:
 
         response_preds, response_labels, sc_preds, sc_labels = [], [], [], []
 
-        for input_text, pred, label, turn_row_type, is_retrieval, is_slot_fill in zip(
-            input_texts, preds, labels, turn_row_types, is_retrievals, is_slot_fills
+        for (
+            input_text,
+            pred,
+            label,
+            turn_row_type,
+            is_retrieval,
+            is_slot_fill,
+            dialog_id,
+            turn_id,
+        ) in zip(
+            input_texts,
+            preds,
+            labels,
+            turn_row_types,
+            is_retrievals,
+            is_slot_fills,
+            dialog_ids,
+            turn_ids,
         ):
             row = ApiCallInferenceLogData(
                 input_text=input_text,
@@ -87,6 +105,8 @@ class NlgApiCallMetricManager:
                 turn_row_type=int(turn_row_type),
                 is_retrieval=int(is_retrieval),
                 is_slot_fill=int(is_slot_fill),
+                dialog_id=dialog_id,
+                turn_id=turn_id,
             )
             self.data.append(row)
             if turn_row_type == 0:

@@ -163,8 +163,10 @@ class T5DataModule:
             data.turn_row_types.append(torch.tensor(item.turn_row_type))
             data.is_retrievals.append(torch.tensor(item.is_retrieval))
             data.is_slot_fills.append(torch.tensor(item.is_slot_fill))
-            data.dialog_ids.append(self.my_tokenize(item.turn_id, max_lengths.dialog_id))
-            data.turn_ids.append(self.my_tokenize(item.dialog_id, max_lengths.turn_id))
+            data.turn_ids.append(self.my_tokenize(item.turn_id, max_lengths.turn_id))
+            data.dialog_ids.append(
+                self.my_tokenize(item.dialog_id, max_lengths.dialog_id)
+            )
         return NlgTestDataBatch(
             dialog_ids=torch.stack(data.dialog_ids),
             turn_ids=torch.stack(data.turn_ids),

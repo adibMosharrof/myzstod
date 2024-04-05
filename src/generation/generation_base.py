@@ -45,7 +45,7 @@ class GenerationBase(ABC):
 
     def get_generation(
         self,
-        batch: Union[TodTestDataBatch,NlgTestDataBatch],
+        batch: Union[TodTestDataBatch, NlgTestDataBatch],
         min_gen_len: int,
         max_len: int,
         context_len: int,
@@ -81,7 +81,7 @@ class GenerationBase(ABC):
                 batch.turn_row_types,
                 batch.labels,
                 batch.is_retrievals,
-                batch.is_slot_fills,  
+                batch.is_slot_fills,
             )
         )
         # gen_without_context = self.remove_context(gen, context_len, max_len)
@@ -94,7 +94,14 @@ class GenerationBase(ABC):
         # contexts = self.remove_pad_decode(contexts)
 
         metric_manager.add_batch(
-            input_tokens, label_tokens, gen_after_hook, turn_row_types,is_retrievals, is_slot_fills
+            input_tokens,
+            label_tokens,
+            gen_after_hook,
+            turn_row_types,
+            is_retrievals,
+            is_slot_fills,
+            dialog_ids,
+            turn_ids,
         )
         if should_post_process:
             gen_txt = self.postprocess_generation(gen_txt)

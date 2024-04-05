@@ -36,8 +36,10 @@ class ApiCallInferenceLogData(InferenceLogData):
     api_call_invoke: Optional[float] = None
     is_retrieval: Optional[int] = 0
     is_slot_fill: Optional[int] = 0
+    dialog_id: Optional[int] = None
+    turn_id: Optional[int] = None
 
-    def update(self, updated_data:"ApiCallInferenceLogData"):
+    def update(self, updated_data: "ApiCallInferenceLogData"):
         self.turn_row_type = updated_data.turn_row_type
         self.complete_api_call = updated_data.complete_api_call
         self.api_call_method = updated_data.api_call_method
@@ -48,7 +50,7 @@ class ApiCallInferenceLogData(InferenceLogData):
         self.api_call_invoke = updated_data.api_call_invoke
         self.is_retrieval = updated_data.is_retrieval
         self.is_slot_fill = updated_data.is_slot_fill
-        
+
 
 @dataclass
 class KetodInferenceLogData(ApiCallInferenceLogData):
