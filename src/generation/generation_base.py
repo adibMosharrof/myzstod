@@ -28,7 +28,11 @@ class GenerationBase(ABC):
         # batch_gpu.targets_text = batch.targets_text.to(accelerator.device)
         batch_gpu.dialog_ids = batch.dialog_ids.to(accelerator.device)
         batch_gpu.turn_ids = batch.turn_ids.to(accelerator.device)
-        # batch_gpu.labels = batch.labels.to(accelerator.device)
+        batch_gpu.labels = batch.labels.to(accelerator.device)
+        batch_gpu.turn_row_types = batch.turn_row_types.to(accelerator.device)
+        batch_gpu.is_retrievals = batch.is_retrievals.to(accelerator.device)
+        batch_gpu.is_slot_fills = batch.is_slot_fills.to(accelerator.device)
+
         return batch_gpu
 
     @abstractmethod
@@ -78,10 +82,10 @@ class GenerationBase(ABC):
                 batch_gpu.dialog_ids,
                 batch_gpu.turn_ids,
                 batch_gpu.input_ids,
-                batch.turn_row_types,
-                batch.labels,
-                batch.is_retrievals,
-                batch.is_slot_fills,
+                batch_gpu.turn_row_types,
+                batch_gpu.labels,
+                batch_gpu.is_retrievals,
+                batch_gpu.is_slot_fills,
             )
         )
         # gen_without_context = self.remove_context(gen, context_len, max_len)
