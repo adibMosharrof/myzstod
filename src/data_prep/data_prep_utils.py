@@ -28,6 +28,11 @@ def extract_from_target(target: str, start_tokens: list[str], end_tokens: list[s
 
 
 def is_dialogue_in_domain(dialogue_services: list[str], domains: list[str]) -> bool:
+    if len(domains) == 1:
+        d = domains[0]
+        if "," in d:
+            ds_domains = ",".join(dialogue_services)
+            return d == ds_domains
     return all(ds in domains for ds in dialogue_services)
 
 
