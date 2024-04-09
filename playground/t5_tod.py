@@ -69,7 +69,7 @@ class T5Tod:
         self.cfg.raw_data_root = self.cfg.project_root / self.cfg.raw_data_root
         log_file = self.cfg.project_root / self.cfg.out_dir / "t5_tod.log"
         logging.basicConfig(
-            filename=str(log_file), level=logging.INFO, encoding="utf-8"
+            filename=str(log_file), level=logging.INFO, encoding="utf-8", format='%(message)s'
         )
         self.logger = logging
         self.cfg.out_dir = Path("results")
@@ -356,8 +356,8 @@ def old_main():
     tt.run()
 
 
-@hydra.main(config_path="../config/t5_trainer/", config_name="t5_trainer")
-# @hydra.main(config_path="../config/t5_trainer/", config_name="t5_inference")
+# @hydra.main(config_path="../config/t5_trainer/", config_name="t5_trainer")
+@hydra.main(config_path="../config/t5_trainer/", config_name="t5_inference")
 def hydra_start(cfg: DictConfig) -> None:
     t5tod = T5Tod(cfg)
     t5tod.run()
