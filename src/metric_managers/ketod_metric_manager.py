@@ -16,7 +16,7 @@ from metrics.nlg_gleu_metric import NlgGleuMetric
 from metrics.api_call_method_metric import ApiCallMethodMetric
 from torchmetrics import MetricCollection
 from accelerate import Accelerator
-
+import utils
 from my_enums import TurnRowType
 
 accelerator = Accelerator()
@@ -61,8 +61,8 @@ class KeTodMetricManager:
         )
         for v in all_metrics:
             res = str(v)
-            self.logger.info(res)
-            print(res)
+            utils.log(self.logger,res)
+            # print(res)
 
     def add_batch(self, input_tokens, label_tokens, pred_tokens, turn_row_type):
         input_texts, labels, preds = [

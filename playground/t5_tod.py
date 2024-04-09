@@ -68,10 +68,16 @@ class T5Tod:
         self.cfg.project_root = Path(cfg.project_root)
         self.cfg.raw_data_root = self.cfg.project_root / self.cfg.raw_data_root
         log_file = self.cfg.project_root / self.cfg.out_dir / "t5_tod.log"
-        logging.basicConfig(
-            filename=str(log_file), level=logging.INFO, encoding="utf-8", format='%(message)s'
-        )
-        self.logger = logging
+        # logging.basicConfig(
+        #     filename=str(log_file), level=logging.INFO, encoding="utf-8", format='%(message)s'
+        # )
+        formatter = logging.Formatter(fmt='%(message)s')
+        root_logger = logging.getLogger()  # no name
+        for handler in root_logger.handlers:
+            if isinstance(handler, logging.StreamHandler):
+                handler.setFormatter(formatter)
+        self.logger = root_logger
+        # self.logger = logging
         self.cfg.out_dir = Path("results")
 
     def __old_init__(self, cfg, **kwargs):
@@ -283,7 +289,8 @@ class T5Tod:
             if not len(test_dataset):
                 print(f"No data for {domain_names}")
                 continue
-            print(f"testing {domain_names}")
+            # print(f"testing {domain_names}")
+            utils.log(self.logger,f"testing {domain_names}")
             test_dl = DataLoader(
                 test_dataset,
                 batch_size=self.cfg.test_batch_size,
