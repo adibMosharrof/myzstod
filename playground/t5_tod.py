@@ -37,6 +37,7 @@ from transformers import (
     Seq2SeqTrainer,
     Seq2SeqTrainingArguments,
     AutoModelForCausalLM,
+        EarlyStoppingCallback,
 )
 from datetime import datetime
 import utils
@@ -227,6 +228,10 @@ class T5Tod:
                 train_dataset=train_dataset,
                 eval_dataset=val_dataset,
                 data_collator=self.dm.tod_train_collate,
+                callbacks=[
+                EarlyStoppingCallback(
+                    early_stopping_patience=self.cfg.early_stopping_patience
+                ),],
             )
             # model.gradient_checkpointing_disable()
             # with accelerator.no_sync(model):
