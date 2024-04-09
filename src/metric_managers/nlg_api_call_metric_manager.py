@@ -17,7 +17,7 @@ from torchmetrics import MetricCollection
 from accelerate import Accelerator
 
 from my_enums import TurnRowType
-
+import utils
 accelerator = Accelerator()
 
 
@@ -56,8 +56,9 @@ class NlgApiCallMetricManager:
         )
         for v in all_metrics:
             res = str(v)
-            self.logger.info(res)
-            print(res)
+            utils.log(self.logger, res)
+            # self.logger.info(res)
+            # print(res)
 
     def add_batch(
         self,
@@ -170,7 +171,7 @@ class NlgApiCallMetricManager:
         s_bleu = slot_fills.response_bleu.mean()
         s_gleu = slot_fills.response_gleu.mean()
 
-        self.logger.info(f"Retrieval BLEU: {r_bleu:.4f}")
-        self.logger.info(f"Retrieval GLEU: {r_gleu:.4f}")
-        self.logger.info(f"Slot Fill BLEU: {s_bleu:.4f}")
-        self.logger.info(f"Slot Fill GLEU: {s_gleu:.4f}")
+        utils.log(self.logger, f"Retrieval BLEU: {r_bleu:.4f}")
+        utils.log(self.logger,f"Retrieval GLEU: {r_gleu:.4f}")
+        utils.log(self.logger,f"Slot Fill BLEU: {s_bleu:.4f}")
+        utils.log(self.logger,f"Slot Fill GLEU: {s_gleu:.4f}")
