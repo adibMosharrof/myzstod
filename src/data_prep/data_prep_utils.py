@@ -31,7 +31,7 @@ def is_dialogue_in_domain(dialogue_services: list[str], domains: list[str]) -> b
     if len(domains) == 1:
         d = domains[0]
         if "," in d:
-            ds_domains = ",".join(dialogue_services)
+            ds_domains = ",".join(sorted(dialogue_services))
             return d == ds_domains
     return all(ds in domains for ds in dialogue_services)
 
