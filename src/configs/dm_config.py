@@ -64,7 +64,7 @@ class DataModuleConfig:
         **kwargs,
     ):
         self.kwargs = kwargs
-        self.accelerator = accelerator or Accelerator()
+        self.accelerator = Accelerator()
         self.num_workers = num_workers
         self.model_name = model_name
         self.preprocessing_model_name = preprocessing_model_name
@@ -130,7 +130,6 @@ class DataModuleConfig:
         trainer_config: "TrainerConfig",
     ) -> "DataModuleConfig":
         return self(
-            accelerator=trainer_config.accelerator,
             num_workers=trainer_config.num_workers,
             project_root=trainer_config.project_root,
             raw_data_root=trainer_config.raw_data_root,
@@ -178,7 +177,6 @@ class DataModuleConfig:
         train_step_data: "StepData" = None,
     ) -> "DataModuleConfig":
         return self(
-            accelerator=inf_config.accelerator,
             num_workers=inf_config.num_workers,
             project_root=inf_config.project_root,
             raw_data_root=inf_config.raw_data_root,

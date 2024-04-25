@@ -11,7 +11,7 @@ from tqdm import tqdm
 
 sys.path.insert(0, os.path.abspath("./src"))
 
-from dstc.dstc_dataclasses import DstcDialog, DstcSchema
+from sgd_dstc8_data_model.dstc_dataclasses import DstcDialog, DstcSchema
 from my_enums import Steps
 import utils
 
