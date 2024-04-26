@@ -16,10 +16,10 @@ class CompleteApiCallMetric(TodMetricsBase):
         self.results.append(res)
         return res
 
-    def compute_row(self, method_metrics, params_metrics)->int:
+    def compute_row(self, method_metrics, params_metrics) -> int:
         method_metric = method_metrics[0]
-        params_metric_pair = [params_metrics[0][0],params_metrics[0][1]]
-        
+        params_metric_pair = [params_metrics[0][0], params_metrics[0][1]]
+
         res = 0
         if method_metric == 1:
             p_res = torch.prod(torch.tensor(params_metric_pair))

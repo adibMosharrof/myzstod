@@ -1,12 +1,13 @@
 from configs.dataprep_config import DataPrepConfig
 from data_prep.data_prep_strategy import DataPrepStrategy
 from data_prep.nlg_api_call_strategy import NlgApiCallStrategy
-from my_enums import TurnRowType
+from my_enums import DstcSystemActions, TurnRowType
 from tod.nlg.bitod_api_call import BitodApiCall, BitodApiCallParams
 from tod.nlg.bitod_context import BiTodContext
 from tod.nlg.ke_tod_turn import KeTodTurn
 from tod.nlg.nlg_tod_context import NlgTodContext
 from tod.nlg.nlg_tod_turn import NlgTodTurn
+from tod.nlg.ke_tod_context import KeTodContext
 from sgd_dstc8_data_model.dstc_dataclasses import (
     DstcDialog,
     DstcFrame,
@@ -31,7 +32,7 @@ import json
 class BitodStrategy(DataPrepStrategy):
     def __init__(self, cfg: DataPrepConfig):
         super().__init__(cfg)
-        self.tod_context_cls = NlgTodContext
+        self.tod_context_cls = BiTodContext
         self.tod_turn_cls = KeTodTurn
 
     def get_services(self, dialog: DsDialog) -> list[str]:
@@ -62,29 +63,56 @@ class BitodStrategy(DataPrepStrategy):
         turn_csv_row_handler: TurnCsvRowBase,
     ) -> Optional[list[NlgTodTurn]]:
         tod_turns = []
+        prev_tod_turn = None
         dialog_services = self.get_services(ds_dialog)
+        ds_dialog.services = dialog_services
         if not data_prep_utils.is_dialogue_in_domain(dialog_services, self.cfg.domains):
             return None
         i = 1
         for ds_turn in ds_dialog.log:
             tod_turn = self.prepare_turn(
                 ds_turn,
+                prev_tod_turn,
                 schemas,
                 dialog_services,
                 i,
                 ds_dialog.dialog_index,
             )
-            i = self.prepare_api_call_turn(turn_csv_row_handler, tod_turn, tod_turns, i)
+            tod_turn.is_retrieval = 1 if self.has_request_action(ds_turn) else 0
+            tod_turn.is_slot_fill = 1 if self.system_has_request_action(ds_turn) else 0
+            i, api_turn = self.prepare_api_call_turn(
+                turn_csv_row_handler,
+                ds_turn,
+                tod_turn,
+                prev_tod_turn,
+                tod_turns,
+                i,
+                schemas,
+                ds_dialog,
+            )
             self.add_tod_turn(
-                turn_csv_row_handler, tod_turns, tod_turn, ds_dialog.dialog_index, i
+                turn_csv_row_handler,
+                tod_turns,
+                tod_turn,
+                ds_dialog.dialog_index,
+                i,
             )
             i += 1
+            prev_tod_turn = tod_turn
         return tod_turns
 
-    def prepare_turn(self, turn: Log, schemas, services, turn_id: int, dialog_id: int):
+    def prepare_turn(
+        self,
+        turn: Log,
+        prev_tod_turn: KeTodTurn,
+        schemas,
+        services,
+        turn_id: int,
+        dialog_id: int,
+    ):
         turn_schemas = [schemas[s] for s in services]
         turn_schema_str = self.get_turn_schema_str(turn_schemas)
-        context = self.prepare_context(turn)
+        context = self.prepare_context(turn, prev_tod_turn)
         target = self.prepare_target(turn, schemas)
         return self.tod_turn_cls(
             dialog_id=dialog_id,
@@ -97,15 +125,35 @@ class BitodStrategy(DataPrepStrategy):
             domains_original=services,
         )
 
-    def prepare_context(self, turn: Log) -> BiTodContext:
-        context = BiTodContext(
-            dialog_history=turn.dialog_history,
-            current_user_utterance=turn.user_utterance,
-            turn_row_type=TurnRowType.RESPONSE.value,
-        )
+    def prepare_context(self, turn: Log, prev_tod_turn: KeTodTurn) -> BiTodContext:
+        # context = BiTodContext(
+        #     dialog_history=turn.dialog_history,
+        #     current_user_utterance=turn.user_utterance,
+        #     turn_row_type=TurnRowType.RESPONSE.value,
+        # )
+        # if self.cfg.should_add_service_results:
+        #     if turn.original_system_side_information.PrimaryItem:
+        #         context.service_results.append(
+        #             turn.original_system_side_information.PrimaryItem
+        #         )
+        #         context.api_call = self.get_api_call_from_turn(turn)
+        # return context
+        if not prev_tod_turn:
+            context = self.tod_context_cls(max_length=self.cfg.num_turns)
+            context.should_add_sys_actions = self.cfg.should_add_sys_actions
+        else:
+            context = copy.deepcopy(prev_tod_turn.context)
+            context.system_utterances.append(
+                prev_tod_turn.context.next_system_utterance
+            )
+            context.user_utterances.append(context.current_user_utterance)
+            context.prev_tod_turn = prev_tod_turn
+        context.current_user_utterance = turn.user_utterance
+        context.next_system_utterance = turn.system_response
+        context.turn_row_type = TurnRowType.RESPONSE.value
         if self.cfg.should_add_service_results:
             if turn.original_system_side_information.PrimaryItem:
-                context.service_results.append(
+                context.service_results = (
                     turn.original_system_side_information.PrimaryItem
                 )
                 context.api_call = self.get_api_call_from_turn(turn)
@@ -117,24 +165,62 @@ class BitodStrategy(DataPrepStrategy):
     def prepare_api_call_turn(
         self,
         turn_csv_row_handler: TurnCsvRowBase,
+        ds_turn: Log,
         tod_turn: KeTodTurn,
+        prev_tod_turn: KeTodTurn,
         tod_turns: list[KeTodTurn],
         turn_id: int,
+        schemas: dict[str, DstcSchema],
+        ds_dialog: DsDialog,
     ) -> int:
         if not tod_turn.context.api_call:
-            return turn_id
-        new_turn = copy.deepcopy(tod_turn)
-        new_turn.turn_row_type = TurnRowType.API_CALL.value
-        new_turn.context.turn_row_type = TurnRowType.API_CALL.value
-        new_turn.target.response = new_turn.context.api_call
-        new_turn.turn_id = turn_id
+            return turn_id, None
+        # new_turn = copy.deepcopy(tod_turn)
+        # new_turn.turn_row_type = TurnRowType.API_CALL.value
+        # new_turn.context.turn_row_type = TurnRowType.API_CALL.value
+        # new_turn.target.response = str(new_turn.context.api_call)
+        # new_turn.turn_id = turn_id
+        # new_turn.context.api_call = None
+        # new_turn.context.service_results = None
+        # self.add_tod_turn(
+        #     turn_csv_row_handler, tod_turns, new_turn, new_turn.dialog_id, turn_id
+        # )
+        # turn_id += 1
+        # return turn_id, new_turn
+        api_call_response = tod_turn.context.get_api_call()
+        copy_ds_turn = copy.deepcopy(ds_turn)
+        copy_ds_turn.system_response = api_call_response
+        api_call_with_search_results = "\n".join(
+            [
+                api_call_response,
+                "Search Results",
+                tod_turn.context.get_service_results(
+                    self.cfg.service_results_num_items
+                ),
+                "End Search Results",
+            ]
+        )
+        tod_turn.context.user_utterances.append(ds_turn.user_utterance)
+        tod_turn.context.system_utterances.append(api_call_with_search_results)
+        tod_turn.context.current_user_utterance = None
+
+        new_turn = self.prepare_turn(
+            copy_ds_turn,
+            prev_tod_turn,
+            schemas,
+            ds_dialog.services,
+            turn_id,
+            ds_dialog.dialog_index,
+        )
         new_turn.context.api_call = None
         new_turn.context.service_results = None
+        new_turn.turn_row_type = TurnRowType.API_CALL.value
+
         self.add_tod_turn(
             turn_csv_row_handler, tod_turns, new_turn, new_turn.dialog_id, turn_id
         )
         turn_id += 1
-        return turn_id
+        return turn_id, new_turn
 
     def get_api_call_from_turn(self, turn: Log) -> str:
         if not turn.original_system_side_information.PrimaryItem:
@@ -152,4 +238,23 @@ class BitodStrategy(DataPrepStrategy):
                 )
             )
         api_call = BitodApiCall(method=method, parameters=params)
-        return str(api_call)
+        return api_call
+        # return str(api_call)
+
+    def has_request_action(self, ds_turn: Log) -> bool:
+        """
+        Check if the user turn has a REQUEST action.
+        """
+        for action in ds_turn.original_user_side_information.Actions:
+            if action.act == DstcSystemActions.REQUEST.value.lower():
+                return True
+        return False
+
+    def system_has_request_action(self, ds_turn: Log) -> bool:
+        """
+        Check if the system turn has a REQUEST action.
+        """
+        for action in ds_turn.original_system_side_information.Actions:
+            if action.act == DstcSystemActions.REQUEST.value.lower():
+                return True
+        return False

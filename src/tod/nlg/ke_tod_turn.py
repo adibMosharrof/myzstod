@@ -18,3 +18,5 @@ class KeTodTurn:
     dialog_id: Optional[str] = None
     turn_id: Optional[int] = None
     turn_row_type: Optional[TurnRowType] = TurnRowType.RESPONSE.value
+    is_retrieval: Optional[int] = 0
+    is_slot_fill: Optional[int] = 0

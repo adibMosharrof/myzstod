@@ -18,6 +18,7 @@ from accelerate import Accelerator
 
 from my_enums import TurnRowType
 import utils
+
 accelerator = Accelerator()
 
 
@@ -70,6 +71,7 @@ class NlgApiCallMetricManager:
         is_slot_fills,
         dialog_ids,
         turn_ids,
+        domains,
     ):
         input_texts, labels, preds = [
             self.tokenizer.batch_decode(
@@ -89,6 +91,7 @@ class NlgApiCallMetricManager:
             is_slot_fill,
             dialog_id,
             turn_id,
+            domain,
         ) in zip(
             input_texts,
             preds,
@@ -98,6 +101,7 @@ class NlgApiCallMetricManager:
             is_slot_fills,
             dialog_ids,
             turn_ids,
+            domains,
         ):
             row = ApiCallInferenceLogData(
                 input_text=input_text,
@@ -108,6 +112,7 @@ class NlgApiCallMetricManager:
                 is_slot_fill=int(is_slot_fill),
                 dialog_id=dialog_id,
                 turn_id=turn_id,
+                domains=domain,
             )
             self.data.append(row)
             if turn_row_type == 0:
@@ -146,6 +151,8 @@ class NlgApiCallMetricManager:
                     if k == "api_call_params":
                         row_dict.api_call_param_names = res[0]
                         row_dict.api_call_param_values = res[1]
+                        if len(res) == 3:
+                            row_dict.api_call_param_relation = res[2]
                     else:
                         row_dict[k] = res
 
@@ -172,6 +179,6 @@ class NlgApiCallMetricManager:
         s_gleu = slot_fills.response_gleu.mean()
 
         utils.log(self.logger, f"Retrieval BLEU: {r_bleu:.4f}")
-        utils.log(self.logger,f"Retrieval GLEU: {r_gleu:.4f}")
-        utils.log(self.logger,f"Slot Fill BLEU: {s_bleu:.4f}")
-        utils.log(self.logger,f"Slot Fill GLEU: {s_gleu:.4f}")
+        utils.log(self.logger, f"Retrieval GLEU: {r_gleu:.4f}")
+        utils.log(self.logger, f"Slot Fill BLEU: {s_bleu:.4f}")
+        utils.log(self.logger, f"Slot Fill GLEU: {s_gleu:.4f}")

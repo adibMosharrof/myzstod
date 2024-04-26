@@ -11,16 +11,18 @@ class BitodCompleteApiCallMetric(TodMetricsBase):
         self.add_state("results", [], dist_reduce_fx="cat")
 
     def _update(self, method_metrics, params_metrics) -> int:
+        res = self.compute_row(method_metrics, params_metrics)
+        self.results.append(utils.create_tensor(res))
+        return res
+
+    def compute_row(self, method_metrics, params_metrics) -> int:
         method_metric = method_metrics[0]
         params_metric = params_metrics[0]
-        res = utils.create_tensor(0)
+        res = 0
         if method_metric == 1:
             p_res = torch.prod(torch.tensor(params_metric))
             if p_res == 1:
-                res = utils.create_tensor(1)
-                self.results.append(res)
-                return res
-        self.results.append(res)
+                res = 1
         return res
 
     def _compute(self):

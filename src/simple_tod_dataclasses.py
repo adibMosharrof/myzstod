@@ -52,6 +52,7 @@ class NlgTestDataBatch:
     labels: list[list[int]]
     dialog_ids: list[int]
     turn_ids: list[int]
+    domain_ids: list[list[int]]
     turn_row_types: Optional[list[bool]] = field(default_factory=list)
     is_retrievals: Optional[list[int]] = field(default_factory=list)
     is_slot_fills: Optional[list[int]] = field(default_factory=list)

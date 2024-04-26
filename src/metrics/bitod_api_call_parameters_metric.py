@@ -61,8 +61,8 @@ class BitodApiCallParametersMetric(TodMetricsBase):
         )
         return (
             torch.round(param_acc, decimals=4),
-            torch.round(relation_acc, decimals=4),
             torch.round(value_acc, decimals=4),
+            torch.round(relation_acc, decimals=4),
         )
 
     def compute_row(self, pred, ref):
@@ -91,9 +91,9 @@ class BitodApiCallParametersMetric(TodMetricsBase):
         relation_acc = torch.mean(utils.create_tensor(relation_accs), dtype=torch.float)
         value_acc = torch.mean(utils.create_tensor(value_accs), dtype=torch.float)
         return (
-            torch.round(param_acc, decimals=4),
-            torch.round(relation_acc, decimals=4),
-            torch.round(value_acc, decimals=4),
+            torch.round(param_acc, decimals=4).item(),
+            torch.round(value_acc, decimals=4).item(),
+            torch.round(relation_acc, decimals=4).item(),
         )
 
     def __str__(self) -> str:

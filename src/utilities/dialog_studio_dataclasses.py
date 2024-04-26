@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import List, Dict, Union
+from typing import List, Dict, Optional, Union
 import json
 
 from dotmap import DotMap
@@ -49,6 +49,7 @@ class DsDialog:
     external_knowledge: str
     intent_knowledge: str
     prompt: List[str]
+    services: Optional[list[str]] = None
 
     def __init__(self, item: dict):
         self.original_dialog_id = item["original dialog id"]

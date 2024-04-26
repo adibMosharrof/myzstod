@@ -32,6 +32,7 @@ class GenerationBase(ABC):
         batch_gpu.turn_row_types = batch.turn_row_types.to(accelerator.device)
         batch_gpu.is_retrievals = batch.is_retrievals.to(accelerator.device)
         batch_gpu.is_slot_fills = batch.is_slot_fills.to(accelerator.device)
+        batch_gpu.domain_ids = batch.domain_ids.to(accelerator.device)
 
         return batch_gpu
 
@@ -69,6 +70,7 @@ class GenerationBase(ABC):
             # contexts,
             dialog_ids,
             turn_ids,
+            domain_ids,
             input_tokens,
             turn_row_types,
             label_tokens,
@@ -81,6 +83,7 @@ class GenerationBase(ABC):
                 # batch_gpu.contexts_text,
                 batch_gpu.dialog_ids,
                 batch_gpu.turn_ids,
+                batch_gpu.domain_ids,
                 batch_gpu.input_ids,
                 batch_gpu.turn_row_types,
                 batch_gpu.labels,
@@ -93,9 +96,9 @@ class GenerationBase(ABC):
         # if accelerator.is_main_process:
         gen_txt = self.remove_pad_decode(gen_after_hook)
         # target_txt = self.remove_pad_decode(target)
-        dialog_ids = self.remove_pad_decode(dialog_ids, skip_special_tokens=True)
-        turn_ids = self.remove_pad_decode(turn_ids, skip_special_tokens=True)
-        # contexts = self.remove_pad_decode(contexts)
+        # dialog_ids = self.remove_pad_decode(dialog_ids, skip_special_tokens=True)
+        # turn_ids = self.remove_pad_decode(turn_ids, skip_special_tokens=True)
+        domains = self.remove_pad_decode(domain_ids, skip_special_tokens=True)
 
         metric_manager.add_batch(
             input_tokens,
@@ -106,6 +109,7 @@ class GenerationBase(ABC):
             is_slot_fills,
             dialog_ids,
             turn_ids,
+            domains,
         )
         if should_post_process:
             gen_txt = self.postprocess_generation(gen_txt)

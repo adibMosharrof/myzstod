@@ -37,6 +37,15 @@ class T5DataModule:
         tokens = self.tokenizer.encode(text, return_tensors="pt", max_length=max_len)
         return tokens.to(dtype=torch.int32)[0]
 
+    def my_tokenizer_pad(self, text: str, max_len: int = None):
+        return self.tokenizer(
+            text,
+            return_tensors="pt",
+            padding="max_length",
+            max_length=max_len,
+            truncation=True,
+        )
+
     def trim_dialog_history(
         self,
         item: TodTurnCsvRow,
@@ -147,12 +156,12 @@ class T5DataModule:
                     "turn_row_types",
                     "is_retrievals",
                     "is_slot_fills",
+                    "domain_ids",
                 ]
             }
         )
         max_lengths = DotMap(
-            dialog_id=10,
-            turn_id=10,
+            domains=100,
         )
         target_max_len = self.cfg.max_token_len - self.cfg.test_prompt_max_len
         for item in batch:
@@ -163,10 +172,12 @@ class T5DataModule:
             data.turn_row_types.append(torch.tensor(item.turn_row_type))
             data.is_retrievals.append(torch.tensor(item.is_retrieval))
             data.is_slot_fills.append(torch.tensor(item.is_slot_fill))
-            data.turn_ids.append(self.my_tokenize(item.turn_id, max_lengths.turn_id))
-            data.dialog_ids.append(
-                self.my_tokenize(item.dialog_id, max_lengths.dialog_id)
+            data.turn_ids.append(torch.tensor(int(item.turn_id)))
+            data.dialog_ids.append(torch.tensor(int(item.dialog_id)))
+            domain_tokens = self.my_tokenizer_pad(
+                item.domains_original, max_lengths.domains
             )
+            data.domain_ids.append(domain_tokens["input_ids"][0])
         return NlgTestDataBatch(
             dialog_ids=torch.stack(data.dialog_ids),
             turn_ids=torch.stack(data.turn_ids),
@@ -176,6 +187,7 @@ class T5DataModule:
             turn_row_types=torch.stack(data.turn_row_types),
             is_retrievals=torch.stack(data.is_retrievals),
             is_slot_fills=torch.stack(data.is_slot_fills),
+            domain_ids=torch.stack(data.domain_ids),
         )
 
         # return DotMap(
