@@ -37,7 +37,7 @@ from transformers import (
     Seq2SeqTrainer,
     Seq2SeqTrainingArguments,
     AutoModelForCausalLM,
-        EarlyStoppingCallback,
+    EarlyStoppingCallback,
 )
 from datetime import datetime
 import utils
@@ -62,6 +62,8 @@ from sgd_dstc8_data_model.dstc_dataclasses import get_schemas
 from metric_managers.bitod_metric_manager import BitodMetricManager
 import wandb
 
+from logger.results_logger import ResultsLogger
+
 
 class T5Tod:
     def __init__(self, cfg):
@@ -72,7 +74,7 @@ class T5Tod:
         # logging.basicConfig(
         #     filename=str(log_file), level=logging.INFO, encoding="utf-8", format='%(message)s'
         # )
-        formatter = logging.Formatter(fmt='%(message)s')
+        formatter = logging.Formatter(fmt="%(message)s")
         root_logger = logging.getLogger()  # no name
         for handler in root_logger.handlers:
             if isinstance(handler, logging.StreamHandler):
@@ -119,7 +121,12 @@ class T5Tod:
         out = torch.hstack([gen, pad])
         return out
 
-    def get_model(self, model_name: str, tokenizer: AutoTokenizer):
+    def get_lora_task_type(self, model_class):
+        if model_class == T5ForConditionalGeneration:
+            return TaskType.SEQ_2_SEQ_LM
+        return TaskType.CAUSAL_LM
+
+    def get_model(self, model_name: str, model_class: any, tokenizer: AutoTokenizer):
         model_path = model_name
         if self.cfg.model_path:
             model_path = self.cfg.project_root / self.cfg.model_path
@@ -127,7 +134,8 @@ class T5Tod:
             model = T5ForConditionalGeneration.from_pretrained(model_path).cuda()
             return model
         dtype = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
-        model = AutoModelForSeq2SeqLM.from_pretrained(
+        # model = AutoModelForSeq2SeqLM.from_pretrained(
+        model = model_class.from_pretrained(
             # model_path, load_in_8bit=True, torch_dtype=torch.bfloat16
             model_path,
             load_in_8bit=False,
@@ -136,15 +144,7 @@ class T5Tod:
         )
         model.resize_token_embeddings(len(tokenizer))
         model = prepare_model_for_kbit_training(model)
-        lora_config = LoraConfig(
-            r=16,
-            lora_alpha=32,
-            target_modules=["q", "v"],
-            lora_dropout=0.05,
-            bias="none",
-            task_type=TaskType.SEQ_2_SEQ_LM,
-            modules_to_save=utils.get_modules_to_save(model_name),
-        )
+        lora_config = utils.get_lora_config(model_name)
         model = get_peft_model(model, lora_config)
         return model
 
@@ -173,14 +173,14 @@ class T5Tod:
         model = None
         deepspeed_path = None
         # tokenizer.add_tokens(["<|user|>", "<|system|>"])
+        model_cls = self.get_model_class(self.cfg.model_name)
         if self.cfg.model_path:
             model_out_dir = str(self.cfg.project_root / self.cfg.model_path)
         elif self.cfg.quantization:
-            model = self.get_model(self.cfg.model_name, tokenizer)
+            model = self.get_model(self.cfg.model_name, model_cls, tokenizer)
             # deepspeed_path = self.cfg.project_root / "config/ds_zero1.json"
         else:
             # model = T5ForConditionalGeneration.from_pretrained(
-            model_cls = self.get_model_class(self.cfg.model_name)
             model = model_cls.from_pretrained(self.cfg.model_name).cuda()
             model.resize_token_embeddings(len(tokenizer))
         steps = Steps.list()
@@ -235,9 +235,10 @@ class T5Tod:
                 eval_dataset=val_dataset,
                 data_collator=self.dm.tod_train_collate,
                 callbacks=[
-                EarlyStoppingCallback(
-                    early_stopping_patience=self.cfg.early_stopping_patience
-                ),],
+                    EarlyStoppingCallback(
+                        early_stopping_patience=self.cfg.early_stopping_patience
+                    ),
+                ],
             )
             # model.gradient_checkpointing_disable()
             # with accelerator.no_sync(model):
@@ -261,7 +262,7 @@ class T5Tod:
         if self.cfg.quantization:
             config = PeftConfig.from_pretrained(model_out_dir)
             device_map = {"": accelerator.device}
-            model = AutoModelForSeq2SeqLM.from_pretrained(
+            model = model_cls.from_pretrained(
                 config.base_model_name_or_path,
                 load_in_8bit=False,
                 # load_in_8bit=True,
@@ -295,7 +296,7 @@ class T5Tod:
                 print(f"No data for {domain_names}")
                 continue
             # print(f"testing {domain_names}")
-            utils.log(self.logger,f"testing {domain_names}")
+            utils.log(self.logger, f"testing {domain_names}")
             test_dl = DataLoader(
                 test_dataset,
                 batch_size=self.cfg.test_batch_size,
@@ -325,6 +326,17 @@ class T5Tod:
             csv_path = self.cfg.out_dir / f"{domain_names}.csv"
             csv_path.parent.mkdir(parents=True, exist_ok=True)
             metric_manager.write_csv(csv_path)
+        rl = ResultsLogger(
+            DotMap(
+                project_root=self.cfg.project_root,
+                results_path=os.getcwd() / self.cfg.out_dir / "all.csv",
+                chatgpt_results_path="data_exploration/chatgpt/chat_gpt_all.csv",
+            )
+        )
+        tables = rl.run()
+        for table in tables:
+            self.logger.info(table)
+            self.logger.info("\n\n")
 
 
 # if __name__ == "__main__":

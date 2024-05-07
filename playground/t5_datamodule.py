@@ -19,6 +19,8 @@ from configs.dm_config import DataModuleConfig
 
 
 class T5DataModule:
+    _huggingface_ignore_label_id = -100
+
     def __init__(self, cfg, tokenizer, schemas):
         self.cfg = cfg
         self.tokenizer = tokenizer
@@ -81,8 +83,72 @@ class T5DataModule:
             other_domain_schema.get_nlg_repr(),
         )
 
+    def get_t5_item(
+        self,
+        context_tokens,
+        target_tokens,
+        pad_tokens,
+        target_max_len,
+    ) -> TodTrainRowCollator:
+        input_tokens = torch.cat(
+            [
+                pad_tokens,
+                context_tokens,
+            ]
+        )
+        attention_mask = input_tokens.ne(self.tokenizer.pad_token_id).to(torch.int32)
+
+        target_unused_len = target_max_len - len(target_tokens)
+        if target_unused_len < 0:
+            raise Exception("Target is too long")
+        label = torch.cat(
+            [
+                target_tokens,
+                torch.full([target_unused_len], self.tokenizer.pad_token_id),
+                torch.full([1], self.tokenizer.eos_token_id),
+            ]
+        )
+        return TodTrainRowCollator(input_tokens, label, attention_mask)
+
+    def get_decoder_item(
+        self,
+        context_tokens,
+        target_tokens,
+        pad_tokens,
+        target_max_len,
+        is_test: bool,
+    ) -> TodTrainRowCollator:
+        target_unused_len = target_max_len - len(target_tokens)
+        target_pad = torch.full([target_unused_len], self.tokenizer.pad_token_id)
+        input_items = (
+            [pad_tokens, context_tokens]
+            if is_test
+            else [pad_tokens, context_tokens, target_tokens, target_pad]
+        )
+        input_tokens = torch.cat(input_items)
+        attention_mask = input_tokens.ne(self.tokenizer.pad_token_id).to(torch.int32)
+        if is_test:
+            label = torch.cat(
+                [
+                    target_tokens,
+                    torch.full([target_unused_len], self.tokenizer.pad_token_id),
+                ]
+            )
+        else:
+            label = torch.cat(
+                [
+                    torch.full(
+                        [len(pad_tokens) + len(context_tokens)],
+                        self._huggingface_ignore_label_id,
+                    ),
+                    target_tokens,
+                    torch.full([target_unused_len], self._huggingface_ignore_label_id),
+                ]
+            )
+        return TodTrainRowCollator(input_tokens, label, attention_mask)
+
     def collate_single_item(
-        self, item: TodTurnCsvRow, target_max_len: int
+        self, item: TodTurnCsvRow, target_max_len: int, is_test: bool = False
     ) -> TodTrainRowCollator:
         other_domain, other_domain_schema = None, None
         if self.cfg.prompt_type == NlgPromptType.MULTI_DOMAIN.value:
@@ -102,26 +168,44 @@ class T5DataModule:
             )
             context_unused_len = self.cfg.test_prompt_max_len - len(context_tokens)
         pad = torch.full([context_unused_len], self.tokenizer.pad_token_id)
-        input_tokens = torch.cat(
-            [
-                pad,
-                context_tokens,
-            ]
-        )
-        attention_mask = input_tokens.ne(self.tokenizer.pad_token_id).to(torch.int32)
-
         target_tokens = self.my_tokenize(item.target)
         target_unused_len = target_max_len - len(target_tokens)
         if target_unused_len < 0:
             raise Exception("Target is too long")
-        label = torch.cat(
-            [
-                target_tokens,
-                torch.full([target_unused_len], self.tokenizer.pad_token_id),
-                torch.full([1], self.tokenizer.eos_token_id),
-            ]
+        if utils.is_t5_model(self.cfg.model_name):
+            return self.get_t5_item(
+                context_tokens=context_tokens,
+                target_tokens=target_tokens,
+                pad_tokens=pad,
+                target_max_len=target_max_len,
+            )
+        return self.get_decoder_item(
+            context_tokens=context_tokens,
+            target_tokens=target_tokens,
+            pad_tokens=pad,
+            target_max_len=target_max_len,
+            is_test=is_test,
         )
-        return TodTrainRowCollator(input_tokens, label, attention_mask)
+        # input_tokens = torch.cat(
+        #     [
+        #         pad,
+        #         context_tokens,
+        #     ]
+        # )
+        # attention_mask = input_tokens.ne(self.tokenizer.pad_token_id).to(torch.int32)
+
+        # target_tokens = self.my_tokenize(item.target)
+        # target_unused_len = target_max_len - len(target_tokens)
+        # if target_unused_len < 0:
+        #     raise Exception("Target is too long")
+        # label = torch.cat(
+        #     [
+        #         target_tokens,
+        #         torch.full([target_unused_len], self.tokenizer.pad_token_id),
+        #         torch.full([1], self.tokenizer.eos_token_id),
+        #     ]
+        # )
+        # return TodTrainRowCollator(input_tokens, label, attention_mask)
 
     def tod_train_collate(self, batch: list[TodTurnCsvRow]):
         all_input_tokens = []
@@ -165,7 +249,7 @@ class T5DataModule:
         )
         target_max_len = self.cfg.max_token_len - self.cfg.test_prompt_max_len
         for item in batch:
-            row = self.collate_single_item(item, target_max_len)
+            row = self.collate_single_item(item, target_max_len, is_test=True)
             data.input_tokens.append(row.input_tokens)
             data.attention_masks.append(row.attention_mask)
             data.labels.append(row.label)

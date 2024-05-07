@@ -110,8 +110,8 @@ class NlgApiCallMetricManager:
                 turn_row_type=int(turn_row_type),
                 is_retrieval=int(is_retrieval),
                 is_slot_fill=int(is_slot_fill),
-                dialog_id=dialog_id,
-                turn_id=turn_id,
+                dialog_id=dialog_id.item(),
+                turn_id=turn_id.item(),
                 domains=domain,
             )
             self.data.append(row)
