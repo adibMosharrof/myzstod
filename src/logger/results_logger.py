@@ -10,7 +10,8 @@ sys.path.insert(0, os.path.abspath("./src"))
 from logger.inference_logger_dataclasses import ApiCallInferenceLogData
 from my_enums import TurnRowType
 import utils
-from pytablewriter import MarkdownTableWriter
+
+# from pytablewriter import MarkdownTableWriter
 
 
 class ResultsLogger:
@@ -73,22 +74,23 @@ class ResultsLogger:
         a = 1
 
     def write_results(self, results, chat_gpt_results):
-        col_groups = [
-            ["response_bleu", "response_gleu"],
-            [
+        col_groups = DotMap(
+            response=["response_bleu", "response_gleu"],
+            api_call=[
                 "api_call_invoke",
                 "api_call_method",
                 "api_call_param_names",
                 "api_call_param_values",
             ],
-            ["retrieval_bleu", "retrieval_gleu"],
-            ["slot_fill_bleu", "slot_fill_gleu"],
-        ]
+            retrieval=["retrieval_bleu", "retrieval_gleu"],
+            slot_fill=["slot_fill_bleu", "slot_fill_gleu"],
+        )
         results = sorted(results.items())
         tables = []
         # chat_gpt_results = sorted(chat_gpt_results.items())
-        for col_group in col_groups:
-            table_name = ",".join(col_group)
+        for key, col_group in col_groups.items():
+            headers = ["domains"] + col_group * 2
+            csv_path = Path(self.cfg.out_dir) / f"{key}.csv"
             rows = []
             for domain, item in results:
                 row = [domain]
@@ -100,14 +102,15 @@ class ResultsLogger:
                     c_value = c_item.get(col, None)
                     row.append(c_value)
                 rows.append(row)
-            writer = MarkdownTableWriter(
-                table_name=table_name,
-                headers=["domain"] + col_group * 2,
-                value_matrix=rows,
-            )
+            utils.write_csv(headers, rows, csv_path)
+            # writer = MarkdownTableWriter(
+            #     table_name=table_name,
+            #     headers=["domain"] + col_group * 2,
+            #     value_matrix=rows,
+            # )
             # writer.write_table()
-            tables.append(writer.dumps())
-        return tables
+            # tables.append(writer.dumps())
+        # return tables
         a = 1
 
     def run(self):
@@ -115,12 +118,12 @@ class ResultsLogger:
         results_csv = self.get_csv(self.cfg.results_path)
         turn_row_results = self.get_results(results_csv)
         chat_gpt_results = self.get_results(chat_gpt_csv)
-        md_tables = self.write_results(turn_row_results, chat_gpt_results)
-        with open(Path(os.getcwd()) / "results/combined.md", "w") as f:
-            for table in md_tables:
-                f.write(table)
+        self.write_results(turn_row_results, chat_gpt_results)
+        # with open(Path(os.getcwd()) / "results/combined.md", "w") as f:
+        #     for table in md_tables:
+        #         f.write(table)
 
-        return md_tables
+        # return md_tables
 
 
 if __name__ == "__main__":
@@ -129,7 +132,8 @@ if __name__ == "__main__":
         DotMap(
             project_root="/mounts/u-amo-d1/adibm-data/projects/ZSToD/",
             results_path="playground/t5_tod_out/2024-04-28/16-44-39/results/all.csv",
-            chatgpt_results_path="data_exploration/chatgpt/chat_gpt_all.csv",
+            chatgpt_results_path="playground/t5_tod_out/2024-05-13/18-32-32/results/chatgpt_inference.csv",
+            out_dir="results",
         )
     )
     rl.run()
