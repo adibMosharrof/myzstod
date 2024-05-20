@@ -69,7 +69,12 @@ class T5Tod:
     def __init__(self, cfg):
         self.cfg = DotMap(cfg)
         self.cfg.project_root = Path(cfg.project_root)
-        self.cfg.raw_data_root = self.cfg.project_root / self.cfg.raw_data_root
+        self.cfg.raw_data_root = self.cfg.project_root / self.cfg.dataset.raw_data_root
+        self.cfg.context_type = self.cfg.dataset.context_type
+        self.cfg.data_prep_out_root = self.cfg.dataset.data_prep_out_root
+        self.cfg.num_dialogs = self.cfg.data_size.num_dialogs
+        self.cfg.data_split_percent = self.cfg.data_size.data_split_percent
+
         log_file = self.cfg.project_root / self.cfg.out_dir / "t5_tod.log"
         # logging.basicConfig(
         #     filename=str(log_file), level=logging.INFO, encoding="utf-8", format='%(message)s'
@@ -128,9 +133,9 @@ class T5Tod:
 
     def get_model(self, model_name: str, model_class: any, tokenizer: AutoTokenizer):
         model_path = model_name
-        if self.cfg.model_path:
-            model_path = self.cfg.project_root / self.cfg.model_path
-        if not self.cfg.quantization:
+        if self.cfg.model_type.model_path:
+            model_path = self.cfg.project_root / self.cfg.model_type.model_path
+        if not self.cfg.model_type.quantization:
             model = T5ForConditionalGeneration.from_pretrained(model_path).cuda()
             return model
         dtype = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
@@ -151,7 +156,15 @@ class T5Tod:
     def get_model_class(self, model_name: str):
         if "t5" in model_name:
             return T5ForConditionalGeneration
-        lmhead_models = ["alpaca", "llama", "santacoder", "vicuna", "koala", "opt"]
+        lmhead_models = [
+            "alpaca",
+            "llama",
+            "santacoder",
+            "vicuna",
+            "koala",
+            "opt",
+            "gpt",
+        ]
         if any([m in model_name.lower() for m in lmhead_models]):
             return AutoModelForCausalLM
         raise ValueError(f"model_name {model_name} not supported")
@@ -161,7 +174,7 @@ class T5Tod:
         torch.manual_seed(420)
 
         tokenizer = AutoTokenizer.from_pretrained(
-            self.cfg.tokenizer_name or self.cfg.model_name,
+            self.cfg.tokenizer_name or self.cfg.model_type.model_name,
             bos_token="<|startoftext|>",
             eos_token="<|endoftext|>",
             pad_token="<|pad|>",
@@ -173,15 +186,15 @@ class T5Tod:
         model = None
         deepspeed_path = None
         # tokenizer.add_tokens(["<|user|>", "<|system|>"])
-        model_cls = self.get_model_class(self.cfg.model_name)
-        if self.cfg.model_path:
-            model_out_dir = str(self.cfg.project_root / self.cfg.model_path)
-        elif self.cfg.quantization:
-            model = self.get_model(self.cfg.model_name, model_cls, tokenizer)
+        model_cls = self.get_model_class(self.cfg.model_type.model_name)
+        if self.cfg.model_type.model_path:
+            model_out_dir = str(self.cfg.project_root / self.cfg.model_type.model_path)
+        elif self.cfg.model_type.quantization:
+            model = self.get_model(self.cfg.model_type.model_name, model_cls, tokenizer)
             # deepspeed_path = self.cfg.project_root / "config/ds_zero1.json"
         else:
             # model = T5ForConditionalGeneration.from_pretrained(
-            model = model_cls.from_pretrained(self.cfg.model_name).cuda()
+            model = model_cls.from_pretrained(self.cfg.model_type.model_name).cuda()
             model.resize_token_embeddings(len(tokenizer))
         steps = Steps.list()
         schemas = {}
@@ -193,7 +206,7 @@ class T5Tod:
         else:
             train_dataset, val_dataset, test_datasets = self.dm.load_data()
 
-        if not self.cfg.model_path and self.cfg.should_train:
+        if not self.cfg.model_type.model_path and self.cfg.should_train:
             bf16 = False
             fp16 = False
             if torch.cuda.is_bf16_supported():
@@ -205,19 +218,19 @@ class T5Tod:
                 num_train_epochs=self.cfg.epochs,
                 logging_steps=10,
                 save_total_limit=5,
-                save_steps=self.cfg.save_steps,
-                eval_steps=self.cfg.eval_steps,
+                save_steps=self.cfg.data_size.save_steps,
+                eval_steps=self.cfg.data_size.eval_steps,
                 load_best_model_at_end=True,
                 save_strategy=IntervalStrategy.STEPS,
                 evaluation_strategy=IntervalStrategy.STEPS,
-                per_device_train_batch_size=self.cfg.train_batch_size,
-                per_device_eval_batch_size=self.cfg.eval_batch_size,
+                per_device_train_batch_size=self.cfg.model_type.train_batch_size,
+                per_device_eval_batch_size=self.cfg.model_type.eval_batch_size,
                 warmup_steps=100,
                 weight_decay=0.01,
                 dataloader_drop_last=True,
                 dataloader_num_workers=1,
-                gradient_accumulation_steps=self.cfg.gradient_accumulation_steps,
-                eval_accumulation_steps=self.cfg.eval_accumulation_steps,
+                gradient_accumulation_steps=self.cfg.model_type.gradient_accumulation_steps,
+                eval_accumulation_steps=self.cfg.model_type.eval_accumulation_steps,
                 learning_rate=1e-3,
                 bf16_full_eval=bf16,
                 bf16=bf16,
@@ -255,11 +268,11 @@ class T5Tod:
             # model.save_pretrained(self.cfg.out_dir)
             model_out_dir = self.cfg.out_dir
 
-        if not self.cfg.model_path:
+        if not self.cfg.model_type.model_path:
             _ = model.eval()
         print("starting inference")
 
-        if self.cfg.quantization:
+        if self.cfg.model_type.quantization:
             config = PeftConfig.from_pretrained(model_out_dir)
             device_map = {"": accelerator.device}
             model = model_cls.from_pretrained(
@@ -299,7 +312,7 @@ class T5Tod:
             utils.log(self.logger, f"testing {domain_names}")
             test_dl = DataLoader(
                 test_dataset,
-                batch_size=self.cfg.test_batch_size,
+                batch_size=self.cfg.model_type.test_batch_size,
                 collate_fn=collate_fn,
                 pin_memory=True,
                 num_workers=8,
@@ -326,17 +339,20 @@ class T5Tod:
             csv_path = self.cfg.out_dir / f"{domain_names}.csv"
             csv_path.parent.mkdir(parents=True, exist_ok=True)
             metric_manager.write_csv(csv_path)
-        rl = ResultsLogger(
-            DotMap(
-                project_root=self.cfg.project_root,
-                results_path=os.getcwd() / self.cfg.out_dir / "all.csv",
-                chatgpt_results_path="data_exploration/chatgpt/chat_gpt_all.csv",
+
+        if accelerator.is_main_process:
+            rl = ResultsLogger(
+                DotMap(
+                    project_root=self.cfg.project_root,
+                    results_path=os.getcwd() / self.cfg.out_dir / "all.csv",
+                    chatgpt_results_path="data_exploration/chatgpt/chat_gpt_all.csv",
+                    out_dir=self.cfg.out_dir,
+                )
             )
-        )
-        tables = rl.run()
-        for table in tables:
-            self.logger.info(table)
-            self.logger.info("\n\n")
+            rl.run()
+        # for table in tables:
+        #     self.logger.info(table)
+        #     self.logger.info("\n\n")
 
 
 # if __name__ == "__main__":
@@ -380,8 +396,8 @@ def old_main():
     tt.run()
 
 
-# @hydra.main(config_path="../config/t5_trainer/", config_name="t5_trainer")
-@hydra.main(config_path="../config/t5_trainer/", config_name="t5_inference")
+@hydra.main(config_path="../config/t5_trainer/", config_name="t5_trainer")
+# @hydra.main(config_path="../config/t5_trainer/", config_name="t5_inference")
 def hydra_start(cfg: DictConfig) -> None:
     t5tod = T5Tod(cfg)
     t5tod.run()

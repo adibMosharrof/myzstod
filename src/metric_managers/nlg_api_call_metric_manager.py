@@ -23,7 +23,7 @@ accelerator = Accelerator()
 
 
 class NlgApiCallMetricManager:
-    def __init__(self, logger, tokenizer):
+    def __init__(self, logger, tokenizer=None):
         self.tokenizer = tokenizer
         self.google_bleu = evaluate.load("google_bleu", experiment_id=str(uuid.uuid4()))
         self.bert_score_metric = evaluate.load(
@@ -73,12 +73,15 @@ class NlgApiCallMetricManager:
         turn_ids,
         domains,
     ):
-        input_texts, labels, preds = [
-            self.tokenizer.batch_decode(
-                tokens, skip_special_tokens=True, clean_up_tokenization_spaces=True
-            )
-            for tokens in [input_tokens, label_tokens, pred_tokens]
-        ]
+        if self.tokenizer:
+            input_texts, labels, preds = [
+                self.tokenizer.batch_decode(
+                    tokens, skip_special_tokens=True, clean_up_tokenization_spaces=True
+                )
+                for tokens in [input_tokens, label_tokens, pred_tokens]
+            ]
+        else:
+            input_texts, labels, preds = input_tokens, label_tokens, pred_tokens
 
         response_preds, response_labels, sc_preds, sc_labels = [], [], [], []
 

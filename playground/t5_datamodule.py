@@ -64,6 +64,8 @@ class T5DataModule:
             trimmed_history_text,
             other_domain,
             other_domain_schema,
+            self.schemas,
+            item.domains_original,
         )
         context_tokens = self.my_tokenize(context_text)
         if len(context_tokens) > self.cfg.test_prompt_max_len:
@@ -159,6 +161,8 @@ class T5DataModule:
             item.context,
             other_domain,
             other_domain_schema,
+            self.schemas,
+            item.domains_original,
         )
         context_tokens = self.my_tokenize(context_text)
         context_unused_len = self.cfg.test_prompt_max_len - len(context_tokens)

@@ -1,5 +1,8 @@
 from prompts.prompt_constants import NlgPromptType
 from my_enums import ContextType
+from sgd_dstc8_data_model.dstc_dataclasses import (
+    DstcSchema,
+)
 
 
 class NlgPrompt:
@@ -10,6 +13,8 @@ class NlgPrompt:
         dialog_history: str,
         other_domain: str = None,
         other_domain_schema: str = None,
+        all_schema: dict[str, DstcSchema] = None,
+        domains_original: str = None,
     ) -> str:
         """
         Returns the NLG prompt for the given domain
@@ -106,6 +111,70 @@ class KetodPrompt:
         return prompt_text
 
 
+class ChatGptPrompt:
+    def get_prompt(
+        self,
+        domain: str,
+        schema: str,
+        dialog_history: str,
+        other_domain: str = None,
+        other_domain_schema: str = None,
+        all_schema: dict[str, DstcSchema] = None,
+        domains_original: str = None,
+    ) -> str:
+        """
+        Returns the NLG prompt for the given domain
+        """
+        prompt_text = (
+            f"You are an expert chat assistant for the DOMAIN: {domain}. \n"
+            f"Instructions:\nGenerate a natural and helpful SYSTEM response for the given task-oriented dialog context.\n"
+            f"Here are important slots related to each intent:\n"
+        )
+        domains = domains_original.split(",")
+        for dom in domains:
+            dstc_schema = all_schema[dom]
+            # for intent, req_slots, opt_slots in intents_slots:
+            for dstc_intent in dstc_schema.intents:
+                req_slots_str = ", ".join(dstc_intent.required_slots)
+                opt_slots_str = ", ".join(dstc_intent.optional_slots.keys())
+                prompt_text += (
+                    f"\nIntent: {dstc_intent.name}\n"
+                    f"required slots: {req_slots_str}\n"
+                    f"optional slots: {opt_slots_str}\n"
+                )
+
+        prompt_text += (
+            f"\nYou can request the values of any number of slots from the USER in order to fulfill the user's current intent."
+            f"Generally, required slots are more important than the optional ones. Moreover, you should restrict your conversation to the slots that are relevant to the user's current intent. "
+        )
+        prompt_text += (
+            f"\nYou can assume that you have access to the following API calls: "
+        )
+
+        # for intent, _, _ in intents_slots:
+        for dom in domains:
+            dstc_schema = all_schema[dom]
+            # for intent, req_slots, opt_slots in intents_slots:
+            for dstc_intent in dstc_schema.intents:
+                req_slots_str = ", ".join(dstc_intent.required_slots)
+                opt_slots_str = ", ".join(dstc_intent.optional_slots.keys())
+                prompt_text += f"method={dstc_intent.name}, parameters={req_slots_str}, {opt_slots_str}. "
+
+        prompt_text += (
+            f"Use column names as parameters for API calls. While making the call, Make sure you ask all the required slots from the user before making an API call, you can skip unwanted parameters. "
+            f"Here is an example: ApiCall(method='intent_i', parameters={{'slot_1': 'value_1', 'slot_2': 'value_2', ...}}). "
+            f"Try to match the parameters in the API calls with the column names from the dataframe. Match the required and optional slots with the column names and use the columns names to search in the API calls.Use date format YYYY-MM-DD if needed to search in API call. "
+            f"When you think you have enough information about slot values, you must output the API call. Right after your API call, you will be provided with search result of the API call. "
+            f"You will be provided with an incomplete dialog context between USER and SYSTEM, and optionally, search results from dataframe. "
+            f"Here a few general guidelines: Don't overload the USER with too many choices. Confirm the values of slots and Ask the USER to confirm their choice before finalizing the transaction. "
+            f"Whenever confused, it is always better to ask or confirm with the user. If you feel like that user is confused, you may guide the user with relevant suggestions. "
+            f"Task:\n Based on the last USER utterance and dialog context you have to generate a conversational response or an API call in order to fulfill the user's current intent. "
+            f"You may need to make API calls and use the results of the API call. \n Dialog Context: {dialog_history}."
+        )
+
+        return prompt_text
+
+
 class NlgPromptFactory:
     @classmethod
     def get_handler(
@@ -117,6 +186,8 @@ class NlgPromptFactory:
             return NlgMultidomainPrompt()
         if prompt_type == NlgPromptType.DEFAULT.value:
             return NlgPrompt()
+        if prompt_type == NlgPromptType.CHATGPT.value:
+            return ChatGptPrompt()
         all_prompts = ",".join(NlgPromptType.list())
         raise NotImplementedError(
             f"Prompt type {prompt_type} is not implemented. It must be one of the following values {all_prompts}."
