@@ -94,8 +94,10 @@ class BaseDataModule(ABC):
         return ValueError("Not implemented")
 
     def prepare_data(self, stdp: SimpleTODDSTCDataPrep):
-        with self.cfg.accelerator.main_process_first():
+        # with self.cfg.accelerator.main_process_first():
+        if self.cfg.accelerator.is_main_process:
             stdp.run()
+        self.cfg.accelerator.wait_for_everyone()
 
     def get_data_prep_class(self, cfg: DataModuleConfig):
         if isinstance(cfg.raw_data_root, str):
