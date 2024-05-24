@@ -334,6 +334,7 @@ class T5Tod:
             self.cfg.model_type.quantization
             and self.cfg.model_type.quantization_dtype == 4
         ):
+            config = PeftConfig.from_pretrained(model_out_dir)
             device_map = {"": accelerator.device}
             model = model_cls.from_pretrained(
                 self.cfg.model_type.model_name,
