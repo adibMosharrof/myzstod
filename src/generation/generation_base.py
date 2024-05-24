@@ -33,6 +33,9 @@ class GenerationBase(ABC):
         batch_gpu.is_retrievals = batch.is_retrievals.to(accelerator.device)
         batch_gpu.is_slot_fills = batch.is_slot_fills.to(accelerator.device)
         batch_gpu.domain_ids = batch.domain_ids.to(accelerator.device)
+        batch_gpu.is_multi_domain_api_calls = batch.is_multi_domain_api_calls.to(
+            accelerator.device
+        )
 
         return batch_gpu
 
@@ -76,6 +79,7 @@ class GenerationBase(ABC):
             label_tokens,
             is_retrievals,
             is_slot_fills,
+            is_multi_domain_api_calls,
         ) = accelerator.gather_for_metrics(
             (
                 gen_without_context,
@@ -89,6 +93,7 @@ class GenerationBase(ABC):
                 batch_gpu.labels,
                 batch_gpu.is_retrievals,
                 batch_gpu.is_slot_fills,
+                batch_gpu.is_multi_domain_api_calls,
             )
         )
         # gen_without_context = self.remove_context(gen, context_len, max_len)
@@ -109,6 +114,7 @@ class GenerationBase(ABC):
             is_slot_fills,
             dialog_ids,
             turn_ids,
+            is_multi_domain_api_calls,
             domains,
         )
         if should_post_process:

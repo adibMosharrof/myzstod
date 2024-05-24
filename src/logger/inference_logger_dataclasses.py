@@ -38,6 +38,7 @@ class ApiCallInferenceLogData(InferenceLogData):
     is_slot_fill: Optional[int] = 0
     dialog_id: Optional[int] = None
     turn_id: Optional[int] = None
+    is_multi_domain_api_call: Optional[int] = 0
     domains: Optional[list[str]] = None
 
     def update(self, updated_data: "ApiCallInferenceLogData"):

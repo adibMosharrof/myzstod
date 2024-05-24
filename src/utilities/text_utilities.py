@@ -1,3 +1,4 @@
+import re
 import humps
 
 
@@ -10,3 +11,11 @@ def get_nlg_service_name(service_name: str) -> str:
 
 def remove_underscore(item: str):
     return item.replace("_", " ")
+
+
+def get_apicall_method_from_text(text: str, reg_exp=r"method='([^']+)'") -> str:
+    try:
+        match = re.search(reg_exp, text).group(1)
+    except:
+        match = ""
+    return match

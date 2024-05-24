@@ -49,6 +49,7 @@ class TodTurnApiCallCsvRow(TodTurnCsvRow):
     turn_row_type: Optional[int] = None
     is_retrieval: Optional[int] = None
     is_slot_fill: Optional[int] = None
+    is_multi_domain_api_call: Optional[int] = None
 
 
 @dataclass

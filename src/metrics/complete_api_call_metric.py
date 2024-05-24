@@ -6,9 +6,10 @@ from metrics.tod_metrics_base import TodMetricsBase
 
 
 class CompleteApiCallMetric(TodMetricsBase):
-    def __init__(self):
+    def __init__(self, name: str = ""):
         super().__init__()
         self.add_state("results", [], dist_reduce_fx="cat")
+        self.name = name
 
     def _update(self, method_metrics, params_metrics) -> int:
         res = self.compute_row(method_metrics, params_metrics)
@@ -36,4 +37,4 @@ class CompleteApiCallMetric(TodMetricsBase):
         return res
 
     def __str__(self) -> str:
-        return f"Complete API Call Accuracy: {self.compute()*100:.2f}"
+        return f"Complete {self.name} API Call Accuracy: {self.compute()*100:.2f}"

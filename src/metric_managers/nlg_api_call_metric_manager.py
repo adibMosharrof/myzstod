@@ -48,12 +48,29 @@ class NlgApiCallMetricManager:
         )
         self.complete_api_call = CompleteApiCallMetric()
 
+        self.multi_domain_api_call_metrics = MetricCollection(
+            {
+                "multi_domain_api_call_method": ApiCallMethodMetric(
+                    name="Multi Domain"
+                ),
+                "multi_domain_api_call_params": ApiCallParametersMetric(
+                    name="Multi Domain"
+                ),
+                "multi_domain_api_call_invoke": ApiCallInvokeMetric(
+                    invoke_text="ApiCall", name="Multi Domain "
+                ),
+            }
+        )
+        self.multi_domain_complete_api_call = CompleteApiCallMetric(name="Multi Domain")
+
     # @accelerator.on_main_process
     def compute_metrics(self, domain_names: str):
         all_metrics = (
             list(self.response_metrics.values())
             + list(self.api_call_metrics.values())
             + [self.complete_api_call]
+            + list(self.multi_domain_api_call_metrics.values())
+            + [self.multi_domain_complete_api_call]
         )
         for v in all_metrics:
             res = str(v)
@@ -71,6 +88,7 @@ class NlgApiCallMetricManager:
         is_slot_fills,
         dialog_ids,
         turn_ids,
+        is_multi_domain_api_calls,
         domains,
     ):
         if self.tokenizer:
@@ -83,7 +101,14 @@ class NlgApiCallMetricManager:
         else:
             input_texts, labels, preds = input_tokens, label_tokens, pred_tokens
 
-        response_preds, response_labels, sc_preds, sc_labels = [], [], [], []
+        (
+            response_preds,
+            response_labels,
+            api_preds,
+            api_labels,
+            multi_api_preds,
+            multi_api_labels,
+        ) = ([], [], [], [], [], [])
 
         for (
             input_text,
@@ -94,6 +119,7 @@ class NlgApiCallMetricManager:
             is_slot_fill,
             dialog_id,
             turn_id,
+            is_multi_domain_api_call,
             domain,
         ) in zip(
             input_texts,
@@ -104,6 +130,7 @@ class NlgApiCallMetricManager:
             is_slot_fills,
             dialog_ids,
             turn_ids,
+            is_multi_domain_api_calls,
             domains,
         ):
             row = ApiCallInferenceLogData(
@@ -116,18 +143,25 @@ class NlgApiCallMetricManager:
                 dialog_id=dialog_id.item(),
                 turn_id=turn_id.item(),
                 domains=domain,
+                is_multi_domain_api_call=int(is_multi_domain_api_call),
             )
             self.data.append(row)
             if turn_row_type == 0:
                 response_preds.append(row.pred)
                 response_labels.append(row.label)
             else:
-                sc_preds.append(row.pred)
-                sc_labels.append(row.label)
+                api_preds.append(row.pred)
+                api_labels.append(row.label)
+                if is_multi_domain_api_call:
+                    multi_api_preds.append(row.pred)
+                    multi_api_labels.append(row.label)
         self.response_metrics.update(
             references=response_labels, predictions=response_preds
         )
-        self.api_call_metrics.update(references=sc_labels, predictions=sc_preds)
+        self.api_call_metrics.update(references=api_labels, predictions=api_preds)
+        self.multi_domain_api_call_metrics.update(
+            references=multi_api_labels, predictions=multi_api_preds
+        )
 
     def write_csv(self, csv_path):
         if not len(self.data):
@@ -161,12 +195,56 @@ class NlgApiCallMetricManager:
 
                 row_dict.complete_api_call = self.complete_api_call.compute_row(
                     [row_dict.api_call_method],
-                    [(row_dict.api_call_param_names, row_dict.api_call_param_values)],
+                    [
+                        (
+                            row_dict.api_call_param_names,
+                            row_dict.api_call_param_values,
+                        )
+                    ],
                 )
                 self.complete_api_call.update(
                     [row_dict.api_call_method],
-                    [(row_dict.api_call_param_names, row_dict.api_call_param_values)],
+                    [
+                        (
+                            row_dict.api_call_param_names,
+                            row_dict.api_call_param_values,
+                        )
+                    ],
                 )
+                if row.is_multi_domain_api_call:
+                    for k, v in zip(
+                        list(self.multi_domain_api_call_metrics.keys()),
+                        list(self.multi_domain_api_call_metrics.values()),
+                    ):
+                        res = v.compute_row(row.pred, row.label)
+                        if "api_call_params" in k:
+                            row_dict.multi_domain_api_call_param_names = res[0]
+                            row_dict.multi_domain_api_call_param_values = res[1]
+                            if len(res) == 3:
+                                row_dict.multi_domain_api_call_param_relation = res[2]
+                        else:
+                            row_dict[k] = res
+
+                    row_dict.multi_domain_complete_api_call = (
+                        self.multi_domain_complete_api_call.compute_row(
+                            [row_dict.multi_domain_api_call_method],
+                            [
+                                (
+                                    row_dict.multi_domain_api_call_param_names,
+                                    row_dict.multi_domain_api_call_param_values,
+                                )
+                            ],
+                        )
+                    )
+                    self.multi_domain_complete_api_call.update(
+                        [row_dict.multi_domain_api_call_method],
+                        [
+                            (
+                                row_dict.multi_domain_api_call_param_names,
+                                row_dict.multi_domain_api_call_param_values,
+                            )
+                        ],
+                    )
             row.update(row_dict)
 
     def compute_is_retrieval_and_slot_fill_metrics(self):

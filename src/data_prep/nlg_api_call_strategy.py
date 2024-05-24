@@ -1,6 +1,7 @@
 from typing import Optional
 
 import numpy as np
+import pandas as pd
 from configs.dataprep_config import DataPrepConfig
 from sgd_dstc8_data_model.dstc_dataclasses import (
     DstcDialog,
@@ -15,17 +16,20 @@ from my_enums import ContextType, DstcSystemActions, TurnRowType, ZsTodConstants
 from tod.nlg.nlg_tod_context import NlgTodContext
 from tod.nlg.nlg_tod_target import NlgTodTarget
 from tod.nlg.nlg_tod_turn import NlgTodTurn
+from tod.turns.api_call_turn_csv_row import ApiCallTurnCsvRow
 from tod.turns.turn_csv_row_base import TurnCsvRowBase
 
 from utilities.text_utilities import get_nlg_service_name
 import utils
 import data_prep.data_prep_utils as data_prep_utils
+from utilities import text_utilities
 
 
 class NlgApiCallStrategy(DataPrepStrategy):
     def __init__(self, cfg: DataPrepConfig):
         super().__init__(cfg, tod_turn_cls=NlgTodTurn, tod_context_cls=NlgTodContext)
         # self.cfg = cfg
+        self.turn_csv_row_cls = ApiCallTurnCsvRow()
 
     def prepare_target(
         self,
@@ -56,7 +60,9 @@ class NlgApiCallStrategy(DataPrepStrategy):
             if tod_turn.target.response == "":
                 continue
             tod_turn.is_retrieval = 1 if self.has_request_action(user_turn) else 0
-            tod_turn.is_slot_fill = 1 if self.system_has_request_action(system_turn) else 0
+            tod_turn.is_slot_fill = (
+                1 if self.system_has_request_action(system_turn) else 0
+            )
             i, api_turn = self.prepare_nlg_api_call_turn(
                 turn_csv_row_handler,
                 user_turn,
@@ -127,9 +133,44 @@ class NlgApiCallStrategy(DataPrepStrategy):
         # new_turn.context.next_system_utterance = new_turn.target.response
         new_turn.dialog_id = dialog_id
         new_turn.turn_id = turn_id
+        new_turn.is_multi_domain_api_call = self.is_multi_domain_api_call(
+            new_turn, tod_turns, schemas
+        )
         self.add_tod_turn(turn_csv_row_handler, tod_turns, new_turn, dialog_id, turn_id)
         turn_id += 1
         return turn_id, new_turn
+
+    def is_multi_domain_api_call(self, turn: NlgTodTurn, csv_tod_turns, schemas):
+        if len(turn.domains_original) == 1:
+            return 0
+        df = pd.DataFrame(
+            csv_tod_turns, columns=self.turn_csv_row_cls.get_csv_headers()
+        )
+        api_call_turns = df[df["turn_row_type"] == TurnRowType.API_CALL.value]
+        if api_call_turns.empty:
+            return 0
+        turn_method = text_utilities.get_apicall_method_from_text(turn.target.response)
+        turn_domain = self.get_domain_from_api_method_name(
+            turn_method, turn.domains_original, schemas
+        )
+        for _, row in api_call_turns.iterrows():
+            prev_turn_method = text_utilities.get_apicall_method_from_text(
+                row["target"]
+            )
+            prev_turn_domain = self.get_domain_from_api_method_name(
+                prev_turn_method, row["domains_original"].split(","), schemas
+            )
+            if prev_turn_domain != turn_domain:
+                return 1
+        return 0
+
+    def get_domain_from_api_method_name(self, method_name, dialog_domains, schemas):
+        for dom in dialog_domains:
+            schema = schemas[dom]
+            intent_names = [intent.name for intent in schema.intents]
+            if method_name in intent_names:
+                return dom
+        raise ValueError(f"{method_name} not found in any domain")
 
     def has_request_action(self, user_turn: DstcTurn) -> bool:
         """
@@ -140,7 +181,7 @@ class NlgApiCallStrategy(DataPrepStrategy):
                 if action.act == DstcSystemActions.REQUEST.value:
                     return True
         return False
-    
+
     def system_has_request_action(self, system_turn: DstcTurn) -> bool:
         """
         Check if the system turn has a REQUEST action.
