@@ -5,13 +5,11 @@ import utils
 
 
 class ApiCallInvokeMetric(TodMetricsBase):
-    def __init__(
-        self,
-        invoke_text: str = "ApiCall",
-    ):
+    def __init__(self, invoke_text: str = "ApiCall", name=""):
         super().__init__()
         self.add_state("invoke_accuracies", [], dist_reduce_fx="cat")
         self.invoke_text = invoke_text
+        self.name = name
 
     def _update(self, predictions: list[str], references: list[str]) -> None:
         for pred_str in predictions:
@@ -31,4 +29,4 @@ class ApiCallInvokeMetric(TodMetricsBase):
 
     def __str__(self):
         res = self._compute()
-        return f"{self.invoke_text} Invoke Accuracy: {res*100:.2f}"
+        return f"{self.name}{self.invoke_text} Invoke Accuracy: {res*100:.2f}"

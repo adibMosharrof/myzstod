@@ -39,37 +39,68 @@ class ResultsLogger:
         domain_groups = api_rows.groupby("domains")
         api_results = {}
         for domain, group in domain_groups:
-            invoke = group["api_call_invoke"].mean().round(4)
-            method = group["api_call_method"].mean().round(4)
-            params = group["api_call_param_names"].mean().round(4)
-            values = group["api_call_param_values"].mean().round(4)
-            # api_results[domain] = DotMap(
-            out[domain].update(
-                DotMap(
-                    api_call_invoke=invoke,
-                    api_call_method=method,
-                    api_call_param_names=params,
-                    api_call_param_values=values,
+            try:
+                invoke = group["api_call_invoke"].mean().round(4)
+                method = group["api_call_method"].mean().round(4)
+                params = group["api_call_param_names"].mean().round(4)
+                values = group["api_call_param_values"].mean().round(4)
+                # api_results[domain] = DotMap(
+                out[domain].update(
+                    DotMap(
+                        api_call_invoke=invoke,
+                        api_call_method=method,
+                        api_call_param_names=params,
+                        api_call_param_values=values,
+                    )
                 )
-            )
+            except AttributeError as e:
+                print("no api call data for domain ", domain)
+
+        multi_domain_api_rows = results[results["is_multi_domain_api_call"] == 1]
+        domain_groups = multi_domain_api_rows.groupby("domains")
+        api_results = {}
+        for domain, group in domain_groups:
+            try:
+                invoke = group["api_call_invoke"].mean().round(4)
+                method = group["api_call_method"].mean().round(4)
+                params = group["api_call_param_names"].mean().round(4)
+                values = group["api_call_param_values"].mean().round(4)
+                # api_results[domain] = DotMap(
+                out[domain].update(
+                    DotMap(
+                        api_call_invoke=invoke,
+                        api_call_method=method,
+                        api_call_param_names=params,
+                        api_call_param_values=values,
+                    )
+                )
+            except AttributeError as e:
+                print("no multi domain api call data for domain ", domain)
 
         retrieval_rows = results[results["is_retrieval"] == 1]
         domain_groups = retrieval_rows.groupby("domains")
         retrieval_results = {}
         for domain, group in domain_groups:
-            bleu = group["response_bleu"].mean().round(4)
-            gleu = group["response_gleu"].mean().round(4)
-            # retrieval_results[domain] = DotMap(retrieval_bleu=bleu, retrieval_gleu=gleu)
-            out[domain].update(DotMap(retrieval_bleu=bleu, retrieval_gleu=gleu))
+            try:
+                bleu = group["response_bleu"].mean().round(4)
+                gleu = group["response_gleu"].mean().round(4)
+                # retrieval_results[domain] = DotMap(retrieval_bleu=bleu, retrieval_gleu=gleu)
+                out[domain].update(DotMap(retrieval_bleu=bleu, retrieval_gleu=gleu))
+            except AttributeError as e:
+                print("no retrieval data for domain ", domain)
 
         slot_fill_rows = results[results["is_slot_fill"] == 1]
         domain_groups = slot_fill_rows.groupby("domains")
         slot_fill_results = {}
         for domain, group in domain_groups:
-            bleu = group["response_bleu"].mean().round(4)
-            gleu = group["response_gleu"].mean().round(4)
-            # slot_fill_results[domain] = DotMap(slot_fill_bleu=bleu, slot_fill_gleu=gleu)
-            out[domain].update(DotMap(slot_fill_bleu=bleu, slot_fill_gleu=gleu))
+            try:
+                bleu = group["response_bleu"].mean().round(4)
+                gleu = group["response_gleu"].mean().round(4)
+                # slot_fill_results[domain] = DotMap(slot_fill_bleu=bleu, slot_fill_gleu=gleu)
+                out[domain].update(DotMap(slot_fill_bleu=bleu, slot_fill_gleu=gleu))
+            except AttributeError as e:
+                print("no slot fill data for domain ", domain)
+
         return out
         a = 1
 
@@ -131,8 +162,9 @@ if __name__ == "__main__":
     rl = ResultsLogger(
         DotMap(
             project_root="/mounts/u-amo-d1/adibm-data/projects/ZSToD/",
-            results_path="playground/t5_tod_out/2024-04-28/16-44-39/results/all.csv",
-            chatgpt_results_path="playground/t5_tod_out/2024-05-13/18-32-32/results/chatgpt_inference.csv",
+            # results_path="playground/t5_tod_out/2024-04-28/16-44-39/results/all.csv",
+            results_path="playground/t5_tod_out/2024-05-23/06-16-46/results/Buses_3,RentalCars_3.csv",
+            chatgpt_results_path="playground/t5_tod_out/2024-05-15/02-29-21/results/chatgpt_inference.csv",
             out_dir="results",
         )
     )

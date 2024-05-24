@@ -20,4 +20,4 @@ class NlgTodTurn:
     turn_row_type: Optional[TurnRowType] = TurnRowType.RESPONSE.value
     is_retrieval: Optional[int] = 0
     is_slot_fill: Optional[int] = 0
-    
+    is_multi_domain_api_call: Optional[int] = 0
