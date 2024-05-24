@@ -222,13 +222,13 @@ class T5DataModule:
             all_input_tokens.append(row.input_tokens)
             all_attention_masks.append(row.attention_mask)
             all_labels.append(row.label)
-        return DotMap(
-            {
-                "input_ids": torch.stack(all_input_tokens),
-                "labels": torch.stack(all_labels),
-                "attention_mask": torch.stack(all_attention_masks),
-            }
-        )
+        # return DotMap(
+        return {
+            "input_ids": torch.stack(all_input_tokens),
+            "labels": torch.stack(all_labels),
+            "attention_mask": torch.stack(all_attention_masks),
+        }
+        # )
 
     def tod_test_collate(self, batch: list[TodTurnApiCallCsvRow]):
         data = DotMap(
@@ -244,6 +244,7 @@ class T5DataModule:
                     "turn_row_types",
                     "is_retrievals",
                     "is_slot_fills",
+                    "is_multi_domain_api_calls",
                     "domain_ids",
                 ]
             }
@@ -262,6 +263,9 @@ class T5DataModule:
             data.is_slot_fills.append(torch.tensor(item.is_slot_fill))
             data.turn_ids.append(torch.tensor(int(item.turn_id)))
             data.dialog_ids.append(torch.tensor(int(item.dialog_id)))
+            data.is_multi_domain_api_calls.append(
+                torch.tensor(int(item.is_multi_domain_api_call))
+            )
             domain_tokens = self.my_tokenizer_pad(
                 item.domains_original, max_lengths.domains
             )
@@ -275,6 +279,7 @@ class T5DataModule:
             turn_row_types=torch.stack(data.turn_row_types),
             is_retrievals=torch.stack(data.is_retrievals),
             is_slot_fills=torch.stack(data.is_slot_fills),
+            is_multi_domain_api_calls=torch.stack(data.is_multi_domain_api_calls),
             domain_ids=torch.stack(data.domain_ids),
         )
 
