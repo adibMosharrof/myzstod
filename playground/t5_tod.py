@@ -38,6 +38,7 @@ from transformers import (
     Seq2SeqTrainingArguments,
     AutoModelForCausalLM,
     EarlyStoppingCallback,
+    BitsAndBytesConfig,
 )
 from datetime import datetime
 import utils
@@ -63,6 +64,10 @@ from metric_managers.bitod_metric_manager import BitodMetricManager
 import wandb
 
 from logger.results_logger import ResultsLogger
+
+os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
+os.environ["TORCH_DISTRIBUTED_DEBUG"] = "DETAIL"
+os.environ["TORCH_USE_CUDA_DSA"] = "1"
 
 
 class T5Tod:
@@ -135,23 +140,60 @@ class T5Tod:
         model_path = model_name
         if self.cfg.model_type.model_path:
             model_path = self.cfg.project_root / self.cfg.model_type.model_path
-        if not self.cfg.model_type.quantization:
-            model = T5ForConditionalGeneration.from_pretrained(model_path).cuda()
+        if self.cfg.model_type.quantization_dtype == 16:
+            dtype = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
+
+            model = model_class.from_pretrained(
+                # model_path, load_in_8bit=True, torch_dtype=torch.bfloat16
+                model_path,
+                load_in_8bit=False,
+                torch_dtype=dtype,
+                # model_path, load_in_8bit=False
+            )
+            model.resize_token_embeddings(len(tokenizer))
+            model = prepare_model_for_kbit_training(model)
+            lora_config = utils.get_lora_config(model_name)
+            model = get_peft_model(model, lora_config)
             return model
-        dtype = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
-        # model = AutoModelForSeq2SeqLM.from_pretrained(
-        model = model_class.from_pretrained(
-            # model_path, load_in_8bit=True, torch_dtype=torch.bfloat16
-            model_path,
-            load_in_8bit=False,
-            torch_dtype=dtype,
-            # model_path, load_in_8bit=False
-        )
-        model.resize_token_embeddings(len(tokenizer))
-        model = prepare_model_for_kbit_training(model)
-        lora_config = utils.get_lora_config(model_name)
-        model = get_peft_model(model, lora_config)
-        return model
+        if self.cfg.model_type.quantization_dtype == 8:
+            config = BitsAndBytesConfig(load_in_8bit=True)
+            device_map = {"": Accelerator().process_index}
+            model = model_class.from_pretrained(
+                model_path, quantization_config=config, device_map=device_map
+            )
+            model = prepare_model_for_kbit_training(model)
+            config = LoraConfig(
+                r=16,
+                lora_alpha=32,
+                target_modules=["q_proj", "v_proj"],
+                lora_dropout=0.05,
+                bias="none",
+                task_type="CAUSAL_LM",
+            )
+            model = get_peft_model(model, config)
+            return model
+        if self.cfg.model_type.quantization_dtype == 4:
+            config = BitsAndBytesConfig(
+                load_in_4bit=True,
+                bnb_4bit_quant_type="nf4",
+                bnb_4bit_use_double_quant=True,
+                bnb_4bit_compute_dtype=torch.bfloat16,
+            )
+            device_map = {"": Accelerator().process_index}
+            model = model_class.from_pretrained(
+                model_path, quantization_config=config, device_map=device_map
+            )
+            model = prepare_model_for_kbit_training(model)
+            config = LoraConfig(
+                r=16,
+                lora_alpha=8,
+                target_modules=["q_proj", "k_proj", "v_proj", "o_proj"],
+                lora_dropout=0.05,
+                bias="none",
+                task_type="CAUSAL_LM",
+            )
+            model = get_peft_model(model, config)
+            return model
 
     def get_model_class(self, model_name: str):
         if "t5" in model_name:
@@ -272,7 +314,10 @@ class T5Tod:
             _ = model.eval()
         print("starting inference")
 
-        if self.cfg.model_type.quantization:
+        if (
+            self.cfg.model_type.quantization
+            and self.cfg.model_type.quantization_dtype == 16
+        ):
             config = PeftConfig.from_pretrained(model_out_dir)
             device_map = {"": accelerator.device}
             model = model_cls.from_pretrained(
@@ -282,6 +327,20 @@ class T5Tod:
                 device_map=device_map,
             )
             model.resize_token_embeddings(len(tokenizer))
+            model = PeftModel.from_pretrained(
+                model, model_out_dir, device_map=device_map
+            )
+        elif (
+            self.cfg.model_type.quantization
+            and self.cfg.model_type.quantization_dtype == 4
+        ):
+            device_map = {"": accelerator.device}
+            model = model_cls.from_pretrained(
+                self.cfg.model_type.model_name,
+                quantization_config=config,
+                device_map=device_map,
+            )
+            config = PeftConfig.from_pretrained(model_out_dir)
             model = PeftModel.from_pretrained(
                 model, model_out_dir, device_map=device_map
             )
@@ -310,6 +369,7 @@ class T5Tod:
                 continue
             # print(f"testing {domain_names}")
             utils.log(self.logger, f"testing {domain_names}")
+
             test_dl = DataLoader(
                 test_dataset,
                 batch_size=self.cfg.model_type.test_batch_size,
@@ -344,7 +404,9 @@ class T5Tod:
             rl = ResultsLogger(
                 DotMap(
                     project_root=self.cfg.project_root,
-                    results_path=os.getcwd() / self.cfg.out_dir / "all.csv",
+                    results_path=os.getcwd()
+                    / self.cfg.out_dir
+                    / "Buses_3,RentalCars_3.csv",
                     chatgpt_results_path="data_exploration/chatgpt/chat_gpt_all.csv",
                     out_dir=self.cfg.out_dir,
                 )
