@@ -161,6 +161,7 @@ class T5Tod:
             model = model_class.from_pretrained(
                 model_path, quantization_config=config, device_map=device_map
             )
+            model.enable_input_require_grads()
             model = prepare_model_for_kbit_training(model)
             config = LoraConfig(
                 r=16,
@@ -183,6 +184,8 @@ class T5Tod:
             model = model_class.from_pretrained(
                 model_path, quantization_config=config, device_map=device_map
             )
+            # model.enable_input_require_grads()
+            model.gradient_checkpointing_enable()
             model = prepare_model_for_kbit_training(model)
             config = LoraConfig(
                 r=16,
@@ -278,8 +281,8 @@ class T5Tod:
                 bf16=bf16,
                 fp16=fp16,
                 fp16_full_eval=fp16,
-                # gradient_checkpointing=False,
-                # ddp_find_unused_parameters=False,
+                gradient_checkpointing=True,
+                ddp_find_unused_parameters=False,
                 deepspeed=deepspeed_path,
                 # gradient_checkpointing_kwargs={"use_reentrant": False},
             )
@@ -407,7 +410,7 @@ class T5Tod:
                     project_root=self.cfg.project_root,
                     results_path=os.getcwd()
                     / self.cfg.out_dir
-                    / "Buses_3,RentalCars_3.csv",
+                    / "all.csv",
                     chatgpt_results_path="data_exploration/chatgpt/chat_gpt_all.csv",
                     out_dir=self.cfg.out_dir,
                 )
@@ -416,7 +419,7 @@ class T5Tod:
         # for table in tables:
         #     self.logger.info(table)
         #     self.logger.info("\n\n")
-
+        accelerator.wait_for_everyone()
 
 # if __name__ == "__main__":
 def old_main():
