@@ -128,18 +128,25 @@ class ChatGptInference:
         for setting, domains in regular_domains.items():
             setting_response_rows = pd.DataFrame()
             setting_api_rows = pd.DataFrame()
+            setting_multi_dom_api_rows = pd.DataFrame()
             setting_slot_fill_rows = pd.DataFrame()
             setting_retrieval_rows = pd.DataFrame()
             for domain in domains:
                 df = responses[responses.domains == domain]
                 response_rows = df[df.turn_row_type == 0]
                 api_rows = df[df.turn_row_type == 1]
+                multi_dom_api_rows = df[
+                    df.turn_row_type == 1 and df.is_multi_domain_api_call == 1
+                ]
                 slot_fill_rows = df[df.is_slot_fill == 1]
                 retrieval_rows = df[df.is_retrieval == 1]
                 setting_response_rows = pd.concat(
                     [setting_response_rows, response_rows]
                 )
                 setting_api_rows = pd.concat([setting_api_rows, api_rows])
+                setting_multi_dom_api_rows = pd.concat(
+                    [setting_multi_dom_api_rows, multi_dom_api_rows]
+                )
                 setting_slot_fill_rows = pd.concat(
                     [setting_slot_fill_rows, slot_fill_rows]
                 )
@@ -147,14 +154,35 @@ class ChatGptInference:
                     [setting_retrieval_rows, retrieval_rows]
                 )
             res = {}
-            res["response_bleu"] = setting_response_rows.response_bleu.mean()
+            res["response_bleu"] = setting_response_rows.response_bleu.mean().round(4)
             # res["response_gleu"] = setting_response_rows.response_gleu.mean()
-            res["complete_api_call"] = setting_api_rows.complete_api_call.mean()
-            res["api_call_method"] = setting_api_rows.api_call_method.mean()
-            res["api_call_param_names"] = setting_api_rows.api_call_param_names.mean()
-            res["api_call_param_values"] = setting_api_rows.api_call_param_values.mean()
-            res["slot_fill"] = setting_slot_fill_rows.response_bleu.mean()
-            res["retrieval"] = retrieval_rows.response_bleu.mean()
+            res["complete_api_call"] = setting_api_rows.complete_api_call.mean().round(
+                4
+            )
+            res["api_call_invoke"] = setting_api_rows.api_call_invoke.mean().round(4)
+            res["api_call_method"] = setting_api_rows.api_call_method.mean().round(4)
+            res["api_call_param_names"] = (
+                setting_api_rows.api_call_param_names.mean().round(4)
+            )
+            res["api_call_param_values"] = (
+                setting_api_rows.api_call_param_values.mean().round(4)
+            )
+
+            res["multi_api_call_invoke"] = (
+                setting_multi_dom_api_rows.api_call_invoke.mean().round(4)
+            )
+            res["multi_api_call_method"] = (
+                setting_multi_dom_api_rows.api_call_method.mean().round(4)
+            )
+            res["multi_api_call_param_names"] = (
+                setting_multi_dom_api_rows.api_call_param_names.mean().round(4)
+            )
+            res["multi_api_call_param_values"] = (
+                setting_multi_dom_api_rows.api_call_param_values.mean().round(4)
+            )
+
+            res["slot_fill"] = setting_slot_fill_rows.response_bleu.mean().round(4)
+            res["retrieval"] = retrieval_rows.response_bleu.mean().round(4)
             results[setting] = res
 
         rl = ResultsLogger(self.cfg)
