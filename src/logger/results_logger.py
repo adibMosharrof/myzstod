@@ -44,6 +44,7 @@ class ResultsLogger:
                 method = group["api_call_method"].mean().round(4)
                 params = group["api_call_param_names"].mean().round(4)
                 values = group["api_call_param_values"].mean().round(4)
+                complete = group["complete_api_call"].mean().round(4)
                 # api_results[domain] = DotMap(
                 out[domain].update(
                     DotMap(
@@ -51,6 +52,7 @@ class ResultsLogger:
                         api_call_method=method,
                         api_call_param_names=params,
                         api_call_param_values=values,
+                        complete_api_call=complete,
                     )
                 )
             except AttributeError as e:
@@ -65,6 +67,7 @@ class ResultsLogger:
                 method = group["api_call_method"].mean().round(4)
                 params = group["api_call_param_names"].mean().round(4)
                 values = group["api_call_param_values"].mean().round(4)
+                complete = group["complete_api_call"].mean().round(4)
                 # api_results[domain] = DotMap(
                 out[domain].update(
                     DotMap(
@@ -72,6 +75,7 @@ class ResultsLogger:
                         api_call_method=method,
                         api_call_param_names=params,
                         api_call_param_values=values,
+                        complete_api_call=complete,
                     )
                 )
             except AttributeError as e:
