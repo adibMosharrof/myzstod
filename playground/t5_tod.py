@@ -405,9 +405,7 @@ class T5Tod:
             rl = ResultsLogger(
                 DotMap(
                     project_root=self.cfg.project_root,
-                    results_path=os.getcwd()
-                    / self.cfg.out_dir
-                    / "Buses_3,RentalCars_3.csv",
+                    results_path=os.getcwd() / self.cfg.out_dir / "all.csv",
                     chatgpt_results_path="data_exploration/chatgpt/chat_gpt_all.csv",
                     out_dir=self.cfg.out_dir,
                 )
@@ -416,6 +414,7 @@ class T5Tod:
         # for table in tables:
         #     self.logger.info(table)
         #     self.logger.info("\n\n")
+        accelerator.wait_for_everyone()
 
 
 # if __name__ == "__main__":

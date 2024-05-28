@@ -17,13 +17,13 @@ from metric_managers.nlg_api_call_metric_manager import NlgApiCallMetricManager
 from prompts.nlg_prompt_manager import ChatGptPrompt
 from logger.results_logger import ResultsLogger
 
-
+import numpy as np
 from configs.dataprep_config import DataPrepConfig
 from data_prep.data_prep_strategy_resolver import DataPrepStrategyResolver
 from data_prep.dstc_base_data_prep import DstcBaseDataPrep
 from my_enums import Steps, TurnRowType
 import utils
-
+import data_prep.data_prep_utils as data_prep_utils
 
 from base_datamodule import SimpleTodDataSet
 from tod.turns.zs_tod_turn import TodTurnApiCallCsvRow
@@ -131,31 +131,35 @@ class ChatGptInference:
             setting_multi_dom_api_rows = pd.DataFrame()
             setting_slot_fill_rows = pd.DataFrame()
             setting_retrieval_rows = pd.DataFrame()
-            for domain in domains:
-                df = responses[responses.domains == domain]
-                response_rows = df[df.turn_row_type == 0]
-                api_rows = df[df.turn_row_type == 1]
-                multi_dom_api_rows = df[
-                    df.turn_row_type == 1 and df.is_multi_domain_api_call == 1
-                ]
-                slot_fill_rows = df[df.is_slot_fill == 1]
-                retrieval_rows = df[df.is_retrieval == 1]
-                setting_response_rows = pd.concat(
-                    [setting_response_rows, response_rows]
-                )
-                setting_api_rows = pd.concat([setting_api_rows, api_rows])
-                setting_multi_dom_api_rows = pd.concat(
-                    [setting_multi_dom_api_rows, multi_dom_api_rows]
-                )
-                setting_slot_fill_rows = pd.concat(
-                    [setting_slot_fill_rows, slot_fill_rows]
-                )
-                setting_retrieval_rows = pd.concat(
-                    [setting_retrieval_rows, retrieval_rows]
-                )
+            domain_rows = []
+            for i, row in responses.iterrows():
+                if data_prep_utils.is_dialogue_in_domain(
+                    row.domains.split(","), domains
+                ):
+                    domain_rows.append(row)
+
+            df = pd.DataFrame(domain_rows)
+            response_rows = df[df.turn_row_type == 0]
+            api_rows = df[df.turn_row_type == 1]
+            # multi_dom_api_rows = df[
+            #     df.turn_row_type == 1 and df.is_multi_domain_api_call == 1
+            # ]
+            # multi_dom_api_rows = df.query(
+            #     "turn_row_type ==1 & is_multi_domain_api_call == 1"
+            # )
+            multi_dom_api_rows = api_rows[api_rows.is_multi_domain_api_call == 1]
+            slot_fill_rows = df[df.is_slot_fill == 1]
+            retrieval_rows = df[df.is_retrieval == 1]
+            setting_response_rows = pd.concat([setting_response_rows, response_rows])
+            setting_api_rows = pd.concat([setting_api_rows, api_rows])
+            setting_multi_dom_api_rows = pd.concat(
+                [setting_multi_dom_api_rows, multi_dom_api_rows]
+            )
+            setting_slot_fill_rows = pd.concat([setting_slot_fill_rows, slot_fill_rows])
+            setting_retrieval_rows = pd.concat([setting_retrieval_rows, retrieval_rows])
             res = {}
             res["response_bleu"] = setting_response_rows.response_bleu.mean().round(4)
-            # res["response_gleu"] = setting_response_rows.response_gleu.mean()
+            res["response_gleu"] = setting_response_rows.response_gleu.mean().round(4)
             res["complete_api_call"] = setting_api_rows.complete_api_call.mean().round(
                 4
             )
@@ -168,18 +172,28 @@ class ChatGptInference:
                 setting_api_rows.api_call_param_values.mean().round(4)
             )
 
-            res["multi_api_call_invoke"] = (
-                setting_multi_dom_api_rows.api_call_invoke.mean().round(4)
-            )
-            res["multi_api_call_method"] = (
-                setting_multi_dom_api_rows.api_call_method.mean().round(4)
-            )
-            res["multi_api_call_param_names"] = (
-                setting_multi_dom_api_rows.api_call_param_names.mean().round(4)
-            )
-            res["multi_api_call_param_values"] = (
-                setting_multi_dom_api_rows.api_call_param_values.mean().round(4)
-            )
+            if len(setting_multi_dom_api_rows) > 0:
+                res["multi_api_call_invoke"] = (
+                    setting_multi_dom_api_rows.api_call_invoke.mean().round(4)
+                )
+                res["multi_api_call_method"] = (
+                    setting_multi_dom_api_rows.api_call_method.mean().round(4)
+                )
+                res["multi_api_call_param_names"] = (
+                    setting_multi_dom_api_rows.api_call_param_names.mean().round(4)
+                )
+                res["multi_api_call_param_values"] = (
+                    setting_multi_dom_api_rows.api_call_param_values.mean().round(4)
+                )
+                res["multi_complete_api_call"] = (
+                    setting_multi_dom_api_rows.complete_api_call.mean().round(4)
+                )
+            else:
+                res["multi_api_call_invoke"] = 0
+                res["multi_api_call_method"] = 0
+                res["multi_api_call_param_names"] = 0
+                res["multi_api_call_param_values"] = 0
+                res["multi_complete_api_call"] = 0
 
             res["slot_fill"] = setting_slot_fill_rows.response_bleu.mean().round(4)
             res["retrieval"] = retrieval_rows.response_bleu.mean().round(4)

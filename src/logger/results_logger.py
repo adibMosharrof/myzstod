@@ -71,11 +71,11 @@ class ResultsLogger:
                 # api_results[domain] = DotMap(
                 out[domain].update(
                     DotMap(
-                        api_call_invoke=invoke,
-                        api_call_method=method,
-                        api_call_param_names=params,
-                        api_call_param_values=values,
-                        complete_api_call=complete,
+                        multi_api_call_invoke=invoke,
+                        multi_api_call_method=method,
+                        multi_api_call_param_names=params,
+                        multi_api_call_param_values=values,
+                        multi_complete_api_call=complete,
                     )
                 )
             except AttributeError as e:
