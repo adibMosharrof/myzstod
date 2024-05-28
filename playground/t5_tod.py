@@ -337,17 +337,21 @@ class T5Tod:
             self.cfg.model_type.quantization
             and self.cfg.model_type.quantization_dtype == 4
         ):
-            config = PeftConfig.from_pretrained(model_out_dir)
+            config = BitsAndBytesConfig(
+                load_in_4bit=True,
+                bnb_4bit_quant_type="nf4",
+                bnb_4bit_use_double_quant=True,
+                bnb_4bit_compute_dtype=torch.bfloat16,
+            )
+
             device_map = {"": accelerator.device}
             model = model_cls.from_pretrained(
                 self.cfg.model_type.model_name,
                 quantization_config=config,
                 device_map=device_map,
             )
-            config = PeftConfig.from_pretrained(model_out_dir)
-            model = PeftModel.from_pretrained(
-                model, model_out_dir, device_map=device_map
-            )
+            saved_config = PeftConfig.from_pretrained(model_out_dir)
+            model = PeftModel.from_pretrained(model, saved_config)
         model.eval()
 
         collate_fn = (
