@@ -20,6 +20,6 @@ class GenerationHandlerFactory:
             )
         if cfg.is_multi_head:
             return MultiHeadGeneration(cfg.model, cfg.tokenizer)
-        if utils.is_t5_model(cfg.model_name):
+        if utils.is_t5_model(cfg.model_type.model_name):
             return T5Generation(model, tokenizer)
         return SimpleGeneration(model, tokenizer)
