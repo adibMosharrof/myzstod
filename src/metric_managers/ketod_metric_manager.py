@@ -62,7 +62,19 @@ class KeTodMetricManager(NlgApiCallMetricManager):
             utils.log(self.logger, res)
             # print(res)
 
-    def add_batch(self, input_tokens, label_tokens, pred_tokens, turn_row_type):
+    def add_batch(
+        self,
+        input_tokens,
+        label_tokens,
+        pred_tokens,
+        turn_row_types,
+        is_retrievals,
+        is_slot_fills,
+        dialog_ids,
+        turn_ids,
+        is_multi_domain_api_calls,
+        domains,
+    ):
         input_texts, labels, preds = [
             self.tokenizer.batch_decode(
                 tokens, skip_special_tokens=True, clean_up_tokenization_spaces=True
@@ -70,35 +82,95 @@ class KeTodMetricManager(NlgApiCallMetricManager):
             for tokens in [input_tokens, label_tokens, pred_tokens]
         ]
 
-        response_preds, response_labels = [], []
-        sc_preds, sc_labels = [], []
-        ke_preds, ke_labels = [], []
+        # response_preds, response_labels = [], []
+        # sc_preds, sc_labels = [], []
+        # ke_preds, ke_labels = [], []
+        (
+            response_preds,
+            response_labels,
+            api_preds,
+            api_labels,
+            multi_api_preds,
+            multi_api_labels,
+            ke_preds,
+            ke_labels,
+        ) = ([], [], [], [], [], [], [], [])
 
-        for i, p, l, s in zip(input_texts, preds, labels, turn_row_type):
-            row = KetodInferenceLogData(i, l, p, int(s))
+        # for i, p, l, s in zip(input_texts, preds, labels, turn_row_types):
+        #     row = KetodInferenceLogData(i, l, p, int(s))
+        #     self.data.append(row)
+        #     if s == TurnRowType.RESPONSE.value:
+        #         response_preds.append(row.pred)
+        #         response_labels.append(row.label)
+        #     elif s == TurnRowType.API_CALL.value:
+        #         sc_preds.append(row.pred)
+        #         sc_labels.append(row.label)
+        #     elif s == TurnRowType.KE_QUERY.value:
+        #         ke_preds.append(row.pred)
+        #         ke_labels.append(row.label)
+        #     else:
+        #         raise ValueError(f"Unknown turn row type {s}")
+        # self.response_metrics.update(
+        #     references=response_labels, predictions=response_preds
+        # )
+        # self.api_call_metrics.update(references=sc_labels, predictions=sc_preds)
+        # self.ke_metrics.update(references=ke_labels, predictions=ke_preds)
+        for (
+            input_text,
+            pred,
+            label,
+            turn_row_type,
+            is_retrieval,
+            is_slot_fill,
+            dialog_id,
+            turn_id,
+            is_multi_domain_api_call,
+            domain,
+        ) in zip(
+            input_texts,
+            preds,
+            labels,
+            turn_row_types,
+            is_retrievals,
+            is_slot_fills,
+            dialog_ids,
+            turn_ids,
+            is_multi_domain_api_calls,
+            domains,
+        ):
+            row = ApiCallInferenceLogData(
+                input_text=input_text,
+                pred=pred,
+                label=label,
+                turn_row_type=int(turn_row_type),
+                is_retrieval=int(is_retrieval),
+                is_slot_fill=int(is_slot_fill),
+                dialog_id=dialog_id.item(),
+                turn_id=turn_id.item(),
+                domains=domain,
+                is_multi_domain_api_call=int(is_multi_domain_api_call),
+            )
             self.data.append(row)
-            if s == TurnRowType.RESPONSE.value:
+            if turn_row_type == TurnRowType.RESPONSE.value:
                 response_preds.append(row.pred)
                 response_labels.append(row.label)
-            elif s == TurnRowType.API_CALL.value:
-                sc_preds.append(row.pred)
-                sc_labels.append(row.label)
-            elif s == TurnRowType.KE_QUERY.value:
+            elif turn_row_type == TurnRowType.API_CALL.value:
+                api_preds.append(row.pred)
+                api_labels.append(row.label)
+                if is_multi_domain_api_call:
+                    multi_api_preds.append(row.pred)
+                    multi_api_labels.append(row.label)
+            elif turn_row_type == TurnRowType.KE_QUERY.value:
                 ke_preds.append(row.pred)
                 ke_labels.append(row.label)
-            else:
-                raise ValueError(f"Unknown turn row type {s}")
         self.response_metrics.update(
             references=response_labels, predictions=response_preds
         )
-        self.api_call_metrics.update(references=sc_labels, predictions=sc_preds)
+        self.api_call_metrics.update(references=api_labels, predictions=api_preds)
+        self.multi_domain_api_call_metrics.update(
+            references=multi_api_labels, predictions=multi_api_preds
+        )
         self.ke_metrics.update(references=ke_labels, predictions=ke_preds)
-
-    def write_csv(self, csv_path):
-        if not len(self.data):
-            raise ValueError("Must call compute row wise metrics first")
-        df = pd.DataFrame(self.data)
-        df.to_csv(csv_path, index=False, encoding="utf-8")
 
     def hook_for_additional_metrics(self, row, row_dict):
         if row.turn_row_type == TurnRowType.KE_QUERY.value:
