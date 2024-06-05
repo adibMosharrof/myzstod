@@ -60,4 +60,13 @@ class KetodInferenceLogData(ApiCallInferenceLogData):
     complete_kb_call: Optional[int] = None
     ke_method: Optional[float] = None
     ke_params: Optional[float] = None
+    ke_param_values: Optional[float] = None
     ke_api_call_invoke: Optional[float] = None
+
+    def update(self, updated_data: "KetodInferenceLogData"):
+        super().update(updated_data)
+        self.complete_kb_call = updated_data.complete_kb_call
+        self.ke_method = updated_data.ke_method
+        self.ke_params = updated_data.ke_params
+        self.ke_param_values = updated_data.ke_param_values
+        self.ke_api_call_invoke = updated_data.ke_api_call_invoke

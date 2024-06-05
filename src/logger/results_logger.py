@@ -2,6 +2,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 from dotmap import DotMap
+import hydra
+from omegaconf import DictConfig
 import pandas as pd
 import os
 import sys
@@ -81,6 +83,27 @@ class ResultsLogger:
             except AttributeError as e:
                 print("no multi domain api call data for domain ", domain)
 
+        query_rows = results[results["turn_row_type"] == TurnRowType.KE_QUERY.value]
+        domain_groups = query_rows.groupby("domains")
+        for domain, group in domain_groups:
+            try:
+                invoke = group["ke_api_call_invoke"].mean().round(4)
+                method = group["ke_method"].mean().round(4)
+                params = group["ke_params"].mean().round(4)
+                complete = group["complete_kb_call"].mean().round(4)
+                # api_results[domain] = DotMap(
+                out[domain].update(
+                    DotMap(
+                        ke_api_call_invoke=invoke,
+                        ke_method=method,
+                        ke_params=params,
+                        ke_param_values=values,
+                        complete_kb_call=complete,
+                    )
+                )
+            except AttributeError as e:
+                print("no api call data for domain ", domain)
+
         retrieval_rows = results[results["is_retrieval"] == 1]
         domain_groups = retrieval_rows.groupby("domains")
         retrieval_results = {}
@@ -104,9 +127,7 @@ class ResultsLogger:
                 out[domain].update(DotMap(slot_fill_bleu=bleu, slot_fill_gleu=gleu))
             except AttributeError as e:
                 print("no slot fill data for domain ", domain)
-
         return out
-        a = 1
 
     def write_results(self, results, chat_gpt_results):
         col_groups = DotMap(
@@ -116,6 +137,21 @@ class ResultsLogger:
                 "api_call_method",
                 "api_call_param_names",
                 "api_call_param_values",
+                "complete_api_call",
+            ],
+            ke_api_call=[
+                "ke_api_call_invoke",
+                "ke_method",
+                "ke_params",
+                "ke_param_values",
+                "complete_kb_call",
+            ],
+            multi_api_call=[
+                "multi_api_call_invoke",
+                "multi_api_call_method",
+                "multi_api_call_param_names",
+                "multi_api_call_param_values",
+                "multi_complete_api_call",
             ],
             retrieval=["retrieval_bleu", "retrieval_gleu"],
             slot_fill=["slot_fill_bleu", "slot_fill_gleu"],
@@ -161,15 +197,24 @@ class ResultsLogger:
         # return md_tables
 
 
-if __name__ == "__main__":
-
-    rl = ResultsLogger(
-        DotMap(
-            project_root="/mounts/u-amo-d1/adibm-data/projects/ZSToD/",
-            # results_path="playground/t5_tod_out/2024-04-28/16-44-39/results/all.csv",
-            results_path="playground/t5_tod_out/2024-05-23/06-16-46/results/Buses_3,RentalCars_3.csv",
-            chatgpt_results_path="playground/t5_tod_out/2024-05-15/02-29-21/results/chatgpt_inference.csv",
-            out_dir="results",
-        )
-    )
+@hydra.main(config_path="../../config/", config_name="results_logger")
+def hydra_start(cfg: DictConfig) -> None:
+    rl = ResultsLogger(cfg)
     rl.run()
+
+
+if __name__ == "__main__":
+    hydra_start()
+
+# if __name__ == "__main__":
+
+#     rl = ResultsLogger(
+#         DotMap(
+#             project_root="/mounts/u-amo-d1/adibm-data/projects/ZSToD/",
+#             # results_path="playground/t5_tod_out/2024-04-28/16-44-39/results/all.csv",
+#             results_path="results/all.csv",
+#             chatgpt_results_path="data_exploration/chatgpt/chat_gpt_all.csv",
+#             out_dir="results",
+#         )
+#     )
+#     rl.run()
