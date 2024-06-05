@@ -350,8 +350,20 @@ class T5Tod:
                 quantization_config=config,
                 device_map=device_map,
             )
-            saved_config = PeftConfig.from_pretrained(model_out_dir)
-            model = PeftModel.from_pretrained(model, saved_config)
+            model = PeftModel.from_pretrained(model, model_out_dir)
+        elif (
+            self.cfg.model_type.quantization
+            and self.cfg.model_type.quantization_dtype == 8
+        ):  
+            config=BitsAndBytesConfig(load_in_8bit=True)
+
+            device_map = {"": accelerator.device}
+            model = model_cls.from_pretrained(
+                self.cfg.model_type.model_name,
+                quantization_config=config,
+                device_map=device_map,
+            )
+            model = PeftModel.from_pretrained(model, model_out_dir)
         model.eval()
 
         collate_fn = (
