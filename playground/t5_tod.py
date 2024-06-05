@@ -8,6 +8,7 @@ from omegaconf import DictConfig
 sys.path.insert(0, os.path.abspath("./src"))
 from generation.generation_handler_factory import GenerationHandlerFactory
 from simple_tod_dataclasses import TodTestDataBatch
+from metric_managers.metric_manager_factory import MetricManagerFactory
 from metric_managers.ketod_metric_manager import KeTodMetricManager
 from prompts.prompt_constants import NlgPromptType
 from logger.service_call_inference_logger import ServiceCallInferenceLogger
@@ -386,7 +387,10 @@ class T5Tod:
                 num_workers=8,
             )
             test_dl = accelerator.prepare(test_dl)
-            metric_manager = self.get_metric_manager(self.cfg.context_type, tokenizer)
+            # metric_manager = self.get_metric_manager(self.cfg.context_type, tokenizer)
+            metric_manager = MetricManagerFactory.get_metric_manager(
+                self.cfg.context_type, tokenizer, self.logger
+            )
             for batch in tqdm(test_dl):
                 # max_gen_len = self.cfg.max_token_len - self.cfg.test_prompt_max_len
                 max_gen_len = self.cfg.max_token_len

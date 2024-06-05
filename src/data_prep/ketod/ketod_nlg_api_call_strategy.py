@@ -1,7 +1,7 @@
 from configs.dataprep_config import DataPrepConfig
 from data_prep.data_prep_strategy import DataPrepStrategy
 from data_prep.nlg_api_call_strategy import NlgApiCallStrategy
-from my_enums import TurnRowType
+from my_enums import DstcSystemActions, TurnRowType
 from tod.nlg.ke_tod_context import KeTodContext
 from tod.nlg.ke_tod_turn import KeTodTurn
 from tod.nlg.nlg_tod_context import NlgTodContext
@@ -56,6 +56,8 @@ class KetodNlgApiCallStrategy(NlgApiCallStrategy):
             )
             if tod_turn.target.response == "":
                 continue
+            tod_turn.is_retrieval = 1 if self.has_request_action(ds_turn) else 0
+            tod_turn.is_slot_fill = 1 if self.system_has_request_action(ds_turn) else 0
             i, api_turn = self.prepare_api_call_turn(
                 turn_csv_row_handler,
                 ds_turn,
@@ -132,7 +134,7 @@ class KetodNlgApiCallStrategy(NlgApiCallStrategy):
         new_turn.turn_row_type = TurnRowType.KE_QUERY.value
         new_turn.context.api_call = None
         new_turn.context.service_results = None
-        new_turn.turn_row_type = TurnRowType.API_CALL.value
+        # new_turn.turn_row_type = TurnRowType.API_CALL.value
 
         new_turn.context.entity_query = None
         new_turn.context.kg_snippets_text = None
@@ -185,7 +187,9 @@ class KetodNlgApiCallStrategy(NlgApiCallStrategy):
         new_turn.context.api_call = None
         new_turn.context.service_results = None
         new_turn.turn_row_type = TurnRowType.API_CALL.value
-
+        new_turn.is_multi_domain_api_call = self.is_multi_domain_api_call(
+            new_turn, tod_turns, schemas
+        )
         new_turn.context.entity_query = None
         new_turn.context.kg_snippets_text = None
         self.add_tod_turn(
@@ -246,3 +250,23 @@ class KetodNlgApiCallStrategy(NlgApiCallStrategy):
 
     def prepare_target(self, turn: Log, schemas: dict[str, Any]) -> NlgTodTarget:
         return NlgTodTarget(response=turn.system_response)
+
+    def has_request_action(self, log: Log) -> bool:
+        """
+        Check if the user turn has a REQUEST action.
+        """
+        for frame in log.original_user_side_information.frames:
+            for action in frame.actions:
+                if action.act == DstcSystemActions.REQUEST.value:
+                    return True
+        return False
+
+    def system_has_request_action(self, log: Log) -> bool:
+        """
+        Check if the system turn has a REQUEST action.
+        """
+        for frame in log.original_system_side_information.frames:
+            for action in frame.actions:
+                if action.act == DstcSystemActions.REQUEST.value:
+                    return True
+        return False

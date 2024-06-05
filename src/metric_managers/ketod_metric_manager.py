@@ -8,6 +8,7 @@ from logger.inference_logger_dataclasses import (
     ApiCallInferenceLogData,
     KetodInferenceLogData,
 )
+from metric_managers.nlg_api_call_metric_manager import NlgApiCallMetricManager
 from metrics.api_call_invoke_metric import ApiCallInvokeMetric
 from metrics.complete_api_call_metric import CompleteApiCallMetric
 from metrics.api_call_parameters_metric import ApiCallParametersMetric
@@ -22,26 +23,9 @@ from my_enums import TurnRowType
 accelerator = Accelerator()
 
 
-class KeTodMetricManager:
+class KeTodMetricManager(NlgApiCallMetricManager):
     def __init__(self, logger, tokenizer):
-        self.tokenizer = tokenizer
-        self.logger = logger
-        self.data: list[ApiCallInferenceLogData] = []
-
-        self.response_metrics = MetricCollection(
-            {
-                "response_gleu": NlgGleuMetric(),
-                "response_bleu": NlgGleuMetric("bleu"),
-            }
-        )
-        self.api_call_metrics = MetricCollection(
-            {
-                "api_call_method": ApiCallMethodMetric(),
-                "api_call_params": ApiCallParametersMetric(),
-                "api_call_invoke": ApiCallInvokeMetric(invoke_text="ApiCall"),
-            }
-        )
-        self.complete_api_call = CompleteApiCallMetric()
+        super().__init__(logger, tokenizer)
 
         self.ke_metrics = MetricCollection(
             {
@@ -51,6 +35,20 @@ class KeTodMetricManager:
             }
         )
         self.complete_kb_call = CompleteApiCallMetric()
+        self.multi_domain_api_call_metrics = MetricCollection(
+            {
+                "multi_domain_ke_method": ApiCallMethodMetric(name="KE Multi Domain"),
+                "multi_domain_ke_params": ApiCallParametersMetric(
+                    name="KE Multi Domain"
+                ),
+                "multi_domain_ke_api_call_invoke": ApiCallInvokeMetric(
+                    invoke_text="EntityQuery", name="KE Multi Domain "
+                ),
+            }
+        )
+        self.multi_domain_ke_complete_api_call = CompleteApiCallMetric(
+            name="KE Multi Domain"
+        )
 
     def compute_metrics(self, domain_names: str):
         all_metrics = (
@@ -61,7 +59,7 @@ class KeTodMetricManager:
         )
         for v in all_metrics:
             res = str(v)
-            utils.log(self.logger,res)
+            utils.log(self.logger, res)
             # print(res)
 
     def add_batch(self, input_tokens, label_tokens, pred_tokens, turn_row_type):
@@ -102,51 +100,60 @@ class KeTodMetricManager:
         df = pd.DataFrame(self.data)
         df.to_csv(csv_path, index=False, encoding="utf-8")
 
-    def compute_row_wise_metrics(self):
-        for row in self.data:
-            row_dict = DotMap(row.__dict__)
-            if row.turn_row_type == TurnRowType.RESPONSE.value:
+    def hook_for_additional_metrics(self, row, row_dict):
+        if row.turn_row_type == TurnRowType.KE_QUERY.value:
+            for k, v in zip(
+                list(self.ke_metrics.keys()),
+                list(self.ke_metrics.values()),
+            ):
+                res = v.compute_row(row.pred, row.label)
+                if k == "ke_params":
+                    row_dict.ke_params = res[0]
+                    row_dict.ke_param_values = res[1]
+                else:
+                    row_dict[k] = res
+            row_dict.complete_kb_call = self.complete_kb_call.compute_row(
+                [row_dict.ke_method],
+                [
+                    (
+                        row_dict.ke_params,
+                        row_dict.ke_param_values,
+                    )
+                ],
+            )
+            if row.is_multi_domain_api_call:
                 for k, v in zip(
-                    list(self.response_metrics.keys()),
-                    list(self.response_metrics.values()),
+                    list(self.multi_domain_api_call_metrics.keys()),
+                    list(self.multi_domain_api_call_metrics.values()),
                 ):
                     res = v.compute_row(row.pred, row.label)
-                    row_dict[k] = res
-            elif row.turn_row_type == TurnRowType.API_CALL.value:
-                for k, v in zip(
-                    list(self.api_call_metrics.keys()),
-                    list(self.api_call_metrics.values()),
-                ):
-                    res = v.compute_row(row.pred, row.label)
-                    row_dict[k] = res
-                row_dict.complete_api_call = self.complete_api_call.update(
-                    [row_dict.api_call_method], [row_dict.api_call_params]
+                    if "ke_params" in k:
+                        row_dict.multi_domain_ke_params = res[0]
+                        row_dict.multi_domain_ke_params_values = res[1]
+                        if len(res) == 3:
+                            row_dict.multi_domain_api_call_param_relation = res[2]
+                    else:
+                        row_dict[k] = res
+
+                row_dict.multi_domain_ke_complete_api_call = (
+                    self.multi_domain_ke_complete_api_call.compute_row(
+                        [row_dict.multi_domain_ke_api_call_method],
+                        [
+                            (
+                                row_dict.multi_domain_ke_params,
+                                row_dict.multi_domain_ke_param_values,
+                            )
+                        ],
+                    )
                 )
-            elif row.turn_row_type == TurnRowType.KE_QUERY.value:
-                for k, v in zip(
-                    list(self.ke_metrics.keys()),
-                    list(self.ke_metrics.values()),
-                ):
-                    res = v.compute_row(row.pred, row.label)
-                    row_dict[k] = res
-                row_dict.complete_kb_call = self.complete_kb_call.update(
-                    [row_dict.ke_method], [row_dict.ke_params]
+                self.multi_domain_ke_complete_api_call.update(
+                    [row_dict.multi_domain_ke_method],
+                    [
+                        (
+                            row_dict.multi_domain_ke_params,
+                            row_dict.multi_domain_ke_param_values,
+                        )
+                    ],
                 )
 
-            row = KetodInferenceLogData(**row_dict)
-        # metric_objects = list(self.response_metrics.values()) + list(
-        #     self.api_call_metrics.values()
-        # )
-        # metric_names = list(self.response_metrics.keys()) + list(
-        #     self.api_call_metrics.keys()
-        # )
-
-        # for row in self.data:
-        #     row_dict = DotMap(row.__dict__)
-        #     for k, v in zip(metric_names, metric_objects):
-        #         res = v.compute_row(row_dict.pred, row_dict.label)
-        #         row_dict[k] = res
-        #     row_dict.complete_api_call = self.complete_api_call.compute_row(
-        #         row_dict.api_call_method, row_dict.api_call_params
-        #     )
-        #     row = ServiceCallInferenceLogData(**row_dict)
+        row.update(row_dict)

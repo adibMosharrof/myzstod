@@ -245,7 +245,11 @@ class NlgApiCallMetricManager:
                             )
                         ],
                     )
+            self.hook_for_additional_metrics(row, row_dict)
             row.update(row_dict)
+
+    def hook_for_additional_metrics(self, row, row_dict):
+        pass
 
     def compute_is_retrieval_and_slot_fill_metrics(self):
 
