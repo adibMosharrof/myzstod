@@ -95,26 +95,6 @@ class KeTodMetricManager(NlgApiCallMetricManager):
             ke_preds,
             ke_labels,
         ) = ([], [], [], [], [], [], [], [])
-
-        # for i, p, l, s in zip(input_texts, preds, labels, turn_row_types):
-        #     row = KetodInferenceLogData(i, l, p, int(s))
-        #     self.data.append(row)
-        #     if s == TurnRowType.RESPONSE.value:
-        #         response_preds.append(row.pred)
-        #         response_labels.append(row.label)
-        #     elif s == TurnRowType.API_CALL.value:
-        #         sc_preds.append(row.pred)
-        #         sc_labels.append(row.label)
-        #     elif s == TurnRowType.KE_QUERY.value:
-        #         ke_preds.append(row.pred)
-        #         ke_labels.append(row.label)
-        #     else:
-        #         raise ValueError(f"Unknown turn row type {s}")
-        # self.response_metrics.update(
-        #     references=response_labels, predictions=response_preds
-        # )
-        # self.api_call_metrics.update(references=sc_labels, predictions=sc_preds)
-        # self.ke_metrics.update(references=ke_labels, predictions=ke_preds)
         for (
             input_text,
             pred,
@@ -138,7 +118,7 @@ class KeTodMetricManager(NlgApiCallMetricManager):
             is_multi_domain_api_calls,
             domains,
         ):
-            row = ApiCallInferenceLogData(
+            row = KetodInferenceLogData(
                 input_text=input_text,
                 pred=pred,
                 label=label,
@@ -228,4 +208,4 @@ class KeTodMetricManager(NlgApiCallMetricManager):
                     ],
                 )
 
-        row.update(row_dict)
+        # row.update(row_dict)
