@@ -70,7 +70,7 @@ class ZsTodTurn:
 class TodTurnCsvRowFactory:
     @classmethod
     def get_handler(self, cfg):
-        if cfg.is_scale_grad:
+        if cfg.get("is_scale_grad", 0):
             return TodTurnScaleGradCsvRow
         if (
             cfg.context_type == ContextType.NLG_API_CALL
