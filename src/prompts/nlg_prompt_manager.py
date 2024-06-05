@@ -86,6 +86,8 @@ class KetodPrompt:
         dialog_history: str,
         other_domain: str = None,
         other_domain_schema: str = None,
+        all_schema: dict[str, DstcSchema] = None,
+        domains_original: str = None,
     ) -> str:
         """
         Returns the NLG prompt for the given domain
