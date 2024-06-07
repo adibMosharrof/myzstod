@@ -179,6 +179,7 @@ class ContextType(str, Enum):
     KETOD_API_CALL = "ketod_api_call"
     BITOD = "bitod"
     CHATGPT = "chatgpt"
+    GPT_API_CALL = "gpt_api_call"
 
     @classmethod
     def list(cls):
