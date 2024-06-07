@@ -20,7 +20,10 @@ class DataPrepStrategyResolver:
             return NlgDataPrep(cfg)
         if cfg.context_type == ContextType.SHORT_REPR.value:
             return ZsTodDataPrep(cfg)
-        if cfg.context_type == ContextType.NLG_API_CALL.value:
+        if cfg.context_type in [
+            ContextType.NLG_API_CALL.value,
+            ContextType.GPT_API_CALL.value,
+        ]:
             return NlgApiCallStrategy(cfg)
         if cfg.context_type == ContextType.KETOD_API_CALL.value:
             return KetodNlgApiCallStrategy(cfg)

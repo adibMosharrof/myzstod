@@ -9,7 +9,10 @@ class MetricManagerFactory:
 
     @classmethod
     def get_metric_manager(self, context_type: str, tokenizer, logger):
-        if context_type == ContextType.NLG_API_CALL.value:
+        if context_type in [
+            ContextType.NLG_API_CALL.value,
+            ContextType.GPT_API_CALL.value,
+        ]:
             return NlgApiCallMetricManager(logger, tokenizer)
         if context_type == ContextType.KETOD_API_CALL.value:
             return KeTodMetricManager(logger, tokenizer)
