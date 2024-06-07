@@ -113,7 +113,7 @@ class T5Tod:
         print(self.cfg)
 
     def get_metric_manager(self, context_type: str, tokenizer):
-        if context_type == ContextType.NLG_API_CALL.value:
+        if context_type in [ContextType.NLG_API_CALL.value, ContextType.GPT_API_CALL.value]:
             return NlgApiCallMetricManager(self.logger, tokenizer)
         if context_type == ContextType.KETOD_API_CALL.value:
             return KeTodMetricManager(self.logger, tokenizer)
