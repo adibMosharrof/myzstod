@@ -28,6 +28,8 @@ class SimpleGeneration(GenerationBase):
             top_k=50,
             top_p=0.92,
             num_return_sequences=1,
+            eos_token_id=self.tokenizer.eos_token_id,
+            pad_token_id=self.tokenizer.pad_token_id,
         )
         return self.pad_gen_to_max_len(gen, max_len)
 
