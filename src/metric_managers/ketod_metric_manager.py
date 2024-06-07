@@ -34,21 +34,22 @@ class KeTodMetricManager(NlgApiCallMetricManager):
                 "ke_api_call_invoke": ApiCallInvokeMetric(invoke_text="EntityQuery"),
             }
         )
-        self.complete_kb_call = CompleteApiCallMetric()
-        self.multi_domain_api_call_metrics = MetricCollection(
-            {
-                "multi_domain_ke_method": ApiCallMethodMetric(name="KE Multi Domain"),
-                "multi_domain_ke_params": ApiCallParametersMetric(
-                    name="KE Multi Domain"
-                ),
-                "multi_domain_ke_api_call_invoke": ApiCallInvokeMetric(
-                    invoke_text="EntityQuery", name="KE Multi Domain "
-                ),
-            }
-        )
-        self.multi_domain_ke_complete_api_call = CompleteApiCallMetric(
-            name="KE Multi Domain"
-        )
+        self.complete_kb_call = CompleteApiCallMetric(name="KE")
+        # self.multi_domain_api_call_metrics = MetricCollection(
+        #     {
+        #         "multi_domain_ke_method": ApiCallMethodMetric(name="KE Multi Domain"),
+        #         "multi_domain_ke_params": ApiCallParametersMetric(
+        #             name="KE Multi Domain"
+        #         ),
+        #         "multi_domain_ke_api_call_invoke": ApiCallInvokeMetric(
+        #             # invoke_text="EntityQuery", name="KE Multi Domain "
+        #              name="KE Multi Domain "
+        #         ),
+        #     }
+        # )
+        # self.multi_domain_ke_complete_api_call = CompleteApiCallMetric(
+        #     name="KE Multi Domain"
+        # )
 
     def compute_metrics(self, domain_names: str):
         all_metrics = (
@@ -56,6 +57,8 @@ class KeTodMetricManager(NlgApiCallMetricManager):
             + list(self.ke_metrics.values())
             + list(self.api_call_metrics.values())
             + [self.complete_api_call, self.complete_kb_call]
+            + list(self.multi_domain_api_call_metrics.values())
+            + [self.multi_domain_complete_api_call]
         )
         for v in all_metrics:
             res = str(v)
@@ -173,39 +176,48 @@ class KeTodMetricManager(NlgApiCallMetricManager):
                     )
                 ],
             )
-            if row.is_multi_domain_api_call:
-                for k, v in zip(
-                    list(self.multi_domain_api_call_metrics.keys()),
-                    list(self.multi_domain_api_call_metrics.values()),
-                ):
-                    res = v.compute_row(row.pred, row.label)
-                    if "ke_params" in k:
-                        row_dict.multi_domain_ke_params = res[0]
-                        row_dict.multi_domain_ke_params_values = res[1]
-                        if len(res) == 3:
-                            row_dict.multi_domain_api_call_param_relation = res[2]
-                    else:
-                        row_dict[k] = res
-
-                row_dict.multi_domain_ke_complete_api_call = (
-                    self.multi_domain_ke_complete_api_call.compute_row(
-                        [row_dict.multi_domain_ke_api_call_method],
-                        [
-                            (
-                                row_dict.multi_domain_ke_params,
-                                row_dict.multi_domain_ke_param_values,
-                            )
-                        ],
+            self.complete_kb_call.update(
+                [row_dict.ke_method],
+                [
+                    (
+                        row_dict.ke_params,
+                        row_dict.ke_param_values,
                     )
-                )
-                self.multi_domain_ke_complete_api_call.update(
-                    [row_dict.multi_domain_ke_method],
-                    [
-                        (
-                            row_dict.multi_domain_ke_params,
-                            row_dict.multi_domain_ke_param_values,
-                        )
-                    ],
-                )
+                ],
+            )
+            # if row.is_multi_domain_api_call:
+            #     for k, v in zip(
+            #         list(self.multi_domain_api_call_metrics.keys()),
+            #         list(self.multi_domain_api_call_metrics.values()),
+            #     ):
+            #         res = v.compute_row(row.pred, row.label)
+            #         if "ke_params" in k:
+            #             row_dict.multi_domain_ke_params = res[0]
+            #             row_dict.multi_domain_ke_params_values = res[1]
+            #             if len(res) == 3:
+            #                 row_dict.multi_domain_api_call_param_relation = res[2]
+            #         else:
+            #             row_dict[k] = res
+
+            #     row_dict.multi_domain_ke_complete_api_call = (
+            #         self.multi_domain_ke_complete_api_call.compute_row(
+            #             [row_dict.multi_domain_ke_api_call_method],
+            #             [
+            #                 (
+            #                     row_dict.multi_domain_ke_params,
+            #                     row_dict.multi_domain_ke_param_values,
+            #                 )
+            #             ],
+            #         )
+            #     )
+            #     self.multi_domain_ke_complete_api_call.update(
+            #         [row_dict.multi_domain_ke_method],
+            #         [
+            #             (
+            #                 row_dict.multi_domain_ke_params,
+            #                 row_dict.multi_domain_ke_param_values,
+            #             )
+            #         ],
+            #     )
 
         # row.update(row_dict)
