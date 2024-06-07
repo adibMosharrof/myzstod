@@ -72,10 +72,11 @@ class TodTurnCsvRowFactory:
     def get_handler(self, cfg):
         if cfg.get("is_scale_grad", 0):
             return TodTurnScaleGradCsvRow
-        if (
-            cfg.context_type == ContextType.NLG_API_CALL
-            or cfg.context_type == ContextType.KETOD_API_CALL
-            or cfg.context_type == ContextType.BITOD
-        ):
+        if cfg.context_type in [
+            ContextType.NLG_API_CALL,
+            ContextType.GPT_API_CALL,
+            ContextType.KETOD_API_CALL,
+            ContextType.BITOD,
+        ]:
             return TodTurnApiCallCsvRow
         return TodTurnCsvRow

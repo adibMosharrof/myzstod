@@ -18,7 +18,7 @@ class TurnCsvRowFactory:
             csv_row_cls = MultiTaskCsvRow()
         if cfg.is_scale_grad:
             csv_row_cls = ScaleGradTurnCsvRow(csv_row_cls)
-        if cfg.context_type == ContextType.NLG_API_CALL:
+        if cfg.context_type in [ContextType.NLG_API_CALL, ContextType.GPT_API_CALL]:
             csv_row_cls = ApiCallTurnCsvRow()
         if cfg.context_type == ContextType.KETOD_API_CALL:
             csv_row_cls = KetodApiCallTurnCsvRow()
