@@ -18,7 +18,7 @@ from tod.zs_tod_context import ZsTodContext
 from tod.zs_tod_target import ZsTodTarget
 import utils
 from utilities.text_utilities import get_nlg_service_name
-from my_enums import ContextType
+from my_enums import ContextType, SpecialTokens
 
 
 class DataPrepStrategy(ABC):
@@ -53,7 +53,7 @@ class DataPrepStrategy(ABC):
 
         utt = system_turn.utterance
         if self.cfg.context_type == ContextType.GPT_API_CALL:
-            utt += self.cfg.tokenizer.eos_token
+            utt += SpecialTokens.eos_token.value
         return utt
         # return system_turn.utterance
 
