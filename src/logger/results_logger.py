@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Optional
 from dotmap import DotMap
 import hydra
+import numpy as np
 from omegaconf import DictConfig
 import pandas as pd
 import os
@@ -14,6 +15,7 @@ from logger.inference_logger_dataclasses import ApiCallInferenceLogData
 from my_enums import TurnRowType
 import utils
 import csv
+import evaluate
 
 # from pytablewriter import MarkdownTableWriter
 
@@ -52,11 +54,25 @@ class ResultsLogger:
             setting_results = {}
             setting_results["setting"] = setting
             response_rows = rows[rows["turn_row_type"] == TurnRowType.RESPONSE.value]
+            bleu_metric = evaluate.load("bleu")
+            gleu_metric = evaluate.load("google_bleu")
+            preds = response_rows.pred
+            refs = np.expand_dims(response_rows.label, axis=1)
+            bleu_score = bleu_metric.compute(predictions=preds, references=refs)["bleu"]
+            gleu_score = gleu_metric.compute(predictions=preds, references=refs)[
+                "google_bleu"
+            ]
             setting_results.update(
-                self.get_group_metrics(
-                    response_rows, ["response_bleu", "response_gleu"]
+                DotMap(
+                    response_bleu=round(bleu_score, 4),
+                    response_gleu=round(gleu_score, 4),
                 )
             )
+            # setting_results.update(
+            #     self.get_group_metrics(
+            #         response_rows, ["response_bleu", "response_gleu"]
+            #     )
+            # )
             api_rows = rows[rows["turn_row_type"] == TurnRowType.API_CALL.value]
             setting_results.update(
                 self.get_group_metrics(
@@ -70,8 +86,10 @@ class ResultsLogger:
                     ],
                 )
             )
-            if 'ketod' in self.cfg.raw_data_root.name:
-                ke_query_rows = rows[rows["turn_row_type"] == TurnRowType.KE_QUERY.value]
+            if "ketod" in self.cfg.raw_data_root.name:
+                ke_query_rows = rows[
+                    rows["turn_row_type"] == TurnRowType.KE_QUERY.value
+                ]
                 setting_results.update(
                     self.get_group_metrics(
                         ke_query_rows,

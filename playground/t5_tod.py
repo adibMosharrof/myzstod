@@ -358,8 +358,8 @@ class T5Tod:
         elif (
             self.cfg.model_type.quantization
             and self.cfg.model_type.quantization_dtype == 8
-        ):  
-            config=BitsAndBytesConfig(load_in_8bit=True)
+        ):
+            config = BitsAndBytesConfig(load_in_8bit=True)
 
             device_map = {"": accelerator.device}
             model = model_cls.from_pretrained(
@@ -368,6 +368,9 @@ class T5Tod:
                 device_map=device_map,
             )
             model = PeftModel.from_pretrained(model, model_out_dir)
+        else:
+            model = model_cls.from_pretrained(model_out_dir).cuda()
+            model.resize_token_embeddings(len(tokenizer))
         model.eval()
 
         collate_fn = (
@@ -435,7 +438,7 @@ class T5Tod:
                     results_path=os.getcwd() / self.cfg.out_dir / "all.csv",
                     chatgpt_results_path="data_exploration/chatgpt/chat_gpt_all.csv",
                     out_dir=self.cfg.out_dir,
-                    raw_data_root=self.cfg.raw_data_root
+                    raw_data_root=self.cfg.raw_data_root,
                 )
             )
             rl.run()
