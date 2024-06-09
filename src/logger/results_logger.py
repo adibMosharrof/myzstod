@@ -9,9 +9,11 @@ import os
 import sys
 
 sys.path.insert(0, os.path.abspath("./src"))
+from dstc.dstc_domains import DstcDomainBuilder, DstcDomains
 from logger.inference_logger_dataclasses import ApiCallInferenceLogData
 from my_enums import TurnRowType
 import utils
+import csv
 
 # from pytablewriter import MarkdownTableWriter
 
@@ -23,9 +25,134 @@ class ResultsLogger:
         self.cfg.project_root = Path(cfg.project_root)
 
     def get_csv(self, path):
-        # return pd.read_csv(self.cfg.project_root / path)
         data = pd.read_csv(self.cfg.project_root / path)
         return data
+
+    def get_group_metrics(self, group, metric_names):
+        results = {}
+        for metric_name in metric_names:
+            try:
+                metric = group[metric_name].mean().round(4)
+                results[metric_name] = metric
+            except AttributeError as e:
+                print(f"no {metric_name} data for group")
+        return results
+
+    def get_regular_setting_results(self, results):
+        csv_results = []
+        rows_seen, rows_unseen, rows_mixed = self.get_data_by_settings(results)
+        for rows, setting in zip(
+            [results, rows_seen, rows_unseen, rows_mixed],
+            ["all", "seen", "unseen", "mixed"],
+        ):
+            if len(rows) == 0:
+                print(f"no data for setting {setting}")
+                continue
+            setting_results = {}
+            setting_results["setting"] = setting
+            response_rows = rows[rows["turn_row_type"] == TurnRowType.RESPONSE.value]
+            setting_results.update(
+                self.get_group_metrics(
+                    response_rows, ["response_bleu", "response_gleu"]
+                )
+            )
+            api_rows = rows[rows["turn_row_type"] == TurnRowType.API_CALL.value]
+            setting_results.update(
+                self.get_group_metrics(
+                    api_rows,
+                    [
+                        "api_call_invoke",
+                        "api_call_method",
+                        "api_call_param_names",
+                        "api_call_param_values",
+                        "complete_api_call",
+                    ],
+                )
+            )
+            if 'ketod' in self.cfg.raw_data_root:
+                ke_query_rows = rows[rows["turn_row_type"] == TurnRowType.KE_QUERY.value]
+                setting_results.update(
+                    self.get_group_metrics(
+                        ke_query_rows,
+                        [
+                            "ke_api_call_invoke",
+                            "ke_method",
+                            "ke_params",
+                            # "ke_param_values",
+                            "complete_kb_call",
+                        ],
+                    )
+                )
+
+            retrieval_rows = rows[rows["is_retrieval"] == 1]
+            retrieval_metrics = self.get_group_metrics(
+                retrieval_rows, ["response_bleu", "response_gleu"]
+            )
+            setting_results.update(
+                DotMap(
+                    retrieval_bleu=retrieval_metrics["response_bleu"],
+                    retrieval_gleu=retrieval_metrics["response_gleu"],
+                )
+            )
+
+            slot_fill_rows = rows[rows["is_slot_fill"] == 1]
+            slot_fill_metrics = self.get_group_metrics(
+                slot_fill_rows, ["response_bleu", "response_gleu"]
+            )
+            setting_results.update(
+                DotMap(
+                    slot_fill_bleu=slot_fill_metrics["response_bleu"],
+                    slot_fill_gleu=slot_fill_metrics["response_gleu"],
+                )
+            )
+            csv_results.append(setting_results)
+        keys = csv_results[0].keys()
+        out_dir = Path(self.cfg.out_dir)
+        out_dir.mkdir(parents=True, exist_ok=True)
+        with open(out_dir / "regular_results.csv", "w") as f:
+            writer = csv.DictWriter(f, fieldnames=keys)
+            writer.writeheader()
+            writer.writerows(csv_results)
+
+    def get_data_by_settings(self, results):
+        data_root = self.cfg.get("raw_data_root", None)
+        if data_root is None:
+            try:
+                data_root = self.cfg.dataset["raw_data_root"]
+            except KeyError as e:
+                print("no data root in config")
+                raise (e)
+
+        db = DstcDomainBuilder(self.cfg.project_root / Path(data_root), 1)
+        domain_map = {
+            step: db.get_domains(step)
+            for step in [DstcDomains.SEEN, DstcDomains.UNSEEN]
+        }
+        rows_by_domain_setting = {
+            step: [] for step in [DstcDomains.SEEN, DstcDomains.UNSEEN]
+        }
+        mixed_domain_rows = []
+        for i, row in results.iterrows():
+            domains = row["domains"].split(",")
+            in_seen_domains = []
+            in_unseen_domains = []
+            for dom in domains:
+                if dom in domain_map[DstcDomains.SEEN]:
+                    in_seen_domains.append(1)
+                if dom in domain_map[DstcDomains.UNSEEN]:
+                    in_unseen_domains.append(1)
+            if len(in_seen_domains) > 0 and len(in_unseen_domains) > 0:
+                mixed_domain_rows.append(i)
+            elif len(in_seen_domains) > 0:
+                rows_by_domain_setting[DstcDomains.SEEN].append(i)
+            elif len(in_unseen_domains) > 0:
+                rows_by_domain_setting[DstcDomains.UNSEEN].append(i)
+            else:
+                raise ValueError("no domain match")
+        rows_seen = results.iloc[rows_by_domain_setting[DstcDomains.SEEN]]
+        rows_unseen = results.iloc[rows_by_domain_setting[DstcDomains.UNSEEN]]
+        rows_mixed = results.iloc[mixed_domain_rows]
+        return rows_seen, rows_unseen, rows_mixed
 
     def get_results(self, results):
         response_rows = results[results["turn_row_type"] == TurnRowType.RESPONSE.value]
@@ -158,7 +285,6 @@ class ResultsLogger:
         )
         results = sorted(results.items())
         tables = []
-        # chat_gpt_results = sorted(chat_gpt_results.items())
         for key, col_group in col_groups.items():
             headers = ["domains"] + col_group * 2
             csv_path = Path(self.cfg.out_dir) / f"{key}.csv"
@@ -174,19 +300,11 @@ class ResultsLogger:
                     row.append(c_value)
                 rows.append(row)
             utils.write_csv(headers, rows, csv_path)
-            # writer = MarkdownTableWriter(
-            #     table_name=table_name,
-            #     headers=["domain"] + col_group * 2,
-            #     value_matrix=rows,
-            # )
-            # writer.write_table()
-            # tables.append(writer.dumps())
-        # return tables
-        a = 1
 
     def run(self):
         chat_gpt_csv = self.get_csv(self.cfg.chatgpt_results_path)
         results_csv = self.get_csv(self.cfg.results_path)
+        setting_results = self.get_regular_setting_results(results_csv)
         turn_row_results = self.get_results(results_csv)
         chat_gpt_results = self.get_results(chat_gpt_csv)
         self.write_results(turn_row_results, chat_gpt_results)
