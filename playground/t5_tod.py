@@ -435,6 +435,7 @@ class T5Tod:
                     results_path=os.getcwd() / self.cfg.out_dir / "all.csv",
                     chatgpt_results_path="data_exploration/chatgpt/chat_gpt_all.csv",
                     out_dir=self.cfg.out_dir,
+                    raw_data_root=self.cfg.raw_data_root
                 )
             )
             rl.run()

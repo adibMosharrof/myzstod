@@ -23,6 +23,7 @@ class ResultsLogger:
     def __init__(self, cfg):
         self.cfg = cfg
         self.cfg.project_root = Path(cfg.project_root)
+        self.cfg.raw_data_root = Path(cfg.raw_data_root)
 
     def get_csv(self, path):
         data = pd.read_csv(self.cfg.project_root / path)
@@ -69,7 +70,7 @@ class ResultsLogger:
                     ],
                 )
             )
-            if 'ketod' in self.cfg.raw_data_root:
+            if 'ketod' in self.cfg.raw_data_root.name:
                 ke_query_rows = rows[rows["turn_row_type"] == TurnRowType.KE_QUERY.value]
                 setting_results.update(
                     self.get_group_metrics(
