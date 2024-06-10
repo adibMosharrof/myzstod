@@ -207,13 +207,13 @@ class ChatGptInference:
                 res["multi_api_call_param_names"] = 0
                 res["multi_api_call_param_values"] = 0
                 res["multi_complete_api_call"] = 0
-
-            res["ke_api_call_invoke"] = setting_ke_rows.ke_api_call_invoke.mean().round(
-                4
-            )
-            res["ke_method"] = setting_ke_rows.ke_method.mean().round(4)
-            res["ke_params"] = setting_ke_rows.ke_params.mean().round(4)
-            res["ke_param_values"] = setting_ke_rows.ke_param_values.mean().round(4)
+            if "ketod" in self.cfg.raw_data_root.name:
+                res["ke_api_call_invoke"] = (
+                    setting_ke_rows.ke_api_call_invoke.mean().round(4)
+                )
+                res["ke_method"] = setting_ke_rows.ke_method.mean().round(4)
+                res["ke_params"] = setting_ke_rows.ke_params.mean().round(4)
+                res["ke_param_values"] = setting_ke_rows.ke_param_values.mean().round(4)
 
             # if len(setting_multi_dom_ke_rows) > 0:
             #     res["multi_domain_ke_api_call_invoke"] = (
@@ -257,7 +257,8 @@ class ChatGptInference:
             results[setting] = res
 
         rl = ResultsLogger(self.cfg)
-        out = rl.get_results(responses)
+        responses_with_dom_category = rl.get_data_by_settings(responses)
+        out = rl.get_results(responses_with_dom_category)
         domain_data = [
             {
                 "domain": dom_name,
@@ -273,14 +274,15 @@ class ChatGptInference:
             index=False,
             encoding="utf-8",
         )
-        results_dict = []
-        for domain, metrics in results.items():
-            results_dict.append({"domain": domain, **metrics})
-        results_df = pd.DataFrame(results_dict)
+        rl.get_regular_setting_results(responses_with_dom_category)
+        # results_dict = []
+        # for domain, metrics in results.items():
+        #     results_dict.append({"domain": domain, **metrics})
+        # results_df = pd.DataFrame(results_dict)
 
-        results_df.to_csv(
-            out_dir / "regular_results.csv", index=False, encoding="utf-8"
-        )
+        # results_df.to_csv(
+        #     out_dir / "regular_results.csv", index=False, encoding="utf-8"
+        # )
 
     def run(self):
         steps = Steps.list()
