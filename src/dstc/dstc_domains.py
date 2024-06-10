@@ -12,9 +12,10 @@ import utils
 
 
 class DstcDomains(str, Enum):
+    ALL = "all"
     SEEN = "seen"
     UNSEEN = "unseen"
-    ALL = "all"
+    MIXED = "mixed"
 
     @classmethod
     def regular_settings(cls):
