@@ -35,9 +35,11 @@ class ApiCallMethodMetric(TodMetricsBase):
         accs = utils.create_tensor(self.method_accuracies)
         return torch.mean(accs, dtype=torch.float)
 
-    def compute_row(self, pred, ref):
-        pred = text_utilities.get_apicall_method_from_text(pred)
-        ref = text_utilities.get_apicall_method_from_text(ref)
+    def compute_row(self, pred_text, ref_text):
+        pred = text_utilities.get_apicall_method_from_text(pred_text, self.reg_exp)
+        ref = text_utilities.get_apicall_method_from_text(ref_text, self.reg_exp)
+        pred = pred.strip("'")
+        ref = ref.strip("'")
         if ref == "":
             return ref
         return int(pred == ref)
