@@ -90,45 +90,47 @@ class ResultsLogger:
                 )
             )
             multi_api_rows = api_rows[api_rows["is_multi_domain_api_call"] == 1]
-            multi_api_results = self.get_group_metrics(
-                multi_api_rows,
-                [
-                    "api_call_invoke",
-                    "api_call_method",
-                    "api_call_param_names",
-                    "api_call_param_values",
-                    "complete_api_call",
-                ],
-            )
-            setting_results.update(
-                DotMap(
-                    multi_api_call_invoke=multi_api_results["api_call_invoke"],
-                    multi_api_call_method=multi_api_results["api_call_method"],
-                    multi_api_call_param_names=multi_api_results[
-                        "api_call_param_names"
+            if len(multi_api_rows):
+                multi_api_results = self.get_group_metrics(
+                    multi_api_rows,
+                    [
+                        "api_call_invoke",
+                        "api_call_method",
+                        "api_call_param_names",
+                        "api_call_param_values",
+                        "complete_api_call",
                     ],
-                    multi_api_call_param_values=multi_api_results[
-                        "api_call_param_values"
-                    ],
-                    multi_complete_api_call=multi_api_results["complete_api_call"],
                 )
-            )
+                setting_results.update(
+                    DotMap(
+                        multi_api_call_invoke=multi_api_results["api_call_invoke"],
+                        multi_api_call_method=multi_api_results["api_call_method"],
+                        multi_api_call_param_names=multi_api_results[
+                            "api_call_param_names"
+                        ],
+                        multi_api_call_param_values=multi_api_results[
+                            "api_call_param_values"
+                        ],
+                        multi_complete_api_call=multi_api_results["complete_api_call"],
+                    )
+                )
             if "ketod" in self.cfg.raw_data_root.name:
                 ke_query_rows = rows[
                     rows["turn_row_type"] == TurnRowType.KE_QUERY.value
                 ]
-                setting_results.update(
-                    self.get_group_metrics(
-                        ke_query_rows,
-                        [
-                            "ke_api_call_invoke",
-                            "ke_method",
-                            "ke_params",
-                            # "ke_param_values",
-                            "complete_kb_call",
-                        ],
+                if len(ke_query_rows):
+                    setting_results.update(
+                        self.get_group_metrics(
+                            ke_query_rows,
+                            [
+                                "ke_api_call_invoke",
+                                "ke_method",
+                                "ke_params",
+                                "ke_param_values",
+                                "complete_kb_call",
+                            ],
+                        )
                     )
-                )
 
             retrieval_rows = rows[rows["is_retrieval"] == 1]
             retrieval_metrics = self.get_group_metrics(
