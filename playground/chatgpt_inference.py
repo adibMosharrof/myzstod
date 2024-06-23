@@ -149,12 +149,6 @@ class ChatGptInference:
             response_rows = df[df.turn_row_type == 0]
             api_rows = df[df.turn_row_type == 1]
             ke_rows = df[df.turn_row_type == 2]
-            # multi_dom_api_rows = df[
-            #     df.turn_row_type == 1 and df.is_multi_domain_api_call == 1
-            # ]
-            # multi_dom_api_rows = df.query(
-            #     "turn_row_type ==1 & is_multi_domain_api_call == 1"
-            # )
             multi_dom_api_rows = api_rows[api_rows.is_multi_domain_api_call == 1]
             multi_dom_ke_rows = ke_rows[ke_rows.is_multi_domain_api_call == 1]
             slot_fill_rows = df[df.is_slot_fill == 1]
