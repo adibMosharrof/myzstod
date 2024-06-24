@@ -236,7 +236,7 @@ class T5Tod:
         deepspeed_path = None
         # tokenizer.add_tokens(["<|user|>", "<|system|>"])
         model_cls = self.get_model_class(self.cfg.model_type.model_name)
-        if self.cfg.model_type.model_path:
+        if self.cfg.model_type.model_path and not self.cfg.should_train:
             model_out_dir = str(self.cfg.project_root / self.cfg.model_type.model_path)
         elif self.cfg.model_type.quantization:
             model = self.get_model(self.cfg.model_type.model_name, model_cls, tokenizer)
@@ -255,7 +255,7 @@ class T5Tod:
         else:
             train_dataset, val_dataset, test_datasets = self.dm.load_data()
 
-        if not self.cfg.model_type.model_path and self.cfg.should_train:
+        if self.cfg.should_train:
             bf16 = False
             fp16 = False
             if torch.cuda.is_bf16_supported():
@@ -317,7 +317,7 @@ class T5Tod:
             # model.save_pretrained(self.cfg.out_dir)
             model_out_dir = self.cfg.out_dir
 
-        if not self.cfg.model_type.model_path:
+        if self.cfg.should_train:
             _ = model.eval()
         print("starting inference")
 
@@ -423,6 +423,7 @@ class T5Tod:
                     accelerator,
                     metric_manager,
                 )
+            print('generation complete')
             # must call this first
             metric_manager.compute_row_wise_metrics()
             metric_manager.compute_metrics(domain_names)
