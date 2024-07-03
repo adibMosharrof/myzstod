@@ -263,8 +263,9 @@ class T5DataModule:
             data.is_slot_fills.append(torch.tensor(item.is_slot_fill))
             data.turn_ids.append(torch.tensor(int(item.turn_id)))
             data.dialog_ids.append(torch.tensor(int(item.dialog_id)))
+            multi_dom = getattr(batch, "is_multi_domain_api_call", 0)
             data.is_multi_domain_api_calls.append(
-                torch.tensor(int(item.is_multi_domain_api_call))
+                torch.tensor(int(multi_dom))
             )
             domain_tokens = self.my_tokenizer_pad(
                 item.domains_original, max_lengths.domains
