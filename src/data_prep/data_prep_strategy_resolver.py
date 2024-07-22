@@ -25,8 +25,8 @@ class DataPrepStrategyResolver:
             ContextType.GPT_API_CALL.value,
         ]:
             return NlgApiCallStrategy(cfg)
-        if cfg.context_type == ContextType.KETOD_API_CALL.value:
+        if cfg.context_type in [ContextType.KETOD_API_CALL.value, ContextType.KETOD_GPT_API_CALL.value]:
             return KetodNlgApiCallStrategy(cfg)
-        if cfg.context_type == ContextType.BITOD.value:
+        if cfg.context_type in [ContextType.BITOD.value,ContextType.BITOD_GPT.value]:
             return BitodStrategy(cfg)
         raise ValueError(f"Unknown data prep step: {cfg.context_type}")

@@ -1,7 +1,7 @@
 from configs.dataprep_config import DataPrepConfig
 from data_prep.data_prep_strategy import DataPrepStrategy
 from data_prep.nlg_api_call_strategy import NlgApiCallStrategy
-from my_enums import DstcSystemActions, TurnRowType
+from my_enums import ContextType, DstcSystemActions, SpecialTokens, TurnRowType
 from tod.nlg.ke_tod_context import KeTodContext
 from tod.nlg.ke_tod_turn import KeTodTurn
 from tod.nlg.nlg_tod_context import NlgTodContext
@@ -249,7 +249,15 @@ class KetodNlgApiCallStrategy(NlgApiCallStrategy):
         return context
 
     def prepare_target(self, turn: Log, schemas: dict[str, Any]) -> NlgTodTarget:
-        return NlgTodTarget(response=turn.system_response)
+        if not turn.system_response:
+            return None
+        response = self._prepare_response(turn.system_response)
+        return NlgTodTarget(response=response)
+    
+    def _prepare_response(self, utterance:str) -> str:
+        if self.cfg.context_type == ContextType.KETOD_GPT_API_CALL.value:
+            utterance += SpecialTokens.eos_token.value
+        return utterance
 
     def has_request_action(self, log: Log) -> bool:
         """

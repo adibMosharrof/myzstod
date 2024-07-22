@@ -73,10 +73,13 @@ class TodTurnCsvRowFactory:
         if cfg.get("is_scale_grad", 0):
             return TodTurnScaleGradCsvRow
         if cfg.context_type in [
-            ContextType.NLG_API_CALL,
-            ContextType.GPT_API_CALL,
-            ContextType.KETOD_API_CALL,
-            ContextType.BITOD,
+            ContextType.NLG_API_CALL.value,
+            ContextType.GPT_API_CALL.value,
+            ContextType.KETOD_API_CALL.value,
+            ContextType.KETOD_GPT_API_CALL.value,
+            ContextType.BITOD.value,
+            ContextType.BITOD_GPT.value,
         ]:
             return TodTurnApiCallCsvRow
+        raise ValueError("incorrect context type")
         return TodTurnCsvRow

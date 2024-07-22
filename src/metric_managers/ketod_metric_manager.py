@@ -20,7 +20,7 @@ from accelerate import Accelerator
 import utils
 from my_enums import TurnRowType
 
-accelerator = Accelerator()
+# accelerator = Accelerator()
 
 
 class KeTodMetricManager(NlgApiCallMetricManager):

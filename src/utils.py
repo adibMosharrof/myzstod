@@ -54,7 +54,7 @@ from fuzzywuzzy import fuzz
 from my_enums import SpecialTokens, ZsTodConstants
 from hurry.filesize import size
 from accelerate import Accelerator
-accelerator = Accelerator()
+
 
 def is_t5_model(model_name: str):
     return "t5" in model_name
@@ -127,6 +127,7 @@ def get_logger(name: str = "transformers"):
     return logging.getLogger(__name__)
 
 def log(logger, message: str):
+    accelerator = Accelerator()
     if accelerator.is_main_process:
         print(message)
         logger.info(message)
