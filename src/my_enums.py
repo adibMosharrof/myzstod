@@ -177,7 +177,9 @@ class ContextType(str, Enum):
     NLG = "nlg"
     NLG_API_CALL = "nlg_api_call"
     KETOD_API_CALL = "ketod_api_call"
+    KETOD_GPT_API_CALL = "ketod_gpt_api_call"
     BITOD = "bitod"
+    BITOD_GPT = "bitod_gpt"
     CHATGPT = "chatgpt"
     GPT_API_CALL = "gpt_api_call"
 

@@ -182,7 +182,7 @@ class NlgPromptFactory:
     def get_handler(
         self, prompt_type: str, context_type: ContextType = ContextType.NLG_API_CALL
     ) -> NlgPrompt:
-        if context_type == ContextType.KETOD_API_CALL.value:
+        if context_type in [ContextType.KETOD_API_CALL.value,ContextType.KETOD_GPT_API_CALL.value]:
             return KetodPrompt()
         if prompt_type == NlgPromptType.MULTI_DOMAIN.value:
             return NlgMultidomainPrompt()

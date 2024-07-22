@@ -14,8 +14,8 @@ class MetricManagerFactory:
             ContextType.GPT_API_CALL.value,
         ]:
             return NlgApiCallMetricManager(logger, tokenizer)
-        if context_type == ContextType.KETOD_API_CALL.value:
+        if context_type in [ContextType.KETOD_API_CALL.value, ContextType.KETOD_GPT_API_CALL.value]:
             return KeTodMetricManager(logger, tokenizer)
-        if context_type == ContextType.BITOD.value:
+        if context_type in [ContextType.BITOD.value, ContextType.BITOD_GPT.value]:
             return BitodMetricManager(logger, tokenizer)
         return NlgMetricManager(logger, tokenizer)

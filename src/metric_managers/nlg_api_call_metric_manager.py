@@ -19,7 +19,7 @@ from accelerate import Accelerator
 from my_enums import TurnRowType
 import utils
 
-accelerator = Accelerator()
+# accelerator = Accelerator()
 
 
 class NlgApiCallMetricManager:

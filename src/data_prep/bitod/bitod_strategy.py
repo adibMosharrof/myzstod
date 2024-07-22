@@ -1,7 +1,7 @@
 from configs.dataprep_config import DataPrepConfig
 from data_prep.data_prep_strategy import DataPrepStrategy
 from data_prep.nlg_api_call_strategy import NlgApiCallStrategy
-from my_enums import DstcSystemActions, TurnRowType
+from my_enums import ContextType, DstcSystemActions, SpecialTokens, TurnRowType
 from tod.nlg.bitod_api_call import BitodApiCall, BitodApiCallParams
 from tod.nlg.bitod_context import BiTodContext
 from tod.nlg.ke_tod_turn import KeTodTurn
@@ -160,7 +160,15 @@ class BitodStrategy(DataPrepStrategy):
         return context
 
     def prepare_target(self, turn: Log, schemas: dict[str, Any]) -> NlgTodTarget:
-        return NlgTodTarget(response=turn.system_response)
+        if not turn.system_response:
+            return None
+        response = self._prepare_response(turn.system_response)    
+        return NlgTodTarget(response=response)
+    
+    def _prepare_response(self, utterance:str) -> str:
+        if self.cfg.context_type == ContextType.BITOD_GPT.value:
+            utterance += SpecialTokens.eos_token.value
+        return utterance
 
     def prepare_api_call_turn(
         self,

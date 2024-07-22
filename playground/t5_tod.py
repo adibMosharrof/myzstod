@@ -118,9 +118,9 @@ class T5Tod:
             ContextType.GPT_API_CALL.value,
         ]:
             return NlgApiCallMetricManager(self.logger, tokenizer)
-        if context_type == ContextType.KETOD_API_CALL.value:
+        if context_type in [ContextType.KETOD_API_CALL.value, ContextType.KETOD_GPT_API_CALL.value]:
             return KeTodMetricManager(self.logger, tokenizer)
-        if context_type == ContextType.BITOD.value:
+        if context_type [ContextType.BITOD_GPT.value, ContextType.BITOD.value]:
             return BitodMetricManager(self.logger, tokenizer)
         return NlgMetricManager(self.logger, tokenizer)
 
@@ -159,6 +159,12 @@ class T5Tod:
             lora_config = utils.get_lora_config(model_name)
             model = get_peft_model(model, lora_config)
             return model
+        if utils.is_t5_model(model_path):
+            target_modules = ["q","v"]
+            task_type = "SEQ_2_SEQ_LM"
+        else:
+            task_type= "CAUSAL_LM"
+            target_modules=["q_proj", "v_proj"]
         if self.cfg.model_type.quantization_dtype == 8:
             config = BitsAndBytesConfig(load_in_8bit=True)
             device_map = {"": Accelerator().process_index}
@@ -170,12 +176,17 @@ class T5Tod:
             config = LoraConfig(
                 r=16,
                 lora_alpha=32,
-                target_modules=["q_proj", "v_proj"],
+                target_modules=target_modules,
                 lora_dropout=0.05,
                 bias="none",
-                task_type="CAUSAL_LM",
+                task_type=task_type,
             )
-            model = get_peft_model(model, config)
+            # model = get_peft_model(model, config)
+            if self.cfg.resume_checkpoint:
+                model_id = str(self.cfg.project_root / self.cfg.resume_checkpoint)
+                model = PeftModel.from_pretrained(model, model_id, config=config,is_trainable=True)
+            else:
+                model= get_peft_model(model,config)
             return model
         if self.cfg.model_type.quantization_dtype == 4:
             config = BitsAndBytesConfig(
@@ -197,13 +208,13 @@ class T5Tod:
                 target_modules=["q_proj", "k_proj", "v_proj", "o_proj"],
                 lora_dropout=0.05,
                 bias="none",
-                task_type="CAUSAL_LM",
+                task_type=task_type,
             )
             model = get_peft_model(model, config)
             return model
 
     def get_model_class(self, model_name: str):
-        if "t5" in model_name:
+        if utils.is_t5_model(model_name):
             return T5ForConditionalGeneration
         lmhead_models = [
             "alpaca",
@@ -230,17 +241,20 @@ class T5Tod:
         )
         tokenizer.add_special_tokens(
             {"additional_special_tokens": ["<SYSTEM>", "<USER>", "{", "}"]}
+            # {"additional_special_tokens": ["<SYSTEM>", "<USER>"]}
         )
         tokenizer.model_max_length = 1024
         model = None
         deepspeed_path = None
+        # deepspeed_path = self.cfg.project_root / "config/ds_zero1.json"
+        # deepspeed_path = self.cfg.project_root / "config/ds_zero_tod.json"
         # tokenizer.add_tokens(["<|user|>", "<|system|>"])
         model_cls = self.get_model_class(self.cfg.model_type.model_name)
         if self.cfg.model_type.model_path and not self.cfg.should_train:
             model_out_dir = str(self.cfg.project_root / self.cfg.model_type.model_path)
         elif self.cfg.model_type.quantization:
             model = self.get_model(self.cfg.model_type.model_name, model_cls, tokenizer)
-            # deepspeed_path = self.cfg.project_root / "config/ds_zero1.json"
+            deepspeed_path = self.cfg.project_root / "config/ds_zero1.json"
         else:
             # model = T5ForConditionalGeneration.from_pretrained(
             model = model_cls.from_pretrained(self.cfg.model_type.model_name).cuda()
@@ -255,6 +269,8 @@ class T5Tod:
         else:
             train_dataset, val_dataset, test_datasets = self.dm.load_data()
 
+        
+        load_best_model_at_end = False if self.cfg.resume_checkpoint else True
         if self.cfg.should_train:
             bf16 = False
             fp16 = False
@@ -269,7 +285,7 @@ class T5Tod:
                 save_total_limit=5,
                 save_steps=self.cfg.data_size.save_steps,
                 eval_steps=self.cfg.data_size.eval_steps,
-                load_best_model_at_end=True,
+                load_best_model_at_end=load_best_model_at_end,
                 save_strategy=IntervalStrategy.STEPS,
                 evaluation_strategy=IntervalStrategy.STEPS,
                 per_device_train_batch_size=self.cfg.model_type.train_batch_size,
@@ -288,6 +304,7 @@ class T5Tod:
                 gradient_checkpointing=True,
                 ddp_find_unused_parameters=False,
                 deepspeed=deepspeed_path,
+                ddp_backend='nccl',
                 # gradient_checkpointing_kwargs={"use_reentrant": False},
             )
             trainer = Seq2SeqTrainer(
@@ -316,6 +333,9 @@ class T5Tod:
             # trainer.save_model()
             # model.save_pretrained(self.cfg.out_dir)
             model_out_dir = self.cfg.out_dir
+        if not self.cfg.should_test:
+            print("skipping inference")
+            return
 
         if self.cfg.should_train:
             _ = model.eval()
@@ -380,7 +400,9 @@ class T5Tod:
                 ContextType.NLG_API_CALL.value,
                 ContextType.GPT_API_CALL.value,
                 ContextType.KETOD_API_CALL.value,
+                ContextType.KETOD_GPT_API_CALL.value,
                 ContextType.BITOD.value,
+                ContextType.BITOD_GPT.value,
             ]
             else self.dm.tod_train_collate
         )
