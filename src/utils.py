@@ -129,8 +129,9 @@ def get_logger(name: str = "transformers"):
 def log(logger, message: str):
     accelerator = Accelerator()
     if accelerator.is_main_process:
-        print(message)
-        logger.info(message)
+        log_prefix = "Log: "
+        print(log_prefix+message)
+        logger.info(log_prefix+message)
 
 def append_csv(data, file_name: Path):
     with open(file_name, "a", encoding="UTF8", newline="") as f:

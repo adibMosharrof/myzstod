@@ -333,13 +333,17 @@ class T5Tod:
             # trainer.save_model()
             # model.save_pretrained(self.cfg.out_dir)
             model_out_dir = self.cfg.out_dir
+        else:
+            if not self.cfg.model_type.model_path:
+                raise ValueError("You must provide model_type.model_path path if you are only doing inference")
+            model_out_dir = str(self.cfg.project_root / self.cfg.model_type.model_path)
         if not self.cfg.should_test:
-            print("skipping inference")
+            utils.log(self.logger,"skipping inference")
             return
 
         if self.cfg.should_train:
             _ = model.eval()
-        print("starting inference")
+        utils.log(self.logger,"starting inference")
 
         if (
             self.cfg.model_type.quantization
@@ -410,6 +414,7 @@ class T5Tod:
         generation_handler = GenerationHandlerFactory.get_handler(
             self.cfg, model, tokenizer
         )
+        utils.log(self.logger, f"Generation:{type(generation_handler).__name__}")
         for test_dataset, domain_names_list in zip(
             test_datasets, self.cfg.test_domain_settings
         ):
@@ -459,7 +464,8 @@ class T5Tod:
                 DotMap(
                     project_root=self.cfg.project_root,
                     results_path=os.getcwd() / self.cfg.out_dir / "all.csv",
-                    chatgpt_results_path="data_exploration/chatgpt/chat_gpt_all.csv",
+                    # chatgpt_results_path="data_exploration/chatgpt/chat_gpt_all.csv",
+                    chatgpt_results_path=self.cfg.project_root/self.cfg.dataset.chat_gpt_results_path,
                     out_dir=self.cfg.out_dir,
                     raw_data_root=self.cfg.raw_data_root,
                 )
