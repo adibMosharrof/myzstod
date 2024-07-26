@@ -1,0 +1,11 @@
+model_name: google/flan-t5-xl
+model_path: ""
+# model_path: playground/t5_tod_out/2024-07-22/20-29-34/results/checkpoint-100
+train_batch_size: 22
+eval_batch_size: 14
+# test_batch_size: 120
+test_batch_size: 19
+gradient_accumulation_steps: 32
+eval_accumulation_steps: 32
+quantization: true
+quantization_dtype: 8

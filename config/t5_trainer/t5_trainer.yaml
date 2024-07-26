@@ -1,0 +1,56 @@
+defaults:
+  - data_size: bitod_mid
+  # - data_size: dstc_full
+  # - data_size: dstc_full
+  # - data_size: dstc_mid
+  - dataset: bitod
+  # - dataset: ketod
+  # - dataset: dstc
+  # - model_type: opt_8bit
+  - model_type: flant5
+  # - model_type: gpt
+hydra:
+  run:
+    dir: ./playground/t5_tod_out/${now:%Y-%m-%d}/${now:%H-%M-%S}
+num_workers: 8
+test_prompt_max_len: 700
+max_token_len: 1024
+num_turns: 26
+should_add_schema: true
+should_add_user_actions: false
+should_add_service_results: true
+# quantization: true
+# quantization_dtype: 16
+early_stopping_patience: 3
+# model_name: google/flan-t5-large
+project_root: /scratch/bbyl/amosharrof/ZSToD
+# resume_checkpoint: playground/t5_tod_out/2024-07-12/05-06-46/results/checkpoint-100
+# resume_checkpoint: playground/t5_tod_out/2024-07-22/14-39-32/results/checkpoint-1
+resume_checkpoint: ""
+epochs: 50
+# epochs: 10
+# epochs: 15
+is_scale_grad: false
+train_domain_settings: all
+dev_domain_settings:
+  - all
+test_domain_settings:
+  - [all]
+  # - [seen]
+  # - [unseen]
+# context_type: ketod_api_call
+# context_type: bitod
+prompt_type: default
+overwrite:
+  - 1
+  - 1
+  - 1
+out_dir: results
+should_train: true
+# should_test: false
+should_test: true
+wandb:
+  project: ZSTod
+  entity: adibm
+  notes: sgd
+  task: sgd api call
