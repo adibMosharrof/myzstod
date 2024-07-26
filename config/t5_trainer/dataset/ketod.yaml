@@ -1,0 +1,4 @@
+raw_data_root: data/ketod
+data_prep_out_root: processed_data/ketod
+context_type: ketod_gpt_api_call
+chatgpt_results_path: data_exploration/chatgpt/chat_gpt_all.csv

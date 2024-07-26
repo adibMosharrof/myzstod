@@ -1,0 +1,13 @@
+hydra:
+  run:
+    dir: ./playground/t5_tod_out/${now:%Y-%m-%d}/${now:%H-%M-%S}
+project_root: /scratch/bbyl/amosharrof/ZSToD
+# raw_data_root: data/dstc8-schema-guided-dialogue
+raw_data_root: data/bitod
+# results_path: results/all.csv
+# results_path: playground/t5_tod_out/2024-07-02/20-53-58/results/all.csv
+results_path: playground/t5_tod_out/2024-07-21/23-09-49/results/all.csv
+# chatgpt_results_path: data_exploration/chatgpt/chat_gpt_all sgd.csv
+chatgpt_results_path: data_exploration/chatgpt/chat_gpt_bitod.csv
+
+out_dir: results

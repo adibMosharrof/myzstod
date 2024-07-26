@@ -1,0 +1,12 @@
+model_name: google/flan-t5-large
+model_path: ""
+# model_path: "playground/t5_tod_out/2024-01-03/15-48-45"
+# model_path: playground/t5_tod_out/2024-04-26/11-33-49/results
+train_batch_size: 7
+eval_batch_size: 30
+# test_batch_size: 120
+test_batch_size: 100
+gradient_accumulation_steps: 32
+eval_accumulation_steps: 32
+quantization: true
+quantization_dtype: 16

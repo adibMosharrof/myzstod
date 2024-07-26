@@ -1,0 +1,5 @@
+raw_data_root: data/bitod
+data_prep_out_root: processed_data/bitod
+# context_type: nlg_api_call
+context_type: bitod_gpt
+chat_gpt_results_path: data_exploration/chatgpt/chat_gpt_bitod.csv

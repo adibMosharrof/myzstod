@@ -1,0 +1,11 @@
+model_name: facebook/opt-6.7b
+# model_path: playground/t5_tod_out/2024-07-20/02-47-34/results/checkpoint-1000
+model_path: playground/t5_tod_out/2024-07-25/02-23-41/results/checkpoint-50
+# model_path: ""
+train_batch_size: 20
+eval_batch_size: 14
+test_batch_size: 19
+gradient_accumulation_steps: 32
+eval_accumulation_steps: 32
+quantization: true
+quantization_dtype: 8
