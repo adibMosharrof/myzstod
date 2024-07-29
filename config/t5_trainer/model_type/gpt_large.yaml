@@ -1,0 +1,9 @@
+model_name: gpt2-large
+# model_path: ""
+model_path: playground/t5_tod_out/2024-07-20/05-02-11/results
+train_batch_size: 25
+eval_batch_size: 26
+test_batch_size: 32
+gradient_accumulation_steps: 32
+eval_accumulation_steps: 32
+quantization: false

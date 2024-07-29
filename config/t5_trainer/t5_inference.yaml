@@ -1,0 +1,49 @@
+defaults:
+  # - data_size: dstc_full_inference
+  # - data_size: dstc_min
+  # - data_size: ketod_full_inference
+  - data_size: bitod_inference
+  # - dataset: dstc
+  - dataset: ketod
+  # - dataset: bitod
+  # - model_type: flant5
+  # - model_type: flant5_xl
+  # - model_type: gpt_large
+  # - model_type: gpt
+  - model_type: opt_8bit
+hydra:
+  run:
+    dir: ./playground/t5_tod_out/${now:%Y-%m-%d}/${now:%H-%M-%S}
+num_workers: 8
+test_prompt_max_len: 700
+max_token_len: 1024
+should_test: true
+num_turns: 26
+should_add_schema: true
+should_add_user_actions: true
+should_add_service_results: true
+project_root: /scratch/bbyl/amosharrof/ZSToD
+# resume_checkpoint: playground/t5_tod_out/2024-03-27/23-24-24/results/checkpoint-3600
+resume_checkpoint: ""
+# epochs: 3
+epochs: 1 
+overwrite:
+  - 0
+  - 0
+  - 1
+is_scale_grad: false
+train_domain_settings: all
+dev_domain_settings:
+  - all
+test_domain_settings:
+  - [all]
+  # - [seen]
+  # - [unseen]
+prompt_type: default
+out_dir: results
+should_train: false
+wandb:
+  project: ZSTod
+  entity: adibm
+  notes: sgd
+  task: nlg api call
