@@ -1,6 +1,8 @@
 {
     "files.exclude": {
         "**/.git": true,
+        "**/.idea": true,
+        "**/.pytest_cache": true,
         "**/.svn": true,
         "**/.hg": true,
         "**/CVS": true,
@@ -8,21 +10,61 @@
         "**/Thumbs.db": true,
         "**/__pycache__": true,
         "**/envs/": true,
-        // "**/transformers/": true,
+        "**/.venvs/": true,
+        "**/venvs/": true,
+        "**/transformers/": true,
+        "**wandb/": true,
+        "/mounts/u-amo-d1/adibm-data/projects/quantiazation/envs/": true,
     },
-    "python.formatting.provider": "black",
-    "python.testing.pytestArgs": [
-        "tests/"
-    ],
-    "python.testing.unittestEnabled": false,
-    "python.testing.pytestEnabled": true,
-    "editor.fontSize": 14,
+    "editor.formatOnSave": true,
+    // "python.formatting.provider": "black",
+    "editor.fontSize": 16,
     "python.analysis.extraPaths": [
         "./src",
-        // "./transformers"
+        "./utilities",
     ],
     "python.analysis.indexing": true,
     "files.watcherExclude": {
-        "**/transformers/": true
+        "**/.git": true,
+        "**/.idea": true,
+        "**/.pytest_cache": true,
+        "**/.svn": true,
+        "**/.hg": true,
+        "**/CVS": true,
+        "**/.DS_Store": true,
+        "**/Thumbs.db": true,
+        "**/__pycache__": true,
+        "**/envs/": true,
+        "**/.venvs/": true,
+        "**/venvs/": true,
+        "**/transformers/": true,
+        "**/outputs/": true,
+        "**/data/": true,
+        "**wandb/": true,
+        "/mounts/u-amo-d1/adibm-data/projects/quantiazation/envs/": true,
+        "/u/amo-d0/grad/adibm/data/projects/ZSToD/playground/t5_tod_out": true,
+        "/u/amo-d0/grad/adibm/data/projects/ZSToD/playground/t5_sum_out": true,
+        "/u/amo-d0/grad/adibm/data/projects/ZSToD/playground/summary_data": true,
     },
+    "python.unitTest.autoTestDiscoverOnSaveEnabled": false,
+    "git.ignoreLimitWarning": true,
+    "python.formatting.provider": "none",
+    "[python]": {
+        "editor.defaultFormatter": "ms-python.black-formatter",
+    },
+    "python.analysis.diagnosticSeverityOverrides": {
+        "reportShadowedImports": "none",
+    },
+    "python.testing.pytestArgs": [
+        "tests"
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true,
+    "python.testing.unittestArgs": [
+        "-v",
+        "-s",
+        "./tests",
+        "-p",
+        "test_*.py"
+    ],
 }
