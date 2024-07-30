@@ -1,3 +1,4 @@
+from dataclasses import asdict
 import uuid
 from dotmap import DotMap
 import evaluate
@@ -166,7 +167,7 @@ class NlgApiCallMetricManager:
     def write_csv(self, csv_path):
         if not len(self.data):
             raise ValueError("Must call compute row wise metrics first")
-        df = pd.DataFrame(self.data)
+        df = pd.DataFrame([asdict(d) for d in self.data])
         df.to_csv(csv_path, index=False, encoding="utf-8")
 
     def compute_row_wise_metrics(self):
