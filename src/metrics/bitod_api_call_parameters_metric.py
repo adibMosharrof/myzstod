@@ -17,9 +17,9 @@ class BitodApiCallParametersMetric(TodMetricsBase):
     def _update(self, predictions: list[str], references: list[str]) -> None:
         for pred, ref in zip(predictions, references):
             param_acc, relation_acc, value_acc = self.compute_row(pred, ref)
-            self.param_accs.append(param_acc)
-            self.relation_accs.append(relation_acc)
-            self.value_accs.append(value_acc)
+            self.param_accs.append(utils.create_tensor(param_acc, torch.float))
+            self.relation_accs.append(utils.create_tensor(relation_acc, torch.float))
+            self.value_accs.append(utils.create_tensor(value_acc, torch.float))
 
     def _get_parameters_from_text(self, text: str) -> list[BitodApiCallParams]:
         # reg_exp = r"\{([^}]*)\}"
@@ -70,31 +70,35 @@ class BitodApiCallParametersMetric(TodMetricsBase):
         pred_params = self._get_parameters_from_text(pred)
         if not ref_params:
             if not pred_params:
-                t_1 = utils.create_tensor(1.0)
+                t_1 = 1.0
                 return t_1, t_1, t_1
             else:
-                t_0 = utils.create_tensor(0.0)
+                t_0 = 0.0
                 return t_0, t_0, t_0
         param_accs, relation_accs, value_accs = [], [], []
         for ref in ref_params:
             pred = ref.get_by_slot_name(pred_params)
             if pred:
-                param_accs.append(utils.create_tensor(1.0))
-                relation_accs.append(utils.create_tensor(ref.relation == pred.relation))
+                param_accs.append(1.0)
+                relation_accs.append(float(ref.relation == pred.relation))
                 fuzz_score = utils.fuzzy_string_match(pred.value, ref.value)
-                value_accs.append(utils.create_tensor(fuzz_score))
+                value_accs.append(fuzz_score)
             else:
-                param_accs.append(utils.create_tensor(0.0))
-                relation_accs.append(utils.create_tensor(0.0))
-                value_accs.append(utils.create_tensor(0.0))
-        param_acc = torch.mean(utils.create_tensor(param_accs), dtype=torch.float)
-        relation_acc = torch.mean(utils.create_tensor(relation_accs), dtype=torch.float)
-        value_acc = torch.mean(utils.create_tensor(value_accs), dtype=torch.float)
-        return (
-            torch.round(param_acc, decimals=4).item(),
-            torch.round(value_acc, decimals=4).item(),
-            torch.round(relation_acc, decimals=4).item(),
-        )
+                param_accs.append(0.0)
+                relation_accs.append(0.0)
+                value_accs.append(0.0)
+        # param_acc = torch.mean(utils.create_tensor(param_accs), dtype=torch.float)
+        # relation_acc = torch.mean(utils.create_tensor(relation_accs), dtype=torch.float)
+        # value_acc = torch.mean(utils.create_tensor(value_accs), dtype=torch.float)
+        # return (
+        #     torch.round(param_acc, decimals=4).item(),
+        #     torch.round(value_acc, decimals=4).item(),
+        #     torch.round(relation_acc, decimals=4).item(),
+        # )
+        param_acc = np.mean(param_accs)
+        relation_acc = np.mean(relation_accs)
+        value_acc = np.mean(value_accs)
+        return round(param_acc, 4), round(relation_acc, 4), round(value_acc, 4)
 
     def __str__(self) -> str:
         params, relations, values = self._compute()
