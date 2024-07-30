@@ -79,14 +79,14 @@ class BitodApiCallParametersMetric(TodMetricsBase):
         for ref in ref_params:
             pred = ref.get_by_slot_name(pred_params)
             if pred:
-                param_accs.append(utils.create_tensor(1))
+                param_accs.append(utils.create_tensor(1.0))
                 relation_accs.append(utils.create_tensor(ref.relation == pred.relation))
                 fuzz_score = utils.fuzzy_string_match(pred.value, ref.value)
                 value_accs.append(utils.create_tensor(fuzz_score))
             else:
-                param_accs.append(utils.create_tensor(0))
-                relation_accs.append(utils.create_tensor(0))
-                value_accs.append(utils.create_tensor(0))
+                param_accs.append(utils.create_tensor(0.0))
+                relation_accs.append(utils.create_tensor(0.0))
+                value_accs.append(utils.create_tensor(0.0))
         param_acc = torch.mean(utils.create_tensor(param_accs), dtype=torch.float)
         relation_acc = torch.mean(utils.create_tensor(relation_accs), dtype=torch.float)
         value_acc = torch.mean(utils.create_tensor(value_accs), dtype=torch.float)
