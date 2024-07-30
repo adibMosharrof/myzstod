@@ -176,7 +176,7 @@ class T5DataModule:
         target_unused_len = target_max_len - len(target_tokens)
         if target_unused_len < 0:
             raise Exception("Target is too long")
-        if utils.is_t5_model(self.cfg.model_name):
+        if utils.is_t5_model(self.cfg.model_type.model_name):
             return self.get_t5_item(
                 context_tokens=context_tokens,
                 target_tokens=target_tokens,
