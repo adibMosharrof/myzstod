@@ -525,8 +525,8 @@ def old_main():
     tt.run()
 
 
-@hydra.main(config_path="../config/t5_trainer/", config_name="t5_trainer")
-# @hydra.main(config_path="../config/t5_trainer/", config_name="t5_inference")
+# @hydra.main(config_path="../config/t5_trainer/", config_name="t5_trainer")
+@hydra.main(config_path="../config/t5_trainer/", config_name="t5_inference")
 def hydra_start(cfg: DictConfig) -> None:
     t5tod = T5Tod(cfg)
     t5tod.run()
