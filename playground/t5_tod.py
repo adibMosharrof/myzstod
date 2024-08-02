@@ -118,9 +118,12 @@ class T5Tod:
             ContextType.GPT_API_CALL.value,
         ]:
             return NlgApiCallMetricManager(self.logger, tokenizer)
-        if context_type in [ContextType.KETOD_API_CALL.value, ContextType.KETOD_GPT_API_CALL.value]:
+        if context_type in [
+            ContextType.KETOD_API_CALL.value,
+            ContextType.KETOD_GPT_API_CALL.value,
+        ]:
             return KeTodMetricManager(self.logger, tokenizer)
-        if context_type [ContextType.BITOD_GPT.value, ContextType.BITOD.value]:
+        if context_type[ContextType.BITOD_GPT.value, ContextType.BITOD.value]:
             return BitodMetricManager(self.logger, tokenizer)
         return NlgMetricManager(self.logger, tokenizer)
 
@@ -160,11 +163,11 @@ class T5Tod:
             model = get_peft_model(model, lora_config)
             return model
         if utils.is_t5_model(model_path):
-            target_modules = ["q","v"]
+            target_modules = ["q", "v"]
             task_type = "SEQ_2_SEQ_LM"
         else:
-            task_type= "CAUSAL_LM"
-            target_modules=["q_proj", "v_proj"]
+            task_type = "CAUSAL_LM"
+            target_modules = ["q_proj", "v_proj"]
         if self.cfg.model_type.quantization_dtype == 8:
             config = BitsAndBytesConfig(load_in_8bit=True)
             device_map = {"": Accelerator().process_index}
@@ -184,9 +187,11 @@ class T5Tod:
             # model = get_peft_model(model, config)
             if self.cfg.resume_checkpoint:
                 model_id = str(self.cfg.project_root / self.cfg.resume_checkpoint)
-                model = PeftModel.from_pretrained(model, model_id, config=config,is_trainable=True)
+                model = PeftModel.from_pretrained(
+                    model, model_id, config=config, is_trainable=True
+                )
             else:
-                model= get_peft_model(model,config)
+                model = get_peft_model(model, config)
             return model
         if self.cfg.model_type.quantization_dtype == 4:
             config = BitsAndBytesConfig(
@@ -269,7 +274,6 @@ class T5Tod:
         else:
             train_dataset, val_dataset, test_datasets = self.dm.load_data()
 
-        
         load_best_model_at_end = False if self.cfg.resume_checkpoint else True
         if self.cfg.should_train:
             bf16 = False
@@ -304,7 +308,7 @@ class T5Tod:
                 gradient_checkpointing=True,
                 ddp_find_unused_parameters=False,
                 deepspeed=deepspeed_path,
-                ddp_backend='nccl',
+                ddp_backend="nccl",
                 # gradient_checkpointing_kwargs={"use_reentrant": False},
             )
             trainer = Seq2SeqTrainer(
@@ -335,15 +339,17 @@ class T5Tod:
             model_out_dir = self.cfg.out_dir
         else:
             if not self.cfg.model_type.model_path:
-                raise ValueError("You must provide model_type.model_path path if you are only doing inference")
+                raise ValueError(
+                    "You must provide model_type.model_path path if you are only doing inference"
+                )
             model_out_dir = str(self.cfg.project_root / self.cfg.model_type.model_path)
         if not self.cfg.should_test:
-            utils.log(self.logger,"skipping inference")
+            utils.log(self.logger, "skipping inference")
             return
 
         if self.cfg.should_train:
             _ = model.eval()
-        utils.log(self.logger,"starting inference")
+        utils.log(self.logger, "starting inference")
 
         if (
             self.cfg.model_type.quantization
@@ -450,7 +456,7 @@ class T5Tod:
                     accelerator,
                     metric_manager,
                 )
-            print('generation complete')
+            print("generation complete")
             # must call this first
             metric_manager.compute_row_wise_metrics()
             metric_manager.compute_metrics(domain_names)
@@ -465,7 +471,8 @@ class T5Tod:
                     project_root=self.cfg.project_root,
                     results_path=os.getcwd() / self.cfg.out_dir / "all.csv",
                     # chatgpt_results_path="data_exploration/chatgpt/chat_gpt_all.csv",
-                    chatgpt_results_path=self.cfg.project_root/self.cfg.dataset.chat_gpt_results_path,
+                    chatgpt_results_path=self.cfg.project_root
+                    / self.cfg.dataset.chat_gpt_results_path,
                     out_dir=self.cfg.out_dir,
                     raw_data_root=self.cfg.raw_data_root,
                 )
@@ -518,8 +525,8 @@ def old_main():
     tt.run()
 
 
-@hydra.main(config_path="../config/t5_trainer/", config_name="t5_trainer")
-# @hydra.main(config_path="../config/t5_trainer/", config_name="t5_inference")
+# @hydra.main(config_path="../config/t5_trainer/", config_name="t5_trainer")
+@hydra.main(config_path="../config/t5_trainer/", config_name="t5_inference")
 def hydra_start(cfg: DictConfig) -> None:
     t5tod = T5Tod(cfg)
     t5tod.run()
