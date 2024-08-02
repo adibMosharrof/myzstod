@@ -143,6 +143,32 @@ class T5Tod:
             return TaskType.SEQ_2_SEQ_LM
         return TaskType.CAUSAL_LM
 
+    def _load_model_from_path(self,model_class, load_in_8bit=False):
+        device_map = {"": Accelerator().device}
+        if not self.cfg.model_type.quantization:
+            
+        if load_in_8bit:
+            config = BitsAndBytesConfig(load_in_8bit=True)
+            model = model_class.from_pretrained(self.cfg.model_type.model_name, load_in_8bit=True)
+        else:
+            model = model_class.from_pretrained(self.cfg.model_type.model_name)
+        if not(self.cfg.resume_checkpoint or self.cfg.model_type.model_path):
+            return get_peft_model(model,config)
+        model_path = ""
+        if self.cfg.resume_checkpoint:
+            model_path = str(self.cfg.project_root/self.cfg.resume_checkpoints)
+        elif self.cfg.model_type.model_path:
+            model_path = str(self.cfg.project_root/self.cfg.model_type.model_path)
+        return PeftModel.from_pretrained(model,model_id)
+        # model = 
+        
+            #           if self.cfg.resume_checkpoint:
+            #     model_id = str(self.cfg.project_root / self.cfg.resume_checkpoint)
+            #     model = PeftModel.from_pretrained(model, model_id, config=config,is_trainable=True)
+            # else:
+            #     model= get_peft_model(model,config)  
+
+
     def get_model(self, model_name: str, model_class: any, tokenizer: AutoTokenizer):
         model_path = model_name
         if self.cfg.model_type.model_path:
@@ -159,15 +185,10 @@ class T5Tod:
             )
             model.resize_token_embeddings(len(tokenizer))
             model = prepare_model_for_kbit_training(model)
-            lora_config = utils.get_lora_config(model_name)
+            lora_config = utils.get_lora_config(self.cfg.model_type.model_name)
             model = get_peft_model(model, lora_config)
             return model
-        if utils.is_t5_model(model_path):
-            target_modules = ["q", "v"]
-            task_type = "SEQ_2_SEQ_LM"
-        else:
-            task_type = "CAUSAL_LM"
-            target_modules = ["q_proj", "v_proj"]
+
         if self.cfg.model_type.quantization_dtype == 8:
             config = BitsAndBytesConfig(load_in_8bit=True)
             device_map = {"": Accelerator().process_index}
@@ -176,15 +197,7 @@ class T5Tod:
             )
             model.enable_input_require_grads()
             model = prepare_model_for_kbit_training(model)
-            config = LoraConfig(
-                r=16,
-                lora_alpha=32,
-                target_modules=target_modules,
-                lora_dropout=0.05,
-                bias="none",
-                task_type=task_type,
-            )
-            # model = get_peft_model(model, config)
+            config = utils.get_lora_config(self.cfg.model_type.model_name)
             if self.cfg.resume_checkpoint:
                 model_id = str(self.cfg.project_root / self.cfg.resume_checkpoint)
                 model = PeftModel.from_pretrained(
@@ -274,7 +287,9 @@ class T5Tod:
         else:
             train_dataset, val_dataset, test_datasets = self.dm.load_data()
 
-        load_best_model_at_end = False if self.cfg.resume_checkpoint else True
+        
+        # load_best_model_at_end = False if self.cfg.resume_checkpoint else True
+        load_best_model_at_end = True
         if self.cfg.should_train:
             bf16 = False
             fp16 = False
@@ -300,7 +315,7 @@ class T5Tod:
                 dataloader_num_workers=1,
                 gradient_accumulation_steps=self.cfg.model_type.gradient_accumulation_steps,
                 eval_accumulation_steps=self.cfg.model_type.eval_accumulation_steps,
-                learning_rate=1e-3,
+                learning_rate=self.cfg.model_type.learning_rate,
                 bf16_full_eval=bf16,
                 bf16=bf16,
                 fp16=fp16,
