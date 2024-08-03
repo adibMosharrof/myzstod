@@ -164,7 +164,7 @@ class T5Tod:
             model = model_class.from_pretrained(model_name, quantization_config=quantization_config, device_map = device_map)
         else:
             model = model_class.from_pretrained(model_name, quantization_config=quantization_config)
-        
+            model.enable_input_require_grads()
         model.resize_token_embeddings(len(tokenizer))
         if model_path:
             # model.load_adapter(model_path, is_trainable=is_trainable)
