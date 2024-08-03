@@ -151,15 +151,31 @@ class T5Tod:
             config = BitsAndBytesConfig(load_in_8bit=True)
             model = model_class.from_pretrained(self.cfg.model_type.model_name, load_in_8bit=True)
         else:
-            model = model_class.from_pretrained(self.cfg.model_type.model_name)
-        if not(self.cfg.resume_checkpoint or self.cfg.model_type.model_path):
-            return get_peft_model(model,config)
-        model_path = ""
-        if self.cfg.resume_checkpoint:
-            model_path = str(self.cfg.project_root/self.cfg.resume_checkpoints)
-        elif self.cfg.model_type.model_path:
-            model_path = str(self.cfg.project_root/self.cfg.model_type.model_path)
-        return PeftModel.from_pretrained(model,model_id)
+            model = model_class.from_pretrained(model_name, quantization_config=quantization_config)
+            model.enable_input_require_grads()
+        model.resize_token_embeddings(len(tokenizer))
+        if model_path:
+            # model.load_adapter(model_path, is_trainable=is_trainable)
+            model.load_adapter(model_path)
+        else:
+            lora_config = utils.get_lora_config(model_name) 
+            model.add_adapter(lora_config)
+        return model
+
+
+        # if load_in_8bit:
+        #     config = BitsAndBytesConfig(load_in_8bit=True)
+        #     model = model_class.from_pretrained(self.cfg.model_type.model_name, load_in_8bit=True)
+        # else:
+        #     model = model_class.from_pretrained(self.cfg.model_type.model_name)
+        # if not(self.cfg.resume_checkpoint or self.cfg.model_type.model_path):
+        #     return get_peft_model(model,config)
+        # model_path = ""
+        # if self.cfg.resume_checkpoint:
+        #     model_path = str(self.cfg.project_root/self.cfg.resume_checkpoints)
+        # elif self.cfg.model_type.model_path:
+        #     model_path = str(self.cfg.project_root/self.cfg.model_type.model_path)
+        # return PeftModel.from_pretrained(model,model_id)
         # model = 
         
             #           if self.cfg.resume_checkpoint:
