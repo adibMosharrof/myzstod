@@ -429,6 +429,7 @@ def get_lora_config(model_name: str) -> LoraConfig:
         target_modules = ["q", "v"]
     else:
         task = TaskType.CAUSAL_LM
+        target_modules=["q_proj", "v_proj"]
     return LoraConfig(
         r=rank,
         lora_alpha=32,
@@ -439,6 +440,7 @@ def get_lora_config(model_name: str) -> LoraConfig:
         target_modules=target_modules,
         modules_to_save=get_modules_to_save(model_name),
     )
+
 
 
 def create_tensor(value, dtype=torch.int):
