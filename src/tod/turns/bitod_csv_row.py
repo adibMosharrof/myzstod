@@ -6,7 +6,13 @@ from tod.turns.turn_csv_row_base import TurnCsvRowBase
 class BitodCsvRow(TurnCsvRowBase):
     def get_csv_headers(self, should_add_schema: bool) -> list[str]:
         headers = super().get_csv_headers(should_add_schema)
-        headers += ["target", "turn_row_type", "is_retrieval", "is_slot_fill"]
+        headers += [
+            "target",
+            "turn_row_type",
+            "is_retrieval",
+            "is_slot_fill",
+            "is_multi_domain_api_call",
+        ]
         return headers
 
     def to_csv_row(
@@ -17,5 +23,6 @@ class BitodCsvRow(TurnCsvRowBase):
             int(tod_turn.turn_row_type),
             tod_turn.is_retrieval,
             tod_turn.is_slot_fill,
+            tod_turn.is_multi_domain_api_call,
         ]
         return row

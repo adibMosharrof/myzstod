@@ -11,6 +11,7 @@ import utils
 from sgd_dstc8_data_model.dstc_dataclasses import (
     DstcSchema,
     DstcSchemaSlot,
+    DstcSchemaIntent,
 )
 from my_enums import Steps
 
@@ -35,10 +36,21 @@ class BitodSchemaPrep:
                     possible_values=[],
                 )
                 slots.append(slot)
+            intents = [
+                DstcSchemaIntent(
+                    name=i,
+                    description="",
+                    is_transactional=False,
+                    required_slots=[],
+                    optional_slots=[],
+                    result_slots=[],
+                )
+                for i in item["intents"]
+            ]
             schema = DstcSchema(
                 service_name=domain_name,
                 description="",
-                intents=[],
+                intents=intents,
                 slots=slots,
             )
             schemas.append(schema.to_dict())

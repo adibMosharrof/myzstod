@@ -26,8 +26,15 @@ from utilities import text_utilities
 
 
 class NlgApiCallStrategy(DataPrepStrategy):
-    def __init__(self, cfg: DataPrepConfig):
-        super().__init__(cfg, tod_turn_cls=NlgTodTurn, tod_context_cls=NlgTodContext)
+    def __init__(
+        self,
+        cfg: DataPrepConfig,
+        tod_turn_cls=NlgTodTurn,
+        tod_context_cls=NlgTodContext,
+    ):
+        super().__init__(
+            cfg, tod_turn_cls=tod_turn_cls, tod_context_cls=tod_context_cls
+        )
         # self.cfg = cfg
         self.turn_csv_row_cls = ApiCallTurnCsvRow()
 
@@ -165,9 +172,22 @@ class NlgApiCallStrategy(DataPrepStrategy):
         return 0
 
     def get_domain_from_api_method_name(self, method_name, dialog_domains, schemas):
+        en_us = "_en_US"
         for dom in dialog_domains:
             schema = schemas[dom]
-            intent_names = [intent.name for intent in schema.intents]
+            intent_names = []
+            for intent in schema.intents:
+                try:
+                    name = intent.name
+                except AttributeError as e:
+                    name = intent.get("name")
+                intent_names.append(name)
+            # intent_names = [intent.name for intent in schema.intents]
+            for intent_name in intent_names:
+                if en_us in intent_name:
+                    new_intent_name = intent_name.replace(en_us, "")
+                    if method_name == new_intent_name:
+                        return dom
             if method_name in intent_names:
                 return dom
         raise ValueError(f"{method_name} not found in any domain")
