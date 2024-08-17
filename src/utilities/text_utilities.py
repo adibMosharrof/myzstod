@@ -17,5 +17,10 @@ def get_apicall_method_from_text(text: str, reg_exp=r"method='([^']+)'") -> str:
     try:
         match = re.search(reg_exp, text).group(1)
     except:
-        match = ""
+        try:
+            reg_exp = r"method=([^,]+)"
+            match = re.search(reg_exp, text).group(1)
+        except:
+            match = ""
+        # match = ""
     return match

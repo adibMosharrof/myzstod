@@ -29,9 +29,9 @@ from utilities.text_utilities import get_nlg_service_name
 import json
 
 
-class BitodStrategy(DataPrepStrategy):
+class BitodStrategy(NlgApiCallStrategy):
     def __init__(self, cfg: DataPrepConfig):
-        super().__init__(cfg)
+        super().__init__(cfg, tod_turn_cls=KeTodTurn, tod_context_cls=BiTodContext)
         self.tod_context_cls = BiTodContext
         self.tod_turn_cls = KeTodTurn
 
@@ -126,18 +126,6 @@ class BitodStrategy(DataPrepStrategy):
         )
 
     def prepare_context(self, turn: Log, prev_tod_turn: KeTodTurn) -> BiTodContext:
-        # context = BiTodContext(
-        #     dialog_history=turn.dialog_history,
-        #     current_user_utterance=turn.user_utterance,
-        #     turn_row_type=TurnRowType.RESPONSE.value,
-        # )
-        # if self.cfg.should_add_service_results:
-        #     if turn.original_system_side_information.PrimaryItem:
-        #         context.service_results.append(
-        #             turn.original_system_side_information.PrimaryItem
-        #         )
-        #         context.api_call = self.get_api_call_from_turn(turn)
-        # return context
         if not prev_tod_turn:
             context = self.tod_context_cls(max_length=self.cfg.num_turns)
             context.should_add_sys_actions = self.cfg.should_add_sys_actions
@@ -162,10 +150,10 @@ class BitodStrategy(DataPrepStrategy):
     def prepare_target(self, turn: Log, schemas: dict[str, Any]) -> NlgTodTarget:
         if not turn.system_response:
             return None
-        response = self._prepare_response(turn.system_response)    
+        response = self._prepare_response(turn.system_response)
         return NlgTodTarget(response=response)
-    
-    def _prepare_response(self, utterance:str) -> str:
+
+    def _prepare_response(self, utterance: str) -> str:
         if self.cfg.context_type == ContextType.BITOD_GPT.value:
             utterance += SpecialTokens.eos_token.value
         return utterance
@@ -183,18 +171,6 @@ class BitodStrategy(DataPrepStrategy):
     ) -> int:
         if not tod_turn.context.api_call:
             return turn_id, None
-        # new_turn = copy.deepcopy(tod_turn)
-        # new_turn.turn_row_type = TurnRowType.API_CALL.value
-        # new_turn.context.turn_row_type = TurnRowType.API_CALL.value
-        # new_turn.target.response = str(new_turn.context.api_call)
-        # new_turn.turn_id = turn_id
-        # new_turn.context.api_call = None
-        # new_turn.context.service_results = None
-        # self.add_tod_turn(
-        #     turn_csv_row_handler, tod_turns, new_turn, new_turn.dialog_id, turn_id
-        # )
-        # turn_id += 1
-        # return turn_id, new_turn
         api_call_response = tod_turn.context.get_api_call()
         copy_ds_turn = copy.deepcopy(ds_turn)
         copy_ds_turn.system_response = api_call_response
@@ -223,7 +199,9 @@ class BitodStrategy(DataPrepStrategy):
         new_turn.context.api_call = None
         new_turn.context.service_results = None
         new_turn.turn_row_type = TurnRowType.API_CALL.value
-
+        new_turn.is_multi_domain_api_call = self.is_multi_domain_api_call(
+            new_turn, tod_turns, schemas
+        )
         self.add_tod_turn(
             turn_csv_row_handler, tod_turns, new_turn, new_turn.dialog_id, turn_id
         )
