@@ -41,7 +41,7 @@ class ResultsLogger:
                 print(f"no {metric_name} data for group")
         return results
 
-    def get_regular_setting_results(self, results):
+    def get_regular_setting_results(self, results, csv_file_name="regular_results.csv"):
         csv_results = []
         results = self.get_data_by_settings(results)
         rows_seen = results[results["domain_category"] == DstcDomains.SEEN.value]
@@ -57,38 +57,46 @@ class ResultsLogger:
             setting_results = {}
             setting_results["setting"] = setting
             response_rows = rows[rows["turn_row_type"] == TurnRowType.RESPONSE.value]
-            bleu_metric = evaluate.load("bleu")
-            gleu_metric = evaluate.load("google_bleu")
-            preds = response_rows.pred.tolist()
-            refs = np.expand_dims(response_rows.label.tolist(), axis=1)
-            bleu_score = bleu_metric.compute(predictions=preds, references=refs)["bleu"]
-            gleu_score = gleu_metric.compute(predictions=preds, references=refs)[
-                "google_bleu"
-            ]
-            setting_results.update(
-                DotMap(
-                    response_bleu=round(bleu_score, 4),
-                    response_gleu=round(gleu_score, 4),
+            if len(response_rows):
+                bleu_metric = evaluate.load("bleu")
+                gleu_metric = evaluate.load("google_bleu")
+                preds = response_rows.pred.tolist()
+                refs = np.expand_dims(response_rows.label.tolist(), axis=1)
+                bleu_score = bleu_metric.compute(predictions=preds, references=refs)[
+                    "bleu"
+                ]
+                gleu_score = gleu_metric.compute(predictions=preds, references=refs)[
+                    "google_bleu"
+                ]
+                setting_results.update(
+                    DotMap(
+                        response_bleu=round(bleu_score, 4),
+                        response_gleu=round(gleu_score, 4),
+                    )
                 )
-            )
+            else:
+                print(f"no response rows for setting {setting}")
             # setting_results.update(
             #     self.get_group_metrics(
             #         response_rows, ["response_bleu", "response_gleu"]
             #     )
             # )
             api_rows = rows[rows["turn_row_type"] == TurnRowType.API_CALL.value]
-            setting_results.update(
-                self.get_group_metrics(
-                    api_rows,
-                    [
-                        "api_call_invoke",
-                        "api_call_method",
-                        "api_call_param_names",
-                        "api_call_param_values",
-                        "complete_api_call",
-                    ],
+            if len(api_rows):
+                setting_results.update(
+                    self.get_group_metrics(
+                        api_rows,
+                        [
+                            "api_call_invoke",
+                            "api_call_method",
+                            "api_call_param_names",
+                            "api_call_param_values",
+                            "complete_api_call",
+                        ],
+                    )
                 )
-            )
+            else:
+                print(f"no api rows for setting {setting}")
             multi_api_rows = api_rows[api_rows["is_multi_domain_api_call"] == 1]
             if len(multi_api_rows):
                 multi_api_results = self.get_group_metrics(
@@ -114,6 +122,8 @@ class ResultsLogger:
                         multi_complete_api_call=multi_api_results["complete_api_call"],
                     )
                 )
+            else:
+                print(f"no multi domain api rows for setting {setting}")
             if "ketod" in self.cfg.raw_data_root.name:
                 ke_query_rows = rows[
                     rows["turn_row_type"] == TurnRowType.KE_QUERY.value
@@ -136,28 +146,35 @@ class ResultsLogger:
             retrieval_metrics = self.get_group_metrics(
                 retrieval_rows, ["response_bleu", "response_gleu"]
             )
-            setting_results.update(
-                DotMap(
-                    retrieval_bleu=retrieval_metrics["response_bleu"],
-                    retrieval_gleu=retrieval_metrics["response_gleu"],
+            if len(retrieval_rows):
+                setting_results.update(
+                    DotMap(
+                        retrieval_bleu=retrieval_metrics["response_bleu"],
+                        retrieval_gleu=retrieval_metrics["response_gleu"],
+                    )
                 )
-            )
+            else:
+                print(f"no retrieval rows for setting {setting}")
 
             slot_fill_rows = rows[rows["is_slot_fill"] == 1]
             slot_fill_metrics = self.get_group_metrics(
                 slot_fill_rows, ["response_bleu", "response_gleu"]
             )
-            setting_results.update(
-                DotMap(
-                    slot_fill_bleu=slot_fill_metrics["response_bleu"],
-                    slot_fill_gleu=slot_fill_metrics["response_gleu"],
+
+            if len(slot_fill_rows):
+                setting_results.update(
+                    DotMap(
+                        slot_fill_bleu=slot_fill_metrics["response_bleu"],
+                        slot_fill_gleu=slot_fill_metrics["response_gleu"],
+                    )
                 )
-            )
+            else:
+                print(f"no slot fill rows for setting {setting}")
             csv_results.append(setting_results)
         keys = csv_results[0].keys()
         out_dir = Path(self.cfg.out_dir)
         out_dir.mkdir(parents=True, exist_ok=True)
-        with open(out_dir / "regular_results.csv", "w") as f:
+        with open(out_dir / csv_file_name, "w") as f:
             writer = csv.DictWriter(f, fieldnames=keys)
             writer.writeheader()
             writer.writerows(csv_results)
