@@ -29,3 +29,18 @@ class BitodMetricManager(NlgApiCallMetricManager):
             }
         )
         self.complete_api_call = BitodCompleteApiCallMetric()
+
+        self.multi_domain_api_call_metrics = MetricCollection(
+            {
+                "multi_domain_api_call_method": ApiCallMethodMetric(
+                    name="Multi Domain"
+                ),
+                "multi_domain_api_call_params": BitodApiCallParametersMetric(
+                    name="Multi Domain"
+                ),
+                "multi_domain_api_call_invoke": ApiCallInvokeMetric(
+                    invoke_text="ApiCall", name="Multi Domain "
+                ),
+            }
+        )
+        self.multi_domain_complete_api_call = CompleteApiCallMetric(name="Multi Domain")
