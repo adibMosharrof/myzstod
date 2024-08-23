@@ -126,12 +126,14 @@ def get_domain_setting_str(domain_setting: Union[list[str], ListConfig, str]):
 def get_logger(name: str = "transformers"):
     return logging.getLogger(__name__)
 
+
 def log(logger, message: str):
     accelerator = Accelerator()
     if accelerator.is_main_process:
         log_prefix = "Log: "
-        print(log_prefix+message)
-        logger.info(log_prefix+message)
+        print(log_prefix + message)
+        logger.info(log_prefix + message)
+
 
 def append_csv(data, file_name: Path):
     with open(file_name, "a", encoding="UTF8", newline="") as f:
@@ -429,7 +431,7 @@ def get_lora_config(model_name: str) -> LoraConfig:
         target_modules = ["q", "v"]
     else:
         task = TaskType.CAUSAL_LM
-        target_modules=["q_proj", "v_proj"]
+        target_modules = ["q_proj", "v_proj"]
     return LoraConfig(
         r=rank,
         lora_alpha=32,
@@ -441,6 +443,22 @@ def get_lora_config(model_name: str) -> LoraConfig:
         modules_to_save=get_modules_to_save(model_name),
     )
 
+
+def get_model_class(model_name: str):
+    if is_t5_model(model_name):
+        return T5ForConditionalGeneration
+    lmhead_models = [
+        "alpaca",
+        "llama",
+        "santacoder",
+        "vicuna",
+        "koala",
+        "opt",
+        "gpt",
+    ]
+    if any([m in model_name.lower() for m in lmhead_models]):
+        return AutoModelForCausalLM
+    raise ValueError(f"model_name {model_name} not supported")
 
 
 def create_tensor(value, dtype=torch.int):
