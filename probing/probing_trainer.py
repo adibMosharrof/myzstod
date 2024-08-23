@@ -1,0 +1,203 @@
+import os
+from pathlib import Path
+import sys
+import uuid
+
+from accelerate.accelerator import Accelerator
+from dotmap import DotMap
+import hydra
+from omegaconf import DictConfig
+import torch
+from tqdm import tqdm
+from transformers.models.auto.tokenization_auto import AutoTokenizer
+from transformers.trainer_callback import EarlyStoppingCallback
+from transformers.trainer_seq2seq import Seq2SeqTrainer
+from transformers.trainer_utils import IntervalStrategy
+from transformers.training_args_seq2seq import Seq2SeqTrainingArguments
+from torch.utils.data import DataLoader
+
+
+sys.path.insert(0, os.path.abspath("./src"))
+sys.path.insert(0, os.path.abspath("./"))
+from generation.generation_handler_factory import GenerationHandlerFactory
+from my_enums import Steps
+from playground.t5_datamodule import T5DataModule
+import utils
+from sgd_dstc8_data_model.dstc_dataclasses import get_schemas
+from logger.results_logger import ResultsLogger
+from metric_managers.metric_manager_factory import MetricManagerFactory
+
+
+class ProbingTrainer:
+    def __init__(self, cfg):
+        self.cfg = DotMap(cfg)
+        self.cfg.project_root = Path(self.cfg.project_root)
+
+    def get_data_modules(self, tokenizer):
+        all_dms = []
+        for dataset_name, dataset_config in self.cfg.dataset.items():
+            dm_cfg = DotMap(self.cfg)
+            dm_cfg.update(**dataset_config)
+            dm_cfg.update(**self.cfg.data_size)
+            schemas = {}
+            for d in [
+                get_schemas(self.cfg.project_root / dataset_config.raw_data_root, step)
+                for step in Steps.list()
+            ]:
+                schemas.update(d)
+            dm = T5DataModule(dm_cfg, tokenizer, schemas)
+            all_dms.append(dm)
+        return all_dms
+
+    def get_datasets_from_data_modules(self, dms):
+        train, val, test = [], [], []
+        for dm in dms:
+            ds = dm.get_dms()[0].datasets
+            train.extend(ds["train"])
+            val.extend(ds["dev"])
+            test.extend(ds["test"])
+        return train, val, test
+
+    def run(self):
+        accelerator = Accelerator()
+        torch.manual_seed(420)
+        tokenizer = AutoTokenizer.from_pretrained(
+            self.cfg.tokenizer_name or self.cfg.model_type.model_name,
+            bos_token="<|startoftext|>",
+            eos_token="<|endoftext|>",
+            pad_token="<|pad|>",
+        )
+
+        dms = self.get_data_modules(tokenizer)
+        train_dataset, val_dataset, test_datasets = self.get_datasets_from_data_modules(
+            dms
+        )
+        model_name = self.cfg.model_type.model_name
+        model_cls = utils.get_model_class(model_name)
+        model = model_cls.from_pretrained(model_name).cuda()
+        model.resize_token_embeddings(len(tokenizer))
+        if self.cfg.should_train:
+            deepspeed_path = str(self.cfg.project_root / "config/ds_zero_tod.json")
+            training_args = Seq2SeqTrainingArguments(
+                output_dir=str(self.cfg.out_dir),
+                num_train_epochs=self.cfg.epochs,
+                logging_steps=10,
+                save_total_limit=5,
+                save_steps=self.cfg.data_size.save_steps,
+                eval_steps=self.cfg.data_size.eval_steps,
+                load_best_model_at_end=True,
+                save_strategy=IntervalStrategy.STEPS,
+                evaluation_strategy=IntervalStrategy.STEPS,
+                per_device_train_batch_size=self.cfg.model_type.train_batch_size,
+                per_device_eval_batch_size=self.cfg.model_type.eval_batch_size,
+                warmup_steps=100,
+                weight_decay=0.01,
+                dataloader_drop_last=True,
+                dataloader_num_workers=1,
+                gradient_accumulation_steps=self.cfg.model_type.gradient_accumulation_steps,
+                eval_accumulation_steps=self.cfg.model_type.eval_accumulation_steps,
+                learning_rate=self.cfg.model_type.learning_rate,
+                gradient_checkpointing=True,
+                ddp_find_unused_parameters=False,
+                deepspeed=deepspeed_path,
+                ddp_backend="nccl",
+                save_safetensors=False,
+                # gradient_checkpointing_kwargs={"use_reentrant": False},
+            )
+            trainer = Seq2SeqTrainer(
+                model=model,
+                args=training_args,
+                train_dataset=train_dataset,
+                eval_dataset=val_dataset,
+                data_collator=dms[0].tod_train_collate,
+                callbacks=[
+                    EarlyStoppingCallback(
+                        early_stopping_patience=self.cfg.early_stopping_patience
+                    ),
+                ],
+            )
+            trainer.train()
+            if accelerator.is_main_process:
+                trainer.model.save_pretrained(
+                    self.cfg.out_dir, safe_serialization=False
+                )
+            accelerator.wait_for_everyone()
+            model_out_dir = self.cfg.out_dir
+        else:
+            model_out_dir = str(self.cfg.project_root / self.cfg.model_type.model_path)
+
+        utils.log(self.logger, "starting inference")
+        model = model_cls.from_pretrained(model_out_dir).cuda()
+        model.resize_token_embeddings(len(tokenizer))
+        model.eval()
+        collate_fn = self.dm[0].tod_test_collate
+        generation_handler = GenerationHandlerFactory.get_handler(
+            self.cfg, model, tokenizer
+        )
+
+        for test_dataset, domain_names_list in zip(
+            test_datasets, self.cfg.test_domain_settings
+        ):
+            domain_names = ",".join(domain_names_list)
+            if not len(test_dataset):
+                print(f"No data for {domain_names}")
+                continue
+            # print(f"testing {domain_names}")
+            utils.log(self.logger, f"testing {domain_names}")
+
+            test_dl = DataLoader(
+                test_dataset,
+                batch_size=self.cfg.model_type.test_batch_size,
+                collate_fn=collate_fn,
+                pin_memory=True,
+                num_workers=8,
+            )
+            test_dl = accelerator.prepare(test_dl)
+            metric_manager = MetricManagerFactory.get_metric_manager(
+                self.cfg.context_type, tokenizer, self.logger
+            )
+            for batch in tqdm(test_dl):
+                max_gen_len = self.cfg.max_token_len
+
+                sample_outputs = generation_handler.get_generation(
+                    batch,
+                    max_gen_len - self.cfg.test_prompt_max_len,
+                    max_gen_len,
+                    self.cfg.test_prompt_max_len,
+                    False,
+                    accelerator,
+                    metric_manager,
+                )
+            print("generation complete")
+            # must call this first
+            metric_manager.compute_row_wise_metrics()
+            metric_manager.compute_metrics(domain_names)
+            metric_manager.compute_is_retrieval_and_slot_fill_metrics()
+            csv_path = self.cfg.out_dir / f"{domain_names}.csv"
+            csv_path.parent.mkdir(parents=True, exist_ok=True)
+            metric_manager.write_csv(csv_path)
+
+        if accelerator.is_main_process:
+            rl = ResultsLogger(
+                DotMap(
+                    project_root=self.cfg.project_root,
+                    results_path=os.getcwd() / self.cfg.out_dir / "all.csv",
+                    # chatgpt_results_path="data_exploration/chatgpt/chat_gpt_all.csv",
+                    chatgpt_results_path=self.cfg.project_root
+                    / self.cfg.dataset.chat_gpt_results_path,
+                    out_dir=self.cfg.out_dir,
+                    raw_data_root=self.cfg.raw_data_root,
+                )
+            )
+            rl.run()
+        accelerator.wait_for_everyone()
+
+
+@hydra.main(config_path="../config/probing/", config_name="probing_trainer")
+def hydra_start(cfg: DictConfig) -> None:
+    ptod = ProbingTrainer(cfg)
+    ptod.run()
+
+
+if __name__ == "__main__":
+    hydra_start()

@@ -1,0 +1,47 @@
+defaults:
+  - data_size: dstc_min
+  - dataset: 
+      - dstc
+      - sgdx_v1
+  - model_type: distil_gpt
+hydra:
+  run:
+    dir: ./probing/outputs/${now:%Y-%m-%d}/${now:%H-%M-%S}_${model_type.model_log_name}
+num_workers: 8
+test_prompt_max_len: 700
+max_token_len: 1024
+num_turns: 26
+should_add_schema: true
+should_add_user_actions: false
+should_add_service_results: true
+early_stopping_patience: 3
+project_root: /mounts/u-amo-d1/adibm-data/projects/ZSToD
+resume_checkpoint: ""
+# epochs: 50
+epochs: 1
+# epochs: 15
+is_scale_grad: false
+# train_domain_settings: all
+train_domain_settings: [Restaurants_1]
+dev_domain_settings:
+  - Restaurants_2
+test_domain_settings:
+  - [Restaurants_2]
+  # - [seen]
+  # - [unseen]
+# context_type: ketod_api_call
+context_type: gpt_api_call
+prompt_type: default
+overwrite:
+  - 1
+  - 1
+  - 1
+out_dir: results
+should_train: true
+# should_test: false
+should_test: true
+wandb:
+  project: ZSTod
+  entity: adibm
+  notes: sgd
+  task: probing
