@@ -2,7 +2,7 @@ import os
 import sys
 import uuid
 
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 
 
 sys.path.insert(0, os.path.abspath("./src"))
@@ -65,6 +65,7 @@ from metric_managers.bitod_metric_manager import BitodMetricManager
 import wandb
 
 from logger.results_logger import ResultsLogger
+import torch.distributed as dist
 
 os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
 os.environ["TORCH_DISTRIBUTED_DEBUG"] = "DETAIL"
@@ -143,47 +144,50 @@ class T5Tod:
             return TaskType.SEQ_2_SEQ_LM
         return TaskType.CAUSAL_LM
 
-    def _load_model_from_path(self,model_class, load_in_8bit=False):
-        device_map = {"": Accelerator().device}
-        if not self.cfg.model_type.quantization:
-            
-        if load_in_8bit:
-            config = BitsAndBytesConfig(load_in_8bit=True)
-            model = model_class.from_pretrained(self.cfg.model_type.model_name, load_in_8bit=True)
+    def get_quantized_model(
+        self,
+        model_name: str,
+        model_class: any,
+        tokenizer: AutoTokenizer,
+        is_inference=False,
+        trained_model_path=None,
+    ):
+        # if self.cfg.model_type.model_path:
+        #     model_name_or_path = self.cfg.project_root / model_path
+        # else:
+        #     model_name_or_path = model_name
+        device_map = {"": Accelerator().process_index}
+        model_path = None
+        if trained_model_path:
+            model_path = trained_model_path
+        elif self.cfg.model_type.model_path:
+            model_path = self.cfg.project_root / self.cfg.model_type.model_path
+        # dtype = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
+        quantization_config = None
+        if self.cfg.model_type.quantization_dtype == 8:
+            quantization_config = BitsAndBytesConfig(load_in_8bit=True)
+        # is_trainable = True if self.cfg.resume_checkpoint else False
+
+        # model = model_class.from_pretrained(model_name, quantization_config=quantization_config, torch_dtype=dtype)
+        if is_inference:
+            model = model_class.from_pretrained(
+                model_name,
+                quantization_config=quantization_config,
+                device_map=device_map,
+            )
         else:
-            model = model_class.from_pretrained(model_name, quantization_config=quantization_config)
+            model = model_class.from_pretrained(
+                model_name, quantization_config=quantization_config
+            )
             model.enable_input_require_grads()
         model.resize_token_embeddings(len(tokenizer))
         if model_path:
             # model.load_adapter(model_path, is_trainable=is_trainable)
             model.load_adapter(model_path)
         else:
-            lora_config = utils.get_lora_config(model_name) 
+            lora_config = utils.get_lora_config(model_name)
             model.add_adapter(lora_config)
         return model
-
-
-        # if load_in_8bit:
-        #     config = BitsAndBytesConfig(load_in_8bit=True)
-        #     model = model_class.from_pretrained(self.cfg.model_type.model_name, load_in_8bit=True)
-        # else:
-        #     model = model_class.from_pretrained(self.cfg.model_type.model_name)
-        # if not(self.cfg.resume_checkpoint or self.cfg.model_type.model_path):
-        #     return get_peft_model(model,config)
-        # model_path = ""
-        # if self.cfg.resume_checkpoint:
-        #     model_path = str(self.cfg.project_root/self.cfg.resume_checkpoints)
-        # elif self.cfg.model_type.model_path:
-        #     model_path = str(self.cfg.project_root/self.cfg.model_type.model_path)
-        # return PeftModel.from_pretrained(model,model_id)
-        # model = 
-        
-            #           if self.cfg.resume_checkpoint:
-            #     model_id = str(self.cfg.project_root / self.cfg.resume_checkpoint)
-            #     model = PeftModel.from_pretrained(model, model_id, config=config,is_trainable=True)
-            # else:
-            #     model= get_peft_model(model,config)  
-
 
     def get_model(self, model_name: str, model_class: any, tokenizer: AutoTokenizer):
         model_path = model_name
@@ -204,6 +208,8 @@ class T5Tod:
             lora_config = utils.get_lora_config(self.cfg.model_type.model_name)
             model = get_peft_model(model, lora_config)
             return model
+            # model = model_class.from_pretrained(self.cfg.model_type.model_name)
+            # model.load_adapter(model_path)
 
         if self.cfg.model_type.quantization_dtype == 8:
             config = BitsAndBytesConfig(load_in_8bit=True)
@@ -211,6 +217,7 @@ class T5Tod:
             model = model_class.from_pretrained(
                 model_path, quantization_config=config, device_map=device_map
             )
+            model.resize_token_embeddings(len(tokenizer))
             model.enable_input_require_grads()
             model = prepare_model_for_kbit_training(model)
             config = utils.get_lora_config(self.cfg.model_type.model_name)
@@ -287,8 +294,11 @@ class T5Tod:
         if self.cfg.model_type.model_path and not self.cfg.should_train:
             model_out_dir = str(self.cfg.project_root / self.cfg.model_type.model_path)
         elif self.cfg.model_type.quantization:
-            model = self.get_model(self.cfg.model_type.model_name, model_cls, tokenizer)
-            deepspeed_path = self.cfg.project_root / "config/ds_zero1.json"
+            # model = self.get_model(self.cfg.model_type.model_name, model_cls, tokenizer)
+            model = self.get_quantized_model(
+                self.cfg.model_type.model_name, model_cls, tokenizer
+            )
+            # deepspeed_path = self.cfg.project_root / "config/ds_zero1.json"
         else:
             # model = T5ForConditionalGeneration.from_pretrained(
             model = model_cls.from_pretrained(self.cfg.model_type.model_name).cuda()
@@ -303,18 +313,18 @@ class T5Tod:
         else:
             train_dataset, val_dataset, test_datasets = self.dm.load_data()
 
-        
         # load_best_model_at_end = False if self.cfg.resume_checkpoint else True
         load_best_model_at_end = True
         if self.cfg.should_train:
             bf16 = False
             fp16 = False
-            if torch.cuda.is_bf16_supported():
-                bf16 = True
-            else:
-                fp16 = True
+            # if torch.cuda.is_bf16_supported():
+            #     bf16 = True
+            # else:
+            #     fp16 = True
             training_args = Seq2SeqTrainingArguments(
-                output_dir=str(self.cfg.out_dir),
+                output_dir=str(out_dir),
+                run_name=run_name,
                 num_train_epochs=self.cfg.epochs,
                 logging_steps=10,
                 save_total_limit=5,
@@ -322,7 +332,7 @@ class T5Tod:
                 eval_steps=self.cfg.data_size.eval_steps,
                 load_best_model_at_end=load_best_model_at_end,
                 save_strategy=IntervalStrategy.STEPS,
-                evaluation_strategy=IntervalStrategy.STEPS,
+                eval_strategy=IntervalStrategy.STEPS,
                 per_device_train_batch_size=self.cfg.model_type.train_batch_size,
                 per_device_eval_batch_size=self.cfg.model_type.eval_batch_size,
                 warmup_steps=100,
@@ -382,53 +392,58 @@ class T5Tod:
             _ = model.eval()
         utils.log(self.logger, "starting inference")
 
-        if (
-            self.cfg.model_type.quantization
-            and self.cfg.model_type.quantization_dtype == 16
-        ):
-            config = PeftConfig.from_pretrained(model_out_dir)
-            device_map = {"": accelerator.device}
-            model = model_cls.from_pretrained(
-                config.base_model_name_or_path,
-                load_in_8bit=False,
-                # load_in_8bit=True,
-                device_map=device_map,
-            )
-            model.resize_token_embeddings(len(tokenizer))
-            model = PeftModel.from_pretrained(
-                model, model_out_dir, device_map=device_map
-            )
-        elif (
-            self.cfg.model_type.quantization
-            and self.cfg.model_type.quantization_dtype == 4
-        ):
-            config = BitsAndBytesConfig(
-                load_in_4bit=True,
-                bnb_4bit_quant_type="nf4",
-                bnb_4bit_use_double_quant=True,
-                bnb_4bit_compute_dtype=torch.bfloat16,
-            )
+        # if (
+        #     self.cfg.model_type.quantization
+        #     and self.cfg.model_type.quantization_dtype == 16
+        # ):
+        #     config = PeftConfig.from_pretrained(model_out_dir)
+        #     device_map = {"": accelerator.device}
+        #     model = model_cls.from_pretrained(
+        #         config.base_model_name_or_path,
+        #         load_in_8bit=False,
+        #         # load_in_8bit=True,
+        #         device_map=device_map,
+        #     )
+        #     model.resize_token_embeddings(len(tokenizer))
+        #     model = PeftModel.from_pretrained(
+        #         model, model_out_dir, device_map=device_map
+        #     )
+        # elif (
+        #     self.cfg.model_type.quantization
+        #     and self.cfg.model_type.quantization_dtype == 4
+        # ):
+        #     config = BitsAndBytesConfig(
+        #         load_in_4bit=True,
+        #         bnb_4bit_quant_type="nf4",
+        #         bnb_4bit_use_double_quant=True,
+        #         bnb_4bit_compute_dtype=torch.bfloat16,
+        #     )
 
-            device_map = {"": accelerator.device}
-            model = model_cls.from_pretrained(
-                self.cfg.model_type.model_name,
-                quantization_config=config,
-                device_map=device_map,
-            )
-            model = PeftModel.from_pretrained(model, model_out_dir)
-        elif (
-            self.cfg.model_type.quantization
-            and self.cfg.model_type.quantization_dtype == 8
-        ):
-            config = BitsAndBytesConfig(load_in_8bit=True)
+        #     device_map = {"": accelerator.device}
+        #     model = model_cls.from_pretrained(
+        #         self.cfg.model_type.model_name,
+        #         quantization_config=config,
+        #         device_map=device_map,
+        #     )
+        #     model = PeftModel.from_pretrained(model, model_out_dir)
+        # elif (
+        #     self.cfg.model_type.quantization
+        #     and self.cfg.model_type.quantization_dtype == 8
+        # ):
+        #     config = BitsAndBytesConfig(load_in_8bit=True)
 
-            device_map = {"": accelerator.device}
-            model = model_cls.from_pretrained(
-                self.cfg.model_type.model_name,
-                quantization_config=config,
-                device_map=device_map,
+        #     device_map = {"": accelerator.device}
+        #     model = model_cls.from_pretrained(
+        #         self.cfg.model_type.model_name,
+        #         quantization_config=config,
+        #         device_map=device_map,
+        #     )
+        #     model = PeftModel.from_pretrained(model, model_out_dir)
+        # else:
+        if self.cfg.model_type.quantization:
+            model = self.get_quantized_model(
+                self.cfg.model_type.model_name, model_cls, tokenizer, is_inference=True
             )
-            model = PeftModel.from_pretrained(model, model_out_dir)
         else:
             model = model_cls.from_pretrained(model_out_dir).cuda()
             model.resize_token_embeddings(len(tokenizer))
