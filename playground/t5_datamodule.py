@@ -356,22 +356,3 @@ class T5DataModule:
     def load_data(self):
         tod_dms = self.get_dms()[0].datasets
         return tod_dms["train"], tod_dms["dev"], tod_dms["test"]
-        fp = self.cfg.project_root / "playground" / "data" / self.cfg.csv_file
-        data = utils.read_csv_dataclass(fp, TodTurnCsvRow)
-        df = pd.DataFrame([vars(d) for d in data])
-        # df = pd.read_csv(fp, encoding="ISO-8859-1", header=None)
-
-        df = df.sample(1200, random_state=420)
-
-        # divide into test and train
-        train_df = df.sample(frac=0.8, random_state=420)
-        rest_df = df.drop(train_df.index)
-        val_df = rest_df.sample(frac=0.5, random_state=420)
-        test_df = rest_df.drop(val_df.index)
-        datasets = [
-            SimpleTodDataSet(
-                df.apply(lambda row: TodTurnCsvRow(**row), axis=1).to_list()
-            )
-            for df in [train_df, val_df, test_df]
-        ]
-        return (*datasets,)
