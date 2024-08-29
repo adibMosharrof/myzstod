@@ -1,5 +1,7 @@
+import logging
 import os
 from pathlib import Path
+import random
 import sys
 import uuid
 
@@ -32,6 +34,12 @@ class ProbingTrainer:
     def __init__(self, cfg):
         self.cfg = DotMap(cfg)
         self.cfg.project_root = Path(self.cfg.project_root)
+        formatter = logging.Formatter(fmt="%(message)s")
+        root_logger = logging.getLogger()  # no name
+        for handler in root_logger.handlers:
+            if isinstance(handler, logging.StreamHandler):
+                handler.setFormatter(formatter)
+        self.logger = root_logger
 
     def get_data_modules(self, tokenizer):
         all_dms = []
@@ -141,7 +149,7 @@ class ProbingTrainer:
         model = model_cls.from_pretrained(model_out_dir).cuda()
         model.resize_token_embeddings(len(tokenizer))
         model.eval()
-        collate_fn = self.dm[0].tod_test_collate
+        collate_fn = dms[0].tod_test_collate
         generation_handler = GenerationHandlerFactory.get_handler(
             self.cfg, model, tokenizer
         )
@@ -184,20 +192,20 @@ class ProbingTrainer:
             metric_manager.compute_row_wise_metrics()
             metric_manager.compute_metrics(domain_names)
             metric_manager.compute_is_retrieval_and_slot_fill_metrics()
-            csv_path = self.cfg.out_dir / f"{domain_names}.csv"
+            csv_path = Path(self.cfg.out_dir) / f"{domain_names}.csv"
             csv_path.parent.mkdir(parents=True, exist_ok=True)
             metric_manager.write_csv(csv_path)
 
         if accelerator.is_main_process:
+            chatgpt_results = self.cfg.project_root / "data_exploration/chatgpt/chat_gpt_all.csv"
+            rand_dataset = random.choice(list(self.cfg.dataset.keys()))
             rl = ResultsLogger(
                 DotMap(
                     project_root=self.cfg.project_root,
-                    results_path=os.getcwd() / self.cfg.out_dir / "all.csv",
-                    # chatgpt_results_path="data_exploration/chatgpt/chat_gpt_all.csv",
-                    chatgpt_results_path=self.cfg.project_root
-                    / self.cfg.dataset.chat_gpt_results_path,
+                    results_path=Path(os.getcwd()) / self.cfg.out_dir / "all.csv",
+                    chatgpt_results_path=str(chatgpt_results),
                     out_dir=self.cfg.out_dir,
-                    raw_data_root=self.cfg.raw_data_root,
+                    raw_data_root=rand_dataset.raw_data_root,
                 )
             )
             rl.run()
