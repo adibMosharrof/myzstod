@@ -53,10 +53,21 @@ class ProbingTrainer:
         train, val, test = [], [], []
         for dm in dms:
             ds = dm.get_dms()[0].datasets
-            train.extend(ds["train"])
-            val.extend(ds["dev"])
-            test.extend(ds["test"])
+            api_datasets = self.get_api_call_datasets(ds)
+            train.extend(api_datasets["train"])
+            val.extend(api_datasets["dev"])
+            test.extend(api_datasets["test"])
         return train, val, test
+
+    def get_api_call_datasets(self, ds):
+        out = {"train": [], "dev": [], "test": []}
+        for key in out.keys():
+            if key == "test":
+                for item in ds[key]:
+                    out[key].append([i for i in item.data if i.turn_row_type == 1])
+            else:
+                out[key] = [i for i in ds[key].data if i.turn_row_type == 1]
+        return out
 
     def run(self):
         accelerator = Accelerator()
