@@ -34,6 +34,7 @@ class ProbingTrainer:
     def __init__(self, cfg):
         self.cfg = DotMap(cfg)
         self.cfg.project_root = Path(self.cfg.project_root)
+        self.cfg.out_dir = str(os.getcwd() / Path(self.cfg.out_dir))
         formatter = logging.Formatter(fmt="%(message)s")
         root_logger = logging.getLogger()  # no name
         for handler in root_logger.handlers:
@@ -100,7 +101,7 @@ class ProbingTrainer:
         if self.cfg.should_train:
             deepspeed_path = str(self.cfg.project_root / "config/ds_zero_tod.json")
             training_args = Seq2SeqTrainingArguments(
-                output_dir=str(self.cfg.out_dir),
+                output_dir=self.cfg.out_dir,
                 num_train_epochs=self.cfg.epochs,
                 logging_steps=10,
                 save_total_limit=5,
@@ -202,11 +203,13 @@ class ProbingTrainer:
             chatgpt_results = (
                 self.cfg.project_root / "data_exploration/chatgpt/chat_gpt_all.csv"
             )
-            rand_dataset = random.choice(list(self.cfg.dataset.keys()))
+            rand_key = random.choice(list(self.cfg.dataset.keys()))
+            rand_dataset = self.cfg.dataset[rand_key]
             rl = ResultsLogger(
                 DotMap(
                     project_root=self.cfg.project_root,
-                    results_path=Path(os.getcwd()) / self.cfg.out_dir / "all.csv",
+                    # results_path=Path(self.cfg.out_dir) / "all.csv",
+                    results_path=Path(self.cfg.out_dir) / "Restaurants_2.csv",
                     chatgpt_results_path=str(chatgpt_results),
                     out_dir=self.cfg.out_dir,
                     raw_data_root=rand_dataset.raw_data_root,
