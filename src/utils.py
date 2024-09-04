@@ -6,6 +6,7 @@ from itertools import zip_longest
 import os
 from pathlib import Path
 from typing import Optional, Tuple, Union
+import uuid
 
 from dataclass_csv import DataclassReader
 from dotmap import DotMap
@@ -84,7 +85,7 @@ def get_csv_data_path(
     domain_setting = get_domain_setting_str(cfg.domain_setting)
     base = data_root if data_root else cfg.processed_data_root
     step_dir = base / step
-    return step_dir / (
+    file_name = step_dir / (
         "_".join(
             [
                 version,
@@ -115,6 +116,13 @@ def get_csv_data_path(
         )
         + ".csv"
     )
+    if len(file_name.name) > 255:
+        return Path(generate_uuid_filename(file_name))
+    return file_name
+
+
+def generate_uuid_filename(filename: Path):
+    return str(uuid.uuid4()) + filename.suffix
 
 
 def get_domain_setting_str(domain_setting: Union[list[str], ListConfig, str]):
