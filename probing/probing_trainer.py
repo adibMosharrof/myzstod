@@ -72,7 +72,9 @@ class ProbingTrainer:
         for key in out.keys():
             if key == "test":
                 for item in ds[key]:
-                    out[key].append([i for i in item.data if i.turn_row_type == 1])
+                    data = [i for i in item.data if i.turn_row_type == 1]
+                    if len(data):
+                        out[key].append(data)
             else:
                 out[key] = [i for i in ds[key].data if i.turn_row_type == 1]
         return out
@@ -197,7 +199,9 @@ class ProbingTrainer:
             metric_manager.write_csv(csv_path)
 
         if accelerator.is_main_process:
-            chatgpt_results = self.cfg.project_root / "data_exploration/chatgpt/chat_gpt_all.csv"
+            chatgpt_results = (
+                self.cfg.project_root / "data_exploration/chatgpt/chat_gpt_all.csv"
+            )
             rand_dataset = random.choice(list(self.cfg.dataset.keys()))
             rl = ResultsLogger(
                 DotMap(
