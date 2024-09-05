@@ -25,6 +25,7 @@ if TYPE_CHECKING:
     from configs.task_arithmetic_config import TaskArithmeticConfig
 
 from scale_grad.scale_grad_model import ScaleGradModel
+import hashlib
 
 # from transformers.utils import logging
 import logging
@@ -117,12 +118,15 @@ def get_csv_data_path(
         + ".csv"
     )
     if len(file_name.name) > 255:
-        return Path(generate_uuid_filename(file_name))
+        return Path(generate_hash_filename(file_name, num_dialogs))
     return file_name
 
 
-def generate_uuid_filename(filename: Path):
-    return str(uuid.uuid4()) + filename.suffix
+def generate_hash_filename(filename: Path, num_dialogs: int):
+    h = hashlib.new("sha256")
+    h.update(filename.name.encode())
+    hash_name = h.hexdigest()
+    return f"{hash_name}_{num_dialogs}{filename.suffix}"
 
 
 def get_domain_setting_str(domain_setting: Union[list[str], ListConfig, str]):
