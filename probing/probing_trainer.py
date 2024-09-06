@@ -9,6 +9,7 @@ from accelerate.accelerator import Accelerator
 from dotmap import DotMap
 import hydra
 from omegaconf import DictConfig
+import pandas as pd
 import torch
 from tqdm import tqdm
 from transformers.models.auto.tokenization_auto import AutoTokenizer
@@ -156,7 +157,7 @@ class ProbingTrainer:
         generation_handler = GenerationHandlerFactory.get_handler(
             self.cfg, model, tokenizer
         )
-
+        out_dir_path = Path(self.cfg.out_dir)
         for test_dataset, domain_names_list in zip(
             test_datasets, self.cfg.test_domain_settings
         ):
@@ -195,7 +196,7 @@ class ProbingTrainer:
             metric_manager.compute_row_wise_metrics()
             metric_manager.compute_metrics(domain_names)
             metric_manager.compute_is_retrieval_and_slot_fill_metrics()
-            csv_path = Path(self.cfg.out_dir) / f"{domain_names}.csv"
+            csv_path = out_dir_path / f"{domain_names}.csv"
             csv_path.parent.mkdir(parents=True, exist_ok=True)
             metric_manager.write_csv(csv_path)
 
@@ -205,13 +206,21 @@ class ProbingTrainer:
             )
             rand_key = random.choice(list(self.cfg.dataset.keys()))
             rand_dataset = self.cfg.dataset[rand_key]
+            all_results = []
+            for domain_names_list in self.cfg.test_domain_settings:
+                domain_names = ",".join(domain_names_list)
+                csv_path = out_dir_path / f"{domain_names}.csv"
+                data = pd.read_csv(csv_path)
+                all_results.append(data)
+            combined_results = pd.concat(all_results)
+            combined_csv_path = out_dir_path / "combined_results.csv"
+            combined_results.to_csv(combined_csv_path, index=False)
             rl = ResultsLogger(
                 DotMap(
                     project_root=self.cfg.project_root,
-                    # results_path=Path(self.cfg.out_dir) / "all.csv",
-                    results_path=Path(self.cfg.out_dir) / "Restaurants_2.csv",
+                    results_path=combined_csv_path,
                     chatgpt_results_path=str(chatgpt_results),
-                    out_dir=self.cfg.out_dir,
+                    out_dir=out_dir_path / "results_logger",
                     raw_data_root=rand_dataset.raw_data_root,
                 )
             )
