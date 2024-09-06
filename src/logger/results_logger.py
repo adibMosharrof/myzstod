@@ -28,7 +28,8 @@ class ResultsLogger:
         self.cfg.raw_data_root = Path(cfg.raw_data_root)
 
     def get_csv(self, path):
-        data = pd.read_csv(self.cfg.project_root / path)
+        csv_path = path if Path(path).is_absolute() else self.cfg.project_root / path
+        data = pd.read_csv(csv_path)
         return data
 
     def get_group_metrics(self, group, metric_names):
@@ -216,13 +217,9 @@ class ResultsLogger:
                 domain_categories.append(DstcDomains.UNSEEN.value)
                 # rows_by_domain_setting[DstcDomains.UNSEEN].append(i)
             else:
-                raise ValueError("no domain match")
+                domain_categories.append("unknown")
         results["domain_category"] = domain_categories
         return results
-        rows_seen = results.iloc[rows_by_domain_setting[DstcDomains.SEEN]]
-        rows_unseen = results.iloc[rows_by_domain_setting[DstcDomains.UNSEEN]]
-        rows_mixed = results.iloc[mixed_domain_rows]
-        return rows_seen, rows_unseen, rows_mixed
 
     def get_results(self, results):
         response_rows = results[results["turn_row_type"] == TurnRowType.RESPONSE.value]
