@@ -152,7 +152,9 @@ class CrossDataModule(TodDataModule):
             encoder_outputs = self.encoder_model(
                 input_ids=schema_tokens,
             )
-        return encoder_outputs.last_hidden_state
+        state = encoder_outputs.last_hidden_state
+        print(f"Last hidden state dtype {state.dtype}")
+        return state
 
     def tod_test_collate(self, batch: list[TodTurnApiCallCsvRow]):
         data = DotMap(
