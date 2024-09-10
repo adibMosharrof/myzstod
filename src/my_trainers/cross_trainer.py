@@ -37,14 +37,18 @@ class CrossTrainer(BaseTrainer):
     def __init__(self, cfg):
         super().__init__(cfg, dm_class=CrossDataModule)
         self.encoder_model = AutoModel.from_pretrained(self.cfg.encoder_model_name)
+        print(f"encoder model dtype: {self.encoder_model.dtype}")
 
     def init_model(self, model_name: str, model_path: str = None):
         if model_path:
             return AutoModelForCausalLM.from_pretrained(model_path).cuda()
+        accelerator = Accelerator()
         config = AutoConfig.from_pretrained(model_name)
         config.add_cross_attention = True
         model = AutoModelForCausalLM.from_config(config)
-        return model.cuda()
+        # model = accelerator.prepare_model(model)
+        print(f"model dtype: {model.dtype}")
+        return model
 
     def init_dm_class(self, dm_cfg, tokenizer, schemas):
         return self.dm_class(dm_cfg, tokenizer, schemas, self.encoder_model)
