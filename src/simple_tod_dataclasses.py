@@ -60,6 +60,11 @@ class NlgTestDataBatch:
 
 
 @dataclass
+class CrossTestDataBatch(NlgTestDataBatch):
+    encoder_hidden_states: list[list[int]] = field(default_factory=list)
+
+
+@dataclass
 class PredRef:
     pred: str
     ref: str

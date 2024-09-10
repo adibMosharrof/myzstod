@@ -12,9 +12,13 @@ class MetricManagerFactory:
         if context_type in [
             ContextType.NLG_API_CALL.value,
             ContextType.GPT_API_CALL.value,
+            ContextType.GPT_CROSS.value,
         ]:
             return NlgApiCallMetricManager(logger, tokenizer)
-        if context_type in [ContextType.KETOD_API_CALL.value, ContextType.KETOD_GPT_API_CALL.value]:
+        if context_type in [
+            ContextType.KETOD_API_CALL.value,
+            ContextType.KETOD_GPT_API_CALL.value,
+        ]:
             return KeTodMetricManager(logger, tokenizer)
         if context_type in [ContextType.BITOD.value, ContextType.BITOD_GPT.value]:
             return BitodMetricManager(logger, tokenizer)

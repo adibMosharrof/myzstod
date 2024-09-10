@@ -193,6 +193,9 @@ class BaseTrainer:
             rl.run()
         accelerator.wait_for_everyone()
 
+    def init_dm_class(self, dm_cfg, tokenizer, schemas):
+        return self.dm_class(dm_cfg, tokenizer, schemas)
+
     def get_data_modules(self, tokenizer):
         all_dms = []
         for dataset_name, dataset_config in self.cfg.dataset.items():
@@ -205,7 +208,7 @@ class BaseTrainer:
                 for step in Steps.list()
             ]:
                 schemas.update(d)
-            dm = self.dm_class(dm_cfg, tokenizer, schemas)
+            dm = self.init_dm_class(dm_cfg, tokenizer, schemas)
             all_dms.append(dm)
         return all_dms
 
