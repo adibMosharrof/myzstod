@@ -1,0 +1,69 @@
+defaults:
+  - data_size: dstc_min
+  - dataset: 
+      - dstc
+      # - sgdx_v1
+      # - sgdx_v2
+      # - sgdx_v3
+      # - sgdx_v4
+      # - sgdx_v5
+  - model_type: gpt
+hydra:
+  run:
+    dir: ./outputs/cross/${now:%Y-%m-%d}/${now:%H-%M-%S}_${model_type.model_log_name}
+num_workers: 8
+test_prompt_max_len: 700
+max_token_len: 1024
+num_turns: 26
+should_add_schema: true
+should_add_user_actions: false
+should_add_service_results: true
+early_stopping_patience: 2
+project_root: /mounts/u-amo-d1/adibm-data/projects/ZSToD
+resume_checkpoint: ""
+# epochs: 50
+epochs: 1
+# epochs: 15
+is_scale_grad: false
+# train_domain_settings: all
+train_domain_settings:
+- Restaurants_1
+# - Restaurants_11
+# - Restaurants_12
+# - Restaurants_13
+# - Restaurants_14
+# - Restaurants_15
+dev_domain_settings:
+  - Restaurants_2
+  # - Restaurants_21
+  # - Restaurants_22
+  # - Restaurants_23
+  # - Restaurants_24
+  # - Restaurants_25
+test_domain_settings:
+  - [Restaurants_2]
+  # - [Restaurants_21]
+  # - [Restaurants_22]
+  # - [Restaurants_23]
+  # - [Restaurants_24]
+  # - [Restaurants_25]
+  # - [seen]
+  # - [unseen]
+# context_type: ketod_api_call
+context_type: gpt_cross
+prompt_type: cross
+encoder_model_name: gpt2
+overwrite:
+  - 0
+  - 0
+  - 0
+out_dir: results
+# should_train: true
+should_train: false
+# should_test: false
+should_test: true
+wandb:
+  project: ZSTod
+  entity: adibm
+  notes: sgd
+  task: probing
