@@ -21,6 +21,7 @@ class TurnCsvRowFactory:
         if cfg.context_type in [
             ContextType.NLG_API_CALL.value,
             ContextType.GPT_API_CALL.value,
+            ContextType.GPT_CROSS.value,
         ]:
             csv_row_cls = ApiCallTurnCsvRow()
         if cfg.context_type in [

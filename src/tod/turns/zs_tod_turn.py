@@ -79,6 +79,7 @@ class TodTurnCsvRowFactory:
             ContextType.KETOD_GPT_API_CALL.value,
             ContextType.BITOD.value,
             ContextType.BITOD_GPT.value,
+            ContextType.GPT_CROSS.value,
         ]:
             return TodTurnApiCallCsvRow
         raise ValueError("incorrect context type")

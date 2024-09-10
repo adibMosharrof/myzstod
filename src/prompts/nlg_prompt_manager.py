@@ -5,6 +5,39 @@ from sgd_dstc8_data_model.dstc_dataclasses import (
 )
 
 
+class CrossAttentionPrompt:
+    def get_generation_prompt(
+        self,
+        domain: str,
+        dialog_history: str,
+    ) -> str:
+        """
+        Returns the NLG prompt for the given domain
+        """
+        prompt_text = "\n".join(
+            [
+                "Dialog History:",
+                dialog_history,
+            ]
+        )
+        return prompt_text
+
+    def get_schema_prompt(
+        self,
+        domain: str,
+        schema: str,
+    ) -> str:
+        """
+        Returns the NLG prompt for the given domain
+        """
+        prompt_text = "\n".join(
+            [
+                schema,
+            ]
+        )
+        return prompt_text
+
+
 class NlgPrompt:
     def get_prompt(
         self,
@@ -182,7 +215,10 @@ class NlgPromptFactory:
     def get_handler(
         self, prompt_type: str, context_type: ContextType = ContextType.NLG_API_CALL
     ) -> NlgPrompt:
-        if context_type in [ContextType.KETOD_API_CALL.value,ContextType.KETOD_GPT_API_CALL.value]:
+        if context_type in [
+            ContextType.KETOD_API_CALL.value,
+            ContextType.KETOD_GPT_API_CALL.value,
+        ]:
             return KetodPrompt()
         if prompt_type == NlgPromptType.MULTI_DOMAIN.value:
             return NlgMultidomainPrompt()
@@ -190,6 +226,8 @@ class NlgPromptFactory:
             return NlgPrompt()
         if prompt_type == NlgPromptType.CHATGPT.value:
             return ChatGptPrompt()
+        if prompt_type == NlgPromptType.CROSS.value:
+            return CrossAttentionPrompt()
         all_prompts = ",".join(NlgPromptType.list())
         raise NotImplementedError(
             f"Prompt type {prompt_type} is not implemented. It must be one of the following values {all_prompts}."

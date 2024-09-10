@@ -49,6 +49,11 @@ class TodTrainRowCollator:
 
 
 @dataclass(frozen=False)
+class TodTrainCrossRowCollator(TodTrainRowCollator):
+    encoder_hidden_states: torch.IntTensor
+
+
+@dataclass(frozen=False)
 class ScaleGradRowCollator(TodTrainRowCollator):
     mt_prompt_token_ids: Optional[torch.IntTensor] = None
     special_tokens_target_mask: Optional[torch.IntTensor] = None
@@ -378,6 +383,15 @@ class BaseDataModule(ABC):
         except TypeError as e:
             raise ("Contrastive tokenizer failed")
         return tokens.to(dtype=torch.int32)
+
+    def my_tokenizer_pad(self, text: str, max_len: int = None):
+        return self.tokenizer(
+            text,
+            return_tensors="pt",
+            padding="max_length",
+            max_length=max_len,
+            truncation=True,
+        )
 
     def get_training_labels(self, context_len, unused_len, target_tokens):
         return torch.cat(
