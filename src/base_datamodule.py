@@ -50,7 +50,7 @@ class TodTrainRowCollator:
 
 @dataclass(frozen=False)
 class TodTrainCrossRowCollator(TodTrainRowCollator):
-    encoder_hidden_states: torch.IntTensor
+    schema_tokens: torch.IntTensor
 
 
 @dataclass(frozen=False)
