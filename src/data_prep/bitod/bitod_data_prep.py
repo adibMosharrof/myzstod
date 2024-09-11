@@ -11,7 +11,7 @@ from omegaconf import DictConfig
 from configs.dataprep_config import DataPrepConfig
 import utils
 from data_prep.data_prep_strategy import DataPrepStrategy
-from data_prep_strategy_resolver import DataPrepStrategyResolver
+from data_prep.data_prep_strategy_resolver import DataPrepStrategyResolver
 from datasets import load_dataset
 
 from tod.turns.turn_csv_row_base import TurnCsvRowBase
