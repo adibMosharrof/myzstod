@@ -173,7 +173,7 @@ class CrossDataModule(TodDataModule):
                     "is_slot_fills",
                     "is_multi_domain_api_calls",
                     "domain_ids",
-                    "encoder_hidden_states",
+                    "schema_tokens",
                 ]
             }
         )
@@ -199,7 +199,7 @@ class CrossDataModule(TodDataModule):
                 item.domains_original, max_lengths.domains
             )
             data.domain_ids.append(domain_tokens["input_ids"][0])
-            data.encoder_hidden_states.append(row.encoder_hidden_states)
+            data.schema_tokens.append(row.schema_tokens)
 
         return CrossTestDataBatch(
             dialog_ids=torch.stack(data.dialog_ids),
@@ -212,5 +212,5 @@ class CrossDataModule(TodDataModule):
             is_slot_fills=torch.stack(data.is_slot_fills),
             is_multi_domain_api_calls=torch.stack(data.is_multi_domain_api_calls),
             domain_ids=torch.stack(data.domain_ids),
-            encoder_hidden_states=torch.stack(data.encoder_hidden_states),
+            schema_tokens=torch.stack(data.schema_tokens),
         )
