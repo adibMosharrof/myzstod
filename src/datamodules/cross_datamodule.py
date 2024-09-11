@@ -12,6 +12,7 @@ from tod_datamodules import TodDataModule
 from configs.dm_config import DataModuleConfig
 import torch
 from utilities.tokenizer_utilities import TokenizerUtilities
+from accelerate import Accelerator
 
 
 class CrossDataModule(TodDataModule):
@@ -28,6 +29,7 @@ class CrossDataModule(TodDataModule):
             cfg.prompt_type, cfg.context_type
         )
         self.encoder_model = encoder_model
+        self.accelerator = Accelerator()
 
     def trim_dialog_history(
         self,
@@ -52,7 +54,7 @@ class CrossDataModule(TodDataModule):
         all_input_tokens = []
         all_labels = []
         all_attention_masks = []
-        all_encoder_hidden_states = []
+        all_schema_tokens = []
 
         target_max_len = self.cfg.max_token_len - self.cfg.test_prompt_max_len
         for item in batch:
@@ -60,13 +62,13 @@ class CrossDataModule(TodDataModule):
             all_input_tokens.append(row.input_tokens)
             all_attention_masks.append(row.attention_mask)
             all_labels.append(row.label)
-            all_encoder_hidden_states.append(row.encoder_hidden_states)
+            all_schema_tokens.append(row.schema_tokens)
         # return DotMap(
         return {
             "input_ids": torch.stack(all_input_tokens),
             "labels": torch.stack(all_labels),
             "attention_mask": torch.stack(all_attention_masks),
-            "encoder_hidden_states": torch.stack(all_encoder_hidden_states),
+            "schema_tokens": torch.stack(all_schema_tokens),
         }
 
     def collate_single_item(
@@ -139,21 +141,21 @@ class CrossDataModule(TodDataModule):
                     torch.full([target_unused_len], self._huggingface_ignore_label_id),
                 ]
             )
-        encoder_hidden_states = self.get_encoder_hidden_states(schema_tokens)
+        # encoder_hidden_states = self.get_encoder_hidden_states(schema_tokens)
         return TodTrainCrossRowCollator(
             input_tokens,
             label,
             attention_mask,
-            encoder_hidden_states=encoder_hidden_states,
+            schema_tokens=schema_tokens,
         )
 
     def get_encoder_hidden_states(self, schema_tokens):
         with torch.no_grad():
             encoder_outputs = self.encoder_model(
-                input_ids=schema_tokens,
+                # input_ids=self.accelerator.prepare(schema_tokens),
+                input_ids=schema_tokens.cuda(),
             )
         state = encoder_outputs.last_hidden_state
-        print(f"Last hidden state dtype {state.dtype}")
         return state
 
     def tod_test_collate(self, batch: list[TodTurnApiCallCsvRow]):
