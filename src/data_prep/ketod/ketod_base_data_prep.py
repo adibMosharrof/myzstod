@@ -23,7 +23,7 @@ import utils
 from pathlib import Path
 from tqdm import tqdm
 from pathos.multiprocessing import ProcessingPool as Pool
-from data_prep_strategy_resolver import DataPrepStrategyResolver
+from data_prep.data_prep_strategy_resolver import DataPrepStrategyResolver
 from sgd_dstc8_data_model.dstc_dataclasses import get_schemas, DstcSchema, DstcDialog
 from my_enums import Steps
 from data_prep.data_prep_strategy import DataPrepStrategy
