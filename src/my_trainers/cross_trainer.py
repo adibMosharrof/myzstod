@@ -44,7 +44,9 @@ class CrossTrainer(BaseTrainer):
 
     def init_model(self, model_name: str, model_path: str = None):
         if model_path:
-            return AutoModelForCausalLM.from_pretrained(model_path).cuda()
+            model = CustomGPT2Model.from_pretrained(model_path)
+            model.encoder_model = self.encoder_model
+            return model
 
         config = AutoConfig.from_pretrained(model_name)
         config.add_cross_attention = True
@@ -59,7 +61,7 @@ class CrossTrainer(BaseTrainer):
 
 
 class CustomGPT2Model(GPT2LMHeadModel):
-    def __init__(self, config, encoder_model):
+    def __init__(self, config, encoder_model=None):
         # Call the parent class (GPT2LMHeadModel) init method
         super().__init__(config)
 
@@ -107,6 +109,20 @@ class CustomGPT2Model(GPT2LMHeadModel):
         )
 
         return outputs
+
+    def prepare_inputs_for_generation(
+        self,
+        input_ids,
+        past_key_values=None,
+        inputs_embeds=None,
+        schema_tokens=None,
+        **kwargs
+    ):
+        model_inputs = super().prepare_inputs_for_generation(
+            input_ids, past_key_values, inputs_embeds, **kwargs
+        )
+        model_inputs["schema_tokens"] = schema_tokens
+        return model_inputs
 
 
 @hydra.main(config_path="../../config/probing/", config_name="cross_trainer")
