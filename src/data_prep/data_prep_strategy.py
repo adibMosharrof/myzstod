@@ -52,7 +52,7 @@ class DataPrepStrategy(ABC):
             return None
 
         utt = system_turn.utterance
-        if self.cfg.context_type == ContextType.GPT_API_CALL:
+        if self.cfg.context_type in [ContextType.GPT_API_CALL, ContextType.GPT_CROSS]:
             utt += SpecialTokens.eos_token.value
         return utt
         # return system_turn.utterance
