@@ -44,8 +44,11 @@ class CrossTrainer(BaseTrainer):
 
     def init_model(self, model_name: str, model_path: str = None):
         if model_path:
+            encoder_model = AutoModel.from_pretrained(
+                Path(model_path) / self.cfg.encoder_out_dir
+            )
             model = CustomGPT2Model.from_pretrained(model_path)
-            model.encoder_model = self.encoder_model
+            model.encoder_model = encoder_model
             return model
 
         config = AutoConfig.from_pretrained(model_name)
@@ -58,6 +61,20 @@ class CrossTrainer(BaseTrainer):
 
     def init_dm_class(self, dm_cfg, tokenizer, schemas):
         return self.dm_class(dm_cfg, tokenizer, schemas, self.encoder_model)
+
+    def save_model(self, trainer):
+        super().save_model(trainer)
+        if isinstance(
+            trainer.model.encoder_model, torch.nn.parallel.DistributedDataParallel
+        ):
+            encoder_out_dir = self.cfg.out_dir / Path(self.cfg.encoder_out_dir)
+            trainer.model.encoder_model.module.save_pretrained(
+                encoder_out_dir, safe_serialize=False
+            )
+        else:
+            trainer.model.encoder_model.save_pretrained(
+                encoder_out_dir, safe_serialize=False
+            )
 
 
 class CustomGPT2Model(GPT2LMHeadModel):
