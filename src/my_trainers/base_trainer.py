@@ -64,9 +64,9 @@ class BaseTrainer:
             dms
         )
         model_name = self.cfg.model_type.model_name
-        model = self.init_model(model_name)
-        model.resize_token_embeddings(len(tokenizer))
         if self.cfg.should_train:
+            model = self.init_model(model_name)
+            model.resize_token_embeddings(len(tokenizer))
             deepspeed_path = str(self.cfg.project_root / "config/ds_zero_tod.json")
             training_args = Seq2SeqTrainingArguments(
                 output_dir=self.cfg.out_dir,
@@ -108,9 +108,7 @@ class BaseTrainer:
             )
             trainer.train()
             if accelerator.is_main_process:
-                trainer.model.save_pretrained(
-                    self.cfg.out_dir, safe_serialization=False
-                )
+                self.save_model(trainer)
             accelerator.wait_for_everyone()
             model_out_dir = self.cfg.out_dir
         else:
@@ -194,6 +192,9 @@ class BaseTrainer:
             )
             rl.run()
         accelerator.wait_for_everyone()
+
+    def save_model(self, trainer):
+        trainer.model.save_pretrained(self.cfg.out_dir, safe_serialization=False)
 
     def init_dm_class(self, dm_cfg, tokenizer, schemas):
         return self.dm_class(dm_cfg, tokenizer, schemas)
