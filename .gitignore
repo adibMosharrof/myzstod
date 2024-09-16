@@ -17,13 +17,12 @@ figures/
 slurm_out/
 task_slurm_out/
 google_sgd/schema_guided_dst/baseline/test_data
-data_exploration/*.csv
+/data_exploration
 tokenizer/
 # transformers/
 GenTodPaper/.olauth
 .nfs*
 wandb/
-data_exploration/
 playground/data
 playground/t5_tod_out
 playground/summary_data/
