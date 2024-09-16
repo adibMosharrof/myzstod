@@ -2,6 +2,8 @@ from dataclasses import asdict
 import json
 import os
 from pathlib import Path
+import random
+import string
 import sys
 
 sys.path.insert(0, os.path.abspath("./src"))
@@ -20,14 +22,15 @@ from my_enums import Steps
 class SchemaPseudoLabels:
     def __init__(self, cfg):
         self.cfg = cfg
-        self.slot_counter = 1
-        self.intent_counter = 1
+        self.generated_intent_names = set()
+        self.generated_slot_names = set()
 
     def get_pseudo_schema(self, schema, version_num):
         slot_map = {}
         for slot in schema.slots:
-            slot_name = f"slot_{self.slot_counter}"
-            self.slot_counter += 1
+            slot_name = self._generate_unique_name(
+                self.generated_slot_names, uppercase=False
+            )
             dstc_slot = DstcSchemaSlot(
                 name=slot_name,
                 description="",
@@ -37,8 +40,9 @@ class SchemaPseudoLabels:
             slot_map[slot.name] = dstc_slot
         new_intents = []
         for intent in schema.intents:
-            intent_name = f"intent_{self.intent_counter}"
-            self.intent_counter += 1
+            intent_name = self._generate_unique_name(
+                self.generated_intent_names, uppercase=True
+            )
             dstc_intent = DstcSchemaIntent(
                 name=intent_name,
                 description="",
@@ -56,7 +60,17 @@ class SchemaPseudoLabels:
             slots=list(slot_map.values()),
         )
         return new_schema
-        return json.dumps(asdict(new_schema), indent=4)
+
+    def _generate_random_string(self, length=3, uppercase=False):
+        characters = string.ascii_uppercase if uppercase else string.ascii_lowercase
+        return "".join(random.choices(characters, k=length))
+
+    def _generate_unique_name(self, generated_names, uppercase=False):
+        while True:
+            name = self._generate_random_string(uppercase=uppercase)
+            if name not in generated_names:
+                generated_names.add(name)
+                return name
 
     def run(self):
         data_path = self.cfg.project_root / self.cfg.data_path
