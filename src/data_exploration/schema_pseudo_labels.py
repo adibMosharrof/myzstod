@@ -6,6 +6,9 @@ import random
 import string
 import sys
 
+import hydra
+from omegaconf import DictConfig
+
 sys.path.insert(0, os.path.abspath("./src"))
 
 from dotmap import DotMap
@@ -21,6 +24,7 @@ from my_enums import Steps
 
 class SchemaPseudoLabels:
     def __init__(self, cfg):
+        cfg.project_root = Path(cfg.project_root)
         self.cfg = cfg
         self.generated_intent_names = set()
         self.generated_slot_names = set()
@@ -95,16 +99,13 @@ class SchemaPseudoLabels:
                     )
 
 
-if __name__ == "__main__":
-    spl = SchemaPseudoLabels(
-        DotMap(
-            processed_data_root="data/processed_data/",
-            project_root=Path("/u/amo-d0/grad/adibm/data/projects/ZSToD"),
-            data_path="data/dstc8-schema-guided-dialogue",
-            sgd_x_path="data/dstc8-schema-guided-dialogue/sgd_x/data",
-            out_file_path=Path("data_exploration/api_stats/api_stats.csv"),
-            version_suffix="pl",
-            num_versions=5,
-        )
-    )
+@hydra.main(
+    config_path="../../config/data_exploration/", config_name="schema_pseudo_labels"
+)
+def hydra_start(cfg: DictConfig) -> None:
+    spl = SchemaPseudoLabels(cfg)
     spl.run()
+
+
+if __name__ == "__main__":
+    hydra_start()
