@@ -48,7 +48,7 @@ class SchemaPseudoLabels:
                 result_slots=[slot_map[slot].name for slot in intent.result_slots],
             )
             new_intents.append(dstc_intent)
-        service_name = f"{schema.service_name.split('_')[0]}_{version_num}"
+        service_name = f"{schema.service_name}{version_num}"
         new_schema = DstcSchema(
             service_name=service_name,
             description=schema.description,
