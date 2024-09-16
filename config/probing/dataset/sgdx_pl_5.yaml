@@ -1,5 +1,0 @@
-sgdx_pl5:
-  raw_data_root: data/dstc8-schema-guided-dialogue/sgd_x/data/pl_5
-  data_prep_out_root: processed_data/sgd_x/pl_5
-  chatgpt_results_path: data_exploration/chatgpt/chat_gpt_all sgd.csv
-  dataset_name: sgdx_pl_5
