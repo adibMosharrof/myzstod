@@ -1,0 +1,12 @@
+model_name: gpt2
+model_path: ""
+# model_path: probing/outputs/2024-09-06/10-55-36_gpt2/results
+# model_path: outputs/cross/2024-09-13/16-24-04_gpt2/results
+train_batch_size: 5
+eval_batch_size: 10
+test_batch_size: 70
+gradient_accumulation_steps: 32
+eval_accumulation_steps: 32
+quantization: false
+learning_rate: 1e-3
+model_log_name: gpt2
