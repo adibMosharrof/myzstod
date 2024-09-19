@@ -206,6 +206,7 @@ class BaseTrainer:
             dm_cfg = DotMap(self.cfg)
             dm_cfg.update(**dataset_config)
             dm_cfg.update(**self.cfg.data_size)
+            dm_cfg.raw_data_root = self.cfg.project_root / dataset_config.raw_data_root
             schemas = {}
             for d in [
                 get_schemas(self.cfg.project_root / dataset_config.raw_data_root, step)
