@@ -71,7 +71,7 @@ class BaseTrainer:
             training_args = Seq2SeqTrainingArguments(
                 output_dir=self.cfg.out_dir,
                 num_train_epochs=self.cfg.epochs,
-                logging_steps=10,
+                logging_steps=30,
                 save_total_limit=5,
                 save_steps=self.cfg.data_size.save_steps,
                 eval_steps=self.cfg.data_size.eval_steps,
