@@ -64,10 +64,10 @@ class CrossTrainer(BaseTrainer):
 
     def save_model(self, trainer):
         super().save_model(trainer)
+        encoder_out_dir = str(self.cfg.out_dir / Path(self.cfg.encoder_out_dir))
         if isinstance(
             trainer.model.encoder_model, torch.nn.parallel.DistributedDataParallel
         ):
-            encoder_out_dir = self.cfg.out_dir / Path(self.cfg.encoder_out_dir)
             trainer.model.encoder_model.module.save_pretrained(
                 encoder_out_dir, safe_serialize=False
             )
