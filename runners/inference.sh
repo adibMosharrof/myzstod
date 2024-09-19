@@ -3,7 +3,7 @@
 #SBATCH --time=8:00:00 # Time limit for the job (REQUIRED).
 #SBATCH --job-name=inference # Job name
 #SBATCH --ntasks=8 # Number of cores for the job. Same as SBATCH -n 8
-#SBATCH --partition=V4V32_SKY32M192_L # Partition/queue to run the job in. (REQUIRED)
+#SBATCH --partition=P4V12_SKY32M192_L # Partition/queue to run the job in. (REQUIRED)
 #SBATCH -e slurm_out/%j.err # Error file for this job.
 #SBATCH -o slurm_out/%j.out # Output file for this job.
 #SBATCH -A gol_msi290_uksr # Project allocation account name (REQUIRED)

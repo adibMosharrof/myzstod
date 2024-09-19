@@ -8,11 +8,9 @@
 #SBATCH -o slurm_out/%j.out # Output file for this job.
 #SBATCH -A gol_msi290_uksr # Project allocation account name (REQUIRED)
 #SBATCH --gres=gpu:4
-#SBATCH --nodelist=gvnodeb008
-#module load ccs/Miniconda3
 source ~/miniconda3/etc/profile.d/conda.sh
 conda activate ./envs
-time python src/trainer.py --config-name lcc_simple_tod_trainer_2
+time python src/trainer.py --config-name lcc_simple_tod_trainer_mh
 # outdir=`time python src/trainer.py --config-name lcc_simple_tod_trainer`
 # cd ../google-research
 

@@ -4,16 +4,16 @@
 #SBATCH --job-name=gt_trainer # Job name
 #SBATCH --ntasks=8 # Number of cores for the job. Same as SBATCH -n 8
 #SBATCH --partition=V4V32_CAS40M192_L # Partition/queue to run the job in. (REQUIRED)
-#SBATCH -e slurm_out/%j.err # Error file for this job.
-#SBATCH -o slurm_out/%j.out # Output file for this job.
+#SBATCH -e task_slurm_out/%j.err # Error file for this job.
+#SBATCH -o task_slurm_out/%j.out # Output file for this job.
 #SBATCH -A gol_msi290_uksr # Project allocation account name (REQUIRED)
-#SBATCH --gres=gpu:4
+#SBATCH --gres=gpu:2
 
 #module load ccs/Miniconda3
 source ~/miniconda3/etc/profile.d/conda.sh
-conda activate ./envs
-# time python -m torch.distributed.launch --use_env --nproc_per_node 4 src/trainer.py --config-name lcc_simple_tod_trainer
-time python src/trainer.py --config-name lcc_simple_tod_trainer
+conda activate ./.venvs
+time python src/trainer.py --config-name lcc_multi_adapter
+# time python src/trainer.py --config-name lcc_arithmetic_trainer
 # outdir=`python src/trainer.py --config-name lcc_simple_tod_trainer`
 # echo $outdir
 # cd ../google-research
