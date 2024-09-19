@@ -52,9 +52,9 @@ class ApiCallParametersMetric(TodMetricsBase):
         pred_params = self._get_parameters_from_text(pred)
         if ref_params == {}:
             if pred_params == {}:
-                return 1.0, 1.0
+                return 1.0, 1.0, 1.0
             else:
-                return 0.0, 0.0
+                return 0.0, 0.0, 0.0
         param_accs, value_accs, only_value_accs = [], [], []
         for k, v in ref_params.items():
             only_value_accs.append(self.get_only_value_score(pred_params, v))
