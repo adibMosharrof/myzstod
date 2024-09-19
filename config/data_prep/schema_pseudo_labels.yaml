@@ -1,0 +1,6 @@
+processed_data_root: data/processed_data/
+project_root: /u/amo-d0/grad/adibm/data/projects/ZSToD
+data_path: data/dstc8-schema-guided-dialogue
+sgd_x_path: data/dstc8-schema-guided-dialogue/sgd_x/data
+version_suffix: pl
+num_versions: 6
