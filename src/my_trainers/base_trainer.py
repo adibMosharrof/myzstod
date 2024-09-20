@@ -19,6 +19,8 @@ from transformers.trainer_utils import IntervalStrategy
 from transformers.training_args_seq2seq import Seq2SeqTrainingArguments
 from torch.utils.data import DataLoader
 
+from model_loaders.model_loader_factory import ModelLoaderFactory
+
 
 sys.path.insert(0, os.path.abspath("./src"))
 sys.path.insert(0, os.path.abspath("./"))
@@ -63,10 +65,9 @@ class BaseTrainer:
         train_dataset, val_dataset, test_datasets = self.get_datasets_from_data_modules(
             dms
         )
-        model_name = self.cfg.model_type.model_name
+        model_loader = ModelLoaderFactory.get_loader(self.cfg, tokenizer)
         if self.cfg.should_train:
-            model = self.init_model(model_name)
-            model.resize_token_embeddings(len(tokenizer))
+            model = model_loader.load()
             deepspeed_path = str(self.cfg.project_root / "config/ds_zero_tod.json")
             training_args = Seq2SeqTrainingArguments(
                 output_dir=self.cfg.out_dir,
@@ -116,9 +117,11 @@ class BaseTrainer:
             model_out_dir = str(self.cfg.project_root / self.cfg.model_type.model_path)
 
         utils.log(self.logger, "starting inference")
-        model = self.init_model(model_name, model_out_dir)
+        # model = self.init_model(model_name, model_out_dir)
+        # model = self.init_model(model_name, model_out_dir)
+        model = model_loader.load(model_out_dir)
         # model = accelerator.prepare(model)
-        model = model.to(accelerator.device)
+        # model = model.to(accelerator.device)
         model.eval()
         collate_fn = dms[0].tod_test_collate
         generation_handler = GenerationHandlerFactory.get_handler(
