@@ -154,7 +154,7 @@ class BitodStrategy(NlgApiCallStrategy):
         return NlgTodTarget(response=response)
 
     def _prepare_response(self, utterance: str) -> str:
-        if self.cfg.context_type == ContextType.BITOD_GPT.value:
+        if self.cfg.model_type.context_type == ContextType.BITOD_GPT.value:
             utterance += SpecialTokens.eos_token.value
         return utterance
 

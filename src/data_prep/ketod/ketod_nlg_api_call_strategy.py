@@ -253,9 +253,9 @@ class KetodNlgApiCallStrategy(NlgApiCallStrategy):
             return None
         response = self._prepare_response(turn.system_response)
         return NlgTodTarget(response=response)
-    
-    def _prepare_response(self, utterance:str) -> str:
-        if self.cfg.context_type == ContextType.KETOD_GPT_API_CALL.value:
+
+    def _prepare_response(self, utterance: str) -> str:
+        if self.cfg.model_type.context_type == ContextType.KETOD_GPT_API_CALL.value:
             utterance += SpecialTokens.eos_token.value
         return utterance
 

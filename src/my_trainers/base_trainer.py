@@ -46,11 +46,6 @@ class BaseTrainer:
                 handler.setFormatter(formatter)
         self.logger = root_logger
 
-    def init_model(self, model_name: str, model_path: str = None):
-        model_cls = utils.get_model_class(model_name)
-        model = model_cls.from_pretrained(model_path or model_name)
-        return model
-
     def run(self):
         accelerator = Accelerator()
         torch.manual_seed(420)
@@ -78,7 +73,6 @@ class BaseTrainer:
                 eval_steps=self.cfg.data_size.eval_steps,
                 load_best_model_at_end=True,
                 save_strategy=IntervalStrategy.STEPS,
-                # evaluation_strategy=IntervalStrategy.STEPS,
                 eval_strategy=IntervalStrategy.STEPS,
                 per_device_train_batch_size=self.cfg.model_type.train_batch_size,
                 per_device_eval_batch_size=self.cfg.model_type.eval_batch_size,
@@ -120,11 +114,7 @@ class BaseTrainer:
             model_out_dir = str(self.cfg.project_root / self.cfg.model_type.model_path)
 
         utils.log(self.logger, "starting inference")
-        # model = self.init_model(model_name, model_out_dir)
-        # model = self.init_model(model_name, model_out_dir)
         model = model_loader.load(model_out_dir)
-        # model = accelerator.prepare(model)
-        # model = model.to(accelerator.device)
         model.eval()
         collate_fn = dms[0].tod_test_collate
         generation_handler = GenerationHandlerFactory.get_handler(

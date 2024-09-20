@@ -26,7 +26,7 @@ class T5DataModule:
         self.tokenizer = tokenizer
         self.schemas = schemas
         self.nlg_prompt_cls = NlgPromptFactory.get_handler(
-            cfg.prompt_type, cfg.context_type
+            cfg.prompt_type, cfg.model_type.context_type
         )
         self.domain_builder = DstcDomainBuilder(
             self.cfg.raw_data_root, self.cfg.data_split_percent[0]
