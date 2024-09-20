@@ -12,7 +12,7 @@ from configs.dataprep_config import DataPrepConfig
 from pathlib import Path
 from tqdm import tqdm
 from pathos.multiprocessing import ProcessingPool as Pool
-from data_prep.data_prep_strategy_resolver import DataPrepStrategyResolver
+from data_prep.data_prep_strategy_factory import DataPrepStrategyResolver
 from my_enums import Steps
 from utils import get_csv_data_path, get_dialog_file_paths
 from tod.turns.turn_csv_row_base import TurnCsvRowBase
