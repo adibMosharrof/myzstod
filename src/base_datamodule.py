@@ -12,7 +12,7 @@ from configs.dataprep_config import DataPrepConfig
 from configs.dm_config import DataModuleConfig
 from configs.multi_woz_data_prep_config import MultiWozDataPrepConfig
 from data_prep.bitod.bitod_data_prep import BitodDataPrep
-from data_prep.data_prep_strategy_resolver import DataPrepStrategyResolver
+from data_prep.data_prep_strategy_factory import DataPrepStrategyResolver
 from data_prep.dstc_base_data_prep import DstcBaseDataPrep
 from data_prep.ketod.ketod_base_data_prep import KetodBaseDataPrep
 

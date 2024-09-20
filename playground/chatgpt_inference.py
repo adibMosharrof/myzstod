@@ -25,7 +25,7 @@ from logger.results_logger import ResultsLogger
 from tqdm import tqdm
 import numpy as np
 from configs.dataprep_config import DataPrepConfig
-from data_prep.data_prep_strategy_resolver import DataPrepStrategyResolver
+from data_prep.data_prep_strategy_factory import DataPrepStrategyResolver
 from data_prep.dstc_base_data_prep import DstcBaseDataPrep
 from my_enums import Steps, TurnRowType
 import utils
