@@ -52,7 +52,10 @@ class DataPrepStrategy(ABC):
             return None
 
         utt = system_turn.utterance
-        if self.cfg.context_type in [ContextType.GPT_API_CALL, ContextType.GPT_CROSS]:
+        if self.cfg.model_type.context_type in [
+            ContextType.GPT_API_CALL,
+            ContextType.GPT_CROSS,
+        ]:
             utt += SpecialTokens.eos_token.value
         return utt
         # return system_turn.utterance
@@ -80,7 +83,9 @@ class DataPrepStrategy(ABC):
             tod_turn.turn_id = i + 1
             tod_turns.append(
                 turn_csv_row_handler.to_csv_row(
-                    self.cfg.context_type, tod_turn, self.cfg.should_add_schema
+                    self.cfg.model_type.context_type,
+                    tod_turn,
+                    self.cfg.should_add_schema,
                 )
             )
         return tod_turns

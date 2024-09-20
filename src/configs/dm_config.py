@@ -161,7 +161,7 @@ class DataModuleConfig:
             should_add_sys_actions=trainer_config.should_add_sys_actions,
             contrast_with=trainer_config.contrast_with,
             contrastive_max_token_len=trainer_config.contrastive_max_token_len,
-            context_type=trainer_config.context_type,
+            context_type=trainer_config.model_type.context_type,
             should_add_service_results=trainer_config.should_add_service_results,
             mh_fact=trainer_config.mh_fact,
             data_prep_multi_process=trainer_config.data_prep_multi_process,

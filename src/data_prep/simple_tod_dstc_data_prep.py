@@ -171,7 +171,7 @@ class SimpleTODDSTCDataPrep:
         if self.cfg.should_add_schema:
             turn_schemas = [schemas[s] for s in services]
 
-            if self.cfg.context_type == ContextType.NLG:
+            if self.cfg.model_type.context_type == ContextType.NLG:
                 turn_schema_str = "".join([s.get_nlg_repr() for s in turn_schemas])
             else:
                 turn_schema_str = "".join([str(s) for s in turn_schemas])
@@ -232,7 +232,7 @@ class SimpleTODDSTCDataPrep:
                 row.schema_str = self._get_schema_str(turn.schemas, turn, mtst)
             out.append(
                 turn_csv_row_handler.to_csv_row(
-                    self.cfg.context_type, row, self.cfg.should_add_schema
+                    self.cfg.model_type.context_type, row, self.cfg.should_add_schema
                 )
             )
         return out
@@ -264,7 +264,9 @@ class SimpleTODDSTCDataPrep:
             else:
                 tod_turns.append(
                     turn_csv_row_handler.to_csv_row(
-                        self.cfg.context_type, tod_turn, self.cfg.should_add_schema
+                        self.cfg.model_type.context_type,
+                        tod_turn,
+                        self.cfg.should_add_schema,
                     )
                 )
         if not self.cfg.is_multi_task:

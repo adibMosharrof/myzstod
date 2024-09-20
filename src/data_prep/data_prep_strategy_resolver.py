@@ -12,25 +12,28 @@ class DataPrepStrategyResolver:
     """
 
     @classmethod
-    def resolve(self, cfg):
+    def resolve(cls, cfg):
         """
         Resolves data preparation strategy.
         """
-        if cfg.context_type == ContextType.NLG.value:
+        if cfg.model_type.context_type == ContextType.NLG.value:
             return NlgDataPrep(cfg)
-        if cfg.context_type == ContextType.SHORT_REPR.value:
+        if cfg.model_type.context_type == ContextType.SHORT_REPR.value:
             return ZsTodDataPrep(cfg)
-        if cfg.context_type in [
+        if cfg.model_type.context_type in [
             ContextType.NLG_API_CALL.value,
             ContextType.GPT_API_CALL.value,
             ContextType.GPT_CROSS.value,
         ]:
             return NlgApiCallStrategy(cfg)
-        if cfg.context_type in [
+        if cfg.model_type.context_type in [
             ContextType.KETOD_API_CALL.value,
             ContextType.KETOD_GPT_API_CALL.value,
         ]:
             return KetodNlgApiCallStrategy(cfg)
-        if cfg.context_type in [ContextType.BITOD.value, ContextType.BITOD_GPT.value]:
+        if cfg.model_type.context_type in [
+            ContextType.BITOD.value,
+            ContextType.BITOD_GPT.value,
+        ]:
             return BitodStrategy(cfg)
-        raise ValueError(f"Unknown data prep step: {cfg.context_type}")
+        raise ValueError(f"Unknown data prep step: {cfg.model_type.context_type}")

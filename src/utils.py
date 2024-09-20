@@ -91,7 +91,7 @@ def get_csv_data_path(
             [
                 version,
                 "context_type",
-                cfg.context_type,
+                cfg.model_type.context_type,
                 "scale_grad",
                 str(cfg.is_scale_grad),
                 "multi_task",

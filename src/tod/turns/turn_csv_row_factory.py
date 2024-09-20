@@ -18,17 +18,20 @@ class TurnCsvRowFactory:
             csv_row_cls = MultiTaskCsvRow()
         if cfg.is_scale_grad:
             csv_row_cls = ScaleGradTurnCsvRow(csv_row_cls)
-        if cfg.context_type in [
+        if cfg.model_type.context_type in [
             ContextType.NLG_API_CALL.value,
             ContextType.GPT_API_CALL.value,
             ContextType.GPT_CROSS.value,
         ]:
             csv_row_cls = ApiCallTurnCsvRow()
-        if cfg.context_type in [
+        if cfg.model_type.context_type in [
             ContextType.KETOD_API_CALL.value,
             ContextType.KETOD_GPT_API_CALL.value,
         ]:
             csv_row_cls = KetodApiCallTurnCsvRow()
-        if cfg.context_type in [ContextType.BITOD_GPT.value, ContextType.BITOD.value]:
+        if cfg.model_type.context_type in [
+            ContextType.BITOD_GPT.value,
+            ContextType.BITOD.value,
+        ]:
             csv_row_cls = BitodCsvRow()
         return csv_row_cls
