@@ -13,7 +13,7 @@ class DataPrepStrategyFactory:
     """
 
     @classmethod
-    def resolve(cls, cfg, context_type: ContextType) -> DataPrepStrategy:
+    def get_strategy(cls, cfg, context_type: ContextType) -> DataPrepStrategy:
         """
         Resolves data preparation strategy.
         """

@@ -18,7 +18,7 @@ class TurnCsvRowFactory:
             csv_row_cls = MultiTaskCsvRow()
         if cfg.is_scale_grad:
             csv_row_cls = ScaleGradTurnCsvRow(csv_row_cls)
-        if cfg.model_type.context_type in [
+        if cfg.context_type in [
             ContextType.NLG_API_CALL.value,
             ContextType.GPT_API_CALL.value,
             ContextType.GPT_CROSS.value,
