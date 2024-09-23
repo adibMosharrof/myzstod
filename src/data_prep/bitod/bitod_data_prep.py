@@ -11,7 +11,7 @@ from omegaconf import DictConfig
 from configs.dataprep_config import DataPrepConfig
 import utils
 from data_prep.data_prep_strategy import DataPrepStrategy
-from data_prep.data_prep_strategy_factory import DataPrepStrategyResolver
+from data_prep.data_prep_strategy_factory import DataPrepStrategyFactory
 from datasets import load_dataset
 
 from tod.turns.turn_csv_row_base import TurnCsvRowBase
@@ -20,7 +20,7 @@ import data_prep.data_prep_utils as data_prep_utils
 from torch.utils.data import Subset
 
 from data_prep.bitod.bitod_schema_prep import BitodSchemaPrep
-from my_enums import Steps
+from my_enums import ContextType, Steps
 
 from utilities.dialog_studio_dataclasses import DsDialog
 
@@ -87,7 +87,7 @@ def hydra_start(cfg: DictConfig) -> None:
         btsp = BitodSchemaPrep(cfg)
         btsp.run()
     dpconf = DataPrepConfig(**cfg)
-    dp_strategy = DataPrepStrategyResolver.resolve(dpconf)
+    dp_strategy = DataPrepStrategyFactory.get_strategy(dpconf, ContextType.BITOD)
     stdp = BitodDataPrep(dpconf, dp_strategy)
     stdp.run()
 

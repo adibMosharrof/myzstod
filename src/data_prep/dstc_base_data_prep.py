@@ -12,7 +12,7 @@ from configs.dataprep_config import DataPrepConfig
 from pathlib import Path
 from tqdm import tqdm
 from pathos.multiprocessing import ProcessingPool as Pool
-from data_prep.data_prep_strategy_factory import DataPrepStrategyResolver
+from data_prep.data_prep_strategy_factory import DataPrepStrategyFactory
 from my_enums import Steps
 from utils import get_csv_data_path, get_dialog_file_paths
 from tod.turns.turn_csv_row_base import TurnCsvRowBase
@@ -104,7 +104,7 @@ class DstcBaseDataPrep:
 @hydra.main(config_path="../../config/data_prep/", config_name="dstc_base_data_prep")
 def hydra_start(cfg: DictConfig) -> None:
     dpconf = DataPrepConfig(**cfg)
-    dp_strategy = DataPrepStrategyResolver.resolve(dpconf)
+    dp_strategy = DataPrepStrategyFactory.get_strategy(dpconf, dpconf.context_type)
     stdp = DstcBaseDataPrep(dpconf, dp_strategy)
     stdp.run()
 

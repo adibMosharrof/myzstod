@@ -1,3 +1,4 @@
+from dataclasses import asdict
 import logging
 import os
 from pathlib import Path
@@ -19,6 +20,7 @@ from transformers.trainer_utils import IntervalStrategy
 from transformers.training_args_seq2seq import Seq2SeqTrainingArguments
 from torch.utils.data import DataLoader
 
+from configs.base_trainer_config import BaseTrainerConfig
 from model_loaders.model_loader_factory import ModelLoaderFactory
 
 
@@ -34,8 +36,9 @@ from metric_managers.metric_manager_factory import MetricManagerFactory
 
 
 class BaseTrainer:
-    def __init__(self, cfg, dm_class=T5DataModule):
+    def __init__(self, cfg: BaseTrainerConfig, dm_class=T5DataModule):
         self.dm_class = dm_class
+        self.cfg = cfg
         self.cfg = DotMap(cfg)
         self.cfg.project_root = Path(self.cfg.project_root)
         self.cfg.out_dir = str(os.getcwd() / Path(self.cfg.out_dir))
@@ -50,7 +53,7 @@ class BaseTrainer:
         accelerator = Accelerator()
         torch.manual_seed(420)
         tokenizer = AutoTokenizer.from_pretrained(
-            self.cfg.tokenizer_name or self.cfg.model_type.model_name,
+            self.cfg.tokenizer_name or self.cfg.model_name,
             bos_token="<|startoftext|>",
             eos_token="<|endoftext|>",
             pad_token="<|pad|>",
@@ -74,15 +77,15 @@ class BaseTrainer:
                 load_best_model_at_end=True,
                 save_strategy=IntervalStrategy.STEPS,
                 eval_strategy=IntervalStrategy.STEPS,
-                per_device_train_batch_size=self.cfg.model_type.train_batch_size,
-                per_device_eval_batch_size=self.cfg.model_type.eval_batch_size,
+                per_device_train_batch_size=self.cfg.train_batch_size,
+                per_device_eval_batch_size=self.cfg.eval_batch_size,
                 warmup_steps=100,
                 weight_decay=0.01,
                 dataloader_drop_last=True,
                 dataloader_num_workers=1,
-                gradient_accumulation_steps=self.cfg.model_type.gradient_accumulation_steps,
-                eval_accumulation_steps=self.cfg.model_type.eval_accumulation_steps,
-                learning_rate=self.cfg.model_type.learning_rate,
+                gradient_accumulation_steps=self.cfg.gradient_accumulation_steps,
+                eval_accumulation_steps=self.cfg.eval_accumulation_steps,
+                learning_rate=self.cfg.learning_rate,
                 gradient_checkpointing=True,
                 ddp_find_unused_parameters=False,
                 deepspeed=deepspeed_path,
@@ -111,7 +114,7 @@ class BaseTrainer:
             accelerator.wait_for_everyone()
             model_out_dir = self.cfg.out_dir
         else:
-            model_out_dir = str(self.cfg.project_root / self.cfg.model_type.model_path)
+            model_out_dir = str(self.cfg.project_root / self.cfg.model_path)
 
         utils.log(self.logger, "starting inference")
         model = model_loader.load(model_out_dir)
@@ -133,7 +136,7 @@ class BaseTrainer:
 
             test_dl = DataLoader(
                 test_dataset,
-                batch_size=self.cfg.model_type.test_batch_size,
+                batch_size=self.cfg.test_batch_size,
                 collate_fn=collate_fn,
                 pin_memory=True,
                 num_workers=8,
@@ -199,17 +202,17 @@ class BaseTrainer:
     def get_data_modules(self, tokenizer):
         all_dms = []
         for dataset_name, dataset_config in self.cfg.dataset.items():
-            dm_cfg = DotMap(self.cfg)
-            dm_cfg.update(**dataset_config)
-            dm_cfg.update(**self.cfg.data_size)
-            dm_cfg.raw_data_root = self.cfg.project_root / dataset_config.raw_data_root
+            merged_cfg = DotMap({**asdict(self.cfg), **asdict(dataset_config)})
+            merged_cfg.raw_data_root = (
+                self.cfg.project_root / dataset_config.raw_data_root
+            )
             schemas = {}
             for d in [
                 get_schemas(self.cfg.project_root / dataset_config.raw_data_root, step)
                 for step in Steps.list()
             ]:
                 schemas.update(d)
-            dm = self.init_dm_class(dm_cfg, tokenizer, schemas)
+            dm = self.init_dm_class(merged_cfg, tokenizer, schemas)
             all_dms.append(dm)
         return all_dms
 
