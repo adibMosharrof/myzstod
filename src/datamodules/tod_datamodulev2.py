@@ -36,9 +36,9 @@ class TodDataModuleV2:
             if isinstance(step_data.domain_settings[0], (list, ListConfig)):
                 self.datasets[step] = []
                 for domain_setting in step_data.domain_settings:
-                    self.datasets[step].append(
-                        self.setup_single_run(step, step_data, domain_setting)
-                    )
+                    ds = self.setup_single_run(step, step_data, domain_setting)
+                    if len(ds):
+                        self.datasets[step].append(ds)
             else:
                 self.datasets[step] = self.setup_single_run(
                     step,
