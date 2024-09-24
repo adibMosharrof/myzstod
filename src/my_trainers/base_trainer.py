@@ -259,14 +259,10 @@ class BaseTrainer:
         for dm in dms:
             ds = self.get_dm_dataset(dm)
             # api_datasets = self.get_api_call_datasets(ds)
-            train.append(ds["train"])
-            val.append(ds["dev"])
-            test.append(np.concatenate(ds["test"], axis=0))
-        return (
-            np.concatenate(train, axis=0),
-            np.concatenate(val, axis=0),
-            np.concatenate(test, axis=0),
-        )
+            train.extend(ds["train"])
+            val.extend(ds["dev"])
+            test.extend(ds["test"])
+        return train, val, test
 
     def get_api_call_datasets(self, ds):
         out = {"train": [], "dev": [], "test": []}
