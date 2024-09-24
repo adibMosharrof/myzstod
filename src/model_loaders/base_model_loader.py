@@ -11,6 +11,7 @@ from transformers import (
     AutoTokenizer,
 )
 from accelerate import Accelerator
+import utils
 
 
 class BaseModelLoader:
@@ -42,7 +43,7 @@ class BaseModelLoader:
         model = self.model_class.from_pretrained(model_path or self.model_name)
         self._resize_token_embeddings(model)
         if model_path:
-            model = self.accelerator.prepare(model)
+            model.to(self.accelerator.device)
         return model
 
     def _get_model_path(self, model_path: Union[Path, str] = None):
@@ -52,7 +53,6 @@ class BaseModelLoader:
         model.resize_token_embeddings(len(self.tokenizer))
 
     def _get_model_class(self, model_name: str):
-        config = AutoConfig.from_pretrained(model_name)
-        if config.is_encoder_decoder:
+        if utils.is_t5_model(model_name):
             return T5ForConditionalGeneration
         return AutoModelForCausalLM

@@ -52,7 +52,7 @@ class DataPrepStrategy(ABC):
             return None
 
         utt = system_turn.utterance
-        if self.cfg.model_type.context_type in [
+        if self.cfg.context_type in [
             ContextType.GPT_API_CALL,
             ContextType.GPT_CROSS,
         ]:
