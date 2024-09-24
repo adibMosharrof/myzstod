@@ -3,3 +3,5 @@ sgdx_v1:
   data_prep_out_root: processed_data/sgd_x/v1
   chatgpt_results_path: data_exploration/chatgpt/chat_gpt_all sgd.csv
   dataset_name: sgdx_v1
+  data_filters: 
+    - api_call
