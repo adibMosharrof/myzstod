@@ -116,13 +116,6 @@ class BaseDataModule(ABC):
         else:
             return DstcBaseDataPrep(dp_cfg, strategy)
 
-        if "MultiWOZ_2.2" in cfg.raw_data_root.name:
-            return TodMultiWoz22DataPrep(MultiWozDataPrepConfig.from_dm_config(cfg))
-        if "MultiWOZ_2.1" in cfg.raw_data_root.name:
-            return TodMultiWoz21DataPrep(MultiWozDataPrepConfig.from_dm_config(cfg))
-        elif "dstc" in cfg.raw_data_root.name:
-            return SimpleTODDSTCDataPrep(DataPrepConfig.from_dm_config(cfg))
-
     def setup_single_run(
         self, step: str, step_data: StepData, domain_setting: Union[str, list[str]]
     ) -> "SimpleTodDataSet":
