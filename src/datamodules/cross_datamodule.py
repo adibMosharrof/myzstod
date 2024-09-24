@@ -26,7 +26,7 @@ class CrossDataModule(TodDataModule):
         self.tokenizer = tokenizer
         self.schemas = schemas
         self.nlg_prompt_cls = NlgPromptFactory.get_handler(
-            cfg.prompt_type, cfg.context_type
+            cfg.prompt_type, cfg.model_type.context_type
         )
         self.encoder_model = encoder_model
         self.accelerator = Accelerator()

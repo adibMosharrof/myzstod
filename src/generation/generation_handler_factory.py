@@ -22,7 +22,7 @@ class GenerationHandlerFactory:
             )
         if cfg.is_multi_head:
             return MultiHeadGeneration(cfg.model, cfg.tokenizer)
-        if cfg.context_type == ContextType.GPT_CROSS.value:
+        if cfg.model_type.context_type == ContextType.GPT_CROSS.value:
             return CrossGeneration(model, tokenizer)
         if utils.is_t5_model(cfg.model_type.model_name):
             return T5Generation(model, tokenizer)

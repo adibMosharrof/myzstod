@@ -23,7 +23,7 @@ import utils
 from pathlib import Path
 from tqdm import tqdm
 from pathos.multiprocessing import ProcessingPool as Pool
-from data_prep.data_prep_strategy_resolver import DataPrepStrategyResolver
+from data_prep.data_prep_strategy_factory import DataPrepStrategyFactory
 from sgd_dstc8_data_model.dstc_dataclasses import get_schemas, DstcSchema, DstcDialog
 from my_enums import Steps
 from data_prep.data_prep_strategy import DataPrepStrategy
@@ -104,7 +104,7 @@ class KetodBaseDataPrep:
 )
 def hydra_start(cfg: DictConfig) -> None:
     dpconf = DataPrepConfig(**cfg)
-    dp_strategy = DataPrepStrategyResolver.resolve(dpconf)
+    dp_strategy = DataPrepStrategyFactory.get_strategy(dpconf, dpconf.context_type)
     stdp = KetodBaseDataPrep(dpconf, dp_strategy)
     stdp.run()
 

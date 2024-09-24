@@ -19,6 +19,7 @@ from typing import TYPE_CHECKING
 from peft import PeftModel, PeftConfig, LoraConfig, TaskType
 from transformers.trainer_callback import TrainerCallback
 
+
 if TYPE_CHECKING:
     from configs.inference_config import InferenceConfig
     from configs.trainer_config import TrainerConfig
@@ -37,6 +38,7 @@ from transformers import (
     T5ForConditionalGeneration,
     AutoModel,
     AutoModelForSeq2SeqLM,
+    AutoConfig,
 )
 
 import csv
@@ -59,7 +61,9 @@ from accelerate import Accelerator
 
 
 def is_t5_model(model_name: str):
-    return "t5" in model_name
+    config = AutoConfig.from_pretrained(model_name)
+    return config.is_encoder_decoder
+    # return "t5" in model_name
 
 
 def remove_underscore(item: str):
