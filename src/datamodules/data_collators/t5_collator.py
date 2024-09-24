@@ -11,6 +11,7 @@ class T5Collator(BaseCollator):
         target_tokens,
         pad_tokens,
         target_max_len,
+        is_test: bool = False,
     ) -> TodTrainRowCollator:
         input_tokens = torch.cat(
             [

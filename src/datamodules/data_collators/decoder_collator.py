@@ -11,7 +11,7 @@ class DecoderCollator(BaseCollator):
         target_tokens,
         pad_tokens,
         target_max_len,
-        is_test: bool,
+        is_test: bool = False,
     ) -> TodTrainRowCollator:
         target_unused_len = target_max_len - len(target_tokens)
         target_pad = torch.full([target_unused_len], self.tokenizer.pad_token_id)
