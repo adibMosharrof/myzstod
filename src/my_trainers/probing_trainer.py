@@ -30,14 +30,12 @@ from sgd_dstc8_data_model.dstc_dataclasses import get_schemas
 from logger.results_logger import ResultsLogger
 from metric_managers.metric_manager_factory import MetricManagerFactory
 from my_trainers.base_trainer import BaseTrainer
+from datamodules.tod_datamodulev2 import TodDataModuleV2
 
 
 class ProbingTrainer(BaseTrainer):
-    def __init__(self, cfg: BaseTrainerConfig):
-        super().__init__(cfg, dm_class=T5DataModule)
-
-    def get_dm_dataset(self, dm):
-        return dm.get_dms()[0].datasets
+    def __init__(self, cfg: dict):
+        super().__init__(cfg, dm_class=TodDataModuleV2)
 
 
 @hydra.main(config_path="../../config/probing/", config_name="probing_trainer")
