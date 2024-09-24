@@ -54,15 +54,6 @@ class BaseTrainer:
                 handler.setFormatter(formatter)
         self.logger = root_logger
 
-    
-
-    def init_model(self, model_name: str, model_path: str = None):
-        model_cls = utils.get_model_class(model_name)
-        if model_path:
-            model_path = self.cfg.project_root / model_path
-        model = model_cls.from_pretrained(model_path or model_name)
-        return model
-
     def run(self):
         accelerator = Accelerator()
         torch.manual_seed(420)
@@ -89,56 +80,9 @@ class BaseTrainer:
             test_prompt_max_len=self.cfg.test_prompt_max_len,
         )
         if self.cfg.should_train:
-            model = self.init_model(model_name)
-            model.resize_token_embeddings(len(tokenizer))
-            deepspeed_path = str(self.cfg.project_root / "config/ds_zero_tod.json")
-            training_args = Seq2SeqTrainingArguments(
-                output_dir=self.cfg.out_dir,
-                num_train_epochs=self.cfg.epochs,
-                logging_steps=30,
-                save_total_limit=5,
-                save_steps=self.cfg.data_size.save_steps,
-                eval_steps=self.cfg.data_size.eval_steps,
-                load_best_model_at_end=True,
-                save_strategy=IntervalStrategy.STEPS,
-                # evaluation_strategy=IntervalStrategy.STEPS,
-                eval_strategy=IntervalStrategy.STEPS,
-                per_device_train_batch_size=self.cfg.model_type.train_batch_size,
-                per_device_eval_batch_size=self.cfg.model_type.eval_batch_size,
-                warmup_steps=100,
-                weight_decay=0.01,
-                dataloader_drop_last=True,
-                dataloader_num_workers=1,
-                gradient_accumulation_steps=self.cfg.model_type.gradient_accumulation_steps,
-                eval_accumulation_steps=self.cfg.model_type.eval_accumulation_steps,
-                learning_rate=self.cfg.model_type.learning_rate,
-                gradient_checkpointing=True,
-                ddp_find_unused_parameters=False,
-                deepspeed=deepspeed_path,
-                ddp_backend="nccl",
-                save_safetensors=False,
-                # gradient_checkpointing_kwargs={"use_reentrant": False},
+            model_out_dir = self.train_model(
+                accelerator, collator, train_dataset, val_dataset, model_loader
             )
-            trainer = Seq2SeqTrainer(
-                model=model,
-                args=training_args,
-                train_dataset=train_dataset,
-                eval_dataset=val_dataset,
-                data_collator=dms[0].tod_train_collate,
-                callbacks=[
-                    EarlyStoppingCallback(
-                        early_stopping_patience=self.cfg.early_stopping_patience
-                    ),
-                ],
-            )
-            if self.cfg.get("resume_checkpoint", None):
-                trainer.train(str(self.cfg.project_root / self.cfg.resume_checkpoint))
-            else:
-                trainer.train()
-            if accelerator.is_main_process:
-                self.save_model(trainer)
-            accelerator.wait_for_everyone()
-            model_out_dir = self.cfg.out_dir
         else:
             model_out_dir = str(self.cfg.project_root / self.cfg.model_type.model_path)
 
