@@ -1,4 +1,5 @@
 import copy
+from datamodules.tod_dataset import TodDataSet
 from typing import Union
 from omegaconf import ListConfig
 from base_datamodule import SimpleTodDataSet
@@ -48,7 +49,7 @@ class TodDataModuleV2:
 
     def setup_single_run(
         self, step: str, step_data: StepData, domain_setting: Union[str, list[str]]
-    ) -> "SimpleTodDataSet":
+    ) -> TodDataSet:
         cfg = copy.deepcopy(self.cfg)
         cfg.step_name = step_data.name
         cfg.num_dialogs = step_data.num_dialog
@@ -71,7 +72,13 @@ class TodDataModuleV2:
             data = filter.apply(data)
         split_filter = SplitPercentFilter(percent=step_data.split_percent)
         data = split_filter.apply(data)
-        return SimpleTodDataSet(data)
+        return TodDataSet(
+            data=data,
+            dataset_name=cfg.dataset_name,
+            step_name=step,
+            domain_setting=domain_setting,
+            raw_data_root=cfg.raw_data_root,
+        )
 
     def prepare_data(self, data_prep_instance: any):
         if self.cfg.accelerator.is_main_process:
