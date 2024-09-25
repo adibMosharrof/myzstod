@@ -1,4 +1,5 @@
 from dataclasses import asdict
+from datamodules.tod_dataset import TodDataSet
 import logging
 import os
 from pathlib import Path
@@ -94,14 +95,11 @@ class BaseTrainer:
             self.cfg, model, tokenizer
         )
         out_dir_path = Path(self.cfg.out_dir)
-        for test_dataset, domain_names_list in zip(
-            test_datasets, self.cfg.test_domain_settings
-        ):
-            domain_names = ",".join(domain_names_list)
+        for test_dataset in test_datasets:
+            domain_names = test_dataset.get_domain_names()
             if not len(test_dataset):
                 print(f"No data for {domain_names}")
                 continue
-            # print(f"testing {domain_names}")
             utils.log(self.logger, f"testing {domain_names}")
 
             test_dl = DataLoader(
@@ -132,36 +130,38 @@ class BaseTrainer:
             metric_manager.compute_row_wise_metrics()
             metric_manager.compute_metrics(domain_names)
             metric_manager.compute_is_retrieval_and_slot_fill_metrics()
-            csv_path = Path(self.cfg.out_dir) / f"{domain_names}.csv"
-            csv_path.parent.mkdir(parents=True, exist_ok=True)
+            csv_path = self.get_pred_csv_path(test_dataset)
             metric_manager.write_csv(csv_path)
 
         if accelerator.is_main_process:
-            chatgpt_results = (
-                self.cfg.project_root / "data_exploration/chatgpt/chat_gpt_all.csv"
-            )
-            rand_key = random.choice(list(self.cfg.dataset.keys()))
-            rand_dataset = self.cfg.dataset[rand_key]
-            all_results = []
-            for domain_names_list in self.cfg.test_domain_settings:
-                domain_names = ",".join(domain_names_list)
-                csv_path = out_dir_path / f"{domain_names}.csv"
-                data = pd.read_csv(csv_path)
-                all_results.append(data)
-            combined_results = pd.concat(all_results)
-            combined_csv_path = out_dir_path / "combined_results.csv"
-            combined_results.to_csv(combined_csv_path, index=False)
-            rl = ResultsLogger(
-                DotMap(
-                    project_root=self.cfg.project_root,
-                    results_path=combined_csv_path,
-                    chatgpt_results_path=str(chatgpt_results),
-                    out_dir=out_dir_path / "results_logger",
-                    raw_data_root=rand_dataset.raw_data_root,
-                )
-            )
-            rl.run()
+            for test_dataset in test_datasets:
+                self.log_results(test_dataset, out_dir_path)
         accelerator.wait_for_everyone()
+
+    def get_pred_csv_path(self, test_dataset: TodDataSet):
+        csv_path = (
+            Path(self.cfg.out_dir)
+            / "predictions"
+            / f"{test_dataset.dataset_name}_{test_dataset.get_domain_names()}.csv"
+        )
+        csv_path.parent.mkdir(parents=True, exist_ok=True)
+        return csv_path
+
+    def log_results(self, dataset: TodDataSet, out_dir_path: Path):
+        chatgpt_results = (
+            self.cfg.project_root / "data_exploration/chatgpt/chat_gpt_all.csv"
+        )
+        csv_path = self.get_pred_csv_path(dataset)
+        rl = ResultsLogger(
+            DotMap(
+                project_root=self.cfg.project_root,
+                results_path=csv_path,
+                chatgpt_results_path=str(chatgpt_results),
+                out_dir=out_dir_path / "results_logger" / dataset.dataset_name,
+                raw_data_root=dataset.raw_data_root,
+            )
+        )
+        rl.run()
 
     def train_model(
         self,
@@ -254,7 +254,9 @@ class BaseTrainer:
     def get_dm_dataset(self, dm):
         return dm.datasets
 
-    def get_datasets_from_data_modules(self, dms):
+    def get_datasets_from_data_modules(
+        self, dms
+    ) -> tuple[TodDataSet, TodDataSet, list[TodDataSet]]:
         train, val, test = [], [], []
         for dm in dms:
             ds = self.get_dm_dataset(dm)
