@@ -56,6 +56,7 @@ class ResultsLogger:
                 print(f"no data for setting {setting}")
                 continue
             setting_results = {}
+            setting_results["dataset"] = self.cfg.dataset_name
             setting_results["setting"] = setting
             response_rows = rows[rows["turn_row_type"] == TurnRowType.RESPONSE.value]
             if len(response_rows):
