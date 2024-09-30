@@ -14,14 +14,31 @@
         "**/venvs/": true,
         "**/transformers/": true,
         "**wandb/": true,
+        "/mounts/u-amo-d1/adibm-data/projects/quantiazation/envs/": true
+    },
+    "search.exclude": {
+        "**/.git": true,
+        "**/.idea": true,
+        "**/.pytest_cache": true,
+        "**/.svn": true,
+        "**/.hg": true,
+        "**/CVS": true,
+        "**/.DS_Store": true,
+        "**/Thumbs.db": true,
+        "**/__pycache__": true,
+        "**/envs/": true,
+        "**/.venvs/": true,
+        "**/venvs/": true,
+        "**/transformers/": true,
+        "**wandb/": true,
         "/mounts/u-amo-d1/adibm-data/projects/quantiazation/envs/": true,
     },
     "editor.formatOnSave": true,
-    // "python.formatting.provider": "black",
+    "python.formatting.provider": "black",
     "editor.fontSize": 16,
     "python.analysis.extraPaths": [
         "./src",
-        "./utilities",
+        "./utilities"
     ],
     "python.analysis.indexing": true,
     "files.watcherExclude": {
@@ -39,21 +56,15 @@
         "**/venvs/": true,
         "**/transformers/": true,
         "**/outputs/": true,
-        "**/data/": true,
-        "**wandb/": true,
-        "/mounts/u-amo-d1/adibm-data/projects/quantiazation/envs/": true,
-        "/u/amo-d0/grad/adibm/data/projects/ZSToD/playground/t5_tod_out": true,
-        "/u/amo-d0/grad/adibm/data/projects/ZSToD/playground/t5_sum_out": true,
-        "/u/amo-d0/grad/adibm/data/projects/ZSToD/playground/summary_data": true,
+        "**/data/": true
     },
     "python.unitTest.autoTestDiscoverOnSaveEnabled": false,
     "git.ignoreLimitWarning": true,
-    "python.formatting.provider": "none",
     "[python]": {
-        "editor.defaultFormatter": "ms-python.black-formatter",
+        "editor.defaultFormatter": "ms-python.black-formatter"
     },
     "python.analysis.diagnosticSeverityOverrides": {
-        "reportShadowedImports": "none",
+        "reportShadowedImports": "none"
     },
     "python.testing.pytestArgs": [
         "tests"
@@ -67,4 +78,13 @@
         "-p",
         "test_*.py"
     ],
+    "vim.handleKeys": {
+        "<C-s>": false,
+        "<C-p>": false,
+        "<C-o>": false,
+        "<C-v>": false,
+        "<C-a>": false,
+        "<C-c>": false,
+        "<C-f>": false,
+    }
 }
