@@ -1,9 +1,18 @@
 {
     "exclude": [
-        "**/envs/",
-        "**/.git/",
-        "**/outputs/",
-        "**/data/",
-        "**/processed_data/"
-    ]
+        "**/envs",
+        "**/.venvs",
+        "**/.git",
+        "**/outputs/**",
+        "**/data/**",
+        "**/processed_data/**",
+        "**/playground/t5_tod_out/**"
+    ],
+    "typeCheckingMode": "off",
+    "reportMissingTypeStubs": "none",
+    "diagnosticSeverityOverrides": {
+        "reportUnknownMemberType": "none",
+        "reportIncompatibleReturnType": "none"
+    },
+    "reportGeneralTypeIssues": false
 }
