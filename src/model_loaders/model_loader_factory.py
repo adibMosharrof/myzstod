@@ -20,9 +20,9 @@ class ModelLoaderFactory:
             if value is None:
                 raise ValueError(f"The parameter '{key}' cannot be None.")
 
-        if not cfg.quantization:
+        if not cfg.model_type.quantization:
             return BaseModelLoader(**params)
-        if cfg.quantization_dtype == 16:
+        if cfg.model_type.quantization_dtype == 16:
             return LoraModelLoader(**params)
-        if cfg.quantization_dtype == 8:
+        if cfg.model_type.quantization_dtype == 8:
             return QuantizedLoraModelLoader(**params)
