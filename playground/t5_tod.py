@@ -66,6 +66,7 @@ import wandb
 
 from logger.results_logger import ResultsLogger
 import torch.distributed as dist
+
 os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
 os.environ["TORCH_DISTRIBUTED_DEBUG"] = "DETAIL"
 os.environ["TORCH_USE_CUDA_DSA"] = "1"
@@ -76,7 +77,7 @@ class T5Tod:
         self.cfg = DotMap(cfg)
         self.cfg.project_root = Path(cfg.project_root)
         self.cfg.raw_data_root = self.cfg.project_root / self.cfg.dataset.raw_data_root
-        self.cfg.context_type = self.cfg.dataset.context_type
+        self.cfg.context_type = self.cfg.model_type.context_type
         self.cfg.data_prep_out_root = self.cfg.dataset.data_prep_out_root
         self.cfg.num_dialogs = self.cfg.data_size.num_dialogs
         self.cfg.data_split_percent = self.cfg.data_size.data_split_percent
@@ -141,10 +142,16 @@ class T5Tod:
     def get_lora_task_type(self, model_class):
         if model_class == T5ForConditionalGeneration:
             return TaskType.SEQ_2_SEQ_LM
-        return TaskType.CAUSAL_LM  
+        return TaskType.CAUSAL_LM
 
-
-    def get_quantized_model(self, model_name:str, model_class:any, tokenizer:AutoTokenizer, is_inference=False, trained_model_path=None):
+    def get_quantized_model(
+        self,
+        model_name: str,
+        model_class: any,
+        tokenizer: AutoTokenizer,
+        is_inference=False,
+        trained_model_path=None,
+    ):
         # if self.cfg.model_type.model_path:
         #     model_name_or_path = self.cfg.project_root / model_path
         # else:
@@ -163,19 +170,24 @@ class T5Tod:
 
         # model = model_class.from_pretrained(model_name, quantization_config=quantization_config, torch_dtype=dtype)
         if is_inference:
-            model = model_class.from_pretrained(model_name, quantization_config=quantization_config, device_map = device_map)
+            model = model_class.from_pretrained(
+                model_name,
+                quantization_config=quantization_config,
+                device_map=device_map,
+            )
         else:
-            model = model_class.from_pretrained(model_name, quantization_config=quantization_config)
+            model = model_class.from_pretrained(
+                model_name, quantization_config=quantization_config
+            )
             model.enable_input_require_grads()
         model.resize_token_embeddings(len(tokenizer))
         if model_path:
             # model.load_adapter(model_path, is_trainable=is_trainable)
             model.load_adapter(model_path)
         else:
-            lora_config = utils.get_lora_config(model_name) 
+            lora_config = utils.get_lora_config(model_name)
             model.add_adapter(lora_config)
         return model
-
 
     def get_model(self, model_name: str, model_class: any, tokenizer: AutoTokenizer):
         model_path = model_name
@@ -285,7 +297,7 @@ class T5Tod:
             model = self.get_model(self.cfg.model_type.model_name, model_cls, tokenizer)
             # model = self.get_quantized_model(self.cfg.model_type.model_name, model_cls, tokenizer)
             # deepspeed_path = self.cfg.project_root / "config/ds_zero1.json"
-            deepspeed_path = self.cfg.project_root / "config/ds_zero_tod.json"
+            deepspeed_path = str(self.cfg.project_root / "config/ds_zero_tod.json")
         else:
             # model = T5ForConditionalGeneration.from_pretrained(
             model = model_cls.from_pretrained(self.cfg.model_type.model_name).cuda()
@@ -300,7 +312,6 @@ class T5Tod:
         else:
             train_dataset, val_dataset, test_datasets = self.dm.load_data()
 
-        
         # load_best_model_at_end = False if self.cfg.resume_checkpoint else True
         load_best_model_at_end = True
         if self.cfg.should_train:
@@ -310,8 +321,14 @@ class T5Tod:
             #     bf16 = True
             # else:
             #     fp16 = True
-            out_dir = Path(os.getcwd())/self.cfg.out_dir
-            run_name = " ".join([utils.get_dataset_name_from_path(self.cfg.dataset.raw_data_root), self.cfg.model_type.model_name, str(self.cfg.data_size.num_dialogs[0])])
+            out_dir = Path(os.getcwd()) / self.cfg.out_dir
+            run_name = " ".join(
+                [
+                    self.cfg.dataset["dataset_name"],
+                    self.cfg.model_type.model_name,
+                    str(self.cfg.data_size.num_dialogs[0]),
+                ]
+            )
             training_args = Seq2SeqTrainingArguments(
                 output_dir=str(out_dir),
                 run_name=run_name,
@@ -365,7 +382,9 @@ class T5Tod:
                 trainer.train()
             if accelerator.is_main_process:
                 # trainer.model.save_pretrained(self.cfg.out_dir)
-                trainer.model.save_pretrained(self.cfg.out_dir, safe_serialization=False)
+                trainer.model.save_pretrained(
+                    str(self.cfg.out_dir), safe_serialization=False
+                )
             accelerator.wait_for_everyone()
             # trainer.save_model()
             # model.save_pretrained(self.cfg.out_dir)
