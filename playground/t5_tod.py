@@ -67,6 +67,7 @@ import wandb
 from logger.results_logger import ResultsLogger
 import torch.distributed as dist
 
+
 os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
 os.environ["TORCH_DISTRIBUTED_DEBUG"] = "DETAIL"
 os.environ["TORCH_USE_CUDA_DSA"] = "1"
@@ -77,7 +78,7 @@ class T5Tod:
         self.cfg = DotMap(cfg)
         self.cfg.project_root = Path(cfg.project_root)
         self.cfg.raw_data_root = self.cfg.project_root / self.cfg.dataset.raw_data_root
-        self.cfg.context_type = self.cfg.dataset.context_type
+        self.cfg.context_type = self.cfg.model_type.context_type
         self.cfg.data_prep_out_root = self.cfg.dataset.data_prep_out_root
         self.cfg.num_dialogs = self.cfg.data_size.num_dialogs
         self.cfg.data_split_percent = self.cfg.data_size.data_split_percent
@@ -299,6 +300,7 @@ class T5Tod:
                 self.cfg.model_type.model_name, model_cls, tokenizer
             )
             # deepspeed_path = self.cfg.project_root / "config/ds_zero1.json"
+            deepspeed_path = str(self.cfg.project_root / "config/ds_zero_tod.json")
         else:
             # model = T5ForConditionalGeneration.from_pretrained(
             model = model_cls.from_pretrained(self.cfg.model_type.model_name).cuda()
@@ -322,6 +324,14 @@ class T5Tod:
             #     bf16 = True
             # else:
             #     fp16 = True
+            out_dir = Path(os.getcwd()) / self.cfg.out_dir
+            run_name = " ".join(
+                [
+                    self.cfg.dataset["dataset_name"],
+                    self.cfg.model_type.model_name,
+                    str(self.cfg.data_size.num_dialogs[0]),
+                ]
+            )
             training_args = Seq2SeqTrainingArguments(
                 output_dir=str(out_dir),
                 run_name=run_name,
@@ -373,7 +383,10 @@ class T5Tod:
             else:
                 trainer.train()
             if accelerator.is_main_process:
-                trainer.model.save_pretrained(self.cfg.out_dir)
+                # trainer.model.save_pretrained(self.cfg.out_dir)
+                trainer.model.save_pretrained(
+                    str(self.cfg.out_dir), safe_serialization=False
+                )
             accelerator.wait_for_everyone()
             # trainer.save_model()
             # model.save_pretrained(self.cfg.out_dir)
