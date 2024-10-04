@@ -159,6 +159,7 @@ class BaseTrainer:
                 chatgpt_results_path=str(chatgpt_results),
                 out_dir=out_dir_path / "results_logger" / dataset.dataset_name,
                 raw_data_root=dataset.raw_data_root,
+                dataset_name=dataset.dataset_name,
             )
         )
         rl.run()
@@ -234,6 +235,7 @@ class BaseTrainer:
 
     def get_data_modules(self, tokenizer):
         all_dms = []
+
         for dataset_name, dataset_config in self.cfg.dataset.items():
             dm_cfg = DotMap(self.cfg)
             dm_cfg.update(**dataset_config)

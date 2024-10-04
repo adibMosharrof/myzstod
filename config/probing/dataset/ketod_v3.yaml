@@ -1,0 +1,9 @@
+ketod_v3:
+  raw_data_root: data/ketod/sgd_x/data/v3
+  data_prep_out_root: processed_data/ketod/sgd_x/v3
+  chatgpt_results_path: data_exploration/chatgpt/chat_gpt_all.csv
+  dataset_name: ketod_v3
+  version_name: 3
+  original_dataset_path: data/ketod
+  data_prep_transformations: 
+    - schema_api_transformation

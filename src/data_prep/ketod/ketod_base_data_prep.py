@@ -35,6 +35,12 @@ from tod.nlg.nlg_tod_target import NlgTodTarget
 from tod.nlg.nlg_tod_turn import NlgTodTurn
 import data_prep.data_prep_utils as data_prep_utils
 from torch.utils.data import Subset
+from data_prep.data_transformations.base_data_transformation import (
+    BaseDataTransformation,
+)
+from data_prep.data_transformations.data_transformation_factory import (
+    DataTransformationFactory,
+)
 
 
 class KetodBaseDataPrep:
@@ -85,8 +91,18 @@ class KetodBaseDataPrep:
         if self.cfg.num_dialogs < 1:
             self.cfg.num_dialogs = len(ds)
         subset_data = Subset(ds, range(self.cfg.num_dialogs))
+        data_transformers: list[BaseDataTransformation] = (
+            [
+                DataTransformationFactory.get_data_transformer(name, self.cfg)
+                for name in self.cfg.data_prep_transformations
+            ]
+            if self.cfg.data_prep_transformations
+            else []
+        )
         for row in subset_data:
             dialog = DsDialog(row)
+            for transformer in data_transformers:
+                dialog = transformer.transform(dialog)
             prepped_dialog = self._prepare_dialog(dialog, schemas, turn_csv_row_handler)
             if prepped_dialog is None:
                 continue
