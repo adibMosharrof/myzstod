@@ -65,6 +65,12 @@ class SchemaApiTransformation(BaseDataTransformation):
         schema_orig_to_new_map = {}
         orig_schema = self.original_schemas.get(original_service)
         new_schema = self.current_schemas.get(new_service)
+        if not orig_schema:
+            raise ValueError(
+                f"Original Schema not found for service {original_service}"
+            )
+        if not new_schema:
+            raise ValueError(f"New Schema not found for service {new_service}")
         for orig_slot, new_slot in zip(orig_schema.slots, new_schema.slots):
             schema_orig_to_new_map[orig_slot.name] = new_slot.name
         for orig_intent, new_intent in zip(orig_schema.intents, new_schema.intents):
