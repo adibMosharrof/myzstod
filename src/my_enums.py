@@ -185,6 +185,18 @@ class ContextType(str, Enum):
     GPT_CROSS = "gpt_cross"
 
     @classmethod
+    def ketod_contexts(cls):
+        return [cls.KETOD_API_CALL.value, cls.KETOD_GPT_API_CALL.value]
+
+    @classmethod
+    def bitod_contexts(cls):
+        return [cls.BITOD.value, cls.BITOD_GPT.value]
+
+    @classmethod
+    def dstc_contexts(cls):
+        return ContextType.list() - cls.ketod_contexts() - cls.bitod_contexts()
+
+    @classmethod
     def list(cls):
         return [c for c in cls]
 
