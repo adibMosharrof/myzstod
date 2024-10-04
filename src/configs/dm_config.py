@@ -61,6 +61,9 @@ class DataModuleConfig:
         train_step_data: "StepData" = None,
         accelerator: "Accelerator" = None,
         service_results_num_items: int = 1,
+        original_dataset_path: str = None,
+        data_prep_transformations: list[str] = None,
+        version_name: str = None,
         **kwargs,
     ):
         self.kwargs = kwargs
@@ -123,6 +126,9 @@ class DataModuleConfig:
         self.test_num_turns_groups = test_num_turns_groups
         self.train_step_data = train_step_data
         self.service_results_num_items = service_results_num_items
+        self.original_dataset_path = original_dataset_path
+        self.data_prep_transformations = data_prep_transformations
+        self.version_name = version_name
 
     @classmethod
     def from_trainer_config(

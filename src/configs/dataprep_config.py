@@ -32,6 +32,9 @@ class DataPrepConfig:
         mh_fact: MultiHeadDictFactory = None,
         data_prep_multi_process: bool = True,
         step_name: str = Steps.TRAIN.value,
+        original_dataset_path: str = None,
+        data_prep_transformations: list[str] = None,
+        version_name: str = None,
         **kwargs,
     ):
         self.accelerator = Accelerator()
@@ -64,6 +67,9 @@ class DataPrepConfig:
         self.data_prep_multi_process = data_prep_multi_process
         self.step_name = step_name
         self.service_results_num_items = service_results_num_items
+        self.original_dataset_path = original_dataset_path
+        self.data_prep_transformations = data_prep_transformations
+        self.version_name = version_name
 
     @classmethod
     def from_dm_config(self, dm_config: DataModuleConfig) -> "DataPrepConfig":
@@ -90,4 +96,7 @@ class DataPrepConfig:
             data_prep_multi_process=dm_config.data_prep_multi_process,
             step_name=dm_config.step_name,
             service_results_num_items=dm_config.service_results_num_items,
+            original_dataset_path=dm_config.original_dataset_path,
+            data_prep_transformations=dm_config.data_prep_transformations,
+            version_name=dm_config.version_name,
         )
