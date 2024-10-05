@@ -1,3 +1,4 @@
+from my_enums import Steps
 from utilities.dialog_studio_dataclasses import DsDialog
 from data_prep.data_transformations.base_data_transformation import (
     BaseDataTransformation,
@@ -17,8 +18,8 @@ class SchemaApiTransformation(BaseDataTransformation):
         version_name: str,
         service_results_num_items: int,
     ):
-        self.current_schemas = get_schemas(current_dataset_path, step_name)
-        self.original_schemas = get_schemas(original_dataset_path, step_name)
+        self.current_schemas = self.get_schemas_from_all_steps(current_dataset_path)
+        self.original_schemas = self.get_schemas_from_all_steps(original_dataset_path)
         self.service_results_num_items = service_results_num_items
         self.version_name = version_name
         self.schema_update_map = {}
@@ -77,3 +78,9 @@ class SchemaApiTransformation(BaseDataTransformation):
             schema_orig_to_new_map[orig_intent.name] = new_intent.name
         self.schema_update_map[original_service] = schema_orig_to_new_map
         return schema_orig_to_new_map
+
+    def get_schemas_from_all_steps(self, dataset_path: Path):
+        schemas = {}
+        for d in [get_schemas(dataset_path, step) for step in Steps.list()]:
+            schemas.update(d)
+        return schemas
