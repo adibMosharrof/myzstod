@@ -90,8 +90,7 @@ class BaseTrainer:
             model_out_dir = str(self.cfg.project_root / self.cfg.model_type.model_path)
 
         utils.log(self.logger, "starting inference")
-        model = model_loader.load(model_out_dir)
-        model.eval()
+        model = model_loader.load_for_inference(model_out_dir)
         collate_fn = collator.tod_test_collate
         generation_handler = GenerationHandlerFactory.get_handler(
             self.cfg, model, tokenizer

@@ -21,6 +21,16 @@ class LoraModelLoader(BaseModelLoader):
         model = get_peft_model(model, lora_config)
         return model
 
+    def load_for_inference(self, model_path: Union[Path, str] = None) -> PeftModel:
+        device_map = {"": self.accelerator.device}
+        model = self.model_class.from_pretrained(
+            self.model_name, load_in_8bit=False, device_map=device_map
+        )
+        self._resize_token_embeddings(model)
+        model = PeftModel.from_pretrained(model, model_path, device_map=device_map)
+        model.eval()
+        return model
+
     def _get_lora_config(self) -> LoraConfig:
         target_modules = None
         rank = 16
