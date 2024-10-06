@@ -1,4 +1,4 @@
-from pathlib import Path
+from model_loaders.cross_model_loader import CrossModelLoader
 from transformers import AutoTokenizer
 
 from model_loaders.base_model_loader import BaseModelLoader
@@ -20,6 +20,8 @@ class ModelLoaderFactory:
             if value is None:
                 raise ValueError(f"The parameter '{key}' cannot be None.")
 
+        if cfg.model_type.context_type in ["gpt_cross"]:
+            return CrossModelLoader(**params)
         if not cfg.model_type.quantization:
             return BaseModelLoader(**params)
         if cfg.model_type.quantization_dtype == 16:
