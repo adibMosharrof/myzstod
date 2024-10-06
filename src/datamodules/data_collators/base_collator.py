@@ -53,6 +53,28 @@ class BaseCollator(ABC):
         }
 
     def tod_test_collate(self, batch: list[TodTurnApiCallCsvRow]):
+        data = self.get_test_data_cols()
+        max_lengths = DotMap(
+            domains=100,
+        )
+        target_max_len = self.max_token_len - self.test_prompt_max_len
+        for item in batch:
+            row = self.collate_single_item(item, target_max_len, is_test=True)
+            self.update_test_data(data, row, max_lengths, target_max_len, item)
+        return NlgTestDataBatch(
+            dialog_ids=torch.stack(data.dialog_ids),
+            turn_ids=torch.stack(data.turn_ids),
+            input_ids=torch.stack(data.input_tokens),
+            attention_masks=torch.stack(data.attention_masks),
+            labels=torch.stack(data.labels),
+            turn_row_types=torch.stack(data.turn_row_types),
+            is_retrievals=torch.stack(data.is_retrievals),
+            is_slot_fills=torch.stack(data.is_slot_fills),
+            is_multi_domain_api_calls=torch.stack(data.is_multi_domain_api_calls),
+            domain_ids=torch.stack(data.domain_ids),
+        )
+
+    def get_test_data_cols(self):
         data = DotMap(
             {
                 key: []
@@ -70,42 +92,28 @@ class BaseCollator(ABC):
                 ]
             }
         )
-        max_lengths = DotMap(
-            domains=100,
+
+        return data
+
+    def update_test_data(self, data, row, max_lengths, target_max_len, item):
+        data.input_tokens.append(row.input_tokens)
+        data.attention_masks.append(row.attention_mask)
+        data.labels.append(row.label)
+        data.turn_row_types.append(torch.tensor(item.turn_row_type))
+        data.is_retrievals.append(torch.tensor(item.is_retrieval))
+        data.is_slot_fills.append(torch.tensor(item.is_slot_fill))
+        data.turn_ids.append(torch.tensor(int(item.turn_id)))
+        data.dialog_ids.append(torch.tensor(int(item.dialog_id)))
+        multi_dom = getattr(item, "is_multi_domain_api_call", 0)
+        if not multi_dom:
+            multi_dom = 0
+        data.is_multi_domain_api_calls.append(torch.tensor(int(multi_dom)))
+        domain_tokens = TokenizerUtilities.tokenize_with_pad(
+            text=item.domains_original,
+            max_len=max_lengths.domains,
+            tokenizer=self.tokenizer,
         )
-        target_max_len = self.max_token_len - self.test_prompt_max_len
-        for item in batch:
-            row = self.collate_single_item(item, target_max_len, is_test=True)
-            data.input_tokens.append(row.input_tokens)
-            data.attention_masks.append(row.attention_mask)
-            data.labels.append(row.label)
-            data.turn_row_types.append(torch.tensor(item.turn_row_type))
-            data.is_retrievals.append(torch.tensor(item.is_retrieval))
-            data.is_slot_fills.append(torch.tensor(item.is_slot_fill))
-            data.turn_ids.append(torch.tensor(int(item.turn_id)))
-            data.dialog_ids.append(torch.tensor(int(item.dialog_id)))
-            multi_dom = getattr(item, "is_multi_domain_api_call", 0)
-            if not multi_dom:
-                multi_dom = 0
-            data.is_multi_domain_api_calls.append(torch.tensor(int(multi_dom)))
-            domain_tokens = TokenizerUtilities.tokenize_with_pad(
-                text=item.domains_original,
-                max_len=max_lengths.domains,
-                tokenizer=self.tokenizer,
-            )
-            data.domain_ids.append(domain_tokens["input_ids"][0])
-        return NlgTestDataBatch(
-            dialog_ids=torch.stack(data.dialog_ids),
-            turn_ids=torch.stack(data.turn_ids),
-            input_ids=torch.stack(data.input_tokens),
-            attention_masks=torch.stack(data.attention_masks),
-            labels=torch.stack(data.labels),
-            turn_row_types=torch.stack(data.turn_row_types),
-            is_retrievals=torch.stack(data.is_retrievals),
-            is_slot_fills=torch.stack(data.is_slot_fills),
-            is_multi_domain_api_calls=torch.stack(data.is_multi_domain_api_calls),
-            domain_ids=torch.stack(data.domain_ids),
-        )
+        data.domain_ids.append(domain_tokens["input_ids"][0])
 
     def collate_single_item(
         self, item: TodTurnCsvRow, target_max_len: int, is_test: bool = False
@@ -127,12 +135,8 @@ class BaseCollator(ABC):
             context_tokens = self.trim_dialog_history(item, -context_unused_len)
             context_unused_len = self.test_prompt_max_len - len(context_tokens)
         pad = torch.full([context_unused_len], self.tokenizer.pad_token_id)
-        target_tokens = TokenizerUtilities.tokenize(
-            text=item.target, tokenizer=self.tokenizer
-        )
-        target_unused_len = target_max_len - len(target_tokens)
-        if target_unused_len < 0:
-            raise Exception("Target is too long")
+        target_tokens = self.get_target_tokens(item.target, target_max_len)
+
         return self.prepare_item(
             context_tokens=context_tokens,
             target_tokens=target_tokens,
@@ -165,3 +169,9 @@ class BaseCollator(ABC):
             overflow_tokens = len(context_tokens) - self.test_prompt_max_len
             return self.trim_dialog_history(item, -overflow_tokens)
         return context_tokens
+
+    def get_target_tokens(self, text: str, target_max_len: int):
+        target_tokens = TokenizerUtilities.tokenize(text=text, tokenizer=self.tokenizer)
+        if len(target_tokens) > target_max_len:
+            raise Exception("Target is too long")
+        return target_tokens

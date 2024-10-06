@@ -75,10 +75,12 @@ class BaseTrainer:
         )
         collator = CollatorFactory.create_collator(
             model_name=self.cfg.model_type.model_name,
+            context_type=self.cfg.model_type.context_type,
             tokenizer=tokenizer,
             prompt_cls=prompt_cls,
             max_token_len=self.cfg.max_token_len,
             test_prompt_max_len=self.cfg.test_prompt_max_len,
+            schema_max_len=self.cfg.get("schema_max_len", 350),
         )
         if self.cfg.should_train:
             model_out_dir = self.train_model(
