@@ -20,21 +20,21 @@ class DataPrepClassFactory:
         if "ketod" in cfg.dataset_name:
             if not isinstance(strategy, KetodNlgApiCallStrategy):
                 raise ValueError(
-                    f"You are using Ketod data, but context type is {dp_cfg.context_type}." 
-                    f"Context type should be one of the following {','.join(ContextType.ketod_contexts)}"
+                    f"You are using Ketod data, but context type is {dp_cfg.context_type}."
+                    f"Context type should be one of the following {','.join(ContextType.ketod_contexts())}"
                 )
             return KetodBaseDataPrep(dp_cfg, strategy)
         elif "bitod" in cfg.dataset_name:
             if not isinstance(strategy, BitodStrategy):
                 raise ValueError(
                     f"You are using Ketod data, but context type is {dp_cfg.context_type}."
-                    f"Context type should be one of the following {','.join(ContextType.bitod_contexts)}"
+                    f"Context type should be one of the following {','.join(ContextType.bitod_contexts())}"
                 )
             return BitodDataPrep(dp_cfg, strategy)
         else:
             if isinstance(strategy, (KetodNlgApiCallStrategy, BitodStrategy)):
                 raise ValueError(
                     f"You are using Dstc data, but context type is {dp_cfg.context_type}."
-                    f"Context type should be one of the following {','.join(ContextType.dstc_contexts)}"
+                    f"Context type should be one of the following {','.join(ContextType.dstc_contexts())}"
                 )
             return DstcBaseDataPrep(dp_cfg, strategy)
