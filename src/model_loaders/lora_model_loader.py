@@ -17,7 +17,7 @@ class LoraModelLoader(BaseModelLoader):
             model_path or self.model_name, load_in_8bit=False, torch_dtype=dtype
         )
         self._resize_token_embeddings(model)
-        lora_config = self._get_lora_config(self.model_name)
+        lora_config = self._get_lora_config()
         model = get_peft_model(model, lora_config)
         return model
 
