@@ -214,7 +214,10 @@ class BaseTrainer:
                 ),
             ],
         )
-        trainer.train()
+        if self.cfg.resume_checkpoint:
+            trainer.train(str(self.cfg.project_root / self.cfg.resume_checkpoint))
+        else:
+            trainer.train()
         if accelerator.is_main_process:
             self.save_model(trainer)
         accelerator.wait_for_everyone()

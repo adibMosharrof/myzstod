@@ -21,7 +21,7 @@ class BaseModelLoader:
         model_name: str,
         tokenizer: AutoTokenizer,
         project_root: Path,
-        resume_checkpoint_path: str = None,
+        resume_checkpoint: str = None,
     ):
         self.model_name = model_name
         self.tokenizer = tokenizer
@@ -29,9 +29,9 @@ class BaseModelLoader:
         self.accelerator = Accelerator()
         self.model_class = self._get_model_class(self.model_name)
 
-        self.resume_checkpoint_path = (
-            str(project_root / resume_checkpoint_path)
-            if resume_checkpoint_path
+        self.resume_checkpoint = (
+            str(project_root / resume_checkpoint)
+            if resume_checkpoint
             else None
         )
 
