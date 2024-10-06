@@ -14,6 +14,7 @@ class ModelLoaderFactory:
             "model_name": cfg.model_type.model_name,
             "tokenizer": tokenizer,
             "project_root": cfg.project_root,
+            "resume_checkpoint": cfg.resume_checkpoint,
         }
 
         for key, value in params.items():
