@@ -8,6 +8,7 @@ from data_prep.bitod.bitod_data_prep import BitodDataPrep
 from data_prep.data_prep_strategy_factory import DataPrepStrategyFactory
 from data_prep.dstc_base_data_prep import DstcBaseDataPrep
 from data_prep.ketod.ketod_base_data_prep import KetodBaseDataPrep
+from schema.schema_factory import SchemaFactory
 
 
 class DataPrepClassFactory:
@@ -17,6 +18,7 @@ class DataPrepClassFactory:
             cfg.raw_data_root = Path(cfg.raw_data_root)
         dp_cfg = DataPrepConfig.from_dm_config(cfg)
         strategy = DataPrepStrategyFactory.get_strategy(dp_cfg, dp_cfg.context_type)
+        schema_loader = SchemaFactory.create_schema_loader(dp_cfg.context_type)
         if "ketod" in cfg.dataset_name:
             if not isinstance(strategy, KetodNlgApiCallStrategy):
                 raise ValueError(
@@ -37,4 +39,4 @@ class DataPrepClassFactory:
                     f"You are using Dstc data, but context type is {dp_cfg.context_type}."
                     f"Context type should be one of the following {','.join(ContextType.dstc_contexts())}"
                 )
-            return DstcBaseDataPrep(dp_cfg, strategy)
+            return DstcBaseDataPrep(dp_cfg, strategy, schema_loader)
