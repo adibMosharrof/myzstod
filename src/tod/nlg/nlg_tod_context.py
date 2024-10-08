@@ -25,7 +25,7 @@ class NlgTodContext:
             return "".join(["Last User Utterance:", self.current_user_utterance])
         return ""
 
-    def get_api_call(self) -> str:
+    def get_api_call(self, schemas, turn_domains) -> str:
         out = ""
         if not self.api_call:
             return out

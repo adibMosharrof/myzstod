@@ -1,3 +1,4 @@
+from schema.schema_loader import SchemaLoader
 import sys
 
 
@@ -24,9 +25,15 @@ from data_prep.data_prep_strategy import DataPrepStrategy
 
 
 class DstcBaseDataPrep:
-    def __init__(self, cfg: DataPrepConfig, data_prep_strategy: DataPrepStrategy):
+    def __init__(
+        self,
+        cfg: DataPrepConfig,
+        data_prep_strategy: DataPrepStrategy,
+        schema_loader: SchemaLoader,
+    ):
         self.cfg = cfg
         self.data_prep_strategy = data_prep_strategy
+        self.schema_loader = schema_loader
 
     def _prepare_dialog_file(
         self,
@@ -49,15 +56,11 @@ class DstcBaseDataPrep:
         return np.concatenate(data, axis=0)
 
     def run(self):
-        steps = Steps.list()
-        schemas = {}
-        for d in [get_schemas(self.cfg.raw_data_root, step) for step in steps]:
-            schemas.update(d)
+        schemas = self.schema_loader.get_schemas(self.cfg.raw_data_root)
         turn_csv_row_handler: TurnCsvRowBase = TurnCsvRowFactory.get_handler(self.cfg)
         step_dir = Path(self.cfg.processed_data_root / self.cfg.step_name)
         step_dir.mkdir(parents=True, exist_ok=True)
         dialog_paths = get_dialog_file_paths(self.cfg.raw_data_root, self.cfg.step_name)
-        # schemas = self._get_schemas(step)
         out_data = []
         if self.cfg.num_dialogs == "None":
             self.cfg.num_dialogs = len(dialog_paths)

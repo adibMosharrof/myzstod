@@ -108,7 +108,9 @@ class NlgApiCallStrategy(DataPrepStrategy):
             return turn_id, None
         if not tod_turn.context.api_call:
             return turn_id, None
-        api_call_response = tod_turn.context.get_api_call()
+        api_call_response = tod_turn.context.get_api_call(
+            schemas=schemas, turn_domains=tod_turn.domains_original
+        )
         copy_sys_turn = copy.deepcopy(system_turn)
         copy_sys_turn.utterance = api_call_response
         api_call_with_search_results = "\n".join(

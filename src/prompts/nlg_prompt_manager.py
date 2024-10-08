@@ -3,6 +3,7 @@ from my_enums import ContextType
 from sgd_dstc8_data_model.dstc_dataclasses import (
     DstcSchema,
 )
+from utilities.context_manager import ContextManager
 
 
 class CrossAttentionPrompt:
@@ -33,6 +34,37 @@ class CrossAttentionPrompt:
         prompt_text = "\n".join(
             [
                 schema,
+            ]
+        )
+        return prompt_text
+
+
+class PseudoLabelsPrompt:
+    def get_prompt(
+        self,
+        domain: str,
+        schema: str,
+        dialog_history: str,
+        other_domain: str = None,
+        other_domain_schema: str = None,
+        all_schema: dict[str, DstcSchema] = None,
+        domains_original: str = None,
+    ) -> str:
+        """
+        Returns the NLG prompt for the given domain
+        """
+        prompt_text = "\n".join(
+            [
+                f"You are an expert chat assistant for the domain: {domain}.",
+                "Instructions: As an expert, you must generate the most appropriate response for the chat assistant.",
+                "The response can be an api call or a response to the user.",
+                "When making API calls, use the intent pseudo_name and slot pseudo name."
+                f"You will be provided with a Schema for domain: {domain}.",
+                schema,
+                f"You will be provided an incomplete dialog between a user and a chat assistant, and an optional search results.",
+                "Dialog History:",
+                dialog_history,
+                ". Using the Dialog History, Search Results, and by following the Instructions please generate the response for the chat assistant.",
             ]
         )
         return prompt_text
@@ -220,6 +252,8 @@ class NlgPromptFactory:
             ContextType.KETOD_GPT_API_CALL.value,
         ]:
             return KetodPrompt()
+        if ContextManager.is_sgd_pseudo_labels(context_type):
+            return PseudoLabelsPrompt()
         if prompt_type == NlgPromptType.MULTI_DOMAIN.value:
             return NlgMultidomainPrompt()
         if prompt_type == NlgPromptType.DEFAULT.value:

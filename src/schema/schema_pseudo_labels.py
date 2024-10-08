@@ -3,6 +3,7 @@ import json
 import os
 from pathlib import Path
 import random
+from schema.schema_loader import SchemaLoader
 import string
 import sys
 
@@ -33,6 +34,7 @@ class SchemaPseudoLabels:
         self.cfg = cfg
         self.generated_intent_names = set()
         self.generated_slot_names = set()
+        self.schema_loader = SchemaLoader(DstcSchema)
 
     def get_pseudo_schema(self, schema: DstcSchema, version_num):
         slot_map = {}
@@ -93,7 +95,7 @@ class SchemaPseudoLabels:
                 data_path = self.cfg.project_root / self.cfg.sgd_x_path / f"v{version}"
             for step in Steps:
 
-                schemas = get_schemas(data_path, step.value)
+                schemas = self.schema_loader.get_schema_from_step(data_path, step.value)
                 pseudo_schemas = [
                     self.get_pseudo_schema(schema, version_num)
                     for schema in schemas.values()
