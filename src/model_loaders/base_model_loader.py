@@ -30,9 +30,7 @@ class BaseModelLoader:
         self.model_class = self._get_model_class(self.model_name)
 
         self.resume_checkpoint = (
-            str(project_root / resume_checkpoint)
-            if resume_checkpoint
-            else None
+            str(project_root / resume_checkpoint) if resume_checkpoint else None
         )
 
     def load(
@@ -45,6 +43,9 @@ class BaseModelLoader:
         if model_path:
             model.to(self.accelerator.device)
         return model
+
+    def load_for_inference(self, model_path: Union[Path, str] = None):
+        return self.load(model_path)
 
     def _get_model_path(self, model_path: Union[Path, str] = None):
         return str(self.project_root / model_path) if model_path else None
