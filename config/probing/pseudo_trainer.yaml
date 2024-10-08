@@ -1,0 +1,93 @@
+defaults:
+  - data_size: dstc_min
+  - dataset: 
+      # - dstc
+      # - sgdx_v1
+      # - sgdx_v2
+      # - sgdx_v3
+      # - sgdx_v4
+      # - sgdx_v5
+      - sgdx_pl0
+      # - sgdx_pl1
+      # - sgdx_pl2
+      # - sgdx_pl3
+      # - sgdx_pl4
+      # - sgdx_pl5      
+  - model_type: gpt
+  # - model_type: flant5
+hydra:
+  run:
+    dir: ./outputs/pseudo_labels/${now:%Y-%m-%d}/${now:%H-%M-%S}_${model_type.model_log_name}
+num_workers: 8
+test_prompt_max_len: 700
+max_token_len: 1024
+num_turns: 26
+should_add_schema: true
+should_add_user_actions: false
+should_add_service_results: true
+service_results_num_items: 2
+early_stopping_patience: 2
+project_root: /mounts/u-amo-d1/adibm-data/projects/ZSToD
+resume_checkpoint: ""
+# epochs: 50
+epochs: 1
+# epochs: 15
+is_scale_grad: false
+train_domain_settings: all
+# train_domain_settings:
+# - Restaurants_1
+# - Restaurants_11
+# - Restaurants_12
+# - Restaurants_13
+# - Restaurants_14
+# - Restaurants_15
+  # - Restaurants_1pl1
+  # - Restaurants_pl2
+  # - Restaurants_pl3
+  # - Restaurants_pl4
+  # - Restaurants_pl5
+  # - all
+dev_domain_settings:
+#   - Restaurants_2
+#   - Restaurants_21
+  # - Restaurants_22
+  # - Restaurants_23
+  # - Restaurants_24
+  # - Restaurants_25
+  # - Restaurants_2pl1
+  # - Restaurants_pl2
+  # - Restaurants_pl3
+  # - Restaurants_pl4
+  # - Restaurants_pl5
+  - all
+test_domain_settings:
+  # - - Restaurants_2
+  # - - Restaurants_21
+  # - [Restaurants_22]
+  # - [Restaurants_23]
+  # - [Restaurants_24]
+  # - [Restaurants_25]
+  # - - Restaurants_2pl1
+  # - - Restaurants_pl2
+  # - - Restaurants_pl3
+  # - - Restaurants_pl4
+  # - - Restaurants_pl5
+  - - all
+  # - [seen]
+  # - [unseen]
+prompt_type: default
+overwrite:
+  - 1
+  - 1
+  - 1
+out_dir: results
+should_train: true
+# should_train: false
+# should_test: false
+should_test: true
+data_prep_multi_process: true
+wandb:
+  project: ZSTod
+  entity: adibm
+  notes: sgd
+  task: probing
