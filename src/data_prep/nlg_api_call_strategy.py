@@ -23,6 +23,7 @@ from utilities.text_utilities import get_nlg_service_name
 import utils
 import data_prep.data_prep_utils as data_prep_utils
 from utilities import text_utilities
+from utilities.context_manager import ContextManager
 
 
 class NlgApiCallStrategy(DataPrepStrategy):
@@ -177,14 +178,7 @@ class NlgApiCallStrategy(DataPrepStrategy):
         en_us = "_en_US"
         for dom in dialog_domains:
             schema = schemas[dom]
-            intent_names = []
-            for intent in schema.intents:
-                try:
-                    name = intent.name
-                except AttributeError as e:
-                    name = intent.get("name")
-                intent_names.append(name)
-            # intent_names = [intent.name for intent in schema.intents]
+            intent_names = self.get_intent_names(schema)
             for intent_name in intent_names:
                 if en_us in intent_name:
                     new_intent_name = intent_name.replace(en_us, "")
@@ -193,6 +187,22 @@ class NlgApiCallStrategy(DataPrepStrategy):
             if method_name in intent_names:
                 return dom
         raise ValueError(f"{method_name} not found in any domain")
+
+    def get_intent_names(self, schema):
+        intent_names = []
+        field_name = (
+            "pseudo_name"
+            if ContextManager.is_sgd_pseudo_labels(self.cfg.context_type)
+            else "name"
+        )
+        for intent in schema.intents:
+            intent_name = getattr(intent, field_name)
+            if not intent_name:
+                raise ValueError(
+                    f"Intent field {field_name} not found in schema: {schema}"
+                )
+            intent_names.append(intent_name)
+        return intent_names
 
     def has_request_action(self, user_turn: DstcTurn) -> bool:
         """
