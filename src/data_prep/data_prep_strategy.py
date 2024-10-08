@@ -19,6 +19,7 @@ from tod.zs_tod_target import ZsTodTarget
 import utils
 from utilities.text_utilities import get_nlg_service_name
 from my_enums import ContextType, SpecialTokens
+from utilities.context_manager import ContextManager
 
 
 class DataPrepStrategy(ABC):
@@ -30,10 +31,6 @@ class DataPrepStrategy(ABC):
         self.cfg = cfg
         self.tod_turn_cls = tod_turn_cls
         self.tod_context_cls = tod_context_cls
-
-    @abstractmethod
-    def get_turn_schema_str(self, schemas: list[DstcSchema]) -> str:
-        raise NotImplementedError()
 
     @abstractmethod
     def prepare_target(
@@ -52,10 +49,7 @@ class DataPrepStrategy(ABC):
             return None
 
         utt = system_turn.utterance
-        if self.cfg.context_type in [
-            ContextType.GPT_API_CALL,
-            ContextType.GPT_CROSS,
-        ]:
+        if ContextManager.is_decoder_type(self.cfg.context_type):
             utt += SpecialTokens.eos_token.value
         return utt
         # return system_turn.utterance

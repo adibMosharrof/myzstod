@@ -8,6 +8,7 @@ from tod.turns.multi_task_csv_row import MultiTaskCsvRow
 from tod.turns.scalegrad_turn_csv_row import ScaleGradTurnCsvRow
 from tod.turns.api_call_turn_csv_row import ApiCallTurnCsvRow
 from tod.turns.turn_csv_row_base import TurnCsvRowBase
+from utilities.context_manager import ContextManager
 
 
 class TurnCsvRowFactory:
@@ -18,20 +19,10 @@ class TurnCsvRowFactory:
             return MultiTaskCsvRow()
         if cfg.is_scale_grad:
             return ScaleGradTurnCsvRow(csv_row_cls)
-        if cfg.context_type in [
-            ContextType.NLG_API_CALL.value,
-            ContextType.GPT_API_CALL.value,
-            ContextType.GPT_CROSS.value,
-        ]:
+        if ContextManager.is_nlg_strategy(cfg.context_type):
             return ApiCallTurnCsvRow()
-        if cfg.context_type in [
-            ContextType.KETOD_API_CALL.value,
-            ContextType.KETOD_GPT_API_CALL.value,
-        ]:
+        if ContextManager.is_ketod(cfg.context_type):
             return KetodApiCallTurnCsvRow()
-        if cfg.context_type in [
-            ContextType.BITOD_GPT.value,
-            ContextType.BITOD.value,
-        ]:
+        if ContextManager.is_bitod(cfg.context_type):
             return BitodCsvRow()
         return csv_row_cls

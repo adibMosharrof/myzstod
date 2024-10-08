@@ -183,6 +183,7 @@ class ContextType(str, Enum):
     CHATGPT = "chatgpt"
     GPT_API_CALL = "gpt_api_call"
     GPT_CROSS = "gpt_cross"
+    GPT_PSEUDO_LABELS = "gpt_pseudo_labels"
 
     @classmethod
     def ketod_contexts(cls):

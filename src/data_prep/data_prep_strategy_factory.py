@@ -5,6 +5,8 @@ from data_prep.nlg_data_prep import NlgDataPrep
 from data_prep.nlg_api_call_strategy import NlgApiCallStrategy
 from data_prep.zstod_data_prep import ZsTodDataPrep
 from my_enums import ContextType
+from tod.nlg.pseudo_labels_context import PseudoLabelsContext
+from utilities.context_manager import ContextManager
 
 
 class DataPrepStrategyFactory:
@@ -21,20 +23,14 @@ class DataPrepStrategyFactory:
             return NlgDataPrep(cfg)
         if context_type == ContextType.SHORT_REPR.value:
             return ZsTodDataPrep(cfg)
-        if context_type in [
-            ContextType.NLG_API_CALL.value,
-            ContextType.GPT_API_CALL.value,
-            ContextType.GPT_CROSS.value,
-        ]:
+        if ContextManager.is_nlg_strategy(context_type):
+            if ContextManager.is_sgd_pseudo_labels(context_type):
+                return NlgApiCallStrategy(cfg, tod_context_cls=PseudoLabelsContext)
             return NlgApiCallStrategy(cfg)
-        if context_type in [
-            ContextType.KETOD_API_CALL.value,
-            ContextType.KETOD_GPT_API_CALL.value,
-        ]:
+        if ContextManager.is_ketod(context_type):
             return KetodNlgApiCallStrategy(cfg)
-        if context_type in [
-            ContextType.BITOD.value,
-            ContextType.BITOD_GPT.value,
-        ]:
+        if ContextManager.is_bitod(context_type):
             return BitodStrategy(cfg)
+        # if context_type in [ContextType.GPT_PSEUDO_LABELS.value]:
+        #     return cfg
         raise ValueError(f"Unknown data prep step: {context_type}")
