@@ -22,6 +22,11 @@ class PseudoLabelsContext(NlgTodContext):
         pseudo_parameters = {}
         for slot_name, slot_value in self.api_call.parameters.items():
             pseudo_slot_name = active_schema.get_pseudo_slot_name(slot_name)
+            if pseudo_slot_name is None:
+                for schema in turn_schemas:
+                    pseudo_slot_name = schema.get_pseudo_slot_name(slot_name)
+                    if pseudo_slot_name:
+                        break
             pseudo_parameters[pseudo_slot_name] = slot_value
 
         dstc_api_call = DstcServiceCall(pseudo_intent_name, pseudo_parameters)

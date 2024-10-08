@@ -59,6 +59,7 @@ class PseudoSchema(DstcSchema):
         for slot in self.slots:
             if slot.name == slot_name:
                 return slot.pseudo_name
+        return None
         raise ValueError(f"Slot {slot_name} not found in schema {self.service_name}")
 
     def get_nlg_repr(self) -> str:
