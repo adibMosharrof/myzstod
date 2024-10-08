@@ -6,6 +6,7 @@ from my_enums import ContextType, SpecialTokens
 from simple_tod_dataclasses import MultiTaskSpecialToken
 from tod.zs_tod_target import ZsTodTarget
 from tod.zs_tod_context import ZsTodContext
+from utilities.context_manager import ContextManager
 
 
 @dataclass
@@ -72,15 +73,13 @@ class TodTurnCsvRowFactory:
     def get_handler(self, cfg):
         if cfg.get("is_scale_grad", 0):
             return TodTurnScaleGradCsvRow
-        if cfg.model_type.context_type in [
-            ContextType.NLG_API_CALL.value,
-            ContextType.GPT_API_CALL.value,
-            ContextType.KETOD_API_CALL.value,
-            ContextType.KETOD_GPT_API_CALL.value,
-            ContextType.BITOD.value,
-            ContextType.BITOD_GPT.value,
-            ContextType.GPT_CROSS.value,
-        ]:
+        if any(
+            [
+                ContextManager.is_nlg_strategy(cfg.model_type.context_type),
+                ContextManager.is_ketod(cfg.model_type.context_type),
+                ContextManager.is_bitod(cfg.model_type.context_type),
+            ]
+        ):
             return TodTurnApiCallCsvRow
         raise ValueError("incorrect context type")
         return TodTurnCsvRow
