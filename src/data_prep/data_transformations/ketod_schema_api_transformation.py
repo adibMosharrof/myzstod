@@ -9,7 +9,7 @@ from sgd_dstc8_data_model.dstc_dataclasses import (
 )
 
 
-class SchemaApiTransformation(BaseDataTransformation):
+class KetodSchemaApiTransformation(BaseDataTransformation):
     def __init__(
         self,
         current_dataset_path: str,
