@@ -47,7 +47,9 @@ from prompts.nlg_prompt_manager import NlgPromptFactory
 class BaseTrainer:
     def __init__(self, cfg: BaseTrainerConfig, dm_class=T5DataModule):
         self.dm_class = dm_class
-        self.simplify_config(cfg)
+        self.cfg = DotMap(cfg)
+        self.cfg.project_root = Path(self.cfg.project_root)
+        self.cfg.out_dir = str(os.getcwd() / Path(self.cfg.out_dir))
         formatter = logging.Formatter(fmt="%(message)s")
         root_logger = logging.getLogger()  # no name
         for handler in root_logger.handlers:
@@ -246,12 +248,12 @@ class BaseTrainer:
             dm_cfg.update(**self.cfg.data_size)
             dm_cfg.update(**self.cfg.model_type)
             dm_cfg.raw_data_root = self.cfg.project_root / dataset_config.raw_data_root
-            schemas = {}
-            for d in [
-                get_schemas(self.cfg.project_root / dataset_config.raw_data_root, step)
-                for step in Steps.list()
-            ]:
-                schemas.update(d)
+            # schemas = {}
+            # for d in [
+            #     get_schemas(self.cfg.project_root / dataset_config.raw_data_root, step)
+            #     for step in Steps.list()
+            # ]:
+            #     schemas.update(d)
             dm = self.init_dm_class(dm_cfg, tokenizer)
             dm.setup()
             all_dms.append(dm)
@@ -283,20 +285,3 @@ class BaseTrainer:
             else:
                 out[key] = [i for i in ds[key].data if i.turn_row_type == 1]
         return out
-
-    def simplify_config(self, cfg):
-        self.cfg = DotMap(cfg)
-        self.cfg.project_root = Path(self.cfg.project_root)
-        self.cfg.out_dir = str(os.getcwd() / Path(self.cfg.out_dir))
-        # self.model_name = self.cfg.model_type.model_name
-        # self.model_path = self.cfg.model_type.model_path
-        # self.context_type = self.cfg.model_type.context_type
-        # self.train_batch_size = self.cfg.model_type.train_batch_size
-        # self.eval_batch_size = self.cfg.model_type.eval_batch_size
-        # self.test_batch_size = self.cfg.model_type.test_batch_size
-        # self.gradient_accumulation_steps = self.cfg.model_type.gradient_accumulation
-        # self.eval_accumulation_steps = self.cfg.model_type.eval_accumulation
-        # self.quantization = self.cfg.model_type.quantization
-        # self.quantization_dtype = self.cfg.model_type.quantization_dtype
-        # self.learning_rate = self.cfg.model_type.learning_rate
-        # self.model_log_name = self.cfg.model_type.model_log_name
