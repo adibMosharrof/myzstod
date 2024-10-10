@@ -19,13 +19,32 @@ class PseudoSchemaIntent(DstcSchemaIntent):
 
     def nlg_repr(self, slot_map: dict[str, str]) -> str:
         name = remove_underscore(self.name)
-        required_slots = ",".join(map(remove_underscore, self.required_slots))
-        optional_slots = ",".join(map(remove_underscore, self.optional_slots))
-        pseudo_required = ",".join(map(slot_map.get, self.required_slots))
-        pseudo_optional = ",".join(map(slot_map.get, self.optional_slots))
+        # required_slots = ",".join(map(remove_underscore, self.required_slots))
+        # optional_slots = ",".join(map(remove_underscore, self.optional_slots))
+        # pseudo_required = ",".join(map(slot_map.get, self.required_slots))
+        # pseudo_optional = ",".join(map(slot_map.get, self.optional_slots))
+        required_slots = []
+        optional_slots = []
+        for req_slot in self.required_slots:
+            required_slots.append(
+                f"{remove_underscore(req_slot)} ({slot_map.get(req_slot)})"
+            )
+        for opt_slot in self.optional_slots:
+            optional_slots.append(
+                f"{remove_underscore(opt_slot)} ({slot_map.get(opt_slot)})"
+            )
+        req_slots_text = ", ".join(required_slots)
+        opt_slots_text = ", ".join(optional_slots)
         return "\n".join(
             [
-                f"Intent name: {name}",
+                f"Intent ({name},{self.pseudo_name})",
+                f"required slots: {req_slots_text}" if required_slots else "",
+                f"optional slots: {opt_slots_text}" if optional_slots else "",
+            ]
+        )
+        return "\n".join(
+            [
+                f"Intent {name}",
                 f"Intent pseudo name: {self.pseudo_name}",
                 f"required slot names: {required_slots}" if required_slots else "",
                 (
