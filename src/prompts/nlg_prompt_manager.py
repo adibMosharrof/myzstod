@@ -1,318 +1,268 @@
-from dataclasses import asdict
-from datamodules.tod_dataset import TodDataSet
-import logging
-import os
-from pathlib import Path
-import random
-import sys
-import uuid
-
-from accelerate.accelerator import Accelerator
-from dotmap import DotMap
-import hydra
-import numpy as np
-from omegaconf import DictConfig
-import pandas as pd
-import torch
-from tqdm import tqdm
-from transformers.models.auto.tokenization_auto import AutoTokenizer
-from transformers.trainer_callback import EarlyStoppingCallback
-from transformers.trainer_seq2seq import Seq2SeqTrainer
-from transformers.trainer_utils import IntervalStrategy
-from transformers.training_args_seq2seq import Seq2SeqTrainingArguments
-from torch.utils.data import DataLoader
-
-from model_loaders.base_model_loader import BaseModelLoader
+from prompts.prompt_constants import NlgPromptType
+from my_enums import ContextType
+from sgd_dstc8_data_model.dstc_dataclasses import (
+    DstcSchema,
+)
+from utilities.context_manager import ContextManager
 
 
-sys.path.insert(0, os.path.abspath("./src"))
-sys.path.insert(0, os.path.abspath("./"))
-from datamodules.data_collators.base_collator import BaseCollator
-from datamodules.data_collators.collator_factory import CollatorFactory
-from generation.generation_handler_factory import GenerationHandlerFactory
-from my_enums import Steps
-from playground.t5_datamodule import T5DataModule
-import utils
-from sgd_dstc8_data_model.dstc_dataclasses import get_schemas
-from logger.results_logger import ResultsLogger
-from metric_managers.metric_manager_factory import MetricManagerFactory
-from datamodules.data_filters.data_filter_registry import DATA_FILTER_MAP
-from model_loaders.model_loader_factory import ModelLoaderFactory
-from configs.base_trainer_config import BaseTrainerConfig
-from tod.turns.zs_tod_turn import TodTurnCsvRowFactory
-from configs.dm_config import DataModuleConfig
-from prompts.nlg_prompt_manager import NlgPromptFactory
-
-
-class BaseTrainer:
-    def __init__(self, cfg: BaseTrainerConfig, dm_class=T5DataModule):
-        self.dm_class = dm_class
-        self.cfg = DotMap(cfg)
-        self.cfg.project_root = Path(self.cfg.project_root)
-        self.cfg.out_dir = str(os.getcwd() / Path(self.cfg.out_dir))
-        formatter = logging.Formatter(fmt="%(message)s")
-        root_logger = logging.getLogger()  # no name
-        for handler in root_logger.handlers:
-            if isinstance(handler, logging.StreamHandler):
-                handler.setFormatter(formatter)
-        self.logger = root_logger
-
-    def run(self):
-        accelerator = Accelerator()
-        torch.manual_seed(420)
-        tokenizer = AutoTokenizer.from_pretrained(
-            self.cfg.tokenizer_name or self.cfg.model_type.model_name,
-            bos_token="<|startoftext|>",
-            eos_token="<|endoftext|>",
-            pad_token="<|pad|>",
-        )
-
-        dms = self.get_data_modules(tokenizer)
-        train_dataset, val_dataset, test_datasets = self.get_datasets_from_data_modules(
-            dms
-        )
-        model_loader = ModelLoaderFactory.get_loader(self.cfg, tokenizer)
-        prompt_cls = NlgPromptFactory.get_handler(
-            self.cfg.prompt_type, self.cfg.model_type.context_type
-        )
-        collator = CollatorFactory.create_collator(
-            model_name=self.cfg.model_type.model_name,
-            context_type=self.cfg.model_type.context_type,
-            tokenizer=tokenizer,
-            prompt_cls=prompt_cls,
-            max_token_len=self.cfg.max_token_len,
-            test_prompt_max_len=self.cfg.test_prompt_max_len,
-            schema_max_len=self.cfg.get("schema_max_len", 350),
-        )
-        if self.cfg.should_train:
-            model_out_dir = self.train_model(
-                accelerator, collator, train_dataset, val_dataset, model_loader
-            )
-        else:
-            model_out_dir = str(self.cfg.project_root / self.cfg.model_type.model_path)
-
-        utils.log(self.logger, "starting inference")
-        model = model_loader.load_for_inference(model_out_dir)
-        collate_fn = collator.tod_test_collate
-        generation_handler = GenerationHandlerFactory.get_handler(
-            self.cfg, model, tokenizer
-        )
-        out_dir_path = Path(self.cfg.out_dir)
-        for test_dataset in test_datasets:
-            domain_names = test_dataset.get_domain_names()
-            if not len(test_dataset):
-                print(f"No data for {domain_names}")
-                continue
-            utils.log(self.logger, f"testing {domain_names}")
-
-            test_dl = DataLoader(
-                test_dataset,
-                batch_size=self.cfg.model_type.test_batch_size,
-                collate_fn=collate_fn,
-                pin_memory=True,
-                num_workers=8,
-            )
-            test_dl = accelerator.prepare(test_dl)
-            metric_manager = MetricManagerFactory.get_metric_manager(
-                self.cfg.model_type.context_type, tokenizer, self.logger
-            )
-            for batch in tqdm(test_dl):
-                max_gen_len = self.cfg.max_token_len
-
-                sample_outputs = generation_handler.get_generation(
-                    batch,
-                    max_gen_len - self.cfg.test_prompt_max_len,
-                    max_gen_len,
-                    self.cfg.test_prompt_max_len,
-                    False,
-                    accelerator,
-                    metric_manager,
-                )
-            print("generation complete")
-            # must call this first
-            metric_manager.compute_row_wise_metrics()
-            metric_manager.compute_metrics(domain_names)
-            metric_manager.compute_is_retrieval_and_slot_fill_metrics()
-            csv_path = self.get_pred_csv_path(test_dataset)
-            metric_manager.write_csv(csv_path)
-
-        if accelerator.is_main_process:
-            for test_dataset in test_datasets:
-                self.log_results(test_dataset, out_dir_path)
-        accelerator.wait_for_everyone()
-
-    def get_pred_csv_path(self, test_dataset: TodDataSet):
-        csv_path = (
-            Path(self.cfg.out_dir)
-            / "predictions"
-            / f"{test_dataset.dataset_name}_{test_dataset.get_domain_names()}.csv"
-        )
-        csv_path.parent.mkdir(parents=True, exist_ok=True)
-        return csv_path
-
-    def log_results(self, dataset: TodDataSet, out_dir_path: Path):
-        chatgpt_results = (
-            self.cfg.project_root / "data_exploration/chatgpt/chat_gpt_all.csv"
-        )
-        csv_path = self.get_pred_csv_path(dataset)
-        rl = ResultsLogger(
-            DotMap(
-                project_root=self.cfg.project_root,
-                results_path=csv_path,
-                chatgpt_results_path=str(chatgpt_results),
-                out_dir=out_dir_path / "results_logger" / dataset.dataset_name,
-                raw_data_root=dataset.raw_data_root,
-                dataset_name=dataset.dataset_name,
-            )
-        )
-        rl.run()
-
-    def train_model(
+class CrossAttentionPrompt:
+    def get_generation_prompt(
         self,
-        accelerator: Accelerator,
-        collator: BaseCollator,
-        train_dataset: list[any],
-        val_dataset: list[any],
-        model_loader: BaseModelLoader,
-    ):
-        model = model_loader.load()
-        deepspeed_path = str(self.cfg.project_root / "config/ds_zero_tod.json")
-        training_args = Seq2SeqTrainingArguments(
-            output_dir=self.cfg.out_dir,
-            num_train_epochs=self.cfg.epochs,
-            logging_steps=10,
-            save_total_limit=5,
-            save_steps=self.cfg.data_size.save_steps,
-            eval_steps=self.cfg.data_size.eval_steps,
-            load_best_model_at_end=True,
-            save_strategy=IntervalStrategy.STEPS,
-            eval_strategy=IntervalStrategy.STEPS,
-            per_device_train_batch_size=self.cfg.model_type.train_batch_size,
-            per_device_eval_batch_size=self.cfg.model_type.eval_batch_size,
-            warmup_steps=100,
-            weight_decay=0.01,
-            dataloader_drop_last=True,
-            dataloader_num_workers=1,
-            gradient_accumulation_steps=self.cfg.model_type.gradient_accumulation_steps,
-            eval_accumulation_steps=self.cfg.model_type.eval_accumulation_steps,
-            learning_rate=self.cfg.model_type.learning_rate,
-            gradient_checkpointing=True,
-            ddp_find_unused_parameters=False,
-            deepspeed=deepspeed_path,
-            ddp_backend="nccl",
-            save_safetensors=False,
-            # gradient_checkpointing_kwargs={"use_reentrant": False},
+        domain: str,
+        dialog_history: str,
+    ) -> str:
+        """
+        Returns the NLG prompt for the given domain
+        """
+        prompt_text = "\n".join(
+            [
+                "Dialog History:",
+                dialog_history,
+            ]
         )
-        trainer = Seq2SeqTrainer(
-            model=model,
-            args=training_args,
-            train_dataset=train_dataset,
-            eval_dataset=val_dataset,
-            data_collator=collator.tod_train_collate,
-            model=model,
-            args=training_args,
-            train_dataset=train_dataset,
-            eval_dataset=val_dataset,
-            data_collator=collator.tod_train_collate,
-            callbacks=[
-                EarlyStoppingCallback(
-                    early_stopping_patience=self.cfg.early_stopping_patience
-                ),
-            ],
+        return prompt_text
+
+    def get_schema_prompt(
+        self,
+        domain: str,
+        schema: str,
+    ) -> str:
+        """
+        Returns the NLG prompt for the given domain
+        """
+        prompt_text = "\n".join(
+            [
+                schema,
+            ]
         )
-        if self.cfg.resume_checkpoint:
-            trainer.train(str(self.cfg.project_root / self.cfg.resume_checkpoint))
-        else:
-            trainer.train()
-        if accelerator.is_main_process:
-            self.save_model(trainer)
-        accelerator.wait_for_everyone()
-        return self.cfg.out_dir
+        return prompt_text
 
-    def save_model(self, trainer):
-        trainer.model.save_pretrained(self.cfg.out_dir, safe_serialization=False)
 
-    def init_dm_class(self, dm_cfg, tokenizer):
-        data_augmentations = []
-        data_filters = (
-            [DATA_FILTER_MAP[filter_name] for filter_name in dm_cfg.data_filters]
-            if "data_filters" in dm_cfg
-            else []
+class PseudoLabelsPrompt:
+    def get_prompt(
+        self,
+        domain: str,
+        schema: str,
+        dialog_history: str,
+        other_domain: str = None,
+        other_domain_schema: str = None,
+        all_schema: dict[str, DstcSchema] = None,
+        domains_original: str = None,
+    ) -> str:
+        """
+        Returns the NLG prompt for the given domain
+        """
+        prompt_text = "\n".join(
+            [
+                f"You are an expert chat assistant for the domain: {domain}.",
+                "Instructions: As an expert, you must generate the most appropriate response for the chat assistant.",
+                "The response can be an api call or a response to the user.",
+                "When making API calls, use the intent pseudo_name and slot pseudo name."
+                f"You will be provided with a Schema for domain: {domain}.",
+                schema,
+                f"You will be provided an incomplete dialog between a user and a chat assistant, and an optional search results.",
+                "Dialog History:",
+                dialog_history,
+                ". Using the Dialog History, Search Results, and by following the Instructions please generate the response for the chat assistant.",
+            ]
         )
-        data_augmentations = DataAugmentationFactory.create_data_augmentations(self.cfg)
-            callbacks=[
-                EarlyStoppingCallback(
-                    early_stopping_patience=self.cfg.early_stopping_patience
-                ),
-            ],
+        return prompt_text
+
+
+class NlgPrompt:
+    def get_prompt(
+        self,
+        domain: str,
+        schema: str,
+        dialog_history: str,
+        other_domain: str = None,
+        other_domain_schema: str = None,
+        all_schema: dict[str, DstcSchema] = None,
+        domains_original: str = None,
+    ) -> str:
+        """
+        Returns the NLG prompt for the given domain
+        """
+        prompt_text = "\n".join(
+            [
+                f"You are an expert chat assistant for the domain: {domain}.",
+                "Instructions: As an expert, you must generate the most appropriate response for the chat assistant.",
+                "The response can be an api call or a response to the user.",
+                # "If there are search results, you should use information from the search results to generate the response.",
+                # "If you think you need more information to answer the user request, you can request information from the user.",
+                # "Based on the Last User Utterance, you must find the relevant Intent from the Schema and your request can only use the required slots and optional slots from that Intent.",
+                # f"You will be provided with a Schema for domain: {domain}, which contains the relevant Intents for the domain. Each Intent has a list of required and optional slots.",
+                f"You will be provided with a Schema for domain: {domain}.",
+                schema,
+                f"You will be provided an incomplete dialog between a user and a chat assistant, and an optional search results.",
+                "Dialog History:",
+                dialog_history,
+                # "Using the Dialog History, Search Results, relevant Intent from the Schema and by following the Instructions please generate the response for the chat assistant.",
+                ". Using the Dialog History, Search Results, and by following the Instructions please generate the response for the chat assistant.",
+            ]
         )
-        if self.cfg.resume_checkpoint:
-            trainer.train(str(self.cfg.project_root / self.cfg.resume_checkpoint))
-        else:
-            trainer.train()
-        if accelerator.is_main_process:
-            self.save_model(trainer)
-        accelerator.wait_for_everyone()
-        return self.cfg.out_dir
+        return prompt_text
 
-    def save_model(self, trainer):
-        trainer.model.save_pretrained(self.cfg.out_dir, safe_serialization=False)
 
-    def init_dm_class(self, dm_cfg, tokenizer):
-        data_filters = []
-        if "data_filters" in dm_cfg:
-            for filter_name in dm_cfg.data_filters:
-                data_filters.append(DATA_FILTER_MAP[filter_name])
-        tod_turn_row_cls = TodTurnCsvRowFactory.get_handler(self.cfg)
-        return self.dm_class(
-            DataModuleConfig(tokenizer=tokenizer, **dm_cfg),
-            tod_turn_row_cls=tod_turn_row_cls,
-            data_filters=data_filters,
+class NlgMultidomainPrompt:
+    def get_prompt(
+        self,
+        current_domain: str,
+        current_domain_schema: str,
+        dialog_history: str,
+        other_domain: str = None,
+        other_domain_schema: str = None,
+    ) -> str:
+        """
+        Returns the NLG prompt for the given domain and other domains
+        """
+
+        prompt_text = "\n".join(
+            [
+                "Instructions: As an expert, you must generate the most appropriate response for the chat assistant.",
+                "The response can be a service call or a response to the user.",
+                f"Previously, you were an expert chat assistant for the domain: {other_domain}",
+                other_domain_schema,
+                f"You were provided with a Schema for the domain: {other_domain}.",
+                f"Now you have switched domains and are an expert chat assistant for the domain: {current_domain}",
+                current_domain_schema,
+                f"You have been provided with a Schema for domain: {current_domain}, which is in the same format as the {other_domain} and contains the relevant Intents for the {current_domain}.",
+                f"Use the {current_domain} schema in a similar way you used it in the {other_domain}.",
+                "Dialog History:",
+                dialog_history,
+                f"You have been provided with a Schema for domain: {current_domain}, an incomplete dialog between a user and a chat assistant, and an optional search results.",
+                # "If there are search results, you should use information from the search results to generate the response.",
+                # "If you think you need more information to answer the user request, you can request information from the user.",
+                # "Based on the Last User Utterance, you must find the relevant Intent from the Schema and your request can only use the required slots and optional slots from that Intent.\n",
+                # "Using the Dialog History, Search Results, relevant Intent from the Schema and by following the Instructions please generate the response for the chat assistant.",
+                "Using the Dialog History, Search Results and by following the Instructions please generate the response for the chat assistant.",
+            ]
         )
 
-    def get_data_modules(self, tokenizer):
-        all_dms = []
+        return prompt_text
 
-        for dataset_name, dataset_config in self.cfg.dataset.items():
-            dm_cfg = DotMap(self.cfg)
-            dm_cfg.update(**dataset_config)
-            dm_cfg.update(**self.cfg.data_size)
-            dm_cfg.update(**self.cfg.model_type)
-            dm_cfg.raw_data_root = self.cfg.project_root / dataset_config.raw_data_root
-            # schemas = {}
-            # for d in [
-            #     get_schemas(self.cfg.project_root / dataset_config.raw_data_root, step)
-            #     for step in Steps.list()
-            # ]:
-            #     schemas.update(d)
-            dm = self.init_dm_class(dm_cfg, tokenizer)
-            dm.setup()
-            all_dms.append(dm)
-        return all_dms
 
-    def get_dm_dataset(self, dm):
-        return dm.datasets
+class KetodPrompt:
+    def get_prompt(
+        self,
+        domain: str,
+        schema: str,
+        dialog_history: str,
+        other_domain: str = None,
+        other_domain_schema: str = None,
+        all_schema: dict[str, DstcSchema] = None,
+        domains_original: str = None,
+    ) -> str:
+        """
+        Returns the NLG prompt for the given domain
+        """
+        prompt_text = "\n".join(
+            [
+                f"You are an expert chat assistant for the domain: {domain}",
+                "Instructions: As an expert, you must generate the most appropriate response for the chat assistant.",
+                "The response can be an api call, entity query or a response to the user.",
+                # "If there are search results, you should use information from the search results to generate the response.",
+                # "If you think you need more information to answer the user request, you can request information from the user.",
+                "Based on the Last User Utterance, you must find the relevant Intent from the Schema and your request should use the required slots and optional slots from that Intent.",
+                # f"You will be provided with a Schema for domain: {domain}, which contains the relevant Intents for the domain. Each Intent has a list of required and optional slots.",
+                f"You will be provided with a Schema for domain: {domain}",
+                schema,
+                f"You will be provided an incomplete dialog between a user and a chat assistant, and an optional search results.",
+                "Dialog History:",
+                dialog_history,
+                # "Using the Dialog History, Search Results, relevant Intent from the Schema and by following the Instructions please generate the response for the chat assistant.",
+                "Using the Dialog History, Search Results and by following the Instructions please generate the response for the chat assistant.",
+            ]
+        )
+        return prompt_text
 
-    def get_datasets_from_data_modules(
-        self, dms
-    ) -> tuple[TodDataSet, TodDataSet, list[TodDataSet]]:
-        train, val, test = [], [], []
-        for dm in dms:
-            ds = self.get_dm_dataset(dm)
-            # api_datasets = self.get_api_call_datasets(ds)
-            train.extend(ds["train"])
-            val.extend(ds["dev"])
-            test.extend(ds["test"])
-        return train, val, test
 
-    def get_api_call_datasets(self, ds):
-        out = {"train": [], "dev": [], "test": []}
-        for key in out.keys():
-            if key == "test":
-                for item in ds[key]:
-                    data = [i for i in item.data if i.turn_row_type == 1]
-                    if len(data):
-                        out[key].append(data)
-            else:
-                out[key] = [i for i in ds[key].data if i.turn_row_type == 1]
-        return out
+class ChatGptPrompt:
+    def get_prompt(
+        self,
+        domain: str,
+        schema: str,
+        dialog_history: str,
+        other_domain: str = None,
+        other_domain_schema: str = None,
+        all_schema: dict[str, DstcSchema] = None,
+        domains_original: str = None,
+    ) -> str:
+        """
+        Returns the NLG prompt for the given domain
+        """
+        prompt_text = (
+            f"You are an expert chat assistant for the DOMAIN: {domain}. \n"
+            f"Instructions:\nGenerate a natural and helpful SYSTEM response for the given task-oriented dialog context.\n"
+            f"Here are important slots related to each intent:\n"
+        )
+        domains = domains_original.split(",")
+        for dom in domains:
+            dstc_schema = all_schema[dom]
+            # for intent, req_slots, opt_slots in intents_slots:
+            for dstc_intent in dstc_schema.intents:
+                req_slots_str = ", ".join(dstc_intent.required_slots)
+                opt_slots_str = ", ".join(dstc_intent.optional_slots.keys())
+                prompt_text += (
+                    f"\nIntent: {dstc_intent.name}\n"
+                    f"required slots: {req_slots_str}\n"
+                    f"optional slots: {opt_slots_str}\n"
+                )
+
+        prompt_text += (
+            f"\nYou can request the values of any number of slots from the USER in order to fulfill the user's current intent."
+            f"Generally, required slots are more important than the optional ones. Moreover, you should restrict your conversation to the slots that are relevant to the user's current intent. "
+        )
+        prompt_text += (
+            f"\nYou can assume that you have access to the following API calls: "
+        )
+
+        # for intent, _, _ in intents_slots:
+        for dom in domains:
+            dstc_schema = all_schema[dom]
+            # for intent, req_slots, opt_slots in intents_slots:
+            for dstc_intent in dstc_schema.intents:
+                req_slots_str = ", ".join(dstc_intent.required_slots)
+                opt_slots_str = ", ".join(dstc_intent.optional_slots.keys())
+                prompt_text += f"method={dstc_intent.name}, parameters={req_slots_str}, {opt_slots_str}. "
+
+        prompt_text += (
+            f"Use column names as parameters for API calls. While making the call, Make sure you ask all the required slots from the user before making an API call, you can skip unwanted parameters. "
+            f"Here is an example: ApiCall(method='intent_i', parameters={{'slot_1': 'value_1', 'slot_2': 'value_2', ...}}). "
+            f"Try to match the parameters in the API calls with the column names from the dataframe. Match the required and optional slots with the column names and use the columns names to search in the API calls.Use date format YYYY-MM-DD if needed to search in API call. "
+            f"When you think you have enough information about slot values, you must output the API call. Right after your API call, you will be provided with search result of the API call. "
+            f"You will be provided with an incomplete dialog context between USER and SYSTEM, and optionally, search results from dataframe. "
+            f"Here a few general guidelines: Don't overload the USER with too many choices. Confirm the values of slots and Ask the USER to confirm their choice before finalizing the transaction. "
+            f"Whenever confused, it is always better to ask or confirm with the user. If you feel like that user is confused, you may guide the user with relevant suggestions. "
+            f"Task:\n Based on the last USER utterance and dialog context you have to generate a conversational response or an API call in order to fulfill the user's current intent. "
+            f"You may need to make API calls and use the results of the API call. \n Dialog Context: {dialog_history}."
+        )
+
+        return prompt_text
+
+
+class NlgPromptFactory:
+    @classmethod
+    def get_handler(
+        self, prompt_type: str, context_type: ContextType = ContextType.NLG_API_CALL
+    ) -> NlgPrompt:
+        if context_type in [
+            ContextType.KETOD_API_CALL.value,
+            ContextType.KETOD_GPT_API_CALL.value,
+        ]:
+            return KetodPrompt()
+        if ContextManager.is_sgd_pseudo_labels(context_type):
+            return PseudoLabelsPrompt()
+        if prompt_type == NlgPromptType.MULTI_DOMAIN.value:
+            return NlgMultidomainPrompt()
+        if prompt_type == NlgPromptType.DEFAULT.value:
+            return NlgPrompt()
+        if prompt_type == NlgPromptType.CHATGPT.value:
+            return ChatGptPrompt()
+        if prompt_type == NlgPromptType.CROSS.value:
+            return CrossAttentionPrompt()
+        all_prompts = ",".join(NlgPromptType.list())
+        raise NotImplementedError(
+            f"Prompt type {prompt_type} is not implemented. It must be one of the following values {all_prompts}."
+        )
