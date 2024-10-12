@@ -18,6 +18,10 @@ class LoraModelLoader(BaseModelLoader):
         )
         self._resize_token_embeddings(model)
         lora_config = self._get_lora_config()
+        if self.resume_checkpoint:
+            return PeftModel.from_pretrained(
+                model, self.resume_checkpoint, config=lora_config, is_trainable=True
+            )
         model = get_peft_model(model, lora_config)
         return model
 
