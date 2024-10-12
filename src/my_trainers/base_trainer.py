@@ -1,4 +1,8 @@
 from dataclasses import asdict
+from datamodules.data_augmentation.data_augmentation_factory import (
+    DataAugmentationFactory,
+)
+from datamodules.data_filters.data_filter_registry import DATA_FILTER_MAP
 from datamodules.tod_dataset import TodDataSet
 import logging
 import os
@@ -36,7 +40,6 @@ import utils
 from sgd_dstc8_data_model.dstc_dataclasses import get_schemas
 from logger.results_logger import ResultsLogger
 from metric_managers.metric_manager_factory import MetricManagerFactory
-from datamodules.data_filters.data_filter_registry import DATA_FILTER_MAP
 from model_loaders.model_loader_factory import ModelLoaderFactory
 from configs.base_trainer_config import BaseTrainerConfig
 from tod.turns.zs_tod_turn import TodTurnCsvRowFactory
@@ -67,10 +70,6 @@ class BaseTrainer:
             pad_token="<|pad|>",
         )
 
-        dms = self.get_data_modules(tokenizer)
-        train_dataset, val_dataset, test_datasets = self.get_datasets_from_data_modules(
-            dms
-        )
         model_loader = ModelLoaderFactory.get_loader(self.cfg, tokenizer)
         prompt_cls = NlgPromptFactory.get_handler(
             self.cfg.prompt_type, self.cfg.model_type.context_type
@@ -84,6 +83,13 @@ class BaseTrainer:
             test_prompt_max_len=self.cfg.test_prompt_max_len,
             schema_max_len=self.cfg.get("schema_max_len", 350),
         )
+
+        dms = self.get_data_modules(tokenizer)
+        train_dataset, val_dataset, test_datasets = self.get_datasets_from_data_modules(
+            dms
+        )
+        # self.test_dm(train_dataset, collator.tod_train_collate)
+
         if self.cfg.should_train:
             model_out_dir = self.train_model(
                 accelerator, collator, train_dataset, val_dataset, model_loader
@@ -201,6 +207,7 @@ class BaseTrainer:
             deepspeed=deepspeed_path,
             ddp_backend="nccl",
             save_safetensors=False,
+            report_to="wandb",
             # gradient_checkpointing_kwargs={"use_reentrant": False},
         )
         trainer = Seq2SeqTrainer(
@@ -228,16 +235,26 @@ class BaseTrainer:
         trainer.model.save_pretrained(self.cfg.out_dir, safe_serialization=False)
 
     def init_dm_class(self, dm_cfg, tokenizer):
-        data_filters = []
-        if "data_filters" in dm_cfg:
-            for filter_name in dm_cfg.data_filters:
-                data_filters.append(DATA_FILTER_MAP[filter_name])
+        data_augmentations = []
+        data_filters = (
+            [DATA_FILTER_MAP[filter_name] for filter_name in dm_cfg.data_filters]
+            if "data_filters" in dm_cfg
+            else []
+        )
+        data_augmentations = DataAugmentationFactory.create_data_augmentations(dm_cfg)
+        dm_cfg.data_augmentations = data_augmentations
         tod_turn_row_cls = TodTurnCsvRowFactory.get_handler(self.cfg)
         return self.dm_class(
             DataModuleConfig(tokenizer=tokenizer, **dm_cfg),
             tod_turn_row_cls=tod_turn_row_cls,
             data_filters=data_filters,
+            data_augmentations=data_augmentations,
         )
+
+    def test_dm(self, dataset, collate_fn):
+        for item in dataset:
+            collate_fn([item])
+        return
 
     def get_data_modules(self, tokenizer):
         all_dms = []
@@ -248,12 +265,6 @@ class BaseTrainer:
             dm_cfg.update(**self.cfg.data_size)
             dm_cfg.update(**self.cfg.model_type)
             dm_cfg.raw_data_root = self.cfg.project_root / dataset_config.raw_data_root
-            # schemas = {}
-            # for d in [
-            #     get_schemas(self.cfg.project_root / dataset_config.raw_data_root, step)
-            #     for step in Steps.list()
-            # ]:
-            #     schemas.update(d)
             dm = self.init_dm_class(dm_cfg, tokenizer)
             dm.setup()
             all_dms.append(dm)

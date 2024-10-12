@@ -24,12 +24,14 @@ class TodDataModuleV2:
         steps: list[Steps] = None,
         tod_turn_row_cls=TodTurnCsvRow,
         data_filters: list[BaseDataFilter] = None,
+        data_augmentations=None,
     ):
         self.cfg = cfg
         self.tod_turn_row_cls = tod_turn_row_cls
         self.steps = steps or Steps.list()
         self.data_filters = data_filters or []
         self.datasets: dict[str, SimpleTodDataSet] = {}
+        self.data_augmentations = data_augmentations or []
 
     def setup(self):
         for step in self.steps:

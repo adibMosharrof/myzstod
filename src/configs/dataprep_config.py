@@ -34,6 +34,7 @@ class DataPrepConfig:
         step_name: str = Steps.TRAIN.value,
         original_dataset_path: str = None,
         data_prep_transformations: list[str] = None,
+        data_augmentations: list[str] = None,
         version_name: str = None,
         **kwargs,
     ):
@@ -69,6 +70,7 @@ class DataPrepConfig:
         self.service_results_num_items = service_results_num_items
         self.original_dataset_path = original_dataset_path
         self.data_prep_transformations = data_prep_transformations
+        self.data_augmentations = data_augmentations
         self.version_name = version_name
 
     @classmethod
@@ -98,5 +100,6 @@ class DataPrepConfig:
             service_results_num_items=dm_config.service_results_num_items,
             original_dataset_path=dm_config.original_dataset_path,
             data_prep_transformations=dm_config.data_prep_transformations,
+            data_augmentations=dm_config.data_augmentations,
             version_name=dm_config.version_name,
         )
