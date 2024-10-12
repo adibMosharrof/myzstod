@@ -1,3 +1,6 @@
+from datamodules.data_augmentation.pseudo_label_augmentation import (
+    PseudoLabelAugmentation,
+)
 from typing import Optional
 
 import numpy as np
@@ -32,12 +35,14 @@ class NlgApiCallStrategy(DataPrepStrategy):
         cfg: DataPrepConfig,
         tod_turn_cls=NlgTodTurn,
         tod_context_cls=NlgTodContext,
+        data_augmentations=None,
     ):
         super().__init__(
             cfg, tod_turn_cls=tod_turn_cls, tod_context_cls=tod_context_cls
         )
         # self.cfg = cfg
         self.turn_csv_row_cls = ApiCallTurnCsvRow()
+        self.data_augmentations = data_augmentations or []
 
     def prepare_target(
         self,
@@ -148,6 +153,14 @@ class NlgApiCallStrategy(DataPrepStrategy):
         )
         self.add_tod_turn(turn_csv_row_handler, tod_turns, new_turn, dialog_id, turn_id)
         turn_id += 1
+        for aug in self.data_augmentations:
+            if not isinstance(aug, PseudoLabelAugmentation):
+                continue
+            aug_turns = aug.apply(new_turn, tod_turn)
+            for aug_turn in aug_turns:
+                self.add_tod_turn(
+                    turn_csv_row_handler, tod_turns, aug_turn, dialog_id, turn_id
+                )
         return turn_id, new_turn
 
     def is_multi_domain_api_call(self, turn: NlgTodTurn, csv_tod_turns, schemas):

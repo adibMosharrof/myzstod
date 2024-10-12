@@ -127,7 +127,7 @@ def get_csv_data_path(
 
 
 def generate_hash_filename(filename: Path, num_dialogs: int):
-    h = hashlib.new("sha256")
+    h = hashlib.sha256()
     h.update(filename.name.encode())
     hash_name = h.hexdigest()
     return f"{hash_name}_{num_dialogs}{filename.suffix}"

@@ -26,7 +26,7 @@ class DataPrepStrategyFactory:
         if ContextManager.is_nlg_strategy(context_type):
             if ContextManager.is_sgd_pseudo_labels(context_type):
                 return NlgApiCallStrategy(cfg, tod_context_cls=PseudoLabelsContext)
-            return NlgApiCallStrategy(cfg)
+            return NlgApiCallStrategy(cfg, data_augmentations=cfg.data_augmentations)
         if ContextManager.is_ketod(context_type):
             return KetodNlgApiCallStrategy(cfg)
         if ContextManager.is_bitod(context_type):

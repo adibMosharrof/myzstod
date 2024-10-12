@@ -63,6 +63,7 @@ class DataModuleConfig:
         service_results_num_items: int = 1,
         original_dataset_path: str = None,
         data_prep_transformations: list[str] = None,
+        data_augmentations: list[any] = None,
         version_name: str = None,
         **kwargs,
     ):
@@ -128,6 +129,7 @@ class DataModuleConfig:
         self.service_results_num_items = service_results_num_items
         self.original_dataset_path = original_dataset_path
         self.data_prep_transformations = data_prep_transformations
+        self.data_augmentations = data_augmentations
         self.version_name = version_name
 
     @classmethod
