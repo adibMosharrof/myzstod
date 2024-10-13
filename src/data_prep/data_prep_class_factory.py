@@ -13,7 +13,7 @@ from schema.schema_factory import SchemaFactory
 
 class DataPrepClassFactory:
     @staticmethod
-    def create_data_prep_instance(cfg: DataModuleConfig):
+    def create_data_prep_instance(cfg: DataModuleConfig, schemas):
         if isinstance(cfg.raw_data_root, str):
             cfg.raw_data_root = Path(cfg.raw_data_root)
         dp_cfg = DataPrepConfig.from_dm_config(cfg)
@@ -39,4 +39,6 @@ class DataPrepClassFactory:
                     f"You are using Dstc data, but context type is {dp_cfg.context_type}."
                     f"Context type should be one of the following {','.join(ContextType.dstc_contexts())}"
                 )
-            return DstcBaseDataPrep(dp_cfg, strategy, schema_loader)
+            return DstcBaseDataPrep(
+                dp_cfg, strategy, schema_loader=schema_loader, schemas=schemas
+            )

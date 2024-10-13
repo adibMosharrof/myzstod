@@ -29,12 +29,13 @@ class DstcBaseDataPrep:
         self,
         cfg: DataPrepConfig,
         data_prep_strategy: DataPrepStrategy,
-        schema_loader: SchemaLoader,
+        schema_loader: SchemaLoader = None,
+        schemas: Dict[str, DstcSchema] = None,
     ):
         self.cfg = cfg
         self.data_prep_strategy = data_prep_strategy
-        self.schema_loader = schema_loader
-
+        self.schemas = schemas or schema_loader.get_schemas(self.cfg.raw_data_root)
+        
     def _prepare_dialog_file(
         self,
         path: Path,
@@ -56,7 +57,6 @@ class DstcBaseDataPrep:
         return np.concatenate(data, axis=0)
 
     def run(self):
-        schemas = self.schema_loader.get_schemas(self.cfg.raw_data_root)
         turn_csv_row_handler: TurnCsvRowBase = TurnCsvRowFactory.get_handler(self.cfg)
         step_dir = Path(self.cfg.processed_data_root / self.cfg.step_name)
         step_dir.mkdir(parents=True, exist_ok=True)
@@ -81,7 +81,7 @@ class DstcBaseDataPrep:
                     Pool().imap(
                         self._prepare_dialog_file,
                         dialog_paths[: self.cfg.num_dialogs],
-                        itertools.repeat(schemas),
+                        itertools.repeat(self.schemas),
                         itertools.repeat(turn_csv_row_handler),
                     ),
                     total=self.cfg.num_dialogs,
@@ -90,7 +90,7 @@ class DstcBaseDataPrep:
         else:
             res = []
             for d in tqdm(dialog_paths[: self.cfg.num_dialogs]):
-                output = self._prepare_dialog_file(d, schemas, turn_csv_row_handler)
+                output = self._prepare_dialog_file(d, self.schemas, turn_csv_row_handler)
                 if res is not None:
                     res.append(output)
 

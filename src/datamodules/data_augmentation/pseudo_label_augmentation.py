@@ -26,8 +26,8 @@ class PseudoLabelAugmentation:
     def get_pseudo_schemas_and_name_maps(self) -> dict[str, SchemaWithNameMap]:
         spl = SchemaPseudoLabels(self.cfg)
         out = {}
+        pseudo_schemas = []
         for i in range(self.num_augmentations):
-            pseudo_schema = {}
             pseudo_version_name = self.get_schema_version_name(i)
             for domain, schema in self.schemas.items():
                 pseudo_schema, pseudo_name_map = spl.get_pseudo_schema(
@@ -37,6 +37,9 @@ class PseudoLabelAugmentation:
                     schema=pseudo_schema,
                     name_map=pseudo_name_map,
                 )
+                pseudo_schemas.append(pseudo_schema)
+        for pseudo_schema in pseudo_schemas:
+            self.schemas[pseudo_schema.service_name] = pseudo_schema
         return out
 
     def apply(self, api_turn: NlgTodTurn, tod_turn: NlgTodTurn):
