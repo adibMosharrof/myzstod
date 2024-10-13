@@ -16,6 +16,7 @@ from sgd_dstc8_data_model.dstc_dataclasses import (
 import copy
 from data_prep.data_prep_strategy import DataPrepStrategy
 from my_enums import ContextType, DstcSystemActions, TurnRowType, ZsTodConstants
+from schema.pseudo_schema_dataclasses import PseudoSchema
 from tod.nlg.nlg_tod_context import NlgTodContext
 from tod.nlg.nlg_tod_target import NlgTodTarget
 from tod.nlg.nlg_tod_turn import NlgTodTurn
@@ -203,11 +204,7 @@ class NlgApiCallStrategy(DataPrepStrategy):
 
     def get_intent_names(self, schema):
         intent_names = []
-        field_name = (
-            "pseudo_name"
-            if ContextManager.is_sgd_pseudo_labels(self.cfg.context_type)
-            else "name"
-        )
+        field_name = "pseudo_name" if isinstance(schema, PseudoSchema) else "name"
         for intent in schema.intents:
             intent_name = getattr(intent, field_name)
             if not intent_name:

@@ -25,6 +25,7 @@ class TodDataModuleV2:
         tod_turn_row_cls=TodTurnCsvRow,
         data_filters: list[BaseDataFilter] = None,
         data_augmentations=None,
+        schemas=None,
     ):
         self.cfg = cfg
         self.tod_turn_row_cls = tod_turn_row_cls
@@ -32,6 +33,7 @@ class TodDataModuleV2:
         self.data_filters = data_filters or []
         self.datasets: dict[str, SimpleTodDataSet] = {}
         self.data_augmentations = data_augmentations or []
+        self.schemas = schemas
 
     def setup(self):
         for step in self.steps:
@@ -39,18 +41,22 @@ class TodDataModuleV2:
             if isinstance(step_data.domain_settings[0], (list, ListConfig)):
                 self.datasets[step] = []
                 for domain_setting in step_data.domain_settings:
-                    ds = self.setup_single_run(step, step_data, domain_setting)
+                    ds = self.setup_single_run(
+                        step, step_data, domain_setting, self.schemas
+                    )
                     if len(ds):
                         self.datasets[step].append(ds)
             else:
                 self.datasets[step] = self.setup_single_run(
-                    step,
-                    step_data,
-                    step_data.domain_settings,
+                    step, step_data, step_data.domain_settings, self.schemas
                 )
 
     def setup_single_run(
-        self, step: str, step_data: StepData, domain_setting: Union[str, list[str]]
+        self,
+        step: str,
+        step_data: StepData,
+        domain_setting: Union[str, list[str]],
+        schemas,
     ) -> TodDataSet:
         cfg = copy.deepcopy(self.cfg)
         cfg.step_name = step_data.name
@@ -58,7 +64,9 @@ class TodDataModuleV2:
         cfg.overwrite = step_data.overwrite
         cfg.domain_setting = domain_setting
 
-        data_prep_instance = DataPrepClassFactory.create_data_prep_instance(cfg)
+        data_prep_instance = DataPrepClassFactory.create_data_prep_instance(
+            cfg, schemas
+        )
         self.prepare_data(data_prep_instance)
         csv_path = utils.get_csv_data_path(
             step,

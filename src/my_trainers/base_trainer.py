@@ -27,6 +27,7 @@ from transformers.training_args_seq2seq import Seq2SeqTrainingArguments
 from torch.utils.data import DataLoader
 
 from model_loaders.base_model_loader import BaseModelLoader
+from schema.schema_loader import SchemaLoader
 
 
 sys.path.insert(0, os.path.abspath("./src"))
@@ -45,6 +46,9 @@ from configs.base_trainer_config import BaseTrainerConfig
 from tod.turns.zs_tod_turn import TodTurnCsvRowFactory
 from configs.dm_config import DataModuleConfig
 from prompts.nlg_prompt_manager import NlgPromptFactory
+from sgd_dstc8_data_model.dstc_dataclasses import (
+    DstcSchema,
+)
 
 
 class BaseTrainer:
@@ -241,7 +245,12 @@ class BaseTrainer:
             if "data_filters" in dm_cfg
             else []
         )
-        data_augmentations = DataAugmentationFactory.create_data_augmentations(dm_cfg)
+
+        schema_loader = SchemaLoader(DstcSchema)
+        schemas = schema_loader.get_schemas(dm_cfg.raw_data_root)
+        data_augmentations = DataAugmentationFactory.create_data_augmentations(
+            dm_cfg, schemas
+        )
         dm_cfg.data_augmentations = data_augmentations
         tod_turn_row_cls = TodTurnCsvRowFactory.get_handler(self.cfg)
         return self.dm_class(
@@ -249,6 +258,7 @@ class BaseTrainer:
             tod_turn_row_cls=tod_turn_row_cls,
             data_filters=data_filters,
             data_augmentations=data_augmentations,
+            schemas=schemas,
         )
 
     def test_dm(self, dataset, collate_fn):
