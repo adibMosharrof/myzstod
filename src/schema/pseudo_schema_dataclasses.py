@@ -23,14 +23,14 @@ class PseudoSchemaIntent(DstcSchemaIntent):
         optional_slots = []
         for req_slot in self.required_slots:
             required_slots.append(
-                f"({remove_underscore(req_slot)},{slot_map.get(req_slot)})"
+                f"{remove_underscore(req_slot)},{slot_map.get(req_slot)}|"
             )
         for opt_slot in self.optional_slots:
             optional_slots.append(
-                f"({remove_underscore(opt_slot)},{slot_map.get(opt_slot)})"
+                f"{remove_underscore(opt_slot)},{slot_map.get(opt_slot)}|"
             )
-        req_slots_text = " ".join(required_slots)
-        opt_slots_text = " ".join(optional_slots)
+        req_slots_text = "".join(required_slots)
+        opt_slots_text = "".join(optional_slots)
         return "\n".join(
             [
                 f"Intent ({name},{self.pseudo_name})",
