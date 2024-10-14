@@ -55,16 +55,16 @@ class PseudoLabelsPrompt:
         """
         prompt_text = "\n".join(
             [
-                f"You are an expert chat assistant for the domain: {domain}.",
-                "Instructions: As an expert, you must generate the most appropriate response for the chat assistant.",
-                "The response can be an api call or a response to the user.",
-                "When making API calls, use the intent pseudo_name and slot pseudo name."
-                f"You will be provided with a Schema for domain: {domain}.",
+                f"You are an expert chat bot for the domain: {domain}.",
+                # "Instructions: You must generate the most appropriate response for the chat bot.",
+                # "When making API calls, use the intent pseudo_name and slot pseudo name."
+                f"Here is the schema for {domain}:.",
                 schema,
-                f"You will be provided an incomplete dialog between a user and a chat assistant, and an optional search results.",
+                f"You will be provided an incomplete dialog between a user and a chat bot, and an optional search results.",
                 "Dialog History:",
                 dialog_history,
-                ". Using the Dialog History, Search Results, and by following the Instructions please generate the response for the chat assistant.",
+                ". Instructions: Using the Dialog History, Search Results, please generate the response for the chat bot.",
+                "The response can be an api call or a response to the user.",
             ]
         )
         return prompt_text
