@@ -4,6 +4,8 @@ from itertools import zip_longest
 from dataclasses import dataclass, field
 from typing import Optional
 
+from my_enums import ZsTodConstants
+
 
 @dataclass
 class NlgTodContext:
@@ -29,7 +31,7 @@ class NlgTodContext:
         out = ""
         if not self.api_call:
             return out
-        self.api_call.__class__.__qualname__ = "ApiCall"
+        self.api_call.__class__.__qualname__ = ZsTodConstants.API_CALL.value
         out += str(self.api_call)
         return out
 

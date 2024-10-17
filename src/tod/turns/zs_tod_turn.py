@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 from typing import Optional
 from sgd_dstc8_data_model.dstc_dataclasses import DstcSchema
 from my_enums import ContextType, SpecialTokens
@@ -51,6 +51,12 @@ class TodTurnApiCallCsvRow(TodTurnCsvRow):
     is_retrieval: Optional[int] = None
     is_slot_fill: Optional[int] = None
     is_multi_domain_api_call: Optional[int] = None
+
+    @classmethod
+    def from_list_of_values_and_headers(self, values, headers):
+        header_value_map = dict(zip(headers, values))
+        ordered_values = [header_value_map[field.name] for field in fields(self)]
+        return self(*ordered_values)
 
 
 @dataclass

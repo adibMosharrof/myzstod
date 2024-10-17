@@ -41,6 +41,7 @@ import utils
 from sgd_dstc8_data_model.dstc_dataclasses import get_schemas
 from logger.results_logger import ResultsLogger
 from metric_managers.metric_manager_factory import MetricManagerFactory
+from datamodules.data_filters.data_filter_registry import DATA_FILTER_MAP
 from model_loaders.model_loader_factory import ModelLoaderFactory
 from configs.base_trainer_config import BaseTrainerConfig
 from tod.turns.zs_tod_turn import TodTurnCsvRowFactory
@@ -88,7 +89,7 @@ class BaseTrainer:
             schema_max_len=self.cfg.get("schema_max_len", 350),
         )
 
-        dms = self.get_data_modules(tokenizer)
+        dms = self.get_data_modules(tokenizer, collator)
         train_dataset, val_dataset, test_datasets = self.get_datasets_from_data_modules(
             dms
         )
@@ -238,7 +239,7 @@ class BaseTrainer:
     def save_model(self, trainer):
         trainer.model.save_pretrained(self.cfg.out_dir, safe_serialization=False)
 
-    def init_dm_class(self, dm_cfg, tokenizer):
+    def init_dm_class(self, dm_cfg, tokenizer, collator):
         data_augmentations = []
         data_filters = (
             [DATA_FILTER_MAP[filter_name] for filter_name in dm_cfg.data_filters]
@@ -249,7 +250,7 @@ class BaseTrainer:
         schema_loader = SchemaLoader(DstcSchema)
         schemas = schema_loader.get_schemas(dm_cfg.raw_data_root)
         data_augmentations = DataAugmentationFactory.create_data_augmentations(
-            dm_cfg, schemas
+            dm_cfg, schemas, collator
         )
         dm_cfg.data_augmentations = data_augmentations
         tod_turn_row_cls = TodTurnCsvRowFactory.get_handler(self.cfg)
@@ -266,7 +267,7 @@ class BaseTrainer:
             collate_fn([item])
         return
 
-    def get_data_modules(self, tokenizer):
+    def get_data_modules(self, tokenizer, collator):
         all_dms = []
 
         for dataset_name, dataset_config in self.cfg.dataset.items():
@@ -275,7 +276,7 @@ class BaseTrainer:
             dm_cfg.update(**self.cfg.data_size)
             dm_cfg.update(**self.cfg.model_type)
             dm_cfg.raw_data_root = self.cfg.project_root / dataset_config.raw_data_root
-            dm = self.init_dm_class(dm_cfg, tokenizer)
+            dm = self.init_dm_class(dm_cfg, tokenizer, collator)
             dm.setup()
             all_dms.append(dm)
         return all_dms

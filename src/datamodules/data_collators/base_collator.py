@@ -1,11 +1,13 @@
 from dotmap import DotMap
-from base_datamodule import TodTrainRowCollator
 from simple_tod_dataclasses import NlgTestDataBatch
 from tod.turns.zs_tod_turn import TodTurnApiCallCsvRow, TodTurnCsvRow
 import torch
 from abc import ABC, abstractmethod
-
 from utilities.tokenizer_utilities import TokenizerUtilities
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from base_datamodule import TodTrainRowCollator
 
 
 class BaseCollator(ABC):
@@ -32,7 +34,7 @@ class BaseCollator(ABC):
         pad_tokens,
         target_max_len,
         is_test: bool,
-    ) -> TodTrainRowCollator:
+    ) -> "TodTrainRowCollator":
         pass
 
     def tod_train_collate(self, batch: list[TodTurnCsvRow]):
@@ -117,23 +119,11 @@ class BaseCollator(ABC):
 
     def collate_single_item(
         self, item: TodTurnCsvRow, target_max_len: int, is_test: bool = False
-    ) -> TodTrainRowCollator:
-        other_domain, other_domain_schema = None, None
-        context_text = self.nlg_prompt_cls.get_prompt(
-            item.domains,
-            item.schema,
-            item.context,
-            other_domain,
-            other_domain_schema,
-            item.domains_original,
+    ) -> "TodTrainRowCollator":
+        context_text = self.get_context_text(item)
+        context_tokens, context_unused_len = self.get_context_tokens_and_unused_len(
+            item, context_text
         )
-        context_tokens = TokenizerUtilities.tokenize(
-            tokenizer=self.tokenizer, text=context_text
-        )
-        context_unused_len = self.test_prompt_max_len - len(context_tokens)
-        if context_unused_len < 0:
-            context_tokens = self.trim_dialog_history(item, -context_unused_len)
-            context_unused_len = self.test_prompt_max_len - len(context_tokens)
         pad = torch.full([context_unused_len], self.tokenizer.pad_token_id)
         target_tokens = self.get_target_tokens(item.target, target_max_len)
 
@@ -145,10 +135,30 @@ class BaseCollator(ABC):
             is_test=is_test,
         )
 
+    def get_context_text(self, item):
+        context_text = self.nlg_prompt_cls.get_prompt(
+            domain=item.domains,
+            schema=item.schema,
+            dialog_history=item.context,
+            domains_original=item.domains_original,
+        )
+        return context_text
+
+    def get_context_tokens_and_unused_len(self, item, context_text):
+        context_tokens = TokenizerUtilities.tokenize(
+            tokenizer=self.tokenizer, text=context_text
+        )
+        context_unused_len = self.test_prompt_max_len - len(context_tokens)
+        if context_unused_len < 0:
+            context_tokens = self.trim_dialog_history(item, -context_unused_len, 0)
+            context_unused_len = self.test_prompt_max_len - len(context_tokens)
+        return context_tokens, context_unused_len
+
     def trim_dialog_history(
         self,
         item: TodTurnCsvRow,
         trim_len: int,
+        counter=0,
     ):
         dialog_history_tokens = TokenizerUtilities.tokenize(
             tokenizer=self.tokenizer,
@@ -165,9 +175,11 @@ class BaseCollator(ABC):
         context_tokens = TokenizerUtilities.tokenize(
             tokenizer=self.tokenizer, text=context_text
         )
+        if counter > 100:
+            a = 1
         if len(context_tokens) > self.test_prompt_max_len:
             overflow_tokens = len(context_tokens) - self.test_prompt_max_len
-            return self.trim_dialog_history(item, -overflow_tokens)
+            return self.trim_dialog_history(item, -overflow_tokens, counter + 1)
         return context_tokens
 
     def get_target_tokens(self, text: str, target_max_len: int):

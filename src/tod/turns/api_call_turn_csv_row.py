@@ -16,7 +16,10 @@ class ApiCallTurnCsvRow(TurnCsvRowBase):
         return headers
 
     def to_csv_row(
-        self, context_type: ContextType, tod_turn: NlgTodTurn, should_add_schema: bool
+        self,
+        context_type: ContextType,
+        tod_turn: NlgTodTurn,
+        should_add_schema: bool = True,
     ) -> list[str]:
         row = super().to_csv_row(context_type, tod_turn, should_add_schema)
         row += [

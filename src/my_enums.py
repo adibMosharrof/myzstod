@@ -124,6 +124,7 @@ class ZsTodConstants(str, Enum):
     NEW_LINES = "\n\n"
     ACTION_TYPE_INFORM = "INFORM"
     ACTION_TYPE_INFORM_COUNT = "INFORM_COUNT"
+    API_CALL = "ApiCall"
 
 
 class GoalMetricConfigType(str, Enum):

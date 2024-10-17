@@ -32,7 +32,7 @@ class TodDataModuleV2:
         self.steps = steps or Steps.list()
         self.data_filters = data_filters or []
         self.datasets: dict[str, SimpleTodDataSet] = {}
-        self.data_augmentations = data_augmentations or []
+        self.data_augmentations = data_augmentations or {}
         self.schemas = schemas
 
     def setup(self):
