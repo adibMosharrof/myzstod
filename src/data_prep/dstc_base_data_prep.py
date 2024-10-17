@@ -1,3 +1,4 @@
+import pandas as pd
 from schema.schema_loader import SchemaLoader
 import sys
 
@@ -35,7 +36,7 @@ class DstcBaseDataPrep:
         self.cfg = cfg
         self.data_prep_strategy = data_prep_strategy
         self.schemas = schemas or schema_loader.get_schemas(self.cfg.raw_data_root)
-        
+
     def _prepare_dialog_file(
         self,
         path: Path,
@@ -53,8 +54,12 @@ class DstcBaseDataPrep:
                 continue
             data.append(prepped_dialog)
         if not len(data):
-            return np.array(data)
-        return np.concatenate(data, axis=0)
+            return pd.DataFrame()
+            # return np.array(data)
+        # return np.concatenate(data, axis=0)
+        turn_dfs = [pd.DataFrame(d) for d in data]
+        conc_data = pd.concat(turn_dfs, axis=0, ignore_index=True)
+        return conc_data
 
     def run(self):
         turn_csv_row_handler: TurnCsvRowBase = TurnCsvRowFactory.get_handler(self.cfg)
@@ -90,18 +95,23 @@ class DstcBaseDataPrep:
         else:
             res = []
             for d in tqdm(dialog_paths[: self.cfg.num_dialogs]):
-                output = self._prepare_dialog_file(d, self.schemas, turn_csv_row_handler)
+                output = self._prepare_dialog_file(
+                    d, self.schemas, turn_csv_row_handler
+                )
                 if res is not None:
                     res.append(output)
 
-        out_data = [d for d in res if len(d)]
+        # out_data = [d for d in res if len(d)]
+
         headers = turn_csv_row_handler.get_csv_headers(self.cfg.should_add_schema)
-        if len(out_data) == 0:
+        if len(res) == 0:
             domains = ",".join(self.cfg.domain_setting)
             print(f"No data for {self.cfg.step_name}: {domains}")
             return
-        csv_data = np.concatenate(out_data, axis=0)
-        utils.write_csv(headers, csv_data, csv_file_path)
+        # csv_data = np.concatenate(out_data, axis=0)
+        # utils.write_csv(headers, csv_data, csv_file_path)
+        csv_data = pd.concat(res, axis=0)
+        csv_data.to_csv(csv_file_path, index=False, header=headers)
 
 
 @hydra.main(config_path="../../config/data_prep/", config_name="dstc_base_data_prep")
