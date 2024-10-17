@@ -1,26 +1,35 @@
+from datamodules.data_augmentation.api_in_context_augmentation import (
+    ApiInContextAugmentation,
+)
 from datamodules.data_augmentation.pseudo_label_augmentation import (
     PseudoLabelAugmentation,
 )
 from schema.schema_loader import SchemaLoader
 from enum import Enum
 
+from tod.turns.api_call_turn_csv_row import ApiCallTurnCsvRow
+
 
 class AugmentationNames(str, Enum):
-    PSEUDO_LABEL_AUGMENTATION = "pseudo_label_augmentation"
+    PSEUDO_LABEL_AUGMENTATION = "pseudo_labels"
 
 
 class DataAugmentationFactory:
 
     @classmethod
-    def create_data_augmentations(self, cfg, schemas):
-        augmentations = []
+    def create_data_augmentations(self, cfg, schemas, collator):
+        augmentations = {}
         aug_cfgs = cfg.get("data_augmentations", None)
         if aug_cfgs is None:
             return augmentations
-        for aug_cfg in aug_cfgs:
-            for name, params in aug_cfg.items():
-                if name == AugmentationNames.PSEUDO_LABEL_AUGMENTATION.value:
-                    augmentations.append(
-                        PseudoLabelAugmentation(cfg, **params, schemas=schemas)
-                    )
+        for aug_name, aug_params in aug_cfgs.items():
+            if aug_name == AugmentationNames.PSEUDO_LABEL_AUGMENTATION.value:
+                augmentations[aug_name] = PseudoLabelAugmentation(
+                    cfg,
+                    **aug_params,
+                    schemas=schemas,
+                    collator=collator,
+                    turn_row_csv_cls=ApiCallTurnCsvRow()
+                )
+
         return augmentations

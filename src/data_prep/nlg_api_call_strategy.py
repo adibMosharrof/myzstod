@@ -1,3 +1,6 @@
+from datamodules.data_augmentation.api_in_context_augmentation import (
+    ApiInContextAugmentation,
+)
 from datamodules.data_augmentation.pseudo_label_augmentation import (
     PseudoLabelAugmentation,
 )
@@ -43,7 +46,7 @@ class NlgApiCallStrategy(DataPrepStrategy):
         )
         # self.cfg = cfg
         self.turn_csv_row_cls = ApiCallTurnCsvRow()
-        self.data_augmentations = data_augmentations or []
+        self.data_augmentations = data_augmentations or {}
 
     def prepare_target(
         self,
@@ -90,6 +93,7 @@ class NlgApiCallStrategy(DataPrepStrategy):
             )
             if api_turn:
                 tod_turn.context.prev_tod_turn = api_turn
+
             self.add_tod_turn(
                 turn_csv_row_handler, tod_turns, tod_turn, dstc_dialog.dialogue_id, i
             )
@@ -154,14 +158,12 @@ class NlgApiCallStrategy(DataPrepStrategy):
         )
         self.add_tod_turn(turn_csv_row_handler, tod_turns, new_turn, dialog_id, turn_id)
         turn_id += 1
-        for aug in self.data_augmentations:
-            if not isinstance(aug, PseudoLabelAugmentation):
-                continue
-            aug_turns = aug.apply(new_turn, tod_turn)
-            for aug_turn in aug_turns:
-                self.add_tod_turn(
-                    turn_csv_row_handler, tod_turns, aug_turn, dialog_id, turn_id
-                )
+        pseudo_augmentation = self.data_augmentations.get("pseudo_labels", None)
+        aug_turns = pseudo_augmentation.apply(new_turn, tod_turn)
+        for aug_turn in aug_turns:
+            self.add_tod_turn(
+                turn_csv_row_handler, tod_turns, aug_turn, dialog_id, turn_id
+            )
         return turn_id, new_turn
 
     def is_multi_domain_api_call(self, turn: NlgTodTurn, csv_tod_turns, schemas):
