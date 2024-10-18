@@ -36,6 +36,7 @@ class DataPrepConfig:
         data_prep_transformations: list[str] = None,
         data_augmentations: list[str] = None,
         version_name: str = None,
+        dataset_name: str = None,
         **kwargs,
     ):
         self.accelerator = Accelerator()
@@ -72,6 +73,7 @@ class DataPrepConfig:
         self.data_prep_transformations = data_prep_transformations
         self.data_augmentations = data_augmentations
         self.version_name = version_name
+        self.dataset_name = dataset_name
 
     @classmethod
     def from_dm_config(self, dm_config: DataModuleConfig) -> "DataPrepConfig":
@@ -102,4 +104,5 @@ class DataPrepConfig:
             data_prep_transformations=dm_config.data_prep_transformations,
             data_augmentations=dm_config.data_augmentations,
             version_name=dm_config.version_name,
+            dataset_name=dm_config.dataset_name,
         )

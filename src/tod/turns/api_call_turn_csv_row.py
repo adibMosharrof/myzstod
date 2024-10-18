@@ -12,6 +12,7 @@ class ApiCallTurnCsvRow(TurnCsvRowBase):
             "is_retrieval",
             "is_slot_fill",
             "is_multi_domain_api_call",
+            "dataset_name",
         ]
         return headers
 
@@ -27,5 +28,6 @@ class ApiCallTurnCsvRow(TurnCsvRowBase):
             tod_turn.is_retrieval,
             tod_turn.is_slot_fill,
             tod_turn.is_multi_domain_api_call,
+            tod_turn.dataset_name,
         ]
         return row

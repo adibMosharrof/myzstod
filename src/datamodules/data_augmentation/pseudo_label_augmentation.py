@@ -96,6 +96,9 @@ class PseudoLabelAugmentation:
             self.update_domains_original(aug_turn, turn_pseudo_schema_maps)
             self.update_turn_schemas(aug_turn, turn_pseudo_schema_maps)
             self.update_turn_target(aug_turn, tod_turn, turn_pseudo_schema_maps)
+            aug_turn.dataset_name = (
+                self.cfg.dataset_name + self.get_schema_version_name(i)
+            )
             aug_data.append(aug_turn)
         return aug_data
 
