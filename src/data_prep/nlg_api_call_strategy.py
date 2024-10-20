@@ -159,11 +159,12 @@ class NlgApiCallStrategy(DataPrepStrategy):
         self.add_tod_turn(turn_csv_row_handler, tod_turns, new_turn, dialog_id, turn_id)
         turn_id += 1
         pseudo_augmentation = self.data_augmentations.get("pseudo_labels", None)
-        aug_turns = pseudo_augmentation.apply(new_turn, tod_turn)
-        for aug_turn in aug_turns:
-            self.add_tod_turn(
-                turn_csv_row_handler, tod_turns, aug_turn, dialog_id, turn_id
-            )
+        if pseudo_augmentation:
+            aug_turns = pseudo_augmentation.apply(new_turn, tod_turn)
+            for aug_turn in aug_turns:
+                self.add_tod_turn(
+                    turn_csv_row_handler, tod_turns, aug_turn, dialog_id, turn_id
+                )
         return turn_id, new_turn
 
     def is_multi_domain_api_call(self, turn: NlgTodTurn, csv_tod_turns, schemas):
