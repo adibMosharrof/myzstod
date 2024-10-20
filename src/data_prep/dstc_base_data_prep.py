@@ -104,14 +104,13 @@ class DstcBaseDataPrep:
         # out_data = [d for d in res if len(d)]
 
         headers = turn_csv_row_handler.get_csv_headers(self.cfg.should_add_schema)
-        if len(res) == 1:
-            if res[0].empty:
-                domains = ",".join(self.cfg.domain_setting)
-                print(f"No data for {self.cfg.step_name}: {domains}")
-                return
         # csv_data = np.concatenate(out_data, axis=0)
         # utils.write_csv(headers, csv_data, csv_file_path)
         csv_data = pd.concat(res, axis=0)
+        if csv_data.empty:
+            domains = ",".join(self.cfg.domain_setting)
+            print(f"No data for {self.cfg.step_name}: {domains}")
+            return
         csv_data.to_csv(csv_file_path, index=False, header=headers)
 
 
