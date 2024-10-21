@@ -9,22 +9,22 @@ if [[ "$setting" == "$interactive" ]]; then
     # partition='gpuA100x4-interactive'
     # partition='gpuA100x8-interactive'
     time='1:00:00'
+    num_gpus=2
     num_gpus=4
-    # num_gpus=4
 else
     partition='gpuA40x4'
     # partition='gpuA100x4'
     # partition='gpuA100x8'
-    time='1-07:00:00'
-    # time='32:00:00'
+    # time='2-00:00:00'
+    time='35:00:00'
     num_gpus=4
 fi
-memory=200g
+memory=240g
 
 project_root=/scratch/bbyl/amosharrof/ZSToD
 
 d_folder=$(date +'%Y-%m-%d')
-slurm_folder_base=slurm_out/probing
+slurm_folder_base=slurm_out/pseudo_labels
 mkdir -p $slurm_folder_base/$d_folder
 slurm_folder=$slurm_folder_base/$d_folder
 
@@ -34,7 +34,7 @@ sbatch <<EOT
 #!/bin/bash
 #SBATCH --mem=$memory
 #SBATCH --time=$time # Time limit for the job (REQUIRED).
-#SBATCH --job-name=probing # Job name
+#SBATCH --job-name=pseudo # Job name
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=8 # Number of cores for the job. Same as SBATCH -n 8
 #SBATCH -e $slurm_folder/%j.err # Error file for this job.
@@ -67,7 +67,7 @@ export WANDB__SERVICE_WAIT=300
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:~/miniconda/lib
 
 
-time accelerate launch --mixed_precision=bf16  --num_processes=$num_gpus --main_process_port=29503  src/my_trainers/probing_trainer.py --config-name probing_trainer
+time accelerate launch --mixed_precision=bf16  --num_processes=$num_gpus --main_process_port=29503  src/my_trainers/probing_trainer.py --config-name pseudo_trainer
 # time accelerate launch  --num_processes=$num_gpus --main_process_port=29503  src/my_trainers/probing_trainer.py --config-name probing_trainer
 
 
