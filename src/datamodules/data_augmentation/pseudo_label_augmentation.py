@@ -140,7 +140,7 @@ class PseudoLabelAugmentation:
             ): param_value
             for param_name, param_value in api_call.parameters.items()
         }
-        api_call.params = pseudo_params
+        api_call.parameters = pseudo_params
         aug_turn.target.response = str(api_call)
         aug_turn.context.next_system_utterance = aug_turn.target.response
 
