@@ -16,7 +16,6 @@ import wandb
 
 logger = logging.get_logger(__name__)
 
-
 class GPT2MultiLMHeadModel(GPT2LMHeadModel):
     def __init__(self, config, mh_fact, kwargs=None):
         super().__init__(config)
