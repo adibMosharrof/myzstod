@@ -153,6 +153,5 @@ def get_model_class(model_name: str, is_mh_head: bool = False):
     else:
         return AutoModelWithLMHead
 
-
 def get_model_size(model: AutoModel) -> int:
     return sum(p.numel() for p in model.parameters())
