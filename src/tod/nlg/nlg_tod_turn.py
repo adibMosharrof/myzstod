@@ -1,6 +1,7 @@
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, Union
 
+from tod.nlg.ke_tod_context import KeTodContext
 from tod.nlg.nlg_tod_context import NlgTodContext
 from tod.nlg.nlg_tod_target import NlgTodTarget
 from sgd_dstc8_data_model.dstc_dataclasses import DstcSchema
@@ -9,7 +10,7 @@ from my_enums import TurnRowType
 
 @dataclass
 class NlgTodTurn:
-    context: NlgTodContext
+    context: Union[NlgTodContext, KeTodContext]
     target: NlgTodTarget
     schemas: list[DstcSchema]
     schema_str: str

@@ -21,3 +21,4 @@ class KeTodTurn:
     is_retrieval: Optional[int] = 0
     is_slot_fill: Optional[int] = 0
     is_multi_domain_api_call: Optional[int] = 0
+    dataset_name: Optional[str] = None
