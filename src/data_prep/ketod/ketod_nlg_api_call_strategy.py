@@ -3,7 +3,6 @@ from data_prep.data_prep_strategy import DataPrepStrategy
 from data_prep.nlg_api_call_strategy import NlgApiCallStrategy
 from my_enums import ContextType, DstcSystemActions, SpecialTokens, TurnRowType
 from tod.nlg.ke_tod_context import KeTodContext
-from tod.nlg.ke_tod_turn import KeTodTurn
 from tod.nlg.nlg_tod_context import NlgTodContext
 from tod.nlg.nlg_tod_turn import NlgTodTurn
 from sgd_dstc8_data_model.dstc_dataclasses import (
@@ -21,6 +20,7 @@ from tod.turns.turn_csv_row_base import TurnCsvRowBase
 from typing import Any, Optional, Tuple, Union
 import data_prep.data_prep_utils as data_prep_utils
 from tod.zs_tod_target import ZsTodTarget
+from utilities.context_manager import ContextManager
 from utilities.dialog_studio_dataclasses import DsDialog, Log
 import utils
 from utilities.text_utilities import get_nlg_service_name
@@ -30,7 +30,7 @@ class KetodNlgApiCallStrategy(NlgApiCallStrategy):
     def __init__(self, cfg: DataPrepConfig):
         super().__init__(cfg)
         self.tod_context_cls = KeTodContext
-        self.tod_turn_cls = KeTodTurn
+        self.tod_turn_cls = NlgTodTurn
 
     def prepare_dialog(
         self,
@@ -98,13 +98,13 @@ class KetodNlgApiCallStrategy(NlgApiCallStrategy):
         self,
         turn_csv_row_handler: TurnCsvRowBase,
         ds_turn: Log,
-        tod_turn: KeTodTurn,
-        prev_tod_turn: KeTodTurn,
-        tod_turns: list[KeTodTurn],
+        tod_turn: NlgTodTurn,
+        prev_tod_turn: NlgTodTurn,
+        tod_turns: list[NlgTodTurn],
         turn_id: int,
         schemas: dict[str, DstcSchema],
         ds_dialog: DsDialog,
-    ) -> Tuple[int, Optional[KeTodTurn]]:
+    ) -> Tuple[int, Optional[NlgTodTurn]]:
         if not ds_turn.original_system_side_information.entity_query:
             return turn_id, None
 
@@ -148,13 +148,13 @@ class KetodNlgApiCallStrategy(NlgApiCallStrategy):
         self,
         turn_csv_row_handler: TurnCsvRowBase,
         ds_turn: Log,
-        tod_turn: KeTodTurn,
-        prev_tod_turn: KeTodTurn,
-        tod_turns: list[KeTodTurn],
+        tod_turn: NlgTodTurn,
+        prev_tod_turn: NlgTodTurn,
+        tod_turns: list[NlgTodTurn],
         turn_id: int,
         schemas: dict[str, DstcSchema],
         ds_dialog: DsDialog,
-    ) -> Tuple[int, Optional[KeTodTurn]]:
+    ) -> Tuple[int, Optional[NlgTodTurn]]:
         if not ds_turn.original_system_side_information.frames[0].service_call:
             return turn_id, None
         api_call_response = tod_turn.context.get_api_call()
@@ -201,12 +201,12 @@ class KetodNlgApiCallStrategy(NlgApiCallStrategy):
     def prepare_turn(
         self,
         turn: Log,
-        prev_tod_turn: KeTodTurn,
+        prev_tod_turn: NlgTodTurn,
         schemas,
         services,
         turn_id: int,
         dialog_id: int,
-    ) -> KeTodTurn:
+    ) -> NlgTodTurn:
         turn_schemas = [schemas[s] for s in services]
         turn_schema_str = self.get_turn_schema_str(turn_schemas)
         context = self.prepare_context(turn, prev_tod_turn)
@@ -223,7 +223,7 @@ class KetodNlgApiCallStrategy(NlgApiCallStrategy):
             domains_original=services,
         )
 
-    def prepare_context(self, turn: Log, prev_tod_turn: KeTodTurn) -> KeTodContext:
+    def prepare_context(self, turn: Log, prev_tod_turn: NlgTodTurn) -> KeTodContext:
         if not prev_tod_turn:
             context = self.tod_context_cls(max_length=self.cfg.num_turns)
             context.should_add_sys_actions = self.cfg.should_add_sys_actions
@@ -253,11 +253,6 @@ class KetodNlgApiCallStrategy(NlgApiCallStrategy):
             return None
         response = self._prepare_response(turn.system_response)
         return NlgTodTarget(response=response)
-
-    def _prepare_response(self, utterance: str) -> str:
-        if self.cfg.context_type == ContextType.KETOD_GPT_API_CALL.value:
-            utterance += SpecialTokens.eos_token.value
-        return utterance
 
     def has_request_action(self, log: Log) -> bool:
         """

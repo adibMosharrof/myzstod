@@ -44,15 +44,10 @@ class DataPrepStrategy(ABC):
     def get_turn_schema_str(self, turn_schemas) -> str:
         return "\n".join([s.get_nlg_repr() for s in turn_schemas])
 
-    def _prepare_response(self, system_turn: DstcTurn) -> str:
-        if not system_turn:
-            return None
-
-        utt = system_turn.utterance
+    def _prepare_response(self, utterance: str) -> str:
         if ContextManager.is_decoder_type(self.cfg.context_type):
-            utt += SpecialTokens.eos_token.value
-        return utt
-        # return system_turn.utterance
+            utterance += SpecialTokens.eos_token.value
+        return utterance
 
     def prepare_dialog(
         self,

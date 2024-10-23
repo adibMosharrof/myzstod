@@ -54,7 +54,9 @@ class NlgApiCallStrategy(DataPrepStrategy):
         system_turn: DstcTurn,
         schemas: dict[str, DstcSchema],
     ) -> NlgTodTarget:
-        response = self._prepare_response(system_turn)
+        if not system_turn:
+            return None
+        response = self._prepare_response(system_turn.utterance)
         return NlgTodTarget(response=response)
 
     def prepare_dialog(

@@ -19,10 +19,14 @@ class TurnCsvRowFactory:
             return MultiTaskCsvRow()
         if cfg.is_scale_grad:
             return ScaleGradTurnCsvRow(csv_row_cls)
-        if ContextManager.is_nlg_strategy(cfg.context_type):
+        if any(
+            [
+                ContextManager.is_nlg_strategy(cfg.context_type),
+                ContextManager.is_ketod(cfg.context_type),
+                ContextManager.is_bitod(cfg.context_type),
+            ]
+        ):
             return ApiCallTurnCsvRow()
-        if ContextManager.is_ketod(cfg.context_type):
-            return KetodApiCallTurnCsvRow()
-        if ContextManager.is_bitod(cfg.context_type):
-            return BitodCsvRow()
+        # if ContextManager.is_bitod(cfg.context_type):
+        #     return BitodCsvRow()
         return csv_row_cls
