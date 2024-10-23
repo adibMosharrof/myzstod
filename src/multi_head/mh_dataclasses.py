@@ -19,7 +19,6 @@ class MultiHeadInstance:
     ##order of this is important, as they will be concatenated in this order during training
     head_dependencies: Optional[list[str]] = field(default_factory=list)
 
-
 @dataclass
 class MultiHeadDictFactory:
     def __init__(self, tokenizer: AutoTokenizer):
