@@ -2,7 +2,9 @@ from dataclasses import asdict
 from datamodules.data_augmentation.data_augmentation_factory import (
     DataAugmentationFactory,
 )
-from datamodules.data_filters.data_filter_registry import DATA_FILTER_MAP
+from datamodules.data_filters.data_filter_factory import (
+    DataFilterFactory,
+)
 from datamodules.tod_dataset import TodDataSet
 import logging
 import os
@@ -41,7 +43,6 @@ import utils
 from sgd_dstc8_data_model.dstc_dataclasses import get_schemas
 from logger.results_logger import ResultsLogger
 from metric_managers.metric_manager_factory import MetricManagerFactory
-from datamodules.data_filters.data_filter_registry import DATA_FILTER_MAP
 from model_loaders.model_loader_factory import ModelLoaderFactory
 from configs.base_trainer_config import BaseTrainerConfig
 from tod.turns.zs_tod_turn import TodTurnCsvRowFactory
@@ -242,7 +243,12 @@ class BaseTrainer:
     def init_dm_class(self, dm_cfg, tokenizer, collator):
         data_augmentations = []
         data_filters = (
-            [DATA_FILTER_MAP[filter_name] for filter_name in dm_cfg.data_filters]
+            [
+                DataFilterFactory.get_data_filter(
+                    filter_name, cfg=dm_cfg, collator=collator
+                )
+                for filter_name in dm_cfg.data_filters
+            ]
             if "data_filters" in dm_cfg
             else []
         )
@@ -250,7 +256,7 @@ class BaseTrainer:
         schema_loader = SchemaLoader(DstcSchema)
         schemas = schema_loader.get_schemas(dm_cfg.raw_data_root)
         data_augmentations = DataAugmentationFactory.create_data_augmentations(
-            dm_cfg, schemas, collator
+            dm_cfg, schemas
         )
         dm_cfg.data_augmentations = data_augmentations
         tod_turn_row_cls = TodTurnCsvRowFactory.get_handler(self.cfg)

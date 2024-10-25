@@ -1,5 +1,5 @@
-from datamodules.data_augmentation.api_in_context_augmentation import (
-    ApiInContextAugmentation,
+from datamodules.data_filters.api_in_context_filter import (
+    ApiInContextFilter,
 )
 from datamodules.data_augmentation.pseudo_label_augmentation import (
     PseudoLabelAugmentation,
@@ -17,7 +17,7 @@ class AugmentationNames(str, Enum):
 class DataAugmentationFactory:
 
     @classmethod
-    def create_data_augmentations(self, cfg, schemas, collator):
+    def create_data_augmentations(self, cfg, schemas):
         augmentations = {}
         aug_cfgs = cfg.get("data_augmentations", None)
         if aug_cfgs is None:
@@ -28,7 +28,6 @@ class DataAugmentationFactory:
                     cfg,
                     **aug_params,
                     schemas=schemas,
-                    collator=collator,
                     turn_row_csv_cls=ApiCallTurnCsvRow()
                 )
 
