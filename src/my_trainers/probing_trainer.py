@@ -40,35 +40,35 @@ class ProbingTrainer(BaseTrainer):
     def __init__(self, cfg: dict):
         super().__init__(cfg, dm_class=TodDataModuleV2)
 
-    def get_dm_dataset(self, dm):
-        grouped_datasets = []
-        for test_dataset in dm.datasets["test"]:
-            self.separate_augmented_data(test_dataset, grouped_datasets)
-        return {
-            "train": dm.datasets["train"],
-            "dev": dm.datasets["dev"],
-            "test": grouped_datasets,
-        }
+    # def get_dm_dataset(self, dm):
+    #     grouped_datasets = []
+    #     for test_dataset in dm.datasets["test"]:
+    #         self.separate_augmented_data(test_dataset, grouped_datasets)
+    #     return {
+    #         "train": dm.datasets["train"],
+    #         "dev": dm.datasets["dev"],
+    #         "test": grouped_datasets,
+    #     }
 
-    def separate_augmented_data(self, orig_test_dataset, grouped_test):
-        df = pd.DataFrame([item.__dict__ for item in orig_test_dataset])
-        grouped_df = df.groupby("dataset_name")
-        for group_name, group in grouped_df:
-            csv_rows = [
-                TodTurnApiCallCsvRow(**row) for row in group.to_dict(orient="records")
-            ]
-            test_dataset = TodDataSet(
-                data=csv_rows,
-                dataset_name=group_name,
-                domain_setting=orig_test_dataset.domain_setting,
-                step_name=orig_test_dataset.step_name,
-                raw_data_root=orig_test_dataset.raw_data_root,
-            )
-            grouped_test.append(test_dataset)
+    # def separate_augmented_data(self, orig_test_dataset, grouped_test):
+    #     df = pd.DataFrame([item.__dict__ for item in orig_test_dataset])
+    #     grouped_df = df.groupby("dataset_name")
+    #     for group_name, group in grouped_df:
+    #         csv_rows = [
+    #             TodTurnApiCallCsvRow(**row) for row in group.to_dict(orient="records")
+    #         ]
+    #         test_dataset = TodDataSet(
+    #             data=csv_rows,
+    #             dataset_name=group_name,
+    #             domain_setting=orig_test_dataset.domain_setting,
+    #             step_name=orig_test_dataset.step_name,
+    #             raw_data_root=orig_test_dataset.raw_data_root,
+    #         )
+    #         grouped_test.append(test_dataset)
 
 
-# @hydra.main(config_path="../../config/probing/", config_name="probing_trainer")
-@hydra.main(config_path="../../config/probing/", config_name="pseudo_trainer")
+@hydra.main(config_path="../../config/probing/", config_name="probing_trainer")
+# @hydra.main(config_path="../../config/probing/", config_name="pseudo_trainer")
 def hydra_start(cfg: DictConfig) -> None:
     # base_trainer_cfg = BaseTrainerConfig(**cfg)
     # ptrainer = ProbingTrainer(base_trainer_cfg)
