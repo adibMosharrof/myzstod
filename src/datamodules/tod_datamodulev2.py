@@ -78,12 +78,7 @@ class TodDataModuleV2:
         except FileNotFoundError:
             data = []
 
-        filtered_data = []
-        for filter in self.data_filters:
-            rows = filter.apply(data)
-            if len(rows):
-                filtered_data.extend(rows)
-        final_data = self.remove_duplicates(filtered_data)
+        final_data = self.apply_filters(data)
         split_filter = SplitPercentFilter(percent=step_data.split_percent)
         split_data = split_filter.apply(final_data)
         return TodDataSet(
@@ -93,6 +88,17 @@ class TodDataModuleV2:
             domain_setting=domain_setting,
             raw_data_root=cfg.raw_data_root,
         )
+
+    def apply_filters(self, data):
+        if not self.data_filters:
+            return data
+        filtered_data = []
+        for filter in self.data_filters:
+            rows = filter.apply(data)
+            if len(rows):
+                filtered_data.extend(rows)
+        final_data = self.remove_duplicates(filtered_data)
+        return final_data
 
     def remove_duplicates(self, data: list[TodTurnCsvRow]) -> list[TodTurnCsvRow]:
         seen = set()
