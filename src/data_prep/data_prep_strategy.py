@@ -45,7 +45,7 @@ class DataPrepStrategy(ABC):
         return "\n".join([s.get_nlg_repr() for s in turn_schemas])
 
     def _prepare_response(self, utterance: str) -> str:
-        if ContextManager.is_decoder_type(self.cfg.context_type):
+        if not utils.is_t5_model(self.cfg.model_type.model_name):
             utterance += SpecialTokens.eos_token.value
         return utterance
 
