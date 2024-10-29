@@ -40,4 +40,6 @@ class ContextManager:
             ContextType.GPT_API_CALL.value,
             ContextType.GPT_CROSS.value,
             ContextType.GPT_PSEUDO_LABELS.value,
+            ContextType.BITOD_GPT.value,
+            ContextType.KETOD_GPT_API_CALL.value,
         ]
