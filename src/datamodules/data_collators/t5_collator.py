@@ -28,7 +28,7 @@ class T5Collator(BaseCollator):
             [
                 target_tokens,
                 torch.full([target_unused_len], self.tokenizer.pad_token_id),
-                torch.full([1], self.tokenizer.eos_token_id),
+                # torch.full([1], self.tokenizer.eos_token_id),
             ]
         )
         return TodTrainRowCollator(input_tokens, label, attention_mask)
