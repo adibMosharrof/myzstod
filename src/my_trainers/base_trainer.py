@@ -189,6 +189,12 @@ class BaseTrainer:
     ):
         model = model_loader.load()
         deepspeed_path = str(self.cfg.project_root / "config/ds_zero_tod.json")
+        bf16 = False
+        fp16 = False
+        if torch.cuda.is_bf16_supported():
+            bf16 = True
+        else:
+            fp16 = True
         training_args = Seq2SeqTrainingArguments(
             output_dir=self.cfg.out_dir,
             num_train_epochs=self.cfg.epochs,
@@ -204,7 +210,7 @@ class BaseTrainer:
             warmup_steps=100,
             weight_decay=0.01,
             dataloader_drop_last=True,
-            dataloader_num_workers=1,
+            dataloader_num_workers=4,
             gradient_accumulation_steps=self.cfg.model_type.gradient_accumulation_steps,
             eval_accumulation_steps=self.cfg.model_type.eval_accumulation_steps,
             learning_rate=self.cfg.model_type.learning_rate,
@@ -215,6 +221,10 @@ class BaseTrainer:
             save_safetensors=False,
             report_to="wandb",
             # gradient_checkpointing_kwargs={"use_reentrant": False},
+                            bf16_full_eval=bf16,
+                bf16=bf16,
+                fp16=fp16,
+                fp16_full_eval=fp16,
         )
         trainer = Seq2SeqTrainer(
             model=model,
