@@ -55,3 +55,14 @@ class QuantizedLoraModelLoader(LoraModelLoader):
             )
             return model
         return model
+
+    def load_for_inference(self, model_path: Union[Path, str] = None) -> PeftModel:
+        device_map = {"": self.accelerator.device}
+        config = BitsAndBytesConfig(load_in_8bit=False)
+        model = self.model_class.from_pretrained(
+            self.model_name, quantization_config=config, device_map=device_map
+        )
+        self._resize_token_embeddings(model)
+        model = PeftModel.from_pretrained(model, model_path, device_map=device_map)
+        model.eval()
+        return model
