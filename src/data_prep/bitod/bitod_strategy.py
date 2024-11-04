@@ -51,6 +51,7 @@ class BitodStrategy(NlgApiCallStrategy):
                 [
                     f"Schema for {schema.service_name}",
                     f"Slots: {','.join(slot['name'] for slot in schema.slots)}",
+                    f"Intents: {','.join(intent['name'] for intent in schema.intents)}",
                 ]
             )
             out.append(schema_str)
