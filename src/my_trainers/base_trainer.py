@@ -75,6 +75,10 @@ class BaseTrainer:
             eos_token="<|endoftext|>",
             pad_token="<|pad|>",
         )
+        tokenizer.add_special_tokens(
+            {"additional_special_tokens": ["<SYSTEM>", "<USER>", "{", "}"]}
+            # {"additional_special_tokens": ["<SYSTEM>", "<USER>"]}
+        )
 
         model_loader = ModelLoaderFactory.get_loader(self.cfg, tokenizer)
         prompt_cls = NlgPromptFactory.get_handler(
