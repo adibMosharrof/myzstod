@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 from itertools import zip_longest
 from typing import Optional
 
-from my_enums import DstcSystemActions, SpecialTokens
+from my_enums import DstcSystemActions, SpecialTokens, ZsTodConstants
 import utils
 
 
@@ -18,9 +18,14 @@ class ZsTodContext:
     service_results: Optional[list[dict[str, str]]] = None
     api_call: Optional[dict[str, str]] = None
 
-    def __init__(self, max_length: int = 10):
+    def __init__(
+        self,
+        context_formatter: any = None,
+        max_length: int = 10,
+    ):
         self.user_utterances = deque(maxlen=max_length)
         self.system_utterances = deque(maxlen=max_length)
+        self.context_formatter = context_formatter
 
     def __repr__(self) -> str:
         return self.__str__()
@@ -68,15 +73,15 @@ class ZsTodContext:
         )
         return out
 
-    def get_service_call(self) -> str:
+    def get_api_call(self, schemas, turn_domains) -> str:
         out = ""
         if not self.api_call:
             return out
-        self.api_call.__class__.__qualname__ = "ServiceCall"
+        self.api_call.__class__.__qualname__ = ZsTodConstants.API_CALL.value
         out += str(self.api_call)
         return out
 
-    def _get_service_results(self, should_add_special_tokens: bool = True) -> str:
+    def get_service_results(self, should_add_special_tokens: bool = True) -> str:
         out = ""
         if not self.service_results:
             return out
@@ -92,12 +97,6 @@ class ZsTodContext:
                     ]
                 )
             else:
-                # out += "\n".join(
-                #     [
-                #         ":".join([utils.remove_underscore(k), v])
-                #         for k, v in service_result.items()
-                #     ]
-                # )
                 s_res = {"search_results": service_result}
                 out += str(s_res)
 
@@ -122,6 +121,7 @@ class ZsTodContext:
         )
 
     def __str__(self) -> str:
+        return self.context_formatter.to_str(self)
         out = SpecialTokens.begin_context
         for user, system in zip_longest(
             self.user_utterances, self.system_utterances, fillvalue=""
@@ -131,7 +131,7 @@ class ZsTodContext:
             if system:
                 out += SpecialTokens.system + system
 
-        out += self._get_service_results()
+        out += self.get_service_results()
 
         out += self._get_sys_actions()
         out += self._get_last_user_utterance()

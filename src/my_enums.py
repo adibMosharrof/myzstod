@@ -166,6 +166,14 @@ class DstcSystemActions(str, Enum):
         return [c.value for c in cls]
 
 
+class ZsTodSystemActions(str, Enum):
+    API_CALL = "API_CALL"
+
+    @classmethod
+    def list(cls):
+        return DstcSystemActions.list() + [c.value for c in cls]
+
+
 class ContrastiveConstants(str, Enum):
     NLG = "nlg"
     USER_ACT = "user_act"
@@ -176,6 +184,8 @@ class ContextType(str, Enum):
     SHORT_REPR = "short_repr"
     DEFAULT = "default"
     NLG = "nlg"
+    SIMPLE_TOD_API_CALL = "simple_tod_api_call"
+    ZSTOD_API_CALL = "zstod_api_call"
     NLG_API_CALL = "nlg_api_call"
     KETOD_API_CALL = "ketod_api_call"
     KETOD_GPT_API_CALL = "ketod_gpt_api_call"

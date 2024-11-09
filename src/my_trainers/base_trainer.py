@@ -28,16 +28,17 @@ from transformers.trainer_utils import IntervalStrategy
 from transformers.training_args_seq2seq import Seq2SeqTrainingArguments
 from torch.utils.data import DataLoader
 
-from model_loaders.base_model_loader import BaseModelLoader
-from schema.schema_loader import SchemaLoader
-
 
 sys.path.insert(0, os.path.abspath("./src"))
 sys.path.insert(0, os.path.abspath("./"))
+from model_loaders.base_model_loader import BaseModelLoader
+from schema.schema_loader import SchemaLoader
+from utilities.context_manager import ContextManager
+from utilities.tokenizer_utilities import TokenizerUtilities
 from datamodules.data_collators.base_collator import BaseCollator
 from datamodules.data_collators.collator_factory import CollatorFactory
 from generation.generation_handler_factory import GenerationHandlerFactory
-from my_enums import Steps
+from my_enums import SpecialTokens, Steps
 from playground.t5_datamodule import T5DataModule
 import utils
 from sgd_dstc8_data_model.dstc_dataclasses import get_schemas
@@ -69,15 +70,9 @@ class BaseTrainer:
     def run(self):
         accelerator = Accelerator()
         torch.manual_seed(420)
-        tokenizer = AutoTokenizer.from_pretrained(
-            self.cfg.tokenizer_name or self.cfg.model_type.model_name,
-            bos_token="<|startoftext|>",
-            eos_token="<|endoftext|>",
-            pad_token="<|pad|>",
-        )
-        tokenizer.add_special_tokens(
-            {"additional_special_tokens": ["<SYSTEM>", "<USER>", "{", "}"]}
-            # {"additional_special_tokens": ["<SYSTEM>", "<USER>"]}
+        tokenizer = TokenizerUtilities.get_tokenizer(
+            model_name=self.cfg.model_type.model_name,
+            context_type=self.cfg.model_type.context_type,
         )
 
         model_loader = ModelLoaderFactory.get_loader(self.cfg, tokenizer)
@@ -225,10 +220,10 @@ class BaseTrainer:
             save_safetensors=False,
             report_to="wandb",
             # gradient_checkpointing_kwargs={"use_reentrant": False},
-                            bf16_full_eval=bf16,
-                bf16=bf16,
-                fp16=fp16,
-                fp16_full_eval=fp16,
+            bf16_full_eval=bf16,
+            bf16=bf16,
+            fp16=fp16,
+            fp16_full_eval=fp16,
         )
         trainer = Seq2SeqTrainer(
             model=model,

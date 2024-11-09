@@ -23,9 +23,10 @@ class ApiCallTurnCsvRow(TurnCsvRowBase):
         should_add_schema: bool = True,
     ) -> list[str]:
         row = super().to_csv_row(context_type, tod_turn, should_add_schema)
+
         row += [
             int(tod_turn.turn_row_type),
-            tod_turn.is_retrieval,
+            int(tod_turn.is_retrieval),
             tod_turn.is_slot_fill,
             tod_turn.is_multi_domain_api_call,
             tod_turn.dataset_name,

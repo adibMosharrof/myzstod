@@ -91,7 +91,7 @@ class NlgPrompt:
                 "The response can be an api call or a response to the user.",
                 # "If there are search results, you should use information from the search results to generate the response.",
                 # "If you think you need more information to answer the user request, you can request information from the user.",
-                # "Based on the Last User Utterance, you must find the relevant Intent from the Schema and your request can only use the required slots and optional slots from that Intent.",
+                "Based on the Last User Utterance, you must find the relevant Intent from the Schema and your request should use the required slots and optional slots from that Intent.",
                 # f"You will be provided with a Schema for domain: {domain}, which contains the relevant Intents for the domain. Each Intent has a list of required and optional slots.",
                 f"You will be provided with a Schema for domain: {domain}.",
                 schema,
@@ -242,6 +242,29 @@ class ChatGptPrompt:
         return prompt_text
 
 
+class ZsTodSimpleTodPrompt:
+    def get_prompt(
+        self,
+        domain: str,
+        schema: str,
+        dialog_history: str,
+        other_domain: str = None,
+        other_domain_schema: str = None,
+        all_schema: dict[str, DstcSchema] = None,
+        domains_original: str = None,
+    ) -> str:
+        prompt_text = "\n".join(
+            [
+                schema,
+                "Instructions: Given the dialog history and the schemas, please generate the system response.\n\n",
+                "Begin Context",
+                "Dialog History",
+                dialog_history,
+            ]
+        )
+        return prompt_text
+
+
 class NlgPromptFactory:
     @classmethod
     def get_handler(
@@ -254,6 +277,13 @@ class NlgPromptFactory:
             return KetodPrompt()
         if ContextManager.is_sgd_pseudo_labels(context_type):
             return PseudoLabelsPrompt()
+        if any(
+            [
+                ContextManager.is_zstod(context_type),
+                ContextManager.is_simple_tod(context_type),
+            ]
+        ):
+            return ZsTodSimpleTodPrompt()
         if prompt_type == NlgPromptType.MULTI_DOMAIN.value:
             return NlgMultidomainPrompt()
         if prompt_type == NlgPromptType.DEFAULT.value:
