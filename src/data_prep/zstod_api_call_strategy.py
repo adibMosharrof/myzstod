@@ -89,14 +89,17 @@ class ZsTodApiCallStrategy(BaseApiCallStrategy):
             turn_id,
             copy_sys_turn,
         )
-        try:
-            domain_name = tod_turn.target.actions[0].domain
-        except:
-            domain_name = ""
-        api_call_turn.target.actions = [
-            ZsTodAction(
-                domain=domain_name,
-                action_type=ZsTodSystemActions.API_CALL.value,
-            )
-        ]
+        # try:
+        #     domain_name = tod_turn.target.actions[0].domain
+        # except:
+        #     domain_name = ""
+        # api_call_turn.target.actions = [
+        #     ZsTodAction(
+        #         domain=domain_name,
+        #         action_type=ZsTodSystemActions.API_CALL.value,
+        #     )
+        # ]
+        api_call_turn.target.actions = None
+        api_call_turn.target.dsts = None
+        api_call_turn.target.user_actions = None
         return api_call_turn
