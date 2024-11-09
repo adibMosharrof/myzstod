@@ -28,6 +28,8 @@ class ContextManager:
             ContextType.GPT_API_CALL.value,
             ContextType.GPT_CROSS.value,
             ContextType.GPT_PSEUDO_LABELS.value,
+            ContextType.ZSTOD_API_CALL.value,
+            ContextType.SIMPLE_TOD_API_CALL.value,
         ]
 
     @staticmethod
@@ -42,4 +44,25 @@ class ContextManager:
             ContextType.GPT_PSEUDO_LABELS.value,
             ContextType.BITOD_GPT.value,
             ContextType.KETOD_GPT_API_CALL.value,
+        ]
+
+    @staticmethod
+    def is_zstod(context_type: str) -> bool:
+        return context_type in [
+            ContextType.SHORT_REPR.value,
+            ContextType.ZSTOD_API_CALL.value,
+        ]
+
+    @staticmethod
+    def is_simple_tod(context_type: str) -> bool:
+        return context_type in [
+            ContextType.DEFAULT.value,
+            ContextType.SIMPLE_TOD_API_CALL.value,
+        ]
+
+    @staticmethod
+    def is_zstod_simpletod_api_call(context_type: str) -> bool:
+        return context_type in [
+            ContextType.ZSTOD_API_CALL.value,
+            ContextType.SIMPLE_TOD_API_CALL.value,
         ]

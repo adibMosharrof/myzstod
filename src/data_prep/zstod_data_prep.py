@@ -69,7 +69,7 @@ class ZsTodDataPrep(DataPrepStrategy):
         dsts = self._prepare_dst(user_turn)
         actions = self._get_actions(system_turn)
         user_actions = self._get_actions(user_turn)
-        response = self._prepare_response(system_turn)
+        response = self._prepare_response(system_turn.utterance)
         return ZsTodTarget(
             dsts=dsts, actions=actions, user_actions=user_actions, response=response
         )

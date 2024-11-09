@@ -1,5 +1,4 @@
 import pandas as pd
-from schema.schema_loader import SchemaLoader
 import sys
 
 
@@ -8,6 +7,7 @@ sys.path.append("./src/data_prep")
 import itertools
 from typing import Dict
 
+from schema.schema_loader import SchemaLoader
 import hydra
 from omegaconf import DictConfig
 from configs.dataprep_config import DataPrepConfig
@@ -23,6 +23,7 @@ import utils
 import numpy as np
 from sgd_dstc8_data_model.dstc_dataclasses import get_schemas, DstcSchema, DstcDialog
 from data_prep.data_prep_strategy import DataPrepStrategy
+from schema.schema_factory import SchemaFactory
 
 
 class DstcBaseDataPrep:
@@ -118,7 +119,10 @@ class DstcBaseDataPrep:
 def hydra_start(cfg: DictConfig) -> None:
     dpconf = DataPrepConfig(**cfg)
     dp_strategy = DataPrepStrategyFactory.get_strategy(dpconf, dpconf.context_type)
-    stdp = DstcBaseDataPrep(dpconf, dp_strategy)
+    schema_loader = SchemaFactory.create_schema_loader(dpconf.context_type)
+    stdp = DstcBaseDataPrep(
+        dpconf, data_prep_strategy=dp_strategy, schema_loader=schema_loader
+    )
     stdp.run()
 
 

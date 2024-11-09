@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 from my_enums import ZsTodConstants
+from tod.context_formatter.context_formatter_base import ContextFormatterBase
 
 
 @dataclass
@@ -18,9 +19,12 @@ class NlgTodContext:
     service_results: Optional[list[dict[str, str]]] = None
     api_call: Optional[dict[str, str]] = None
 
-    def __init__(self, max_length: int = 10):
+    def __init__(
+        self, max_length: int = 10, context_formatter: ContextFormatterBase = None
+    ):
         self.user_utterances = deque(maxlen=max_length)
         self.system_utterances = deque(maxlen=max_length)
+        self.context_formatter = context_formatter
 
     def _get_last_user_utterance(self) -> str:
         if self.current_user_utterance:
@@ -47,6 +51,7 @@ class NlgTodContext:
         return "\n".join([out])
 
     def __str__(self):
+        return self.context_formatter.to_str(self)
         history = []
         for user, system in zip_longest(
             self.user_utterances, self.system_utterances, fillvalue=""
