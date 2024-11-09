@@ -11,8 +11,8 @@ from tod.nlg.ke_tod_context import KeTodContext
 
 @dataclass
 class BiTodContext(KeTodContext):
-    def __init__(self, max_length: int = 10):
-        super().__init__(max_length)
+    def __init__(self, max_length: int = 10, context_formatter: any = None):
+        super().__init__(max_length, context_formatter=context_formatter)
 
     def get_api_call(self) -> str:
         out = ""

@@ -64,19 +64,24 @@ class ZsTodTarget:
                 SpecialTokens.end_dsts,
                 # ZsTodConstants.NEW_LINES,
                 SpecialTokens.begin_user_action,
-                ZsTodConstants.ITEM_SEPARATOR.join(map(str, self.user_actions))
-                if self.user_actions
-                else "",
+                (
+                    ZsTodConstants.ITEM_SEPARATOR.join(map(str, self.user_actions))
+                    if self.user_actions
+                    else ""
+                ),
                 SpecialTokens.end_user_action,
                 SpecialTokens.begin_action,
-                ZsTodConstants.ITEM_SEPARATOR.join(map(str, self.actions))
-                if self.actions
-                else "",
+                (
+                    ZsTodConstants.ITEM_SEPARATOR.join(map(str, self.actions))
+                    if self.actions
+                    else ""
+                ),
                 SpecialTokens.end_action,
                 SpecialTokens.begin_response,
                 self.response,
                 SpecialTokens.end_response,
                 SpecialTokens.end_target,
+                SpecialTokens.eos_token,
                 # ZsTodConstants.NEW_LINES,
             ]
         )

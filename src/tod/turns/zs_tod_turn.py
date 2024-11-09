@@ -47,6 +47,7 @@ class TodTurnScaleGradCsvRow(TodTurnMultiTaskCsvRow):
 
 @dataclass
 class TodTurnApiCallCsvRow(TodTurnCsvRow):
+
     turn_row_type: Optional[int] = None
     is_retrieval: Optional[int] = None
     is_slot_fill: Optional[int] = None
@@ -75,6 +76,15 @@ class ZsTodTurn:
     domains_original: Optional[list[str]] = None
 
 
+@dataclass
+class ZsTodApiTurn(ZsTodTurn):
+    turn_row_type: Optional[int] = None
+    is_retrieval: Optional[int] = None
+    is_slot_fill: Optional[int] = None
+    is_multi_domain_api_call: Optional[int] = None
+    dataset_name: Optional[str] = None
+
+
 class TodTurnCsvRowFactory:
     @classmethod
     def get_handler(self, cfg):
@@ -88,5 +98,12 @@ class TodTurnCsvRowFactory:
             ]
         ):
             return TodTurnApiCallCsvRow
+        if any(
+            [
+                ContextManager.is_zstod(cfg.model_type.context_type),
+                ContextManager.is_simple_tod(cfg.model_type.context_type),
+            ]
+        ):
+            return TodTurnCsvRow
         raise ValueError("incorrect context type")
         return TodTurnCsvRow

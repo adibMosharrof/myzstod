@@ -7,6 +7,7 @@ from sgd_dstc8_data_model.dstc_dataclasses import (
     DstcTurn,
     get_schemas,
 )
+from tod.context_formatter.context_formatter_factory import ContextFormatterFactory
 from tod.nlg.nlg_tod_context import NlgTodContext
 from tod.nlg.nlg_tod_target import NlgTodTarget
 from tod.nlg.nlg_tod_turn import NlgTodTurn
@@ -18,7 +19,7 @@ from tod.zs_tod_context import ZsTodContext
 from tod.zs_tod_target import ZsTodTarget
 import utils
 from utilities.text_utilities import get_nlg_service_name
-from my_enums import ContextType, SpecialTokens
+from my_enums import ContextType, DstcSystemActions, SpecialTokens
 from utilities.context_manager import ContextManager
 
 
@@ -27,10 +28,20 @@ class DataPrepStrategy(ABC):
     Abstract base class for data preparation strategies.
     """
 
-    def __init__(self, cfg, tod_turn_cls=ZsTodTurn, tod_context_cls=ZsTodContext):
+    def __init__(
+        self,
+        cfg,
+        tod_turn_cls=ZsTodTurn,
+        tod_context_cls=ZsTodContext,
+        data_augmentations=None,
+    ):
         self.cfg = cfg
         self.tod_turn_cls = tod_turn_cls
         self.tod_context_cls = tod_context_cls
+        self.data_augmentations = data_augmentations or {}
+        self.context_formatter = ContextFormatterFactory.create_context_formatter(
+            cfg.context_type
+        )
 
     @abstractmethod
     def prepare_target(
@@ -47,7 +58,7 @@ class DataPrepStrategy(ABC):
     def _prepare_response(self, utterance: str) -> str:
         # if ContextManager.is_decoder_type(self.cfg.context_type):
         #     utterance += SpecialTokens.eos_token.value
-        utterance += SpecialTokens.eos_token.value
+        # utterance += SpecialTokens.eos_token.value
         return utterance
 
     def prepare_dialog(
@@ -73,7 +84,7 @@ class DataPrepStrategy(ABC):
             tod_turn.turn_id = i + 1
             tod_turns.append(
                 turn_csv_row_handler.to_csv_row(
-                    self.cfg.model_type.context_type,
+                    self.cfg.context_type,
                     tod_turn,
                     self.cfg.should_add_schema,
                 )
@@ -120,7 +131,9 @@ class DataPrepStrategy(ABC):
         The system utterance for this turn is the next system utterance of the previous context.
         """
         if not prev_tod_turn:
-            context = self.tod_context_cls(max_length=self.cfg.num_turns)
+            context = self.tod_context_cls(
+                max_length=self.cfg.num_turns, context_formatter=self.context_formatter
+            )
             context.should_add_sys_actions = self.cfg.should_add_sys_actions
         else:
             context = copy.deepcopy(prev_tod_turn.context)
@@ -161,3 +174,23 @@ class DataPrepStrategy(ABC):
                 self.cfg.context_type, tod_turn, self.cfg.should_add_schema
             )
         )
+
+    def has_request_action(self, user_turn: DstcTurn) -> bool:
+        """
+        Check if the user turn has a REQUEST action.
+        """
+        for frame in user_turn.frames:
+            for action in frame.actions:
+                if action.act == DstcSystemActions.REQUEST.value:
+                    return True
+        return False
+
+    def system_has_request_action(self, system_turn: DstcTurn) -> bool:
+        """
+        Check if the system turn has a REQUEST action.
+        """
+        for frame in system_turn.frames:
+            for action in frame.actions:
+                if action.act == DstcSystemActions.REQUEST.value:
+                    return True
+        return False

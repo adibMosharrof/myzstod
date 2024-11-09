@@ -14,6 +14,7 @@ class MetricManagerFactory:
             [
                 ContextManager.is_sgd_nlg_api(context_type),
                 ContextManager.is_sgd_pseudo_labels(context_type),
+                ContextManager.is_zstod_simpletod_api_call(context_type),
             ]
         ):
             return NlgApiCallMetricManager(logger, tokenizer)
