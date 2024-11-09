@@ -100,12 +100,6 @@ class BaseTrainer:
                 accelerator, collator, train_dataset, val_dataset, model_loader
             )
         else:
-            model_out_dir = str(self.cfg.project_root / self.cfg.model_type.model_path)
-
-        utils.log(self.logger, "starting inference")
-        try:
-            model = model_loader.load_for_inference(model_out_dir)
-        except OSError as e:
             if not self.cfg.model_type.model_path:
                 raise ValueError(
                     """
@@ -113,6 +107,11 @@ class BaseTrainer:
                     Try setting should_train to True or provide a model_path
                     """
                 )
+            model_out_dir = str(self.cfg.project_root / self.cfg.model_type.model_path)
+
+        utils.log(self.logger, "starting inference")
+        model = model_loader.load_for_inference(model_out_dir)
+
         collate_fn = collator.tod_test_collate
         generation_handler = GenerationHandlerFactory.get_handler(
             self.cfg, model, tokenizer

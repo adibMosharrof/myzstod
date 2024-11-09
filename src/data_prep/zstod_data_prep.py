@@ -68,7 +68,9 @@ class ZsTodDataPrep(DataPrepStrategy):
     ) -> ZsTodTarget:
         dsts = self._prepare_dst(user_turn)
         actions = self._get_actions(system_turn)
-        user_actions = self._get_actions(user_turn)
+        user_actions = (
+            self._get_actions(user_turn) if self.cfg.should_add_user_actions else None
+        )
         response = self._prepare_response(system_turn.utterance)
         return ZsTodTarget(
             dsts=dsts, actions=actions, user_actions=user_actions, response=response
