@@ -38,11 +38,12 @@ class QuantizedLoraModelLoader(LoraModelLoader):
         device_map = {"": self.accelerator.process_index}
         dtype = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
         model = self.model_class.from_pretrained(
-            model_path or self.model_name,
+            self.model_name,
             quantization_config=config,
             device_map=device_map,
             torch_dtype=dtype,
         )
+        self._resize_token_embeddings(model)
         model = PeftModel.from_pretrained(model, model_path)
         return model
 
