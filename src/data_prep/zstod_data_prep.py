@@ -77,4 +77,8 @@ class ZsTodDataPrep(DataPrepStrategy):
         )
 
     def get_turn_schema_str(self, turn_schemas) -> str:
+        for schema in turn_schemas:
+            for slot in schema.slots:
+                slot.possible_values = []
+            
         return "".join([str(s) for s in turn_schemas])
