@@ -34,9 +34,10 @@ import utils
 import data_prep.data_prep_utils as data_prep_utils
 from utilities import text_utilities
 from utilities.context_manager import ContextManager
+from data_prep.base_api_call_strategy import BaseApiCallStrategy
 
 
-class NlgApiCallStrategy(DataPrepStrategy):
+class NlgApiCallStrategy(BaseApiCallStrategy):
     def __init__(
         self,
         cfg: DataPrepConfig,
@@ -45,11 +46,11 @@ class NlgApiCallStrategy(DataPrepStrategy):
         data_augmentations=None,
     ):
         super().__init__(
-            cfg, tod_turn_cls=tod_turn_cls, tod_context_cls=tod_context_cls
+            cfg,
+            tod_turn_cls=tod_turn_cls,
+            tod_context_cls=tod_context_cls,
+            data_augmentations=data_augmentations,
         )
-        # self.cfg = cfg
-
-        self.data_augmentations = data_augmentations or {}
 
     def prepare_target(
         self,
@@ -62,29 +63,3 @@ class NlgApiCallStrategy(DataPrepStrategy):
         response = self._prepare_response(system_turn.utterance)
         response += SpecialTokens.eos_token.value
         return NlgTodTarget(response=response)
-
-    def get_domain_from_api_method_name(self, method_name, dialog_domains, schemas):
-        en_us = "_en_US"
-        for dom in dialog_domains:
-            schema = schemas[dom]
-            intent_names = self.get_intent_names(schema)
-            for intent_name in intent_names:
-                if en_us in intent_name:
-                    new_intent_name = intent_name.replace(en_us, "")
-                    if method_name == new_intent_name:
-                        return dom
-            if method_name in intent_names:
-                return dom
-        raise ValueError(f"{method_name} not found in any domain")
-
-    def get_intent_names(self, schema):
-        intent_names = []
-        field_name = "pseudo_name" if isinstance(schema, PseudoSchema) else "name"
-        for intent in schema.intents:
-            intent_name = getattr(intent, field_name)
-            if not intent_name:
-                raise ValueError(
-                    f"Intent field {field_name} not found in schema: {schema}"
-                )
-            intent_names.append(intent_name)
-        return intent_names
