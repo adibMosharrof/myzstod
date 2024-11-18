@@ -110,6 +110,8 @@ class ZsTodContext:
         return "".join([SpecialTokens.sys_actions, " ".join(DstcSystemActions.list())])
 
     def _get_last_user_utterance(self, should_add_special_token=True) -> str:
+        if not self.current_user_utterance:
+            return ""
         if not should_add_special_token:
             return "".join(["Last User Utterance:", self.current_user_utterance])
         return "".join(
