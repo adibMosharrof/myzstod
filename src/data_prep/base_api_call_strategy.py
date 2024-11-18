@@ -143,7 +143,7 @@ class BaseApiCallStrategy(DataPrepStrategy):
         )
         tod_turn.context.system_utterances.append(api_call_with_search_results)
         tod_turn.context.user_utterances.append(user_turn.utterance)
-        # tod_turn.context.current_user_utterance = None
+        tod_turn.context.current_user_utterance = None
         # new_turn = copy.deepcopy(tod_turn)
         api_call_turn = self.get_api_call_turn(
             user_turn,
