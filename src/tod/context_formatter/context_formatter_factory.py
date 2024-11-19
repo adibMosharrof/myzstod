@@ -9,7 +9,12 @@ from utilities.context_manager import ContextManager
 class ContextFormatterFactory:
     @staticmethod
     def create_context_formatter(context_type: str) -> ContextFormatterBase:
-        if ContextManager.is_simple_tod(context_type):
+        if any(
+            [
+                ContextManager.is_simple_tod(context_type),
+                ContextManager.is_soloist(context_type),
+            ]
+        ):
             return SimpleTodContextFormatter()
         if ContextManager.is_zstod(context_type):
             return ZsTodContextFormatter()

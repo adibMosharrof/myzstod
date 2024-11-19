@@ -242,21 +242,22 @@ class ChatGptPrompt:
         return prompt_text
 
 
-class ZsTodSimpleTodPrompt:
+class BaselineTodPrompt:
     def get_prompt(
         self,
         domain: str,
-        schema: str,
-        dialog_history: str,
+        schema: str = "",
+        dialog_history: str = "",
         other_domain: str = None,
         other_domain_schema: str = None,
         all_schema: dict[str, DstcSchema] = None,
         domains_original: str = None,
     ) -> str:
+        schema_prompt = " and the schemas," if schema else ""
         prompt_text = "\n".join(
             [
-                schema,
-                "Instructions: Given the dialog history and the schemas, please generate the system response.\n\n",
+                schema or "",
+                f"Instructions: Given the dialog history{schema_prompt} please generate the system response.\n\n",
                 "Begin Context",
                 "Dialog History",
                 dialog_history,
@@ -281,9 +282,10 @@ class NlgPromptFactory:
             [
                 ContextManager.is_zstod(context_type),
                 ContextManager.is_simple_tod(context_type),
+                ContextManager.is_soloist(context_type),
             ]
         ):
-            return ZsTodSimpleTodPrompt()
+            return BaselineTodPrompt()
         if prompt_type == NlgPromptType.MULTI_DOMAIN.value:
             return NlgMultidomainPrompt()
         if prompt_type == NlgPromptType.DEFAULT.value:
