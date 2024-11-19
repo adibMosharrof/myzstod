@@ -143,10 +143,9 @@ def get_logger(name: str = "transformers"):
     return logging.getLogger(__name__)
 
 
-def log(logger, message: str):
+def log(logger, message: str, log_prefix="Log: "):
     accelerator = Accelerator()
     if accelerator.is_main_process:
-        log_prefix = "Log: "
         print(log_prefix + message)
         logger.info(log_prefix + message)
 

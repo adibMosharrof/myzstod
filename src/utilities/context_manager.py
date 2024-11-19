@@ -30,6 +30,7 @@ class ContextManager:
             ContextType.GPT_PSEUDO_LABELS.value,
             ContextType.ZSTOD_API_CALL.value,
             ContextType.SIMPLE_TOD_API_CALL.value,
+            ContextType.SOLOIST_API_CALL.value,
         ]
 
     @staticmethod
@@ -61,8 +62,13 @@ class ContextManager:
         ]
 
     @staticmethod
-    def is_zstod_simpletod_api_call(context_type: str) -> bool:
+    def is_soloist(context_type: str) -> bool:
+        return context_type in [ContextType.SOLOIST_API_CALL.value]
+
+    @staticmethod
+    def is_baseline_api_call(context_type: str) -> bool:
         return context_type in [
             ContextType.ZSTOD_API_CALL.value,
             ContextType.SIMPLE_TOD_API_CALL.value,
+            ContextType.SOLOIST_API_CALL.value,
         ]

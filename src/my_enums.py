@@ -180,12 +180,19 @@ class ContrastiveConstants(str, Enum):
     LAST_UTTERANCE = "last_utt"
 
 
+class DatasetNames(str, Enum):
+    DSTC = "dstc"
+    BITOD = "bitod"
+    KETOD = "ketod"
+
+
 class ContextType(str, Enum):
     SHORT_REPR = "short_repr"
     DEFAULT = "default"
     NLG = "nlg"
     SIMPLE_TOD_API_CALL = "simple_tod_api_call"
     ZSTOD_API_CALL = "zstod_api_call"
+    SOLOIST_API_CALL = "soloist_api_call"
     NLG_API_CALL = "nlg_api_call"
     KETOD_API_CALL = "ketod_api_call"
     KETOD_GPT_API_CALL = "ketod_gpt_api_call"

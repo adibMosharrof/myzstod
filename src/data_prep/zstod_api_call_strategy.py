@@ -48,6 +48,7 @@ class ZsTodApiCallStrategy(BaseApiCallStrategy):
         tod_turn_cls=NlgTodTurn,
         tod_context_cls=ZsTodContext,
         data_augmentations=None,
+        baseline_data_prep=None,
     ):
         super().__init__(
             cfg,
@@ -55,7 +56,7 @@ class ZsTodApiCallStrategy(BaseApiCallStrategy):
             tod_context_cls=tod_context_cls,
             data_augmentations=data_augmentations,
         )
-        self.zstod_data_prep = ZsTodDataPrep(cfg)
+        self.baseline_data_prep = baseline_data_prep
 
     def prepare_target(
         self,
@@ -63,10 +64,10 @@ class ZsTodApiCallStrategy(BaseApiCallStrategy):
         system_turn: DstcTurn,
         schemas: dict[str, DstcSchema],
     ) -> ZsTodTarget:
-        return self.zstod_data_prep.prepare_target(user_turn, system_turn, schemas)
+        return self.baseline_data_prep.prepare_target(user_turn, system_turn, schemas)
 
     def get_turn_schema_str(self, turn_schemas) -> str:
-        return self.zstod_data_prep.get_turn_schema_str(turn_schemas)
+        return self.baseline_data_prep.get_turn_schema_str(turn_schemas)
 
     def get_api_call_turn(
         self,

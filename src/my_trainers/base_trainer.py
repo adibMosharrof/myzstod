@@ -1,10 +1,5 @@
 from dataclasses import asdict
-from datamodules.data_augmentation.data_augmentation_factory import (
-    DataAugmentationFactory,
-)
-from datamodules.data_filters.data_filter_factory import (
-    DataFilterFactory,
-)
+
 from datamodules.tod_dataset import TodDataSet
 import logging
 import os
@@ -52,6 +47,15 @@ from prompts.nlg_prompt_manager import NlgPromptFactory
 from sgd_dstc8_data_model.dstc_dataclasses import (
     DstcSchema,
 )
+from validators.should_add_schema_validator import ShouldAddSchemaValidator
+from validators.should_train_validator import ShouldTrainValidator
+from validators.target_length_validator import TargetLengthValidator
+from datamodules.data_augmentation.data_augmentation_factory import (
+    DataAugmentationFactory,
+)
+from datamodules.data_filters.data_filter_factory import (
+    DataFilterFactory,
+)
 
 
 class BaseTrainer:
@@ -66,6 +70,13 @@ class BaseTrainer:
             if isinstance(handler, logging.StreamHandler):
                 handler.setFormatter(formatter)
         self.logger = root_logger
+        validators = [
+            ShouldAddSchemaValidator(),
+            ShouldTrainValidator(),
+            TargetLengthValidator(),
+        ]
+        for validator in validators:
+            validator.validate(self.cfg)
 
     def run(self):
         accelerator = Accelerator()
@@ -100,13 +111,6 @@ class BaseTrainer:
                 accelerator, collator, train_dataset, val_dataset, model_loader
             )
         else:
-            if not self.cfg.model_type.model_path:
-                raise ValueError(
-                    """
-                    model_type.model_path is required since should_train is set to False.
-                    Try setting should_train to True or provide a model_path
-                    """
-                )
             model_out_dir = str(self.cfg.project_root / self.cfg.model_type.model_path)
 
         utils.log(self.logger, "starting inference")
