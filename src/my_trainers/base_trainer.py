@@ -206,6 +206,7 @@ class BaseTrainer:
             bf16 = True
         else:
             fp16 = True
+        run_name = Path(self.cfg.out_dir).parent.name
         training_args = Seq2SeqTrainingArguments(
             output_dir=self.cfg.out_dir,
             num_train_epochs=self.cfg.epochs,
@@ -231,7 +232,7 @@ class BaseTrainer:
             ddp_backend="nccl",
             save_safetensors=False,
             report_to="wandb",
-            run_name=self.cfg.model_type.model_log_name,
+            run_name=run_name,
             # gradient_checkpointing_kwargs={"use_reentrant": False},
             bf16_full_eval=bf16,
             bf16=bf16,
