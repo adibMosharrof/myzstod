@@ -231,6 +231,7 @@ class BaseTrainer:
             ddp_backend="nccl",
             save_safetensors=False,
             report_to="wandb",
+            run_name=self.cfg.model_type.model_log_name,
             # gradient_checkpointing_kwargs={"use_reentrant": False},
             bf16_full_eval=bf16,
             bf16=bf16,
