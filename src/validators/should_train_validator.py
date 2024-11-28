@@ -6,7 +6,7 @@ class ShouldTrainValidator(ConfigValidator):
     def validate(self, cfg):
         if cfg.should_train:
             return
-        if not self.cfg.model_type.model_path:
+        if not cfg.model_type.model_path:
             msg = """
                 model_type.model_path is required since should_train is set to False.
                 Try setting should_train to True or provide a model_path

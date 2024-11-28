@@ -7,7 +7,7 @@ import utils
 
 class DataPrepStrategyValidator(ConfigValidator):
     def validate(self, dataset_name, strategy, context_type):
-        if DatasetNames.KETOD.value == dataset_name:
+        if DatasetNames.KETOD.value in dataset_name:
             if not DataPrepStrategyFactory.is_ketod(strategy):
                 msg = f"""
                     You are using Ketod data, but context type is {context_type}.
@@ -15,7 +15,7 @@ class DataPrepStrategyValidator(ConfigValidator):
                     """
                 utils.log(self.logger, message=msg, log_prefix="ERROR:")
                 raise ValueError(msg)
-        elif DatasetNames.BITOD.value == dataset_name:
+        elif DatasetNames.BITOD.value in dataset_name:
             if not DataPrepStrategyFactory.is_bitod(strategy):
                 msg = f"""
                     You are using Ketod data, but context type is {context_type}.
