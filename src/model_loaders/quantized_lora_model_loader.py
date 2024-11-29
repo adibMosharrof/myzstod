@@ -36,15 +36,16 @@ class QuantizedLoraModelLoader(LoraModelLoader):
     def load_for_inference(self, model_path: Path | str = None) -> PeftModel:
         config = BitsAndBytesConfig(load_in_8bit=True)
         device_map = {"": self.accelerator.process_index}
-        dtype = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
+        # dtype = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
         model = self.model_class.from_pretrained(
             self.model_name,
             quantization_config=config,
             device_map=device_map,
-            torch_dtype=dtype,
+            # torch_dtype=dtype,
         )
         self._resize_token_embeddings(model)
         model = PeftModel.from_pretrained(model, model_path)
+        model.eval()
         return model
 
     # def load(self, model_path: Union[Path, str] = None, is_inference: bool = False):
