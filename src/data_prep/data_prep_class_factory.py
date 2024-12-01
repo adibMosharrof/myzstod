@@ -55,9 +55,9 @@ class DataPrepClassFactory:
     def get_data_prep_instance(
         dp_cfg, dataset_name: str, strategy, schema_loader, schemas
     ):
-        if DatasetNames.KETOD.value == dataset_name:
+        if DatasetNames.KETOD.value in dataset_name:
             return KetodBaseDataPrep(dp_cfg, strategy)
-        elif DatasetNames.BITOD.value == dataset_name:
+        elif DatasetNames.BITOD.value in dataset_name:
             return BitodDataPrep(dp_cfg, strategy)
         else:
             return DstcBaseDataPrep(dp_cfg, strategy, schema_loader, schemas)
