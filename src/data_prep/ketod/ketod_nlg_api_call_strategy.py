@@ -225,7 +225,7 @@ class KetodNlgApiCallStrategy(NlgApiCallStrategy):
 
     def prepare_context(self, turn: Log, prev_tod_turn: NlgTodTurn) -> KeTodContext:
         if not prev_tod_turn:
-            context = self.tod_context_cls(max_length=self.cfg.num_turns)
+            context = self.tod_context_cls(max_length=self.cfg.num_turns, context_formatter=self.context_formatter)
             context.should_add_sys_actions = self.cfg.should_add_sys_actions
         else:
             context = copy.deepcopy(prev_tod_turn.context)
