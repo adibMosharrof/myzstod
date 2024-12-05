@@ -1,3 +1,4 @@
+from prompts.auto_tod_prompt import AutoTodPrompt
 from prompts.prompt_constants import NlgPromptType
 from my_enums import ContextType
 from sgd_dstc8_data_model.dstc_dataclasses import (
