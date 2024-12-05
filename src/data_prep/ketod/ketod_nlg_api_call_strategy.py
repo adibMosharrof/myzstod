@@ -27,10 +27,15 @@ from utilities.text_utilities import get_nlg_service_name
 
 
 class KetodNlgApiCallStrategy(NlgApiCallStrategy):
-    def __init__(self, cfg: DataPrepConfig):
+    def __init__(
+        self,
+        cfg: DataPrepConfig,
+        tod_turn_cls=NlgTodTurn,
+        tod_context_cls=NlgTodContext,
+    ):
         super().__init__(cfg)
-        self.tod_context_cls = KeTodContext
-        self.tod_turn_cls = NlgTodTurn
+        self.tod_context_cls = tod_context_cls
+        self.tod_turn_cls = tod_turn_cls
 
     def prepare_dialog(
         self,
@@ -170,8 +175,6 @@ class KetodNlgApiCallStrategy(NlgApiCallStrategy):
                 "End Search Results",
             ]
         )
-        # tod_turn.context.dialog_history += f"<USER> {ds_turn.user_utterance}"
-        # tod_turn.context.dialog_history += f"<SYSTEM> {api_call_with_search_results}"
         tod_turn.context.user_utterances.append(ds_turn.user_utterance)
         tod_turn.context.system_utterances.append(api_call_with_search_results)
         tod_turn.context.current_user_utterance = None
@@ -225,7 +228,9 @@ class KetodNlgApiCallStrategy(NlgApiCallStrategy):
 
     def prepare_context(self, turn: Log, prev_tod_turn: NlgTodTurn) -> KeTodContext:
         if not prev_tod_turn:
-            context = self.tod_context_cls(max_length=self.cfg.num_turns, context_formatter=self.context_formatter)
+            context = self.tod_context_cls(
+                max_length=self.cfg.num_turns, context_formatter=self.context_formatter
+            )
             context.should_add_sys_actions = self.cfg.should_add_sys_actions
         else:
             context = copy.deepcopy(prev_tod_turn.context)

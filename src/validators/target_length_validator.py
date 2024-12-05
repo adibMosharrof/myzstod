@@ -8,7 +8,12 @@ import utils
 class TargetLengthValidator(ConfigValidator):
     def validate(self, cfg: DictConfig):
         context_type = cfg.model_type.context_type
-        if ContextManager.is_baseline_api_call(context_type):
+        if any(
+            [
+                ContextManager.is_zs_simple_tod_api_call(context_type),
+                ContextManager.is_soloist(context_type),
+            ]
+        ):
             if cfg.test_prompt_max_len > 640:
                 utils.log(
                     self.logger,
