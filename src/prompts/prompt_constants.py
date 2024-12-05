@@ -6,6 +6,7 @@ class NlgPromptType(str, Enum):
     MULTI_DOMAIN = "multi_domain"
     CHATGPT = "chatgpt"
     CROSS = "cross"
+    AUTO_TOD = "auto_tod"
 
     @classmethod
     def list(cls):
