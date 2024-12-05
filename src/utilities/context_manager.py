@@ -7,6 +7,9 @@ class ContextManager:
         return context_type in [
             ContextType.KETOD_API_CALL.value,
             ContextType.KETOD_GPT_API_CALL.value,
+            ContextType.KETOD_SOLOIST_API_CALL.value,
+            ContextType.KETOD_ZSTOD_API_CALL.value,
+            ContextType.KETOD_SIMPLE_TOD_API_CALL.value,
         ]
 
     @staticmethod
@@ -52,6 +55,7 @@ class ContextManager:
         return context_type in [
             ContextType.SHORT_REPR.value,
             ContextType.ZSTOD_API_CALL.value,
+            ContextType.KETOD_ZSTOD_API_CALL.value,
         ]
 
     @staticmethod
@@ -59,16 +63,37 @@ class ContextManager:
         return context_type in [
             ContextType.DEFAULT.value,
             ContextType.SIMPLE_TOD_API_CALL.value,
+            ContextType.KETOD_SIMPLE_TOD_API_CALL.value,
         ]
 
     @staticmethod
     def is_soloist(context_type: str) -> bool:
-        return context_type in [ContextType.SOLOIST_API_CALL.value]
+        return context_type in [
+            ContextType.SOLOIST_API_CALL.value,
+            ContextType.KETOD_SOLOIST_API_CALL.value,
+        ]
 
     @staticmethod
-    def is_baseline_api_call(context_type: str) -> bool:
+    def is_zs_simple_tod_api_call(context_type: str) -> bool:
         return context_type in [
             ContextType.ZSTOD_API_CALL.value,
             ContextType.SIMPLE_TOD_API_CALL.value,
+            ContextType.KETOD_ZSTOD_API_CALL.value,
+            ContextType.KETOD_SIMPLE_TOD_API_CALL.value,
+        ]
+
+    @staticmethod
+    def is_sgd_baseline(context_type: str) -> bool:
+        return context_type in [
+            ContextType.SIMPLE_TOD_API_CALL.value,
+            ContextType.ZSTOD_API_CALL.value,
             ContextType.SOLOIST_API_CALL.value,
+        ]
+
+    @staticmethod
+    def is_ketod_baseline(context_type: str) -> bool:
+        return context_type in [
+            ContextType.KETOD_SIMPLE_TOD_API_CALL.value,
+            ContextType.KETOD_ZSTOD_API_CALL.value,
+            ContextType.KETOD_SOLOIST_API_CALL.value,
         ]

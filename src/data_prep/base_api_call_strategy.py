@@ -202,7 +202,10 @@ class BaseApiCallStrategy(DataPrepStrategy):
         if len(turn.domains_original) == 1:
             return 0
         df = pd.DataFrame(
-            csv_tod_turns, columns=self.turn_csv_row_cls.get_csv_headers()
+            csv_tod_turns,
+            columns=self.turn_csv_row_cls.get_csv_headers(
+                should_add_schema=self.cfg.should_add_schema
+            ),
         )
         api_call_turns = df[df["turn_row_type"] == TurnRowType.API_CALL.value]
         if api_call_turns.empty:

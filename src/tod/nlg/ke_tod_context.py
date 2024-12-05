@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from itertools import zip_longest
 from typing import Optional
 
-from my_enums import TurnRowType
+from my_enums import DstcSystemActions, SpecialTokens, TurnRowType
 
 from sgd_dstc8_data_model.dstc_dataclasses import DstcServiceCall
 
@@ -77,10 +77,11 @@ class KeTodContext:
         results = self.service_results[:num_items]
         results = [dict(r) for r in results]
         return str(results)
-        for service_result in self.service_results[:num_items]:
-            s_res = {"search_results": dict(service_result)}
-            out += str(s_res)
-        return "\n".join(["\nSearch Results:", out, "End Search Results"])
+
+    def _get_sys_actions(self) -> str:
+        if not self.should_add_sys_actions:
+            return ""
+        return "".join([SpecialTokens.sys_actions, " ".join(DstcSystemActions.list())])
 
     def __str__(self):
         return self.context_formatter.to_str(self)

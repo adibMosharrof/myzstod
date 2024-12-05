@@ -34,8 +34,9 @@ class TokenizerUtilities:
         special_tokens = ["{", "}"]
         if any(
             [
-                ContextManager.is_baseline_api_call(context_type),
+                ContextManager.is_zs_simple_tod_api_call(context_type),
                 ContextManager.is_simple_tod(context_type),
+                ContextManager.is_soloist(context_type),
             ]
         ):
             special_tokens += SpecialTokens.list()

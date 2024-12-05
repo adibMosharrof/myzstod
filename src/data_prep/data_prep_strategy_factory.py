@@ -1,6 +1,8 @@
 from data_prep.bitod.bitod_strategy import BitodStrategy
 from data_prep.data_prep_strategy import DataPrepStrategy
 from data_prep.ketod.ketod_nlg_api_call_strategy import KetodNlgApiCallStrategy
+from data_prep.ketod.soloist_ketod_strategy import SoloistKetodStrategy
+from data_prep.ketod.zsketod_data_prep_strategy import ZsKetodDataPrepStrategy
 from data_prep.nlg_data_prep import NlgDataPrep
 from data_prep.nlg_api_call_strategy import NlgApiCallStrategy
 from data_prep.soloist_data_prep import SoloistDataPrep
@@ -26,17 +28,17 @@ class DataPrepStrategyFactory:
         if context_type == ContextType.SHORT_REPR.value:
             return ZsTodDataPrep(cfg)
 
-        if context_type in [
-            ContextType.SIMPLE_TOD_API_CALL.value,
-            ContextType.ZSTOD_API_CALL.value,
-            ContextType.SOLOIST_API_CALL.value,
-        ]:
+        if ContextManager.is_sgd_baseline(context_type):
             baseline_data_prep = (
                 ZsTodDataPrep(cfg)
-                if ContextManager.is_baseline_api_call(context_type)
+                if ContextManager.is_zs_simple_tod_api_call(context_type)
                 else SoloistDataPrep(cfg)
             )
             return ZsTodApiCallStrategy(cfg, baseline_data_prep=baseline_data_prep)
+        if ContextManager.is_ketod_baseline(context_type):
+            if ContextManager.is_soloist(context_type):
+                return SoloistKetodStrategy(cfg)
+            return ZsKetodDataPrepStrategy(cfg)
         if ContextManager.is_nlg_strategy(context_type):
             if ContextManager.is_sgd_pseudo_labels(context_type):
                 return NlgApiCallStrategy(cfg, tod_context_cls=PseudoLabelsContext)

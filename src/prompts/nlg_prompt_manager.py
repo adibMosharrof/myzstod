@@ -257,7 +257,7 @@ class BaselineTodPrompt:
         prompt_text = "\n".join(
             [
                 schema or "",
-                f"Instructions: Given the dialog history{schema_prompt} please generate the system response.\n\n",
+                f"Instructions: Given the dialog history{schema_prompt} please generate the system response. The response can be an api call or a response to the user.\n\n",
                 "Begin Context",
                 "Dialog History",
                 dialog_history,
@@ -271,6 +271,16 @@ class NlgPromptFactory:
     def get_handler(
         self, prompt_type: str, context_type: ContextType = ContextType.NLG_API_CALL
     ) -> NlgPrompt:
+        if prompt_type == NlgPromptType.MULTI_DOMAIN.value:
+            return NlgMultidomainPrompt()
+
+        if prompt_type == NlgPromptType.CHATGPT.value:
+            return ChatGptPrompt()
+        if prompt_type == NlgPromptType.CROSS.value:
+            return CrossAttentionPrompt()
+        if prompt_type == NlgPromptType.AUTO_TOD.value:
+            return AutoTodPrompt()
+
         if context_type in [
             ContextType.KETOD_API_CALL.value,
             ContextType.KETOD_GPT_API_CALL.value,
@@ -286,14 +296,8 @@ class NlgPromptFactory:
             ]
         ):
             return BaselineTodPrompt()
-        if prompt_type == NlgPromptType.MULTI_DOMAIN.value:
-            return NlgMultidomainPrompt()
         if prompt_type == NlgPromptType.DEFAULT.value:
             return NlgPrompt()
-        if prompt_type == NlgPromptType.CHATGPT.value:
-            return ChatGptPrompt()
-        if prompt_type == NlgPromptType.CROSS.value:
-            return CrossAttentionPrompt()
         all_prompts = ",".join(NlgPromptType.list())
         raise NotImplementedError(
             f"Prompt type {prompt_type} is not implemented. It must be one of the following values {all_prompts}."
