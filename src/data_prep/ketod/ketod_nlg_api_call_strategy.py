@@ -31,7 +31,7 @@ class KetodNlgApiCallStrategy(NlgApiCallStrategy):
         self,
         cfg: DataPrepConfig,
         tod_turn_cls=NlgTodTurn,
-        tod_context_cls=NlgTodContext,
+        tod_context_cls=KeTodContext,
     ):
         super().__init__(cfg)
         self.tod_context_cls = tod_context_cls
