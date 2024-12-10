@@ -238,6 +238,7 @@ class BaseTrainer:
             bf16=bf16,
             fp16=fp16,
             fp16_full_eval=fp16,
+            optim="paged_adamw_8bit",
         )
         trainer = Seq2SeqTrainer(
             model=model,
