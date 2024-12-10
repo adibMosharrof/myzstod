@@ -3,6 +3,7 @@ from transformers import AutoTokenizer
 
 from model_loaders.base_model_loader import BaseModelLoader
 from model_loaders.lora_model_loader import LoraModelLoader
+from model_loaders.qlora_4bit_model_loader import Qlora4bitModelLoader
 from model_loaders.quantized_lora_model_loader import QuantizedLoraModelLoader
 
 
@@ -29,3 +30,5 @@ class ModelLoaderFactory:
             return LoraModelLoader(**params)
         if cfg.model_type.quantization_dtype == 8:
             return QuantizedLoraModelLoader(**params)
+        if cfg.model_type.quantization_dtype == 4:
+            return Qlora4bitModelLoader(**params)
