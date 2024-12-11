@@ -112,7 +112,9 @@ class BaseTrainer:
             )
         else:
             model_out_dir = str(self.cfg.project_root / self.cfg.model_type.model_path)
-
+        if not self.cfg.should_test:
+            utils.log(self.logger, "should test is set to false, exiting")
+            return
         utils.log(self.logger, "starting inference")
         model = model_loader.load_for_inference(model_out_dir)
 
