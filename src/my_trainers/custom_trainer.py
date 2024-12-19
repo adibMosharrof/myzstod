@@ -4,7 +4,7 @@ import os
 
 
 class CustomTrainer(Seq2SeqTrainer):
-    def __init__(self, *args, model_loader=None, is_quantized_model=False, **kwargs):
+    def __init__(self, *args, model_loader=None, is_quantized_model=True, **kwargs):
         super().__init__(*args, **kwargs)
         self.model_loader = model_loader
         self.is_quantized_model = is_quantized_model
