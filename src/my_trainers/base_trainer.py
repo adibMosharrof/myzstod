@@ -27,6 +27,8 @@ import torch
 import psutil
 
 from transformers import TrainerCallback
+from my_trainers.custom_trainer import CustomTrainer
+
 
 sys.path.insert(0, os.path.abspath("./src"))
 sys.path.insert(0, os.path.abspath("./"))
@@ -116,7 +118,9 @@ class BaseTrainer:
             )
         else:
             model_out_dir = str(self.cfg.project_root / self.cfg.model_type.model_path)
-
+        if not self.cfg.should_test:
+            utils.log(self.logger, "should test is set to false, exiting")
+            return
         utils.log(self.logger, "starting inference")
         model = model_loader.load_for_inference(model_out_dir)
 
@@ -246,7 +250,9 @@ class BaseTrainer:
             fp16_full_eval=fp16,
             optim="paged_adamw_8bit",
         )
-        trainer = Seq2SeqTrainer(
+
+        # trainer = Seq2SeqTrainer(
+        trainer = CustomTrainer(
             model=model,
             args=training_args,
             train_dataset=train_dataset,
@@ -258,6 +264,8 @@ class BaseTrainer:
                     early_stopping_patience=self.cfg.early_stopping_patience
                 ),
             ],
+            is_quantized_model=self.cfg.model_type.quantization,
+            model_loader=model_loader,
         )
         if self.cfg.resume_checkpoint:
             trainer.train(str(self.cfg.project_root / self.cfg.resume_checkpoint))
