@@ -14,6 +14,7 @@
             "args": [
                 "--num_processes=2",
                 "--mixed_precision=fp16",
+                // "--mixed_precision=bf16",
                 "--main_process_port=29502",
                 // "${cwd}/probing/probing_trainer.py",
                 "${cwd}/src/my_trainers/probing_trainer.py",
@@ -25,6 +26,7 @@
                 "TORCH_DISTRIBUTED_DEBUG": "INFO",
                 "CUDA_LAUNCH_BLOCKING": "1",
                 "TORCH_USE_CUDA_DSA": "1",
+                // "CUDA_VISIBLE_DEVICES": "0",
             }
         },
         {
@@ -280,6 +282,15 @@
             "request": "launch",
             "program": "${cwd}/playground/chatgpt_inference.py",
             "cwd": "/u/amo-d0/grad/adibm/data/projects/ZSToD",
+            "console": "integratedTerminal",
+            "args": []
+        },
+        {
+            "name": "auto_tod",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${cwd}/src/baselines/auto_tod.py",
+            "cwd": "/mounts/u-amo-d1/adibm-data/projects/ZSToD/",
             "console": "integratedTerminal",
             "args": []
         },
@@ -557,6 +568,28 @@
             "cwd": "/mounts/u-amo-d1/adibm-data/projects/ZSToD/",
             "console": "integratedTerminal",
             "program": "${cwd}/src/data_exploration/pseudo_metric_from_all.py",
+            "justMyCode": false,
+            "args": [],
+            "env": {}
+        },
+        {
+            "name": "chatgptschemaprep",
+            "type": "debugpy",
+            "request": "launch",
+            "cwd": "/mounts/u-amo-d1/adibm-data/projects/ZSToD/",
+            "console": "integratedTerminal",
+            "program": "${cwd}/src/data_exploration/chat_gpt_schema_prep.py",
+            "justMyCode": false,
+            "args": [],
+            "env": {}
+        },
+        {
+            "name": "soloist_preprocessing",
+            "type": "debugpy",
+            "request": "launch",
+            "cwd": "/mounts/u-amo-d1/adibm-data/projects/ZSToD/",
+            "console": "integratedTerminal",
+            "program": "${cwd}/src/baselines/soloist/sgd_preprocessing.py",
             "justMyCode": false,
             "args": [],
             "env": {}
