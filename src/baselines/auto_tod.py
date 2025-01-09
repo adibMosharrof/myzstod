@@ -36,8 +36,6 @@ from pathos.multiprocessing import ProcessingPool as Pool
 from base_datamodule import SimpleTodDataSet
 from tod.turns.zs_tod_turn import TodTurnApiCallCsvRow, TodTurnCsvRowFactory
 
-# Set your OpenAI API key
-
 
 class AutoTod:
     def __init__(self, cfg) -> None:
@@ -84,9 +82,7 @@ class AutoTod:
         return all_prompts
 
     def query_chatgpt(self, row):
-        client = openai.OpenAI(
-            api_key="sk-5_rJLsJz9a_LGu4vkkjoWgd1TZyoxd0v3OPe6ejrbUT3BlbkFJdBY59fJBtlVsbVeOwdtQkLgWIe87UnfirNBmjZTjUA"
-        )
+        client = openai.OpenAI(os.getenv("CHATGPT_APIKEY"))
         messages = [
             {"role": "system", "content": row.prompt.system_prompt},
             {"role": "user", "content": row.prompt.dialog_history},
