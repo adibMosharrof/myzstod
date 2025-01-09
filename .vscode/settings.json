@@ -106,5 +106,6 @@
         "<C-c>": false,
         "<C-f>": false,
         "<C-b>": false,
+        "<C-h>": false,
     }
 }
