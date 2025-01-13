@@ -83,6 +83,7 @@ class ChatGptInference:
                 item.context,
                 all_schema=schemas,
                 domains_original=item.domains_original,
+                all_data=data,
             )
             all_prompts.append(DotMap(prompt=prompt, item=item))
         return all_prompts

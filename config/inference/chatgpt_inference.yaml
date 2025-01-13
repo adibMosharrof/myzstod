@@ -12,7 +12,8 @@ dataset_name: sgd
 max_token_len: 1024
 test_prompt_max_len: 750
 out_dir: results
-prompt_type: chatgpt
+# prompt_type: chatgpt
+prompt_type: chatgptv2
 # prompt_type: auto_tod
 # context_type: nlg_api_call
 # context_type: ketod_api_call

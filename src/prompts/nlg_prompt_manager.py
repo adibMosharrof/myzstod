@@ -1,4 +1,5 @@
 from prompts.auto_tod_prompt import AutoTodPrompt
+from prompts.chatgptv2_prompt import ChatGptV2Prompt
 from prompts.prompt_constants import NlgPromptType
 from my_enums import ContextType
 from sgd_dstc8_data_model.dstc_dataclasses import (
@@ -189,6 +190,7 @@ class ChatGptPrompt:
         other_domain_schema: str = None,
         all_schema: dict[str, DstcSchema] = None,
         domains_original: str = None,
+        all_data=None,
     ) -> str:
         """
         Returns the NLG prompt for the given domain
@@ -277,6 +279,8 @@ class NlgPromptFactory:
 
         if prompt_type == NlgPromptType.CHATGPT.value:
             return ChatGptPrompt()
+        if prompt_type == NlgPromptType.CHATGPTV2.value:
+            return ChatGptV2Prompt()
         if prompt_type == NlgPromptType.CROSS.value:
             return CrossAttentionPrompt()
         if prompt_type == NlgPromptType.AUTO_TOD.value:
