@@ -58,7 +58,7 @@
             "type": "debugpy",
             "request": "launch",
             "module": "accelerate.commands.launch",
-            "cwd": "/mounts/u-amo-d1/adibm-data/projects/ZSToD/",
+            "cwd": "/home/tamim/TOD/myzstod/",
             "console": "integratedTerminal",
             "args": [
                 // "--multi_gpu",
@@ -281,7 +281,7 @@
             "type": "debugpy",
             "request": "launch",
             "program": "${cwd}/playground/chatgpt_inference.py",
-            "cwd": "/u/amo-d0/grad/adibm/data/projects/ZSToD",
+            "cwd": "/home/tamim/TOD/myzstod",
             "console": "integratedTerminal",
             "args": []
         },

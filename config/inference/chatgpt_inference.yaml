@@ -1,7 +1,7 @@
 hydra:
   run:
     dir: ./playground/t5_tod_out/${now:%Y-%m-%d}/${now:%H-%M-%S}
-project_root: /mounts/u-amo-d1/adibm-data/projects/ZSToD/
+project_root: /home/tamim/TOD/myzstod/
 raw_data_root: data/dstc8-schema-guided-dialogue/
 processed_data_root: processed_data/simple_tod
 dataset_name: sgd
@@ -12,7 +12,7 @@ dataset_name: sgd
 max_token_len: 1024
 test_prompt_max_len: 750
 out_dir: results
-# prompt_type: chatgpt
+#prompt_type: chatgpt
 prompt_type: chatgptv2
 # prompt_type: auto_tod
 # context_type: nlg_api_call
