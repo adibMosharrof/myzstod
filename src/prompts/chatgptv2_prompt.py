@@ -21,46 +21,13 @@ class ChatGptV2Prompt:
         Returns the NLG prompt for the given domain
         """
 
-        df = pd.DataFrame([row.__dict__ for row in all_data])
+        
 
-        filtered_df = df[df["domains_original"] == domains_original]
-
-        # 1. Randomly select 5 unique `dialog_id`s
-        random_dialog_ids = random.sample(list(filtered_df["dialog_id"].unique()), 5)
-        # random_dialog_ids = np.random.choice(unique_dialog_ids, size=5, replace=False)
-
-        # 2. Filter the DataFrame to include only the selected `dialog_id`s
-        selected_dialogs = filtered_df[filtered_df["dialog_id"].isin(random_dialog_ids)]
-        # selected_dialogs = filtered_df.loc[filtered_df["dialog_id"].isin(random_dialog_ids)]
-
-        # 3. Extract `context` where the preceding row has `turn_row_type = 1`
-        contexts_with_turn_row_type_1 = []
-        targets_with_turn_row_type_1 = []
-        last_contexts_list = []
-
-        for dialog_id in random_dialog_ids:
-            dialog_rows = selected_dialogs[selected_dialogs["dialog_id"] == dialog_id]
-            dialog_rows = dialog_rows.reset_index()  # Reset index for easy iteration
-
-            turn_row_type_1_rows = dialog_rows[dialog_rows["turn_row_type"] == 1]
-            contexts_with_turn_row_type_1.extend(
-                turn_row_type_1_rows["context"].tolist()
-            )
-            targets_with_turn_row_type_1.extend(turn_row_type_1_rows["target"].tolist())
-
-        formatted_apicall_examples = []
-
-        for context, target in zip(
-            contexts_with_turn_row_type_1, targets_with_turn_row_type_1
-        ):
-            formatted_example = f"Example:\n{context}\nAfter this conversation, at this exact point, you have to make the following API call:\n{target}"
-            formatted_apicall_examples.append(formatted_example)
-
-        # Extract the last context for this dialog_id
-        last_contexts_list.append(dialog_rows.iloc[-2]["context"])
-
-        ExampleDialogue = "\n".join(last_contexts_list)
-        apicallexamples = "\n".join(formatted_apicall_examples)
+        ExampleDialogue = ""
+        if domain in all_data.keys():
+            apicallexamples = all_data[domain]
+        else:
+            apicallexamples = all_data['default']
 
         prompt_text = "\n\n".join(
             [
@@ -141,11 +108,7 @@ class ChatGptV2Prompt:
                 "\n",
                 "At the end of the conversation do not forget to exchange greetings with the USER\n",
                 "\n",
-                "Here is a complete conversation example for you-\n",
-                "\n",
-                ExampleDialogue,
-                "\n",
-                'That is all the examples for you to understand the gold responses, we will now move to the tasks\\n\\n"\n',
+                'That is all the examples and instructions for you to understand the gold responses, we will now move to the tasks\\n\\n"\n',
                 "\n",
                 "#Main Task\n",
                 "\n",

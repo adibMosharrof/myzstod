@@ -29,6 +29,7 @@ from logger.inference_logger_dataclasses import (
 )
 from metric_managers.nlg_api_call_metric_manager import NlgApiCallMetricManager
 from prompts.nlg_prompt_manager import ChatGptPrompt, NlgPromptFactory
+from prompts.chatgptv2_prompt_preprocess import generate_domain_examples
 from logger.results_logger import ResultsLogger
 from tqdm import tqdm
 import numpy as np
@@ -41,6 +42,7 @@ import data_prep.data_prep_utils as data_prep_utils
 from pathos.multiprocessing import ProcessingPool as Pool
 from base_datamodule import SimpleTodDataSet
 from tod.turns.zs_tod_turn import TodTurnApiCallCsvRow, TodTurnCsvRowFactory
+
 
 
 class ChatGptInference:
@@ -75,6 +77,9 @@ class ChatGptInference:
         dm.setup()
         test_datasets = dm.datasets["test"]
         data = test_datasets[0].data
+        train_datasets = dm.datasets["train"]
+        train_data = train_datasets.data
+        result = generate_domain_examples(train_data)
         all_prompts = []
         for item in data:
             prompt = self.prompt_cls.get_prompt(
@@ -83,7 +88,7 @@ class ChatGptInference:
                 item.context,
                 all_schema=schemas,
                 domains_original=item.domains_original,
-                all_data=data,
+                all_data=result,
             )
             all_prompts.append(DotMap(prompt=prompt, item=item))
         return all_prompts
