@@ -257,6 +257,7 @@ class KetodNlgApiCallStrategy(NlgApiCallStrategy):
         if not turn.system_response:
             return None
         response = self._prepare_response(turn.system_response)
+        response += SpecialTokens.eos_token.value
         return NlgTodTarget(response=response)
 
     def has_request_action(self, log: Log) -> bool:
