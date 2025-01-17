@@ -9,8 +9,16 @@ import pandas as pd
 from sgd_dstc8_data_model.dstc_dataclasses import get_schemas
 import os
 import sys
+from sgd_dstc8_data_model.dstc_dataclasses import (
+    DstcSchema,
+)
 
 sys.path.insert(0, os.path.abspath("./src"))
+
+from configs.dm_config import DataModuleConfig
+from datamodules.tod_datamodulev2 import TodDataModuleV2
+from schema.schema_loader import SchemaLoader
+
 from metric_managers.metric_manager_factory import MetricManagerFactory
 from t5_datamodule import T5DataModule
 
@@ -20,7 +28,8 @@ from logger.inference_logger_dataclasses import (
     KetodInferenceLogData,
 )
 from metric_managers.nlg_api_call_metric_manager import NlgApiCallMetricManager
-from prompts.nlg_prompt_manager import ChatGptPrompt
+from prompts.nlg_prompt_manager import ChatGptPrompt, NlgPromptFactory
+from prompts.chatgptv2_prompt_preprocess import generate_domain_examples
 from logger.results_logger import ResultsLogger
 from tqdm import tqdm
 import numpy as np
@@ -32,10 +41,8 @@ import utils
 import data_prep.data_prep_utils as data_prep_utils
 from pathos.multiprocessing import ProcessingPool as Pool
 from base_datamodule import SimpleTodDataSet
-from tod.turns.zs_tod_turn import TodTurnApiCallCsvRow
+from tod.turns.zs_tod_turn import TodTurnApiCallCsvRow, TodTurnCsvRowFactory
 
-# Set your OpenAI API key
-openai.api_key = "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"
 
 
 class ChatGptInference:
@@ -44,7 +51,9 @@ class ChatGptInference:
         self.cfg.project_root = Path(self.cfg.project_root)
         self.cfg.raw_data_root = self.cfg.project_root / self.cfg.raw_data_root
         self.tod_turn_row_cls = TodTurnApiCallCsvRow
-        self.prompt_cls = ChatGptPrompt()
+        self.prompt_cls = NlgPromptFactory.get_handler(
+            self.cfg.prompt_type, self.cfg.model_type.context_type
+        )
         formatter = logging.Formatter(fmt="%(message)s")
         root_logger = logging.getLogger()  # no name
         for handler in root_logger.handlers:
@@ -54,9 +63,23 @@ class ChatGptInference:
         self.metric_manager = NlgApiCallMetricManager(self.logger)
 
     def get_prompts(self, schemas):
-        dm = T5DataModule(self.cfg, None, schemas)
-        train_dataset, val_dataset, test_datasets = dm.load_data()
+        schema_loader = SchemaLoader(DstcSchema)
+        schemas = schema_loader.get_schemas(self.cfg.raw_data_root)
+        tod_turn_row_cls = TodTurnCsvRowFactory.get_handler(self.cfg)
+        dm_cfg = DotMap(self.cfg)
+        dm_cfg.update(self.cfg.model_type)
+        dm_config = DataModuleConfig(tokenizer=None, **dm_cfg)
+        dm = TodDataModuleV2(
+            dm_config,
+            schemas=schemas,
+            tod_turn_row_cls=tod_turn_row_cls,
+        )
+        dm.setup()
+        test_datasets = dm.datasets["test"]
         data = test_datasets[0].data
+        train_datasets = dm.datasets["train"]
+        train_data = train_datasets.data
+        result = generate_domain_examples(train_data)
         all_prompts = []
         for item in data:
             prompt = self.prompt_cls.get_prompt(
@@ -65,16 +88,15 @@ class ChatGptInference:
                 item.context,
                 all_schema=schemas,
                 domains_original=item.domains_original,
+                all_data=result,
             )
             all_prompts.append(DotMap(prompt=prompt, item=item))
         return all_prompts
 
     def query_chatgpt(self, row):
-        client = openai.OpenAI(
-            api_key="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"
-        )
+        client = openai.OpenAI(api_key=os.getenv("CHATGPT_APIKEY"))
         response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
+            model="gpt-4o",
             messages=[{"role": "user", "content": row.prompt}],
         )
         out = KetodInferenceLogData(
@@ -209,29 +231,6 @@ class ChatGptInference:
                 res["ke_params"] = setting_ke_rows.ke_params.mean().round(4)
                 res["ke_param_values"] = setting_ke_rows.ke_param_values.mean().round(4)
 
-            # if len(setting_multi_dom_ke_rows) > 0:
-            #     res["multi_domain_ke_api_call_invoke"] = (
-            #         setting_multi_dom_ke_rows.api_call_invoke.mean().round(4)
-            #     )
-            #     res["multi_domain_ke_method"] = (
-            #         setting_multi_dom_ke_rows.api_call_method.mean().round(4)
-            #     )
-            #     res["multi_domain_ke_params"] = (
-            #         setting_multi_dom_ke_rows.api_call_param_names.mean().round(4)
-            #     )
-            #     res["multi_domain_ke_param_values"] = (
-            #         setting_multi_dom_ke_rows.api_call_param_values.mean().round(4)
-            #     )
-            #     res["multi_domain_ke_complete_api_call"] = (
-            #         setting_multi_dom_ke_rows.complete_api_call.mean().round(4)
-            #     )
-            # else:
-            #     res["multi_domain_ke_api_call_invoke"] = 0
-            #     res["multi_domain_ke_method"] = 0
-            #     res["multi_domain_ke_params"] = 0
-            #     res["multi_domain_ke_param_values"] = 0
-            #     res["multi_domain_ke_complete_api_call"] = 0
-
             if len(setting_slot_fill_rows) > 0:
                 res["slot_fill_bleu"] = (
                     setting_slot_fill_rows.response_bleu.mean().round(4)
@@ -269,14 +268,6 @@ class ChatGptInference:
             encoding="utf-8",
         )
         rl.get_regular_setting_results(responses_with_dom_category)
-        # results_dict = []
-        # for domain, metrics in results.items():
-        #     results_dict.append({"domain": domain, **metrics})
-        # results_df = pd.DataFrame(results_dict)
-
-        # results_df.to_csv(
-        #     out_dir / "regular_results.csv", index=False, encoding="utf-8"
-        # )
 
     def run(self):
         steps = Steps.list()
@@ -286,7 +277,7 @@ class ChatGptInference:
         item_prompts = self.get_prompts(schemas)
 
         metric_manager = MetricManagerFactory.get_metric_manager(
-            self.cfg.context_type, None, self.logger
+            self.cfg.model_type.context_type, None, self.logger
         )
         responses = self.get_chatgpt_responses(item_prompts, metric_manager)
         self.get_metrics(responses, metric_manager)
