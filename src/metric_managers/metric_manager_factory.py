@@ -17,9 +17,9 @@ class MetricManagerFactory:
                 ContextManager.is_sgd_baseline(context_type),
             ]
         ):
-            return NlgApiCallMetricManager(logger, tokenizer)
+            return NlgApiCallMetricManager(logger, context_type, tokenizer)
         if ContextManager.is_ketod(context_type):
-            return KeTodMetricManager(logger, tokenizer)
+            return KeTodMetricManager(logger, context_type, tokenizer)
         if ContextManager.is_bitod(context_type):
             return BitodMetricManager(logger, tokenizer)
         return NlgMetricManager(logger, tokenizer)
