@@ -38,7 +38,7 @@ class ServiceCallInferenceLogger:
                 d.service_call_bert_score = bert_score_data
             else:
                 d.response_gleu_score = gleu_score
-                d.response_bert_score = bert_score_data
+                d.response_bertscore = bert_score_data
 
     def write_csv(self, csv_path):
         return

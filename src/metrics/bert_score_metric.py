@@ -11,7 +11,7 @@ import numpy as np
 class BertScoreMetric(TodMetricsBase):
     def __init__(
         self,
-        tokenizer: AutoTokenizer,
+        tokenizer: AutoTokenizer = None,
         bert_score_model="microsoft/mpnet-base",
     ):
         super().__init__()
@@ -48,4 +48,4 @@ class BertScoreMetric(TodMetricsBase):
 
     def __str__(self):
         res = self._compute()
-        return str(res)
+        return str(round(res.f1, 4))
