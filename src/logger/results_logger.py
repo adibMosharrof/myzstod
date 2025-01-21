@@ -26,6 +26,7 @@ class ResultsLogger:
         self.cfg = cfg
         self.cfg.project_root = Path(cfg.project_root)
         self.cfg.raw_data_root = Path(cfg.raw_data_root)
+        self.bertscore_model = "microsoft/mpnet-base"
 
     def get_csv(self, path):
         csv_path = path if Path(path).is_absolute() else self.cfg.project_root / path
@@ -62,6 +63,7 @@ class ResultsLogger:
             if len(response_rows):
                 bleu_metric = evaluate.load("bleu")
                 gleu_metric = evaluate.load("google_bleu")
+                bertscore_metric = evaluate.load("bertscore")
                 preds = response_rows.pred.tolist()
                 refs = np.expand_dims(response_rows.label.tolist(), axis=1)
                 bleu_score = bleu_metric.compute(predictions=preds, references=refs)[
@@ -70,19 +72,18 @@ class ResultsLogger:
                 gleu_score = gleu_metric.compute(predictions=preds, references=refs)[
                     "google_bleu"
                 ]
+                bertscore = bertscore_metric.compute(
+                    predictions=preds, references=refs, model_type=self.bertscore_model
+                )["f1"]
                 setting_results.update(
                     DotMap(
                         response_bleu=round(bleu_score, 4),
                         response_gleu=round(gleu_score, 4),
+                        response_bertscore=round(np.mean(bertscore), 4),
                     )
                 )
             else:
                 print(f"no response rows for setting {setting}")
-            # setting_results.update(
-            #     self.get_group_metrics(
-            #         response_rows, ["response_bleu", "response_gleu"]
-            #     )
-            # )
             api_rows = rows[rows["turn_row_type"] == TurnRowType.API_CALL.value]
             if len(api_rows):
                 setting_results.update(
@@ -146,13 +147,15 @@ class ResultsLogger:
 
             retrieval_rows = rows[rows["is_retrieval"] == 1]
             retrieval_metrics = self.get_group_metrics(
-                retrieval_rows, ["response_bleu", "response_gleu"]
+                retrieval_rows,
+                ["response_bleu", "response_gleu", "response_bertscore"],
             )
             if len(retrieval_rows):
                 setting_results.update(
                     DotMap(
                         retrieval_bleu=retrieval_metrics["response_bleu"],
                         retrieval_gleu=retrieval_metrics["response_gleu"],
+                        retrieval_bertscore=retrieval_metrics["response_bertscore"],
                     )
                 )
             else:
@@ -160,7 +163,8 @@ class ResultsLogger:
 
             slot_fill_rows = rows[rows["is_slot_fill"] == 1]
             slot_fill_metrics = self.get_group_metrics(
-                slot_fill_rows, ["response_bleu", "response_gleu"]
+                slot_fill_rows,
+                ["response_bleu", "response_gleu", "response_bertscore"],
             )
 
             if len(slot_fill_rows):
@@ -168,6 +172,7 @@ class ResultsLogger:
                     DotMap(
                         slot_fill_bleu=slot_fill_metrics["response_bleu"],
                         slot_fill_gleu=slot_fill_metrics["response_gleu"],
+                        slot_fill_bertscore=slot_fill_metrics["response_bertscore"],
                     )
                 )
             else:
