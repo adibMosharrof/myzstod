@@ -33,6 +33,7 @@ class ApiCallInferenceLogData(InferenceLogData):
     api_call_param_values: Optional[float] = None
     response_gleu: Optional[float] = None
     response_bleu: Optional[float] = None
+    response_bertscore: Optional[float] = None
     api_call_invoke: Optional[float] = None
     is_retrieval: Optional[int] = 0
     is_slot_fill: Optional[int] = 0
@@ -49,6 +50,7 @@ class ApiCallInferenceLogData(InferenceLogData):
         self.api_call_param_values = updated_data.api_call_param_values
         self.response_gleu = updated_data.response_gleu
         self.response_bleu = updated_data.response_bleu
+        self.response_bertscore = updated_data.response_bertscore
         self.api_call_invoke = updated_data.api_call_invoke
         self.is_retrieval = updated_data.is_retrieval
         self.is_slot_fill = updated_data.is_slot_fill

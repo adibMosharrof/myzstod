@@ -37,7 +37,7 @@ class NlgApiCallMetricManager:
             {
                 "response_gleu": NlgGleuMetric(),
                 "response_bleu": NlgGleuMetric("bleu"),
-                # "response_bertscore": BertScoreMetric(tokenizer),
+                "response_bertscore": BertScoreMetric(tokenizer),
             }
         )
         self.api_call_metrics = MetricCollection(
@@ -95,7 +95,7 @@ class NlgApiCallMetricManager:
         if self.tokenizer:
             input_texts, labels, preds = [
                 self.tokenizer.batch_decode(
-                    tokens, skip_special_tokens=True, clean_up_tokenization_spaces=True
+                    tokens, skip_special_tokens=False, clean_up_tokenization_spaces=True
                 )
                 for tokens in [input_tokens, label_tokens, pred_tokens]
             ]
