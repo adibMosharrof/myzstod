@@ -36,7 +36,12 @@ class DstcBaseDataPrep:
     ):
         self.cfg = cfg
         self.data_prep_strategy = data_prep_strategy
-        self.schemas = schemas or schema_loader.get_schemas(self.cfg.raw_data_root)
+        if schemas:
+            self.schemas = schemas
+        else:
+            if not schema_loader:
+                schema_loader =  SchemaLoader(DstcSchema)
+            self.schemas = schema_loader.get_schemas(self.cfg.raw_data_root)
 
     def _prepare_dialog_file(
         self,
