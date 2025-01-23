@@ -10,12 +10,7 @@ class Qlora4bitModelLoader(LoraModelLoader):
 
     def load(self, model_path: Union[Path, str] = None):
         model_path = self._get_model_path(model_path)
-        config = BitsAndBytesConfig(
-            load_in_4bit=True,
-            bnb_4bit_quant_type="nf4",
-            bnb_4bit_use_double_quant=True,
-            bnb_4bit_compute_dtype=torch.bfloat16,
-        )
+        config = self.get_bnb_config()
         device_map = {"": self.accelerator.process_index}
         dtype = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
         model = self.model_class.from_pretrained(
@@ -39,12 +34,7 @@ class Qlora4bitModelLoader(LoraModelLoader):
 
     def load_for_inference(self, model_path: Union[Path, str] = None) -> PeftModel:
         device_map = {"": self.accelerator.device}
-        config = BitsAndBytesConfig(
-            load_in_4bit=True,
-            bnb_4bit_quant_type="nf4",
-            bnb_4bit_use_double_quant=True,
-            bnb_4bit_compute_dtype=torch.bfloat16,
-        )
+        config = self.get_bnb_config()
         model = self.model_class.from_pretrained(
             self.model_name, quantization_config=config, device_map=device_map
         )
@@ -52,3 +42,11 @@ class Qlora4bitModelLoader(LoraModelLoader):
         model = PeftModel.from_pretrained(model, model_path, device_map=device_map)
         model.eval()
         return model
+
+    def get_bnb_config(self):
+        return BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_quant_type="nf4",
+            bnb_4bit_use_double_quant=True,
+            bnb_4bit_compute_dtype=torch.bfloat16,
+        )
