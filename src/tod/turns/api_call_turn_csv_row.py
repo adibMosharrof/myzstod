@@ -21,8 +21,11 @@ class ApiCallTurnCsvRow(TurnCsvRowBase):
         context_type: ContextType,
         tod_turn: NlgTodTurn,
         should_add_schema: bool = True,
+        step_name=None,
     ) -> list[str]:
-        row = super().to_csv_row(context_type, tod_turn, should_add_schema)
+        row = super().to_csv_row(
+            context_type, tod_turn, should_add_schema, step_name=step_name
+        )
 
         row += [
             int(tod_turn.turn_row_type),

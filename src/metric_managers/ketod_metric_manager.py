@@ -24,8 +24,8 @@ from my_enums import TurnRowType
 
 
 class KeTodMetricManager(NlgApiCallMetricManager):
-    def __init__(self, logger, context_type, tokenizer=None):
-        super().__init__(logger, context_type, tokenizer)
+    def __init__(self, logger, tokenizer, cfg):
+        super().__init__(logger, tokenizer, cfg)
 
         self.ke_metrics = MetricCollection(
             {
@@ -80,7 +80,7 @@ class KeTodMetricManager(NlgApiCallMetricManager):
     ):
         input_texts, labels, preds = [
             self.tokenizer.batch_decode(
-                tokens, skip_special_tokens=self.special_tokens, clean_up_tokenization_spaces=True
+                tokens, skip_special_tokens=True, clean_up_tokenization_spaces=True
             )
             for tokens in [input_tokens, label_tokens, pred_tokens]
         ]

@@ -28,6 +28,7 @@ import psutil
 
 from transformers import TrainerCallback
 from my_trainers.custom_trainer import CustomTrainer
+from validators.post_process_generation_validator import PostProcessGenerationValidator
 
 
 sys.path.insert(0, os.path.abspath("./src"))
@@ -80,6 +81,7 @@ class BaseTrainer:
             ShouldAddSchemaValidator(),
             ShouldTrainValidator(),
             TargetLengthValidator(),
+            PostProcessGenerationValidator(),
         ]
         for validator in validators:
             validator.validate(self.cfg)
@@ -145,7 +147,7 @@ class BaseTrainer:
             )
             test_dl = accelerator.prepare(test_dl)
             metric_manager = MetricManagerFactory.get_metric_manager(
-                self.cfg.model_type.context_type, tokenizer, self.logger
+                self.cfg.model_type.context_type, tokenizer, self.logger, self.cfg
             )
             for batch in tqdm(test_dl):
                 max_gen_len = self.cfg.max_token_len
@@ -155,7 +157,7 @@ class BaseTrainer:
                     max_gen_len - self.cfg.test_prompt_max_len,
                     max_gen_len,
                     self.cfg.test_prompt_max_len,
-                    False,
+                    self.cfg.should_post_process,
                     accelerator,
                     metric_manager,
                 )
@@ -164,6 +166,8 @@ class BaseTrainer:
             metric_manager.compute_row_wise_metrics()
             metric_manager.compute_metrics(domain_names)
             metric_manager.compute_is_retrieval_and_slot_fill_metrics()
+
+            metric_manager.compute_bert_scores()
             csv_path = self.get_pred_csv_path(test_dataset)
             metric_manager.write_csv(csv_path)
 
