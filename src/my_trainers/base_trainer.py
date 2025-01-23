@@ -22,7 +22,11 @@ from transformers.trainer_seq2seq import Seq2SeqTrainer
 from transformers.trainer_utils import IntervalStrategy
 from transformers.training_args_seq2seq import Seq2SeqTrainingArguments
 from torch.utils.data import DataLoader
+import gc
+import torch
+import psutil
 
+from transformers import TrainerCallback
 from my_trainers.custom_trainer import CustomTrainer
 from validators.post_process_generation_validator import PostProcessGenerationValidator
 
@@ -208,6 +212,8 @@ class BaseTrainer:
     ):
         model = model_loader.load()
         deepspeed_path = str(self.cfg.project_root / "config/ds_zero_tod.json")
+        # deepspeed_path = str(self.cfg.project_root / "config/ds_zero1.json")
+        # deepspeed_path = str(self.cfg.project_root / "config/ds_config.json")
         bf16 = False
         fp16 = False
         if torch.cuda.is_bf16_supported():
@@ -257,6 +263,7 @@ class BaseTrainer:
             eval_dataset=val_dataset,
             data_collator=collator.tod_train_collate,
             callbacks=[
+                # ClearMemoryCallback(),
                 EarlyStoppingCallback(
                     early_stopping_patience=self.cfg.early_stopping_patience
                 ),
@@ -352,3 +359,40 @@ class BaseTrainer:
             else:
                 out[key] = [i for i in ds[key].data if i.turn_row_type == 1]
         return out
+
+class ClearMemoryCallback(TrainerCallback):
+    def __init__(self):
+        super().__init__()
+        self.logger = logging.getLogger()
+    
+    def on_evaluate(self, args, state, control, **kwargs):
+        """
+        Clear GPU and RAM memory after evaluation.
+        """
+        # Log memory usage before clearing
+        utils.log(self.logger, self.log_memory("Before evaluation cleanup"))
+        # Clear GPU memory
+        torch.cuda.empty_cache()
+
+        # Clear RAM by forcing garbage collection
+        gc.collect()
+
+        # Log memory usage after clearing
+        utils.log(self.logger, self.log_memory("After evaluation cleanup"))
+
+    def log_memory(self, stage):
+        """
+        Logs current RAM and GPU memory usage.
+        """
+        # Get system memory usage
+        ram_usage = psutil.virtual_memory().used / (1024**3)
+        total_ram = psutil.virtual_memory().total / (1024**3)
+
+        # Get GPU memory usage
+        if torch.cuda.is_available():
+            gpu_memory = torch.cuda.memory_allocated() / (1024**3)
+        else:
+            gpu_memory = 0
+        msg =f"{stage} - RAM: {ram_usage:.2f} GB / {total_ram:.2f} GB, GPU: {gpu_memory:.2f} GB"
+        return msg
+        # utils.log(self.logger,msg) 
