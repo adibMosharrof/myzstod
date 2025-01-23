@@ -1,9 +1,12 @@
 from dataclasses import asdict
+import os
+from pathlib import Path
 import uuid
 from dotmap import DotMap
 import evaluate
 import pandas as pd
 
+from data_exploration.calc_bert_score import CalcBertScore
 from logger.inference_logger_dataclasses import (
     BertScoreData,
     ApiCallInferenceLogData,
@@ -24,7 +27,8 @@ import utils
 
 
 class NlgApiCallMetricManager:
-    def __init__(self, logger, tokenizer=None):
+    def __init__(self, logger, tokenizer=None, cfg=None):
+        self.cfg = cfg
         self.tokenizer = tokenizer
         self.google_bleu = evaluate.load("google_bleu", experiment_id=str(uuid.uuid4()))
         self.bert_score_metric = evaluate.load(
@@ -95,7 +99,7 @@ class NlgApiCallMetricManager:
         if self.tokenizer:
             input_texts, labels, preds = [
                 self.tokenizer.batch_decode(
-                    tokens, skip_special_tokens=False, clean_up_tokenization_spaces=True
+                    tokens, skip_special_tokens=True, clean_up_tokenization_spaces=True
                 )
                 for tokens in [input_tokens, label_tokens, pred_tokens]
             ]
@@ -270,3 +274,19 @@ class NlgApiCallMetricManager:
         utils.log(self.logger, f"Retrieval GLEU: {r_gleu:.4f}")
         utils.log(self.logger, f"Slot Fill BLEU: {s_bleu:.4f}")
         utils.log(self.logger, f"Slot Fill GLEU: {s_gleu:.4f}")
+
+    def compute_bert_scores(self):
+        dataset = self.cfg.dataset.get("ketod", None) or self.cfg.dataset.get(
+            "sgd", None
+        )
+        out_path = Path(os.getcwd()) / "results" / "bertscores.csv"
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        cbs = CalcBertScore(
+            DotMap(
+                data=self.data,
+                out_path=out_path,
+                project_root=self.cfg.project_root,
+                raw_data_root=dataset["raw_data_root"],
+            )
+        )
+        cbs.run()

@@ -72,7 +72,7 @@ def get_text_in_between(
     if not multiple_values:
         try:
             idx1 = text.index(start_token)
-            idx2 = text.index(end_token)
+            idx2 = text.index(end_token, idx1)
             res = text[idx1 + len(start_token) : idx2]
             return res
             # return res.strip()
@@ -152,6 +152,7 @@ def get_model_class(model_name: str, is_mh_head: bool = False):
         return T5ForConditionalGeneration
     else:
         return AutoModelWithLMHead
+
 
 def get_model_size(model: AutoModel) -> int:
     return sum(p.numel() for p in model.parameters())

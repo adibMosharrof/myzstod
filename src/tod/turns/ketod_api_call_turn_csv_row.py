@@ -16,9 +16,15 @@ class KetodApiCallTurnCsvRow(TurnCsvRowBase):
         return headers
 
     def to_csv_row(
-        self, context_type: ContextType, tod_turn: KeTodTurn, should_add_schema: bool
+        self,
+        context_type: ContextType,
+        tod_turn: KeTodTurn,
+        should_add_schema: bool,
+        step_name=None,
     ) -> list[str]:
-        row = super().to_csv_row(context_type, tod_turn, should_add_schema)
+        row = super().to_csv_row(
+            context_type, tod_turn, should_add_schema, step_name=step_name
+        )
         row += [
             int(tod_turn.turn_row_type),
             tod_turn.is_retrieval,

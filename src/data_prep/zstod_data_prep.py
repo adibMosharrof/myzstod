@@ -4,7 +4,7 @@ from sgd_dstc8_data_model.dstc_dataclasses import (
     DstcTurn,
 )
 from data_prep.data_prep_strategy import DataPrepStrategy
-from my_enums import ZsTodConstants
+from my_enums import Steps, ZsTodConstants
 from tod.turns.zs_tod_turn import ZsTodTurn
 from tod.zs_tod_dst import ZsTodDst
 from tod.zs_tod_target import ZsTodTarget
@@ -72,6 +72,7 @@ class ZsTodDataPrep(DataPrepStrategy):
             self._get_actions(user_turn) if self.cfg.should_add_user_actions else None
         )
         response = self._prepare_response(system_turn.utterance)
+
         return ZsTodTarget(
             dsts=dsts, actions=actions, user_actions=user_actions, response=response
         )
@@ -80,5 +81,5 @@ class ZsTodDataPrep(DataPrepStrategy):
         for schema in turn_schemas:
             for slot in schema.slots:
                 slot.possible_values = []
-            
+
         return "".join([str(s) for s in turn_schemas])
