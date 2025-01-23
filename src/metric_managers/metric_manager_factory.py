@@ -9,7 +9,7 @@ from utilities.context_manager import ContextManager
 class MetricManagerFactory:
 
     @classmethod
-    def get_metric_manager(self, context_type: str, tokenizer, logger):
+    def get_metric_manager(self, context_type: str, tokenizer, logger, cfg):
         if any(
             [
                 ContextManager.is_sgd_nlg_api(context_type),
@@ -17,9 +17,9 @@ class MetricManagerFactory:
                 ContextManager.is_sgd_baseline(context_type),
             ]
         ):
-            return NlgApiCallMetricManager(logger, tokenizer)
+            return NlgApiCallMetricManager(logger, tokenizer, cfg)
         if ContextManager.is_ketod(context_type):
-            return KeTodMetricManager(logger, tokenizer)
+            return KeTodMetricManager(logger, tokenizer, cfg)
         if ContextManager.is_bitod(context_type):
             return BitodMetricManager(logger, tokenizer)
         return NlgMetricManager(logger, tokenizer)

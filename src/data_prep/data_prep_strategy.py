@@ -171,7 +171,10 @@ class DataPrepStrategy(ABC):
         tod_turn.turn_id = turn_id
         tod_turns.append(
             turn_csv_row_handler.to_csv_row(
-                self.cfg.context_type, tod_turn, self.cfg.should_add_schema
+                self.cfg.context_type,
+                tod_turn,
+                self.cfg.should_add_schema,
+                self.cfg.step_name,
             )
         )
 

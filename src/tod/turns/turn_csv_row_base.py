@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
-from my_enums import ContextType
+from my_enums import ContextType, Steps
 from tod.turns.zs_tod_turn import ZsTodTurn
+from utilities.context_manager import ContextManager
 
 """ Prepares the csv rows for turns
 
@@ -31,7 +32,11 @@ class TurnCsvRowBase(ABC):
         pass
 
     def to_csv_row(
-        self, context_type: ContextType, tod_turn: ZsTodTurn, should_add_schema: bool
+        self,
+        context_type: ContextType,
+        tod_turn: ZsTodTurn,
+        should_add_schema: bool,
+        step_name=None,
     ) -> list[str]:
         context_str = self.get_context(tod_turn, context_type)
 
@@ -51,11 +56,23 @@ class TurnCsvRowBase(ABC):
         if should_add_schema:
             row.append(tod_turn.schema_str)
         self.hook_before_adding_target(row, tod_turn)
-        target_str = self.get_target_str(tod_turn, context_type)
+        target_str = self.get_target_str(tod_turn, context_type, step_name)
         row.append(target_str)
         return row
 
     def get_target_str(
-        self, tod_turn: ZsTodTurn, context_type: ContextType = ContextType.DEFAULT
+        self,
+        tod_turn: ZsTodTurn,
+        context_type: ContextType = ContextType.DEFAULT,
+        step_name=None,
     ) -> str:
+        if not step_name == Steps.TEST.value:
+            return str(tod_turn.target)
+        if any(
+            [
+                ContextManager.is_sgd_baseline(context_type),
+                ContextManager.is_ketod_baseline(context_type),
+            ]
+        ):
+            return tod_turn.target.get_nlg_target_str()
         return str(tod_turn.target)
