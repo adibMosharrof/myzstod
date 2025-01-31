@@ -20,14 +20,24 @@ class ChatGptV2Prompt:
         """
         Returns the NLG prompt for the given domain
         """
+        
+        ExampleDialogue = ""
 
+        #if domain in all_data.keys():
+            #apicallexamples = all_data[domain]
+        #else:
+            #apicallexamples = all_data['default']
+        # Split the domain if it contains multiple values
+        
+        uniq_domain = domain.split(",")
+
+        # Collect examples from the dictionary for each matched domain
+        matched_examples = [all_data[d] for d in uniq_domain if d in all_data]
+
+        # If examples are found, join them; otherwise, use the default value
+        apicallexamples = "\n\n".join(matched_examples) if matched_examples else all_data['default']
         
 
-        ExampleDialogue = ""
-        if domain in all_data.keys():
-            apicallexamples = all_data[domain]
-        else:
-            apicallexamples = all_data['default']
 
         prompt_text = "\n\n".join(
             [
@@ -81,11 +91,16 @@ class ChatGptV2Prompt:
                 "\n",
                 "If the user changes something of the required slots, reconfirm the whole details again from scratch before making the API call. \n",
                 "\n",
+                "If you are using date for the API call always use \n",
+                "\n",
                 "If the user requirements change or differ from a previous API call or a previous search from an API call does not return required outcome, feel free to make new API calls with the changed slot values\n",
                 "\n",
                 "If an API call search does not return what the user asks for, make new api call\n",
                 "Here are some example API calls for you. There will be some conversations and afterwards an example of the required API call, so that you can learn where and how to make the API calls"
                 "\n",
+                "Within the api call parameters, always use single quotation marks only and never double ones\n",
+                "\n",
+                "Do not consider the present date. Consider the month to be March 2019"
                 apicallexamples,
                 "\n",
                 'So the principle to keep in mind is\\n 1_provide option. 2_if users agree then present all the details and then ask if they want to go ahead with it. (Basically Reconfrim)3_Only after that confirmation make the API call.",\n',

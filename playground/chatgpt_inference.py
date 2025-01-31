@@ -133,6 +133,7 @@ class ChatGptInference:
             )
         else:
             outputs = [self.query_chatgpt(row) for row in item_prompts]
+        #change to be made, all double quote replaced by single quote
         nlg_metric_manager.data = outputs
         nlg_metric_manager.compute_row_wise_metrics()
         df = pd.DataFrame(nlg_metric_manager.data)
