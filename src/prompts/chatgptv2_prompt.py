@@ -100,7 +100,7 @@ class ChatGptV2Prompt:
                 "\n",
                 "Within the api call parameters, always use single quotation marks only and never double ones\n",
                 "\n",
-                "Do not consider the present date. Consider the month to be March 2019"
+                "Do not consider the present date. Consider the month to be March 2019",
                 apicallexamples,
                 "\n",
                 'So the principle to keep in mind is\\n 1_provide option. 2_if users agree then present all the details and then ask if they want to go ahead with it. (Basically Reconfrim)3_Only after that confirmation make the API call.",\n',
