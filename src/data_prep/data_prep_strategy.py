@@ -112,6 +112,7 @@ class DataPrepStrategy(ABC):
             domains=domains,
             domains_original=services,
             dataset_name=self.cfg.dataset_name,
+            current_user_utterance=context.current_user_utterance,
         )
 
     def prepare_context(

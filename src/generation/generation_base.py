@@ -36,6 +36,10 @@ class GenerationBase(ABC):
         batch_gpu.is_multi_domain_api_calls = batch.is_multi_domain_api_calls.to(
             accelerator.device
         )
+        batch_gpu.is_single_domains = batch.is_single_domains.to(accelerator.device)
+        batch_gpu.current_user_utterance_tokens = (
+            batch.current_user_utterance_tokens.to(accelerator.device)
+        )
 
         return batch_gpu
 
@@ -80,6 +84,8 @@ class GenerationBase(ABC):
             is_retrievals,
             is_slot_fills,
             is_multi_domain_api_calls,
+            is_single_domains,
+            current_user_utterance_tokens,
         ) = accelerator.gather_for_metrics(
             (
                 gen_without_context,
@@ -94,6 +100,8 @@ class GenerationBase(ABC):
                 batch_gpu.is_retrievals,
                 batch_gpu.is_slot_fills,
                 batch_gpu.is_multi_domain_api_calls,
+                batch_gpu.is_single_domains,
+                batch_gpu.current_user_utterance_tokens,
             )
         )
         # gen_without_context = self.remove_context(gen, context_len, max_len)
@@ -104,7 +112,9 @@ class GenerationBase(ABC):
         # dialog_ids = self.remove_pad_decode(dialog_ids, skip_special_tokens=True)
         # turn_ids = self.remove_pad_decode(turn_ids, skip_special_tokens=True)
         domains = self.remove_pad_decode(domain_ids, skip_special_tokens=True)
-
+        current_user_utterances = self.remove_pad_decode(
+            current_user_utterance_tokens, skip_special_tokens=True
+        )
         metric_manager.add_batch(
             input_tokens,
             label_tokens,
@@ -116,6 +126,8 @@ class GenerationBase(ABC):
             turn_ids,
             is_multi_domain_api_calls,
             domains,
+            is_single_domains,
+            current_user_utterances,
         )
         if should_post_process:
             gen_txt = self.postprocess_generation(gen_txt)

@@ -96,6 +96,8 @@ class NlgApiCallMetricManager:
         turn_ids,
         is_multi_domain_api_calls,
         domains,
+        is_single_domains,
+        current_user_utterances,
     ):
         if self.tokenizer:
             input_texts, labels, preds = [
@@ -127,6 +129,8 @@ class NlgApiCallMetricManager:
             turn_id,
             is_multi_domain_api_call,
             domain,
+            is_single_domain,
+            current_user_utterance,
         ) in zip(
             input_texts,
             preds,
@@ -138,6 +142,8 @@ class NlgApiCallMetricManager:
             turn_ids,
             is_multi_domain_api_calls,
             domains,
+            is_single_domains,
+            current_user_utterances,
         ):
             row = ApiCallInferenceLogData(
                 input_text=input_text,
@@ -150,6 +156,8 @@ class NlgApiCallMetricManager:
                 turn_id=turn_id.item(),
                 domains=domain,
                 is_multi_domain_api_call=int(is_multi_domain_api_call),
+                is_single_domain=int(is_single_domain),
+                current_user_utterance=current_user_utterance,
             )
             self.data.append(row)
             if turn_row_type == 0:
@@ -276,10 +284,14 @@ class NlgApiCallMetricManager:
         utils.log(self.logger, f"Slot Fill BLEU: {s_bleu:.4f}")
         utils.log(self.logger, f"Slot Fill GLEU: {s_gleu:.4f}")
 
+    def get_dataset_from_cfg(self):
+        for key in ["ketod", "sgd", "bitod"]:
+            if key in self.cfg.dataset:
+                return self.cfg.dataset[key]
+        return None
+
     def compute_bert_scores(self):
-        dataset = self.cfg.dataset.get("ketod", None) or self.cfg.dataset.get(
-            "sgd", None
-        )
+        dataset = self.get_dataset_from_cfg()
         out_path = Path(os.getcwd()) / "results" / "bertscores.csv"
         out_path.parent.mkdir(parents=True, exist_ok=True)
         cbs = CalcBertScore(

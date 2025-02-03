@@ -243,7 +243,10 @@ class BaseApiCallStrategy(DataPrepStrategy):
         intent_names = []
         field_name = "pseudo_name" if isinstance(schema, PseudoSchema) else "name"
         for intent in schema.intents:
-            intent_name = getattr(intent, field_name)
+            if type(intent) == dict:
+                intent_name = intent.get(field_name, None)
+            else:
+                intent_name = getattr(intent, field_name)
             if not intent_name:
                 raise ValueError(
                     f"Intent field {field_name} not found in schema: {schema}"
