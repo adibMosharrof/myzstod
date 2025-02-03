@@ -10,6 +10,7 @@ class QuantizedLoraModelLoader(LoraModelLoader):
 
     # def old_load(self, model_path: Union[Path, str] = None, is_inference: bool = False):
     def load(self, model_path: Union[Path, str] = None):
+        print("Loading model in 8 bit")
         model_path = self._get_model_path(model_path)
         config = BitsAndBytesConfig(load_in_8bit=True)
         device_map = {"": self.accelerator.process_index}
@@ -76,6 +77,9 @@ class QuantizedLoraModelLoader(LoraModelLoader):
             self.model_name, quantization_config=config, device_map=device_map
         )
         self._resize_token_embeddings(model)
+        model_path = Path(model_path)
+        if not model_path.is_dir():
+            model_path = model_path.parent
         model = PeftModel.from_pretrained(model, model_path, device_map=device_map)
         model.eval()
         return model
