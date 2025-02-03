@@ -77,6 +77,8 @@ class KeTodMetricManager(NlgApiCallMetricManager):
         turn_ids,
         is_multi_domain_api_calls,
         domains,
+        is_single_domains,
+        current_user_utterances,
     ):
         input_texts, labels, preds = [
             self.tokenizer.batch_decode(
@@ -111,6 +113,8 @@ class KeTodMetricManager(NlgApiCallMetricManager):
             turn_id,
             is_multi_domain_api_call,
             domain,
+            is_single_domain,
+            current_user_utterance,
         ) in zip(
             input_texts,
             preds,
@@ -122,6 +126,8 @@ class KeTodMetricManager(NlgApiCallMetricManager):
             turn_ids,
             is_multi_domain_api_calls,
             domains,
+            is_single_domains,
+            current_user_utterances,
         ):
             row = KetodInferenceLogData(
                 input_text=input_text,
@@ -134,6 +140,8 @@ class KeTodMetricManager(NlgApiCallMetricManager):
                 turn_id=turn_id.item(),
                 domains=domain,
                 is_multi_domain_api_call=int(is_multi_domain_api_call),
+                is_single_domain=int(is_single_domain),
+                current_user_utterance=current_user_utterance,
             )
             self.data.append(row)
             if turn_row_type == TurnRowType.RESPONSE.value:
