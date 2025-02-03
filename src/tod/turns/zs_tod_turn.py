@@ -53,6 +53,8 @@ class TodTurnApiCallCsvRow(TodTurnCsvRow):
     is_slot_fill: Optional[int] = None
     is_multi_domain_api_call: Optional[int] = None
     dataset_name: Optional[str] = None
+    is_single_domain: Optional[int] = None
+    current_user_utterance: Optional[str] = None
 
     @classmethod
     def from_list_of_values_and_headers(self, values, headers):

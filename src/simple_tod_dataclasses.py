@@ -57,6 +57,10 @@ class NlgTestDataBatch:
     is_retrievals: Optional[list[int]] = field(default_factory=list)
     is_slot_fills: Optional[list[int]] = field(default_factory=list)
     is_multi_domain_api_calls: Optional[list[int]] = field(default_factory=list)
+    is_single_domains: Optional[list[int]] = field(default_factory=list)
+    current_user_utterance_tokens: Optional[list[list[int]]] = field(
+        default_factory=list
+    )
 
 
 @dataclass

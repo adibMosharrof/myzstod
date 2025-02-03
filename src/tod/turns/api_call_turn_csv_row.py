@@ -13,6 +13,8 @@ class ApiCallTurnCsvRow(TurnCsvRowBase):
             "is_slot_fill",
             "is_multi_domain_api_call",
             "dataset_name",
+            "is_single_domain",
+            "current_user_utterance",
         ]
         return headers
 
@@ -26,12 +28,17 @@ class ApiCallTurnCsvRow(TurnCsvRowBase):
         row = super().to_csv_row(
             context_type, tod_turn, should_add_schema, step_name=step_name
         )
-
+        is_single_domain = self.get_is_single_domain(tod_turn)
         row += [
             int(tod_turn.turn_row_type),
             int(tod_turn.is_retrieval),
             tod_turn.is_slot_fill,
             tod_turn.is_multi_domain_api_call,
             tod_turn.dataset_name,
+            is_single_domain,
+            tod_turn.current_user_utterance,
         ]
         return row
+
+    def get_is_single_domain(self, tod_turn: NlgTodTurn) -> bool:
+        return int(len(tod_turn.domains) == 1)

@@ -41,6 +41,8 @@ class ApiCallInferenceLogData(InferenceLogData):
     turn_id: Optional[int] = None
     is_multi_domain_api_call: Optional[int] = 0
     domains: Optional[list[str]] = None
+    is_single_domain: Optional[int] = 0
+    current_user_utterance: Optional[str] = None
 
     def update(self, updated_data: "ApiCallInferenceLogData"):
         self.turn_row_type = updated_data.turn_row_type
@@ -55,6 +57,8 @@ class ApiCallInferenceLogData(InferenceLogData):
         self.is_retrieval = updated_data.is_retrieval
         self.is_slot_fill = updated_data.is_slot_fill
         self.domains = updated_data.domains
+        self.is_single_domain = updated_data.is_single_domain
+        self.current_user_utterance = updated_data.current_user_utterance
 
 
 @dataclass

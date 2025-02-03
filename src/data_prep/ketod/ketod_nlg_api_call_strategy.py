@@ -224,6 +224,7 @@ class KetodNlgApiCallStrategy(NlgApiCallStrategy):
             schema_str=turn_schema_str,
             domains=domains,
             domains_original=services,
+            current_user_utterance=context.current_user_utterance,
         )
 
     def prepare_context(self, turn: Log, prev_tod_turn: NlgTodTurn) -> KeTodContext:

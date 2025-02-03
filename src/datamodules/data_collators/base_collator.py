@@ -74,6 +74,10 @@ class BaseCollator(ABC):
             is_slot_fills=torch.stack(data.is_slot_fills),
             is_multi_domain_api_calls=torch.stack(data.is_multi_domain_api_calls),
             domain_ids=torch.stack(data.domain_ids),
+            is_single_domains=torch.stack(data.is_single_domains),
+            current_user_utterance_tokens=torch.stack(
+                data.current_user_utterance_tokens
+            ),
         )
 
     def get_test_data_cols(self):
@@ -91,6 +95,8 @@ class BaseCollator(ABC):
                     "is_slot_fills",
                     "is_multi_domain_api_calls",
                     "domain_ids",
+                    "is_single_domains",
+                    "current_user_utterance_tokens",
                 ]
             }
         )
@@ -116,6 +122,14 @@ class BaseCollator(ABC):
             tokenizer=self.tokenizer,
         )
         data.domain_ids.append(domain_tokens["input_ids"][0])
+        current_user_utterance_tokens = TokenizerUtilities.tokenize_with_pad(
+            text=item.current_user_utterance,
+            tokenizer=self.tokenizer,
+        )
+        data.is_single_domains.append(torch.tensor(item.is_single_domain))
+        data.current_user_utterance_tokens.append(
+            current_user_utterance_tokens["input_ids"][0]
+        )
 
     def collate_single_item(
         self, item: TodTurnCsvRow, target_max_len: int, is_test: bool = False
