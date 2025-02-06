@@ -14,7 +14,6 @@ from data_prep.data_prep_strategy import DataPrepStrategy
 from data_prep.data_prep_strategy_factory import DataPrepStrategyFactory
 from datasets import load_dataset
 
-from tod.turns.turn_csv_row_base import TurnCsvRowBase
 from tod.turns.turn_csv_row_factory import TurnCsvRowFactory
 import data_prep.data_prep_utils as data_prep_utils
 from torch.utils.data import Subset
@@ -50,7 +49,7 @@ class BitodDataPrep:
             return
 
         dataset = load_dataset("Salesforce/dialogstudio", "BiTOD")
-        turn_csv_row_handler: TurnCsvRowBase = TurnCsvRowFactory.get_handler(self.cfg)
+        turn_csv_row_handler = TurnCsvRowFactory.get_handler(self.cfg)
         ds = data_prep_utils.get_dialog_studio_step_data(self.cfg.step_name, dataset)
         en_row_ids = []
         for i, row in enumerate(ds):

@@ -40,6 +40,9 @@ class GenerationBase(ABC):
         batch_gpu.current_user_utterance_tokens = (
             batch.current_user_utterance_tokens.to(accelerator.device)
         )
+        batch_gpu.search_results_tokens = batch.search_results_tokens.to(
+            accelerator.device
+        )
 
         return batch_gpu
 
@@ -86,6 +89,7 @@ class GenerationBase(ABC):
             is_multi_domain_api_calls,
             is_single_domains,
             current_user_utterance_tokens,
+            search_results_tokens,
         ) = accelerator.gather_for_metrics(
             (
                 gen_without_context,
@@ -102,6 +106,7 @@ class GenerationBase(ABC):
                 batch_gpu.is_multi_domain_api_calls,
                 batch_gpu.is_single_domains,
                 batch_gpu.current_user_utterance_tokens,
+                batch_gpu.search_results_tokens,
             )
         )
         # gen_without_context = self.remove_context(gen, context_len, max_len)
@@ -114,6 +119,9 @@ class GenerationBase(ABC):
         domains = self.remove_pad_decode(domain_ids, skip_special_tokens=True)
         current_user_utterances = self.remove_pad_decode(
             current_user_utterance_tokens, skip_special_tokens=True
+        )
+        search_results = self.remove_pad_decode(
+            search_results_tokens, skip_special_tokens=True
         )
         metric_manager.add_batch(
             input_tokens,
@@ -128,6 +136,7 @@ class GenerationBase(ABC):
             domains,
             is_single_domains,
             current_user_utterances,
+            search_results,
         )
         if should_post_process:
             gen_txt = self.postprocess_generation(gen_txt)

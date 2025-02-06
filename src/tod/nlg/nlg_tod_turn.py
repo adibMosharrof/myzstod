@@ -25,3 +25,4 @@ class NlgTodTurn:
     dataset_name: Optional[str] = None
     is_single_domain: Optional[int] = 0
     current_user_utterance: str = ""
+    search_results: Optional[list[str]] = ""

@@ -7,10 +7,10 @@ from my_enums import Steps
 from prompts.nlg_prompt_manager import NlgPromptFactory
 from prompts.prompt_constants import NlgPromptType
 from simple_tod_dataclasses import NlgTestDataBatch
+from tod.turns.api_call_turn_csv_row import ApiCallTurnCsvRow
+from tod.turns.turn_csv_row_base import TurnCsvRowBase
 from tod.turns.zs_tod_turn import (
-    TodTurnCsvRow,
     TodTurnCsvRowFactory,
-    TodTurnApiCallCsvRow,
 )
 from tod_datamodules import TodDataModule
 import utils
@@ -50,7 +50,7 @@ class T5DataModule:
 
     def trim_dialog_history(
         self,
-        item: TodTurnCsvRow,
+        item: TurnCsvRowBase,
         trim_len: int,
         other_domain: str,
         other_domain_schema: str,
@@ -150,7 +150,7 @@ class T5DataModule:
         return TodTrainRowCollator(input_tokens, label, attention_mask)
 
     def collate_single_item(
-        self, item: TodTurnCsvRow, target_max_len: int, is_test: bool = False
+        self, item: TurnCsvRowBase, target_max_len: int, is_test: bool = False
     ) -> TodTrainRowCollator:
         other_domain, other_domain_schema = None, None
         if self.cfg.prompt_type == NlgPromptType.MULTI_DOMAIN.value:
@@ -211,7 +211,7 @@ class T5DataModule:
         # )
         # return TodTrainRowCollator(input_tokens, label, attention_mask)
 
-    def tod_train_collate(self, batch: list[TodTurnCsvRow]):
+    def tod_train_collate(self, batch: list[TurnCsvRowBase]):
         all_input_tokens = []
         all_labels = []
         all_attention_masks = []
@@ -230,7 +230,7 @@ class T5DataModule:
         }
         # )
 
-    def tod_test_collate(self, batch: list[TodTurnApiCallCsvRow]):
+    def tod_test_collate(self, batch: list[ApiCallTurnCsvRow]):
         data = DotMap(
             {
                 key: []
@@ -304,7 +304,7 @@ class T5DataModule:
         # )
 
     def get_data_by_split_percent(
-        self, data: list[TodTurnCsvRow], split_percent: float
+        self, data: list[TurnCsvRowBase], split_percent: float
     ):
         return data[: int(len(data) * split_percent)]
 
@@ -342,9 +342,9 @@ class T5DataModule:
             / "test"
             / self.cfg.test_csv_file
         )
-        train_data = utils.read_csv_dataclass(train_fp, TodTurnCsvRow)
-        val_data = utils.read_csv_dataclass(val_fp, TodTurnCsvRow)
-        test_data = utils.read_csv_dataclass(test_fp, TodTurnCsvRow)
+        train_data = utils.read_csv_dataclass(train_fp, TurnCsvRowBase)
+        val_data = utils.read_csv_dataclass(val_fp, TurnCsvRowBase)
+        test_data = utils.read_csv_dataclass(test_fp, TurnCsvRowBase)
         datasets = [
             SimpleTodDataSet(self.get_data_by_split_percent(data, split))
             for data, split in zip(

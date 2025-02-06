@@ -3,9 +3,9 @@ from base_datamodule import TodTrainCrossRowCollator, TodTrainRowCollator
 from my_enums import Steps
 from prompts.nlg_prompt_manager import NlgPromptFactory
 from simple_tod_dataclasses import CrossTestDataBatch
+from tod.turns.api_call_turn_csv_row import ApiCallTurnCsvRow
+from tod.turns.turn_csv_row_base import TurnCsvRowBase
 from tod.turns.zs_tod_turn import (
-    TodTurnApiCallCsvRow,
-    TodTurnCsvRow,
     TodTurnCsvRowFactory,
 )
 from tod_datamodules import TodDataModule
@@ -33,7 +33,7 @@ class CrossDataModule(TodDataModule):
 
     def trim_dialog_history(
         self,
-        item: TodTurnCsvRow,
+        item: TurnCsvRowBase,
         trim_len: int,
     ):
         dialog_history_tokens = TokenizerUtilities.tokenize(
@@ -50,7 +50,7 @@ class CrossDataModule(TodDataModule):
             return self.trim_dialog_history(item, -overflow_tokens)
         return context_tokens
 
-    def tod_train_collate(self, batch: list[TodTurnCsvRow]):
+    def tod_train_collate(self, batch: list[TurnCsvRowBase]):
         all_input_tokens = []
         all_labels = []
         all_attention_masks = []
@@ -73,7 +73,7 @@ class CrossDataModule(TodDataModule):
 
     def collate_single_item(
         self,
-        item: TodTurnCsvRow,
+        item: TurnCsvRowBase,
         target_max_len: int,
         is_test: bool = False,
         is_t5_model: bool = False,
@@ -158,7 +158,7 @@ class CrossDataModule(TodDataModule):
         state = encoder_outputs.last_hidden_state
         return state
 
-    def tod_test_collate(self, batch: list[TodTurnApiCallCsvRow]):
+    def tod_test_collate(self, batch: list[ApiCallTurnCsvRow]):
         data = DotMap(
             {
                 key: []

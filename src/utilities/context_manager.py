@@ -14,7 +14,13 @@ class ContextManager:
 
     @staticmethod
     def is_bitod(context_type: str) -> bool:
-        return context_type in [ContextType.BITOD.value, ContextType.BITOD_GPT.value]
+        return context_type in [
+            ContextType.BITOD.value,
+            ContextType.BITOD_GPT.value,
+            ContextType.BITOD_SIMPLE_TOD_API_CALL.value,
+            ContextType.BITOD_SOLOIST_API_CALL.value,
+            ContextType.BITOD_ZSTOD_API_CALL.value,
+        ]
 
     @staticmethod
     def is_sgd_nlg_api(context_type: str) -> bool:
@@ -56,6 +62,7 @@ class ContextManager:
             ContextType.SHORT_REPR.value,
             ContextType.ZSTOD_API_CALL.value,
             ContextType.KETOD_ZSTOD_API_CALL.value,
+            ContextType.BITOD_ZSTOD_API_CALL.value,
         ]
 
     @staticmethod
@@ -64,6 +71,7 @@ class ContextManager:
             ContextType.DEFAULT.value,
             ContextType.SIMPLE_TOD_API_CALL.value,
             ContextType.KETOD_SIMPLE_TOD_API_CALL.value,
+            ContextType.BITOD_SIMPLE_TOD_API_CALL.value,
         ]
 
     @staticmethod
@@ -71,6 +79,7 @@ class ContextManager:
         return context_type in [
             ContextType.SOLOIST_API_CALL.value,
             ContextType.KETOD_SOLOIST_API_CALL.value,
+            ContextType.BITOD_SOLOIST_API_CALL.value,
         ]
 
     @staticmethod
@@ -80,6 +89,8 @@ class ContextManager:
             ContextType.SIMPLE_TOD_API_CALL.value,
             ContextType.KETOD_ZSTOD_API_CALL.value,
             ContextType.KETOD_SIMPLE_TOD_API_CALL.value,
+            ContextType.BITOD_ZSTOD_API_CALL.value,
+            ContextType.BITOD_SIMPLE_TOD_API_CALL.value,
         ]
 
     @staticmethod
@@ -96,4 +107,12 @@ class ContextManager:
             ContextType.KETOD_SIMPLE_TOD_API_CALL.value,
             ContextType.KETOD_ZSTOD_API_CALL.value,
             ContextType.KETOD_SOLOIST_API_CALL.value,
+        ]
+
+    @staticmethod
+    def is_bitod_baseline(context_type: str) -> bool:
+        return context_type in [
+            ContextType.BITOD_SIMPLE_TOD_API_CALL.value,
+            ContextType.BITOD_SOLOIST_API_CALL.value,
+            ContextType.BITOD_ZSTOD_API_CALL.value,
         ]

@@ -1,6 +1,6 @@
 from base_datamodule import TodTrainRowCollator
 from datamodules.data_collators.decoder_collator import DecoderCollator
-from tod.turns.zs_tod_turn import TodTurnCsvRow
+from tod.turns.turn_csv_row_base import TurnCsvRowBase
 from utilities.tokenizer_utilities import TokenizerUtilities
 import torch
 
@@ -19,7 +19,7 @@ class CrossCollator(DecoderCollator):
         self.schema_max_length = schema_max_length
 
     def collate_single_item(
-        self, item: TodTurnCsvRow, target_max_len: int, is_test: bool = False
+        self, item: TurnCsvRowBase, target_max_len: int, is_test: bool = False
     ) -> TodTrainRowCollator:
         schema_prompt = self.nlg_prompt_cls.get_schema_prompt(item.domains, item.schema)
         generation_prompt = self.nlg_prompt_cls.get_generation_prompt(

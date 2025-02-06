@@ -79,6 +79,7 @@ class KeTodMetricManager(NlgApiCallMetricManager):
         domains,
         is_single_domains,
         current_user_utterances,
+        search_results,
     ):
         input_texts, labels, preds = [
             self.tokenizer.batch_decode(
@@ -113,6 +114,7 @@ class KeTodMetricManager(NlgApiCallMetricManager):
             domain,
             is_single_domain,
             current_user_utterance,
+            search_result,
         ) in zip(
             input_texts,
             preds,
@@ -126,6 +128,7 @@ class KeTodMetricManager(NlgApiCallMetricManager):
             domains,
             is_single_domains,
             current_user_utterances,
+            search_results,
         ):
             row = KetodInferenceLogData(
                 input_text=input_text,
@@ -140,6 +143,7 @@ class KeTodMetricManager(NlgApiCallMetricManager):
                 is_multi_domain_api_call=int(is_multi_domain_api_call),
                 is_single_domain=int(is_single_domain),
                 current_user_utterance=current_user_utterance,
+                search_results=search_result,
             )
             self.data.append(row)
             if turn_row_type == TurnRowType.RESPONSE.value:
@@ -193,39 +197,3 @@ class KeTodMetricManager(NlgApiCallMetricManager):
                     )
                 ],
             )
-            # if row.is_multi_domain_api_call:
-            #     for k, v in zip(
-            #         list(self.multi_domain_api_call_metrics.keys()),
-            #         list(self.multi_domain_api_call_metrics.values()),
-            #     ):
-            #         res = v.compute_row(row.pred, row.label)
-            #         if "ke_params" in k:
-            #             row_dict.multi_domain_ke_params = res[0]
-            #             row_dict.multi_domain_ke_params_values = res[1]
-            #             if len(res) == 3:
-            #                 row_dict.multi_domain_api_call_param_relation = res[2]
-            #         else:
-            #             row_dict[k] = res
-
-            #     row_dict.multi_domain_ke_complete_api_call = (
-            #         self.multi_domain_ke_complete_api_call.compute_row(
-            #             [row_dict.multi_domain_ke_api_call_method],
-            #             [
-            #                 (
-            #                     row_dict.multi_domain_ke_params,
-            #                     row_dict.multi_domain_ke_param_values,
-            #                 )
-            #             ],
-            #         )
-            #     )
-            #     self.multi_domain_ke_complete_api_call.update(
-            #         [row_dict.multi_domain_ke_method],
-            #         [
-            #             (
-            #                 row_dict.multi_domain_ke_params,
-            #                 row_dict.multi_domain_ke_param_values,
-            #             )
-            #         ],
-            #     )
-
-        # row.update(row_dict)

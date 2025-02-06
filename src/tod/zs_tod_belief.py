@@ -40,13 +40,17 @@ class ZsTodBelief:
         return self.__str__()
 
     def __str__(self) -> str:
+        if type(self.values) == list:
+            vals = ZsTodConstants.VALUE_SEPARATOR.join(map(str, self.values))
+        else:
+            vals = str(self.values)
         return "".join(
             [
                 self.domain,
                 ZsTodConstants.DOMAIN_SLOT_SEPARATOR,
                 self.slot_name,
                 ZsTodConstants.SLOT_VALUE_SEPARATOR,
-                ZsTodConstants.VALUE_SEPARATOR.join(self.values),
+                vals,
             ]
         )
 

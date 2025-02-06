@@ -61,6 +61,7 @@ class NlgTestDataBatch:
     current_user_utterance_tokens: Optional[list[list[int]]] = field(
         default_factory=list
     )
+    search_results_tokens: Optional[list[list[int]]] = field(default_factory=list)
 
 
 @dataclass

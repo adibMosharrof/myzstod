@@ -131,16 +131,19 @@ class BaseApiCallStrategy(DataPrepStrategy):
         )
         copy_sys_turn = copy.deepcopy(system_turn)
         copy_sys_turn.utterance = api_call_response
+        search_results = tod_turn.context.get_service_results(
+            self.cfg.service_results_num_items
+        )
+
         api_call_with_search_results = "\n".join(
             [
                 api_call_response,
                 "Search Results",
-                tod_turn.context.get_service_results(
-                    self.cfg.service_results_num_items
-                ),
+                search_results,
                 "End Search Results",
             ]
         )
+        tod_turn.search_results = search_results
         tod_turn.context.system_utterances.append(api_call_with_search_results)
         tod_turn.context.user_utterances.append(user_turn.utterance)
         tod_turn.context.current_user_utterance = None

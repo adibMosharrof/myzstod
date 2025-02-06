@@ -5,6 +5,7 @@ from base_datamodule import BaseDataModule
 from configs.dm_config import DataModuleConfig
 from contrastive.contrastive_utils import ContrastiveTokens
 
+from tod.turns.turn_csv_row_base import TurnCsvRowBase
 from tod_datamodules import TodDataModule
 from my_enums import (
     ContrastiveConstants,
@@ -18,7 +19,6 @@ import dstc.dstc_utils as dstc_utils
 import random
 from sgd_dstc8_data_model.dstc_dataclasses import get_schemas
 from itertools import combinations
-from tod.turns.zs_tod_turn import TodTurnCsvRow
 from tod.zs_tod_action import ZsTodAction
 
 
@@ -35,7 +35,7 @@ class ContrastiveDataModule(TodDataModule):
     ):
         super().__init__(cfg)
 
-    def training_collator(self, batch: list[TodTurnCsvRow], is_pretrain: bool = False):
+    def training_collator(self, batch: list[TurnCsvRowBase], is_pretrain: bool = False):
         input_ids = []
         attention_masks = []
         labels = []

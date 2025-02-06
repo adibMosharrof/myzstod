@@ -18,7 +18,7 @@ from data_prep.ketod.ketod_base_data_prep import KetodBaseDataPrep
 
 from multi_woz.tod_multi_woz_21_data_prep import TodMultiWoz21DataPrep
 from multi_woz.tod_multi_woz_22_data_prep import TodMultiWoz22DataPrep
-from tod.turns.zs_tod_turn import TodTurnCsvRow, TodTurnMultiHeadCsvRow
+from tod.turns.turn_csv_row_base import TurnCsvRowBase
 import utils
 from my_enums import SpecialTokens, Steps, MultiTaskNames
 from simple_tod_dataclasses import (
@@ -73,7 +73,7 @@ class BaseDataModule(ABC):
         self,
         cfg: DataModuleConfig,
         steps: list[Steps],
-        tod_turn_row_cls=TodTurnCsvRow,
+        tod_turn_row_cls=TurnCsvRowBase,
         task_name: Optional[MultiTaskNames] = None,
     ):
         self.cfg = cfg
@@ -88,15 +88,13 @@ class BaseDataModule(ABC):
     @abstractmethod
     def training_collator(
         self,
-        batch: list[Union[TodTurnCsvRow, TodTurnMultiHeadCsvRow]],
+        batch: list[any],
         is_pretrain=False,
     ):
         return ValueError("Not implemented")
 
     @abstractmethod
-    def my_test_collate(
-        self, batch: list[Union[TodTurnCsvRow, TodTurnMultiHeadCsvRow]]
-    ):
+    def my_test_collate(self, batch: list[any]):
         return ValueError("Not implemented")
 
     def prepare_data(self, stdp: SimpleTODDSTCDataPrep):
@@ -147,7 +145,7 @@ class BaseDataModule(ABC):
         data = self.get_data_by_split_percent(data, step_data.split_percent)
         return SimpleTodDataSet(data)
 
-    def combine_tasks_for_inference(self, data: list[TodTurnCsvRow]):
+    def combine_tasks_for_inference(self, data: list[TurnCsvRowBase]):
         if not isinstance(data, pd.DataFrame):
             data = pd.DataFrame(data)
         if data.empty:
@@ -260,7 +258,7 @@ class BaseDataModule(ABC):
             )
 
     def create_test_data_grouped_by_dialog_turns(
-        self, datasets: list[list[TodTurnCsvRow]]
+        self, datasets: list[list[TurnCsvRowBase]]
     ):
         out = {}
         for domain in self.cfg.test_domain_settings:
@@ -305,7 +303,7 @@ class BaseDataModule(ABC):
         )
 
     def get_data_by_split_percent(
-        self, data: list[TodTurnCsvRow], split_percent: float
+        self, data: list[TurnCsvRowBase], split_percent: float
     ):
         return data[: int(len(data) * split_percent)]
 
@@ -396,7 +394,7 @@ class BaseDataModule(ABC):
             ]
         )
 
-    def pretraining_collator(self, batch: list[TodTurnCsvRow]):
+    def pretraining_collator(self, batch: list[TurnCsvRowBase]):
         return self.training_collator(batch, True)
 
     def _get_filler_token_from_prompt(self, prompt_token: int, prompt_token_map: dict):
@@ -428,7 +426,7 @@ class BaseDataModule(ABC):
         return out
 
     def t5_collate_single_item(
-        self, item: TodTurnCsvRow, max_length: int
+        self, item: TurnCsvRowBase, max_length: int
     ) -> TodTrainRowCollator:
         context_tokens = self.train_tokenizer(item.context)[0]
         schema_tokens = self.train_tokenizer(item.schema)[0]
@@ -481,7 +479,7 @@ class BaseDataModule(ABC):
 
     def collate_single_item(
         self,
-        item: TodTurnCsvRow,
+        item: TurnCsvRowBase,
         max_length: int,
         dont_create_labels: bool,
         is_t5_model: bool = False,
@@ -605,12 +603,12 @@ class BaseDataModule(ABC):
 class SimpleTodDataSet(Dataset):
     def __init__(
         self,
-        data: List[TodTurnCsvRow],
+        data: List[TurnCsvRowBase],
     ):
-        self.data: list[TodTurnCsvRow] = data
+        self.data: list[TurnCsvRowBase] = data
 
     def __len__(self):
         return len(self.data)
 
-    def __getitem__(self, idx) -> TodTurnCsvRow:
+    def __getitem__(self, idx) -> TurnCsvRowBase:
         return self.data[idx]

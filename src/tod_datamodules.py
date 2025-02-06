@@ -17,7 +17,7 @@ import dstc.dstc_utils as dstc_utils
 from torch.utils.data import DataLoader, Dataset
 import random
 
-from tod.turns.zs_tod_turn import TodTurnCsvRow
+from tod.turns.turn_csv_row_base import TurnCsvRowBase
 
 
 class TodDataModule(BaseDataModule):
@@ -27,7 +27,7 @@ class TodDataModule(BaseDataModule):
         self,
         cfg: DataModuleConfig,
         steps: list[Steps] = None,
-        tod_turn_row_cls=TodTurnCsvRow,
+        tod_turn_row_cls=TurnCsvRowBase,
         task_name: Optional[MultiTaskNames] = None,
     ):
         super().__init__(
@@ -45,7 +45,7 @@ class TodDataModule(BaseDataModule):
         )
         return tok_out["input_ids"][0]
 
-    def training_collator(self, batch: list[TodTurnCsvRow], is_pretrain: bool = False):
+    def training_collator(self, batch: list[TurnCsvRowBase], is_pretrain: bool = False):
         input_ids = []
         attention_masks = []
         labels = []
@@ -104,7 +104,7 @@ class TodDataModule(BaseDataModule):
             )
         return out
 
-    def my_test_collate(self, batch: list[TodTurnCsvRow]) -> TodTestDataBatch:
+    def my_test_collate(self, batch: list[TurnCsvRowBase]) -> TodTestDataBatch:
         data = DotMap(
             {
                 key: []

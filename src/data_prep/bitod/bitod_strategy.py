@@ -30,10 +30,12 @@ import json
 
 
 class BitodStrategy(NlgApiCallStrategy):
-    def __init__(self, cfg: DataPrepConfig):
-        super().__init__(cfg, tod_turn_cls=KeTodTurn, tod_context_cls=BiTodContext)
-        self.tod_context_cls = BiTodContext
-        self.tod_turn_cls = KeTodTurn
+    def __init__(
+        self, cfg: DataPrepConfig, tod_turn_cls=KeTodTurn, tod_context_cls=BiTodContext
+    ):
+        super().__init__(
+            cfg, tod_turn_cls=tod_turn_cls, tod_context_cls=tod_context_cls
+        )
 
     def get_services(self, dialog: DsDialog) -> list[str]:
         data = json.loads(dialog.original_dialog_info)
@@ -128,7 +130,9 @@ class BitodStrategy(NlgApiCallStrategy):
 
     def prepare_context(self, turn: Log, prev_tod_turn: KeTodTurn) -> BiTodContext:
         if not prev_tod_turn:
-            context = self.tod_context_cls(max_length=self.cfg.num_turns)
+            context = self.tod_context_cls(
+                max_length=self.cfg.num_turns, context_formatter=self.context_formatter
+            )
             context.should_add_sys_actions = self.cfg.should_add_sys_actions
         else:
             context = copy.deepcopy(prev_tod_turn.context)
@@ -152,11 +156,10 @@ class BitodStrategy(NlgApiCallStrategy):
         if not turn.system_response:
             return None
         response = self._prepare_response(turn.system_response)
+        response += SpecialTokens.eos_token.value
         return NlgTodTarget(response=response)
 
     def _prepare_response(self, utterance: str) -> str:
-        if self.cfg.model_type.context_type == ContextType.BITOD_GPT.value:
-            utterance += SpecialTokens.eos_token.value
         return utterance
 
     def prepare_api_call_turn(
@@ -210,22 +213,51 @@ class BitodStrategy(NlgApiCallStrategy):
         return turn_id, new_turn
 
     def get_api_call_from_turn(self, turn: Log) -> str:
-        if not turn.original_system_side_information.PrimaryItem:
-            return None
-        active_intent = turn.original_user_side_information.active_intent
-        state = turn.original_user_side_information.state[active_intent]
-        delim = "_"
-        intent_splits = active_intent.split(delim)
-        method = delim.join([intent_splits[0], intent_splits[-1]])
-        params = []
-        for key, value in state.items():
-            params.append(
-                BitodApiCallParams(
-                    slot_name=key, relation=value.relation, value=value.value[0]
-                )
+        if (
+            turn.original_system_side_information.PrimaryItem
+            and not all(
+                [
+                    "inform" == action.act
+                    for action in turn.original_system_side_information.Actions
+                ]
             )
-        api_call = BitodApiCall(method=method, parameters=params)
-        return api_call
+            and not any(
+                [
+                    "request_more" == action.act
+                    for action in turn.original_system_side_information.Actions
+                ]
+            )
+            and not any(
+                [
+                    "goodbye" == action.act
+                    for action in turn.original_system_side_information.Actions
+                ]
+            )
+        ):
+            active_intent = turn.original_user_side_information.active_intent
+            state = turn.original_user_side_information.state[active_intent]
+            delim = "_"
+            intent_splits = active_intent.split(delim)
+            method = delim.join([intent_splits[0], intent_splits[-1]])
+            params = []
+            for key, value in state.items():
+                if len(value.value) > 1:
+                    params.append(
+                        BitodApiCallParams(
+                            slot_name=key,
+                            relation=value.relation,
+                            value=f"({', '.join(value.value)})",
+                        )
+                    )
+                else:
+                    params.append(
+                        BitodApiCallParams(
+                            slot_name=key, relation=value.relation, value=value.value[0]
+                        )
+                    )
+            api_call = BitodApiCall(method=method, parameters=params)
+            return api_call
+        return None
         # return str(api_call)
 
     def has_request_action(self, ds_turn: Log) -> bool:

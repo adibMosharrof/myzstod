@@ -21,5 +21,5 @@ class MetricManagerFactory:
         if ContextManager.is_ketod(context_type):
             return KeTodMetricManager(logger, tokenizer, cfg)
         if ContextManager.is_bitod(context_type):
-            return BitodMetricManager(logger, tokenizer)
+            return BitodMetricManager(logger, tokenizer, cfg)
         return NlgMetricManager(logger, tokenizer)

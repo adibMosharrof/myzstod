@@ -32,7 +32,6 @@ from logger.results_logger import ResultsLogger
 from metric_managers.metric_manager_factory import MetricManagerFactory
 from my_trainers.base_trainer import BaseTrainer
 from datamodules.tod_datamodulev2 import TodDataModuleV2
-from tod.turns.zs_tod_turn import TodTurnApiCallCsvRow
 from datamodules.tod_dataset import TodDataSet
 
 

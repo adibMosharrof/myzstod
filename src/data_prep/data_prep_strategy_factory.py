@@ -1,4 +1,6 @@
 from data_prep.bitod.bitod_strategy import BitodStrategy
+from data_prep.bitod.soloist_bitod_strategy import SoloistBitodStrategy
+from data_prep.bitod.zsbitod_data_prep_strategy import ZsBitodDataPrepStrategy
 from data_prep.data_prep_strategy import DataPrepStrategy
 from data_prep.ketod.ketod_nlg_api_call_strategy import KetodNlgApiCallStrategy
 from data_prep.ketod.soloist_ketod_strategy import SoloistKetodStrategy
@@ -39,6 +41,12 @@ class DataPrepStrategyFactory:
             if ContextManager.is_soloist(context_type):
                 return SoloistKetodStrategy(cfg)
             return ZsKetodDataPrepStrategy(cfg)
+
+        if ContextManager.is_bitod_baseline(context_type):
+            if ContextManager.is_soloist(context_type):
+                return SoloistBitodStrategy(cfg)
+            return ZsBitodDataPrepStrategy(cfg)
+
         if ContextManager.is_nlg_strategy(context_type):
             if ContextManager.is_sgd_pseudo_labels(context_type):
                 return NlgApiCallStrategy(cfg, tod_context_cls=PseudoLabelsContext)
@@ -47,8 +55,6 @@ class DataPrepStrategyFactory:
             return KetodNlgApiCallStrategy(cfg)
         if ContextManager.is_bitod(context_type):
             return BitodStrategy(cfg)
-        # if context_type in [ContextType.GPT_PSEUDO_LABELS.value]:
-        #     return cfg
         raise ValueError(f"Unknown data prep step: {context_type}")
 
     @classmethod
