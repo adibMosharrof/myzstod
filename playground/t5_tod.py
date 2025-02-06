@@ -20,7 +20,7 @@ from t5_datamodule import T5DataModule
 import hydra
 from logger.inference_logger import InferenceLogger
 from metric_managers.nlg_metric_manager import NlgMetricManager
-from tod.turns.zs_tod_turn import TodTurnCsvRow, TodTurnCsvRowFactory
+from tod.turns.zs_tod_turn import TodTurnCsvRowFactory
 from base_datamodule import SimpleTodDataSet
 from pathlib import Path
 from dotmap import DotMap

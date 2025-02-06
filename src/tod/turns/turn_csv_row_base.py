@@ -1,6 +1,10 @@
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
+from typing import Optional, TYPE_CHECKING
 from my_enums import ContextType, Steps
-from tod.turns.zs_tod_turn import ZsTodTurn
+
+if TYPE_CHECKING:
+    from tod.turns.zs_tod_turn import ZsTodTurn
 from utilities.context_manager import ContextManager
 
 """ Prepares the csv rows for turns
@@ -11,7 +15,16 @@ Override hook_before_adding_taget to add additional columns to csv
 """
 
 
+@dataclass
 class TurnCsvRowBase(ABC):
+    dialog_id: str = None
+    turn_id: str = None
+    context: str = None
+    target: str = None
+    schema: Optional[str] = None
+    domains: Optional[str] = None
+    domains_original: Optional[str] = None
+
     @abstractmethod
     def get_csv_headers(self, should_add_schema: bool = True) -> list[str]:
         headers = ["dialog_id", "turn_id", "domains", "domains_original", "context"]
@@ -19,7 +32,7 @@ class TurnCsvRowBase(ABC):
             headers.append("schema")
         return headers
 
-    def get_context(self, tod_turn: ZsTodTurn, context_type: ContextType) -> str:
+    def get_context(self, tod_turn: "ZsTodTurn", context_type: ContextType) -> str:
         if context_type not in ContextType.list():
             raise ValueError(
                 f"Unknown context type: {context_type}, expected on from {ContextType.list()}"
@@ -28,13 +41,13 @@ class TurnCsvRowBase(ABC):
             return tod_turn.context.get_short_repr()
         return str(tod_turn.context)
 
-    def hook_before_adding_target(self, row: list[str], tod_turn: ZsTodTurn):
+    def hook_before_adding_target(self, row: list[str], tod_turn: "ZsTodTurn"):
         pass
 
     def to_csv_row(
         self,
         context_type: ContextType,
-        tod_turn: ZsTodTurn,
+        tod_turn: "ZsTodTurn",
         should_add_schema: bool,
         step_name=None,
     ) -> list[str]:
@@ -62,7 +75,7 @@ class TurnCsvRowBase(ABC):
 
     def get_target_str(
         self,
-        tod_turn: ZsTodTurn,
+        tod_turn: "ZsTodTurn",
         context_type: ContextType = ContextType.DEFAULT,
         step_name=None,
     ) -> str:

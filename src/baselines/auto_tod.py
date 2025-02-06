@@ -12,6 +12,8 @@ import os
 import sys
 from sgd_dstc8_data_model.dstc_dataclasses import DstcSchema, DstcServiceCall
 
+from tod.turns.api_call_turn_csv_row import ApiCallTurnCsvRow
+
 sys.path.insert(0, os.path.abspath("./src"))
 
 from configs.dm_config import DataModuleConfig
@@ -34,7 +36,7 @@ import utils
 import data_prep.data_prep_utils as data_prep_utils
 from pathos.multiprocessing import ProcessingPool as Pool
 from base_datamodule import SimpleTodDataSet
-from tod.turns.zs_tod_turn import TodTurnApiCallCsvRow, TodTurnCsvRowFactory
+from tod.turns.zs_tod_turn import TodTurnCsvRowFactory
 
 
 class AutoTod:
@@ -42,7 +44,7 @@ class AutoTod:
         self.cfg = cfg
         self.cfg.project_root = Path(self.cfg.project_root)
         self.cfg.raw_data_root = self.cfg.project_root / self.cfg.raw_data_root
-        self.tod_turn_row_cls = TodTurnApiCallCsvRow
+        self.tod_turn_row_cls = ApiCallTurnCsvRow
         self.prompt_cls = NlgPromptFactory.get_handler(
             self.cfg.prompt_type, self.cfg.model_type.context_type
         )

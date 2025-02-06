@@ -13,10 +13,8 @@ from configs.dm_config import DataModuleConfig
 
 import dstc.dstc_utils as dstc_utils
 from my_enums import Steps
+from tod.turns.turn_csv_row_base import TurnCsvRowBase
 from tod_datamodules import TodDataModule
-from simple_tod_dataclasses import (
-    TodTurnCsvRow,
-)
 from utils import read_csv_dataclass
 
 
@@ -25,7 +23,7 @@ class DataModelExploration:
         self.cfg = cfg
         self.dm = TodDataModule(DataModuleConfig.from_data_model_exploration(cfg))
 
-    def _get_simple_tod_rows(self) -> list[TodTurnCsvRow]:
+    def _get_simple_tod_rows(self) -> list[TurnCsvRowBase]:
         steps = Steps.list()
         rows = []
         for step, num_dialog in tqdm(zip(steps, self.cfg.num_dialogs)):
@@ -34,7 +32,7 @@ class DataModelExploration:
                 num_dialog,
                 cfg=self.cfg,
             )
-            rows.append(read_csv_dataclass(csv_file_path, TodTurnCsvRow))
+            rows.append(read_csv_dataclass(csv_file_path, TurnCsvRowBase))
         return np.concatenate(rows, axis=0)
 
     def plot_model_size(self):

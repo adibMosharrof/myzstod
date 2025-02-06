@@ -13,7 +13,8 @@ from multi_head.mh_datamodule import MultiLMHeadDatamodule
 from multi_head.mh_model import GPT2MultiLMHeadModel
 from my_enums import ContextType, MultiTaskNames, SpecialTokens, Steps
 from simple_tod_dataclasses import TodTestDataBatch
-from tod.turns.zs_tod_turn import TodTurnCsvRow, TodTurnMultiTaskCsvRow
+from tod.turns.turn_csv_row_base import TurnCsvRowBase
+from tod.turns.zs_tod_turn import TodTurnMultiTaskCsvRow
 from tod_datamodules import TodDataModule
 import utils
 import dstc.dstc_utils as dstc_utils
@@ -100,9 +101,7 @@ class InferenceConfig:
         self.mh_fact = (
             mh_fact
             if mh_fact
-            else MultiHeadDictFactory(self.tokenizer)
-            if is_multi_head
-            else None
+            else MultiHeadDictFactory(self.tokenizer) if is_multi_head else None
         )
 
         # self.model = self.model.merge_adapter()
@@ -275,7 +274,7 @@ class InferenceConfig:
                 dm_config,
                 self.mh_fact,
             )
-        turn_cls = TodTurnMultiTaskCsvRow if self.is_multi_task else TodTurnCsvRow
+        turn_cls = None if self.is_multi_task else TurnCsvRowBase
         return TodDataModule(
             dm_config, steps=[Steps.TEST.value], tod_turn_row_cls=turn_cls
         )

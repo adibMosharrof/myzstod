@@ -1,8 +1,9 @@
 from dotmap import DotMap
 from simple_tod_dataclasses import NlgTestDataBatch
-from tod.turns.zs_tod_turn import TodTurnApiCallCsvRow, TodTurnCsvRow
 import torch
 from abc import ABC, abstractmethod
+from tod.turns.api_call_turn_csv_row import ApiCallTurnCsvRow
+from tod.turns.turn_csv_row_base import TurnCsvRowBase
 from utilities.tokenizer_utilities import TokenizerUtilities
 from typing import TYPE_CHECKING
 
@@ -37,7 +38,7 @@ class BaseCollator(ABC):
     ) -> "TodTrainRowCollator":
         pass
 
-    def tod_train_collate(self, batch: list[TodTurnCsvRow]):
+    def tod_train_collate(self, batch: list[TurnCsvRowBase]):
         all_input_tokens = []
         all_labels = []
         all_attention_masks = []
@@ -54,7 +55,7 @@ class BaseCollator(ABC):
             "attention_mask": torch.stack(all_attention_masks),
         }
 
-    def tod_test_collate(self, batch: list[TodTurnApiCallCsvRow]):
+    def tod_test_collate(self, batch: list[ApiCallTurnCsvRow]):
         data = self.get_test_data_cols()
         max_lengths = DotMap(
             domains=100,
@@ -78,6 +79,7 @@ class BaseCollator(ABC):
             current_user_utterance_tokens=torch.stack(
                 data.current_user_utterance_tokens
             ),
+            search_results_tokens=torch.stack(data.search_results_tokens),
         )
 
     def get_test_data_cols(self):
@@ -97,6 +99,7 @@ class BaseCollator(ABC):
                     "domain_ids",
                     "is_single_domains",
                     "current_user_utterance_tokens",
+                    "search_results_tokens",
                 ]
             }
         )
@@ -126,13 +129,18 @@ class BaseCollator(ABC):
             text=item.current_user_utterance,
             tokenizer=self.tokenizer,
         )
+        search_results_tokens = TokenizerUtilities.tokenize_with_pad(
+            text=item.search_results,
+            tokenizer=self.tokenizer,
+        )
         data.is_single_domains.append(torch.tensor(item.is_single_domain))
         data.current_user_utterance_tokens.append(
             current_user_utterance_tokens["input_ids"][0]
         )
+        data.search_results_tokens.append(search_results_tokens["input_ids"][0])
 
     def collate_single_item(
-        self, item: TodTurnCsvRow, target_max_len: int, is_test: bool = False
+        self, item: TurnCsvRowBase, target_max_len: int, is_test: bool = False
     ) -> "TodTrainRowCollator":
         context_text = self.get_context_text(item)
         context_tokens, context_unused_len = self.get_context_tokens_and_unused_len(
@@ -170,7 +178,7 @@ class BaseCollator(ABC):
 
     def trim_dialog_history(
         self,
-        item: TodTurnCsvRow,
+        item: TurnCsvRowBase,
         trim_len: int,
         counter=0,
     ):

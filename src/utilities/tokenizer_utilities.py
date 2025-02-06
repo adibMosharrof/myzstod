@@ -13,6 +13,8 @@ class TokenizerUtilities:
 
     @staticmethod
     def tokenize_with_pad(tokenizer: AutoTokenizer, text: str, max_len: int = None):
+        if text is None:
+            text = ""
         return tokenizer(
             text,
             return_tensors="pt",

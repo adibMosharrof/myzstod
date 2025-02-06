@@ -201,6 +201,9 @@ class ContextType(str, Enum):
     KETOD_SOLOIST_API_CALL = "ketod_soloist_api_call"
     BITOD = "bitod"
     BITOD_GPT = "bitod_gpt"
+    BITOD_SIMPLE_TOD_API_CALL = "bitod_simple_tod_api_call"
+    BITOD_ZSTOD_API_CALL = "bitod_zstod_api_call"
+    BITOD_SOLOIST_API_CALL = "bitod_soloist_api_call"
     CHATGPT = "chatgpt"
     GPT_API_CALL = "gpt_api_call"
     GPT_CROSS = "gpt_cross"
@@ -212,11 +215,23 @@ class ContextType(str, Enum):
 
     @classmethod
     def bitod_contexts(cls):
-        return [cls.BITOD.value, cls.BITOD_GPT.value]
+        return [
+            cls.BITOD.value,
+            cls.BITOD_GPT.value,
+            cls.BITOD_SIMPLE_TOD_API_CALL.value,
+            cls.BITOD_SOLOIST_API_CALL.value,
+            cls.BITOD_ZSTOD_API_CALL.value,
+        ]
 
     @classmethod
     def dstc_contexts(cls):
-        return ContextType.list() - cls.ketod_contexts() - cls.bitod_contexts()
+        return [
+            cls.SIMPLE_TOD_API_CALL.value,
+            cls.ZSTOD_API_CALL.value,
+            cls.SOLOIST_API_CALL.value,
+            cls.NLG_API_CALL.value,
+            cls.GPT_API_CALL.value,
+        ]
 
     @classmethod
     def list(cls):

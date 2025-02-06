@@ -4,63 +4,64 @@ from sgd_dstc8_data_model.dstc_dataclasses import DstcSchema
 from my_enums import ContextType, SpecialTokens
 
 from simple_tod_dataclasses import MultiTaskSpecialToken
+from tod.turns.api_call_turn_csv_row import ApiCallTurnCsvRow
+from tod.turns.turn_csv_row_base import TurnCsvRowBase
 from tod.zs_tod_target import ZsTodTarget
 from tod.zs_tod_context import ZsTodContext
 from utilities.context_manager import ContextManager
 
-
-@dataclass
-class TodTurnCsvRow:
-    dialog_id: str
-    turn_id: str
-    context: str
-    target: str = None
-    schema: Optional[str] = None
-    domains: Optional[str] = None
-    domains_original: Optional[str] = None
-
-
-@dataclass
-class TodTurnMultiHeadCsvRow:
-    dialog_id: str
-    turn_id: str
-    context: str
-    user_actions: Optional[str] = ""
-    system_actions: Optional[str] = ""
-    dsts: Optional[str] = ""
-    nlg: Optional[str] = ""
-    schema: Optional[str] = ""
-
-    def __getitem__(self, item):
-        return getattr(self, item)
+# @dataclass
+# class TodTurnCsvRow:
+#     dialog_id: str
+#     turn_id: str
+#     context: str
+#     target: str = None
+#     schema: Optional[str] = None
+#     domains: Optional[str] = None
+#     domains_original: Optional[str] = None
 
 
-@dataclass
-class TodTurnMultiTaskCsvRow(TodTurnCsvRow):
-    task: Optional[str] = ""
+# @dataclass
+# class TodTurnMultiHeadCsvRow:
+#     dialog_id: str
+#     turn_id: str
+#     context: str
+#     user_actions: Optional[str] = ""
+#     system_actions: Optional[str] = ""
+#     dsts: Optional[str] = ""
+#     nlg: Optional[str] = ""
+#     schema: Optional[str] = ""
+
+#     def __getitem__(self, item):
+#         return getattr(self, item)
 
 
-@dataclass
-class TodTurnScaleGradCsvRow(TodTurnMultiTaskCsvRow):
-    special_tokens: Optional[str] = ""
+# @dataclass
+# class TodTurnMultiTaskCsvRow(TodTurnCsvRow):
+#     task: Optional[str] = ""
 
 
-@dataclass
-class TodTurnApiCallCsvRow(TodTurnCsvRow):
+# @dataclass
+# class TodTurnScaleGradCsvRow(TodTurnMultiTaskCsvRow):
+#     special_tokens: Optional[str] = ""
 
-    turn_row_type: Optional[int] = None
-    is_retrieval: Optional[int] = None
-    is_slot_fill: Optional[int] = None
-    is_multi_domain_api_call: Optional[int] = None
-    dataset_name: Optional[str] = None
-    is_single_domain: Optional[int] = None
-    current_user_utterance: Optional[str] = None
 
-    @classmethod
-    def from_list_of_values_and_headers(self, values, headers):
-        header_value_map = dict(zip(headers, values))
-        ordered_values = [header_value_map[field.name] for field in fields(self)]
-        return self(*ordered_values)
+# @dataclass
+# class TodTurnApiCallCsvRow(TodTurnCsvRow):
+
+#     turn_row_type: Optional[int] = None
+#     is_retrieval: Optional[int] = None
+#     is_slot_fill: Optional[int] = None
+#     is_multi_domain_api_call: Optional[int] = None
+#     dataset_name: Optional[str] = None
+#     is_single_domain: Optional[int] = None
+#     current_user_utterance: Optional[str] = None
+
+#     @classmethod
+#     def from_list_of_values_and_headers(self, values, headers):
+#         header_value_map = dict(zip(headers, values))
+#         ordered_values = [header_value_map[field.name] for field in fields(self)]
+#         return self(*ordered_values)
 
 
 @dataclass
@@ -91,7 +92,7 @@ class TodTurnCsvRowFactory:
     @classmethod
     def get_handler(self, cfg):
         if cfg.get("is_scale_grad", 0):
-            return TodTurnScaleGradCsvRow
+            return None
         if any(
             [
                 ContextManager.is_nlg_strategy(cfg.model_type.context_type),
@@ -99,13 +100,12 @@ class TodTurnCsvRowFactory:
                 ContextManager.is_bitod(cfg.model_type.context_type),
             ]
         ):
-            return TodTurnApiCallCsvRow
+            return ApiCallTurnCsvRow
         if any(
             [
                 ContextManager.is_zstod(cfg.model_type.context_type),
                 ContextManager.is_simple_tod(cfg.model_type.context_type),
             ]
         ):
-            return TodTurnCsvRow
+            return TurnCsvRowBase
         raise ValueError("incorrect context type")
-        return TodTurnCsvRow

@@ -8,9 +8,8 @@ from datamodules.data_filters.base_data_filter import BaseDataFilter
 from datamodules.data_filters.split_percent_filter import SplitPercentFilter
 from datamodules.dm_dataclasses import StepData
 from my_enums import Steps
-from tod.turns.zs_tod_turn import TodTurnCsvRow
 from configs.dm_config import DataModuleConfig
-from tod.turns.zs_tod_turn import TodTurnCsvRow
+from tod.turns.turn_csv_row_base import TurnCsvRowBase
 import utils
 
 
@@ -22,7 +21,7 @@ class TodDataModuleV2:
         self,
         cfg: DataModuleConfig,
         steps: list[Steps] = None,
-        tod_turn_row_cls=TodTurnCsvRow,
+        tod_turn_row_cls=TurnCsvRowBase,
         data_filters: list[BaseDataFilter] = None,
         data_augmentations=None,
         schemas=None,
@@ -100,7 +99,7 @@ class TodDataModuleV2:
         final_data = self.remove_duplicates(filtered_data)
         return final_data
 
-    def remove_duplicates(self, data: list[TodTurnCsvRow]) -> list[TodTurnCsvRow]:
+    def remove_duplicates(self, data: list[TurnCsvRowBase]) -> list[TurnCsvRowBase]:
         seen = set()
         unique_rows = []
         for row in data:

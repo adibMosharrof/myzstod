@@ -108,6 +108,7 @@ class NlgApiCallMetricManager:
         domains,
         is_single_domains,
         current_user_utterances,
+        search_results,
     ):
         if self.tokenizer:
             input_texts, labels, preds = [
@@ -143,6 +144,7 @@ class NlgApiCallMetricManager:
             domain,
             is_single_domain,
             current_user_utterance,
+            search_result,
         ) in zip(
             input_texts,
             preds,
@@ -156,6 +158,7 @@ class NlgApiCallMetricManager:
             domains,
             is_single_domains,
             current_user_utterances,
+            search_results,
         ):
             row = ApiCallInferenceLogData(
                 input_text=input_text,
@@ -170,6 +173,7 @@ class NlgApiCallMetricManager:
                 is_multi_domain_api_call=int(is_multi_domain_api_call),
                 is_single_domain=int(is_single_domain),
                 current_user_utterance=current_user_utterance,
+                search_results=search_result,
             )
             self.data.append(row)
             if turn_row_type == 0:

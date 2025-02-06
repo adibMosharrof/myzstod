@@ -6,7 +6,6 @@ from schema.pseudo_schema_dataclasses import PseudoSchema
 from schema.schema_pseudo_labels import SchemaPseudoLabels
 from tod.nlg.nlg_tod_turn import NlgTodTurn
 from tod.turns.api_call_turn_csv_row import ApiCallTurnCsvRow
-from tod.turns.zs_tod_turn import TodTurnApiCallCsvRow
 import copy
 
 from dataclasses import dataclass
@@ -28,7 +27,7 @@ class PseudoLabelAugmentation:
         num_augmentations=1,
         api_in_context=False,
         schemas=None,
-        collator: BaseCollator = None,
+        # collator: BaseCollator = None,
         turn_row_csv_cls=ApiCallTurnCsvRow,
     ):
         self.cfg = cfg
@@ -36,7 +35,7 @@ class PseudoLabelAugmentation:
         self.api_in_context = api_in_context
         self.schemas = schemas
         self.pseudo_schemas_map = self.get_pseudo_schemas_and_name_maps()
-        self.collator = collator
+        # self.collator = collator
         self.turn_row_csv_cls = turn_row_csv_cls
 
     def get_pseudo_schemas_and_name_maps(self) -> dict[str, SchemaWithNameMap]:
@@ -72,7 +71,7 @@ class PseudoLabelAugmentation:
         csv_item = self.turn_row_csv_cls.to_csv_row(
             context_type=self.cfg.context_type, tod_turn=api_turn
         )
-        turn_csv_row_item = TodTurnApiCallCsvRow.from_list_of_values_and_headers(
+        turn_csv_row_item = ApiCallTurnCsvRow.from_list_of_values_and_headers(
             values=csv_item, headers=self.turn_row_csv_cls.get_csv_headers()
         )
         context_text = self.collator.get_context_text(turn_csv_row_item)
