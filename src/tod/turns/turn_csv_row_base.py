@@ -85,6 +85,7 @@ class TurnCsvRowBase(ABC):
             [
                 ContextManager.is_sgd_baseline(context_type),
                 ContextManager.is_ketod_baseline(context_type),
+                ContextManager.is_bitod_baseline(context_type),
             ]
         ):
             return tod_turn.target.get_nlg_target_str()

@@ -94,6 +94,7 @@ class ResultsLogger:
                             "api_call_method",
                             "api_call_param_names",
                             "api_call_param_values",
+                            "api_call_param_relation",
                             "complete_api_call",
                         ],
                     )

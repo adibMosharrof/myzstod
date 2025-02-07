@@ -10,8 +10,8 @@ class BitodApiCallParametersMetric(TodMetricsBase):
     def __init__(self, name: str = ""):
         super().__init__()
         self.add_state("param_accs", [], dist_reduce_fx="cat")
-        self.add_state("relation_accs", [], dist_reduce_fx="cat")
         self.add_state("value_accs", [], dist_reduce_fx="cat")
+        self.add_state("relation_accs", [], dist_reduce_fx="cat")
         self.name = name
 
     def _update(self, predictions: list[str], references: list[str]) -> None:
@@ -87,14 +87,7 @@ class BitodApiCallParametersMetric(TodMetricsBase):
                 param_accs.append(0.0)
                 relation_accs.append(0.0)
                 value_accs.append(0.0)
-        # param_acc = torch.mean(utils.create_tensor(param_accs), dtype=torch.float)
-        # relation_acc = torch.mean(utils.create_tensor(relation_accs), dtype=torch.float)
-        # value_acc = torch.mean(utils.create_tensor(value_accs), dtype=torch.float)
-        # return (
-        #     torch.round(param_acc, decimals=4).item(),
-        #     torch.round(value_acc, decimals=4).item(),
-        #     torch.round(relation_acc, decimals=4).item(),
-        # )
+
         param_acc = np.mean(param_accs)
         relation_acc = np.mean(relation_accs)
         value_acc = np.mean(value_accs)

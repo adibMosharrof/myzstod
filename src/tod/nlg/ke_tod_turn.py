@@ -22,3 +22,6 @@ class KeTodTurn:
     is_slot_fill: Optional[int] = 0
     is_multi_domain_api_call: Optional[int] = 0
     dataset_name: Optional[str] = None
+    is_single_domain: Optional[int] = 0
+    current_user_utterance: str = ""
+    search_results: Optional[list[str]] = ""

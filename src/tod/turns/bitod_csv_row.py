@@ -12,6 +12,9 @@ class BitodCsvRow(TurnCsvRowBase):
             "is_retrieval",
             "is_slot_fill",
             "is_multi_domain_api_call",
+            "is_single_domain",
+            "current_user_utterance",
+            "search_results",
         ]
         return headers
 
@@ -24,5 +27,8 @@ class BitodCsvRow(TurnCsvRowBase):
             tod_turn.is_retrieval,
             tod_turn.is_slot_fill,
             tod_turn.is_multi_domain_api_call,
+            tod_turn.is_single_domain,
+            tod_turn.current_user_utterance,
+            tod_turn.search_results,
         ]
         return row

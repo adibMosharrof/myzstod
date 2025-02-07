@@ -10,7 +10,7 @@ class ApiCallParametersMetric(TodMetricsBase):
         super().__init__()
         self.add_state("param_preds", [], dist_reduce_fx="cat")
         self.add_state("value_preds", [], dist_reduce_fx="cat")
-        self.add_state("only_value_preds", [], dist_reduce_fx="cat")
+        # self.add_state("only_value_preds", [], dist_reduce_fx="cat")
         self.name = name
 
     def _update(self, predictions: list[str], references: list[str]) -> None:

@@ -47,9 +47,11 @@ class ZsBitodDataPrepStrategy(BitodStrategy):
         actions = self._get_actions(
             turn.original_system_side_information, turn.original_user_side_information
         )
-        user_actions = self._get_actions(
-            turn.original_user_side_information, turn.original_user_side_information
-        )
+        user_actions = []
+        if self.cfg.should_add_user_actions:
+            user_actions = self._get_actions(
+                turn.original_user_side_information, turn.original_user_side_information
+            )
         response = self._prepare_response(turn.system_response)
         return ZsTodTarget(
             dsts=dsts, actions=actions, response=response, user_actions=user_actions
