@@ -3,7 +3,10 @@ import humps
 
 
 def get_nlg_service_name(service_name: str) -> str:
-    domain, num = service_name.split("_")
+    if "_" in service_name:
+        domain, num = service_name.split("_")
+    else:
+        domain = service_name
     decamelized_domain = humps.decamelize(domain)
     spaced_domain = remove_underscore(decamelized_domain)
     return spaced_domain

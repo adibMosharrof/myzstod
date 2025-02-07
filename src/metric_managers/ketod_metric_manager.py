@@ -35,21 +35,6 @@ class KeTodMetricManager(NlgApiCallMetricManager):
             }
         )
         self.complete_kb_call = CompleteApiCallMetric(name="KE")
-        # self.multi_domain_api_call_metrics = MetricCollection(
-        #     {
-        #         "multi_domain_ke_method": ApiCallMethodMetric(name="KE Multi Domain"),
-        #         "multi_domain_ke_params": ApiCallParametersMetric(
-        #             name="KE Multi Domain"
-        #         ),
-        #         "multi_domain_ke_api_call_invoke": ApiCallInvokeMetric(
-        #             # invoke_text="EntityQuery", name="KE Multi Domain "
-        #              name="KE Multi Domain "
-        #         ),
-        #     }
-        # )
-        # self.multi_domain_ke_complete_api_call = CompleteApiCallMetric(
-        #     name="KE Multi Domain"
-        # )
 
     def compute_metrics(self, domain_names: str):
         all_metrics = (

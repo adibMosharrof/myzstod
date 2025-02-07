@@ -206,9 +206,9 @@ class NlgApiCallMetricManager:
                     if k == "api_call_params":
                         row_dict.api_call_param_names = res[0]
                         row_dict.api_call_param_values = res[1]
-                        row_dict.api_call_only_param_values = res[2]
-                        if len(res) == 4:
-                            row_dict.api_call_param_relation = res[3]
+                        # row_dict.api_call_only_param_values = res[2]
+                        if len(res) == 3:
+                            row_dict.api_call_param_relation = res[2]
                     else:
                         row_dict[k] = res
 
