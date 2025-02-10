@@ -213,15 +213,15 @@ class NlgApiCallMetricManager:
                             row_dict.api_call_param_relation = res[2]
                     else:
                         row_dict[k] = res
-
+                api_params = [
+                    row_dict.api_call_param_names,
+                    row_dict.api_call_param_values,
+                ]
+                if "api_call_param_relation" in row_dict:
+                    api_params.append(row_dict.api_call_param_relation)
                 row_dict.complete_api_call = self.complete_api_call.compute_row(
                     [row_dict.api_call_method],
-                    [
-                        (
-                            row_dict.api_call_param_names,
-                            row_dict.api_call_param_values,
-                        )
-                    ],
+                    [api_params],
                 )
                 self.complete_api_call.update(
                     [row_dict.api_call_method],
