@@ -39,6 +39,9 @@ class BitodApiCallParametersMetric(TodMetricsBase):
         parameters_content = text[parameters_index + len("parameters=") :].strip(")")
         if not parameters_content:
             return []
+        for char in ["{", "}", ")", "(", "<|endoftext|>"]:
+            parameters_content = parameters_content.replace(char, "")
+        parameters_content.strip()
         parameters = parameters_content.split("|")
         out = []
         items_num = range(3)

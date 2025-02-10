@@ -10,7 +10,7 @@ class BitodApiCallParams:
 
     def __post_init__(self):
         if type(self.value) == list:
-            self.value = " ".join(self.value)
+            self.value = " ".join(self.value).strip()
 
     def __str__(self):
         return f"{self.slot_name} {self.relation} {self.value}"
