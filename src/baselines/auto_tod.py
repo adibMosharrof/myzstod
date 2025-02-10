@@ -2,6 +2,7 @@ import itertools
 import json
 import logging
 from pathlib import Path
+import re
 from dotmap import DotMap
 import hydra
 from omegaconf import DictConfig
@@ -12,9 +13,9 @@ import os
 import sys
 from sgd_dstc8_data_model.dstc_dataclasses import DstcSchema, DstcServiceCall
 
-from tod.turns.api_call_turn_csv_row import ApiCallTurnCsvRow
 
 sys.path.insert(0, os.path.abspath("./src"))
+from tod.turns.api_call_turn_csv_row import ApiCallTurnCsvRow
 
 from configs.dm_config import DataModuleConfig
 from datamodules.tod_datamodulev2 import TodDataModuleV2
@@ -84,7 +85,7 @@ class AutoTod:
         return all_prompts
 
     def query_chatgpt(self, row):
-        client = openai.OpenAI(os.getenv("CHATGPT_APIKEY"))
+        client = openai.OpenAI(api_key=os.getenv("CHATGPT_APIKEY"))
         messages = [
             {"role": "system", "content": row.prompt.system_prompt},
             {"role": "user", "content": row.prompt.dialog_history},
@@ -102,7 +103,12 @@ class AutoTod:
         else:
             func_call = msg.function_call
             params_dict = json.loads(func_call.arguments)
-            params_str = ", ".join([f"'{k}': '{v}'" for k, v in params_dict.items()])
+            if self.cfg.dataset_name == "bitod":
+                params_str = self.get_bitod_params_str(params_dict)
+            else:
+                params_str = ", ".join(
+                    [f"'{k}': '{v}'" for k, v in params_dict.items()]
+                )
             pred = f"ApiCall(method='{func_call.name}',parameters={params_str})"
         out = KetodInferenceLogData(
             input_text=row.prompt,
@@ -119,8 +125,32 @@ class AutoTod:
             ke_method=row.get("ke_method", None),
             ke_params=row.get("ke_params", None),
             ke_api_call_invoke=row.get("ke_api_call_invoke", None),
+            is_single_domain=row.get("is_single_domain", None),
+            current_user_utterance=row.get("current_user_utterance", None),
+            search_results=row.get("search_results", None),
         )
         return out
+
+    def get_bitod_params_str(self, params):
+        operators = {"equal_to", "at_least", "one_of", "not"}
+        extracted = []
+
+        for key, value in params.items():
+            # Case 1: Operator is in the value
+            value = str(value)
+            match = re.match(rf"({'|'.join(operators)}) (.+)", value)
+            if match:
+                extracted.append((key, match.group(1), match.group(2)))
+            else:
+                # Case 2: Operator is in the key
+                for op in operators:
+                    if key.endswith(f" {op}"):
+                        param_name = key[: -len(op) - 1]  # Remove operator from key
+                        extracted.append((param_name, op, value))
+                        break
+        joined = [" ".join(item) for item in extracted]
+        formatted = "|".join(joined)
+        return "{" + formatted + "}"
 
     def get_chatgpt_responses(self, item_prompts, nlg_metric_manager):
         outputs = self.get_chatgpt_outputs(item_prompts)
@@ -241,29 +271,6 @@ class AutoTod:
                 res["ke_params"] = setting_ke_rows.ke_params.mean().round(4)
                 res["ke_param_values"] = setting_ke_rows.ke_param_values.mean().round(4)
 
-            # if len(setting_multi_dom_ke_rows) > 0:
-            #     res["multi_domain_ke_api_call_invoke"] = (
-            #         setting_multi_dom_ke_rows.api_call_invoke.mean().round(4)
-            #     )
-            #     res["multi_domain_ke_method"] = (
-            #         setting_multi_dom_ke_rows.api_call_method.mean().round(4)
-            #     )
-            #     res["multi_domain_ke_params"] = (
-            #         setting_multi_dom_ke_rows.api_call_param_names.mean().round(4)
-            #     )
-            #     res["multi_domain_ke_param_values"] = (
-            #         setting_multi_dom_ke_rows.api_call_param_values.mean().round(4)
-            #     )
-            #     res["multi_domain_ke_complete_api_call"] = (
-            #         setting_multi_dom_ke_rows.complete_api_call.mean().round(4)
-            #     )
-            # else:
-            #     res["multi_domain_ke_api_call_invoke"] = 0
-            #     res["multi_domain_ke_method"] = 0
-            #     res["multi_domain_ke_params"] = 0
-            #     res["multi_domain_ke_param_values"] = 0
-            #     res["multi_domain_ke_complete_api_call"] = 0
-
             if len(setting_slot_fill_rows) > 0:
                 res["slot_fill_bleu"] = (
                     setting_slot_fill_rows.response_bleu.mean().round(4)
@@ -280,6 +287,7 @@ class AutoTod:
             else:
                 res["retrieval_bleu"] = 0
                 res["retrieval_gleu"] = 0
+
             results[setting] = res
 
         rl = ResultsLogger(self.cfg)
@@ -301,14 +309,6 @@ class AutoTod:
             encoding="utf-8",
         )
         rl.get_regular_setting_results(responses_with_dom_category)
-        # results_dict = []
-        # for domain, metrics in results.items():
-        #     results_dict.append({"domain": domain, **metrics})
-        # results_df = pd.DataFrame(results_dict)
-
-        # results_df.to_csv(
-        #     out_dir / "regular_results.csv", index=False, encoding="utf-8"
-        # )
 
     def run(self):
         steps = Steps.list()
@@ -318,7 +318,7 @@ class AutoTod:
         item_prompts = self.get_prompts(schemas)
 
         metric_manager = MetricManagerFactory.get_metric_manager(
-            self.cfg.model_type.context_type, None, self.logger
+            self.cfg.model_type.context_type, None, self.logger, self.cfg
         )
         responses = self.get_chatgpt_responses(item_prompts, metric_manager)
         self.get_metrics(responses, metric_manager)
