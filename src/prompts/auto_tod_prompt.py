@@ -9,9 +9,17 @@ TEMPLATE = """You are an intelligent AI Assistant to help the user complete comp
 
 The functions are divided into query function and transaction function. The query function will return the records in the database that meets the conditions, and the transaction function will return the corresponding reference number if calling successfully.
 
-Today is 2019-03-01, Friday. (This Saturady is 2019-03-02. This Sunday is 2019-03-03.)
+Today is 2019-03-01, Friday. (This Saturday is 2019-03-02. This Sunday is 2019-03-03.)
 When specifying an data type parameter without given full date, prefix as "2019-03-xx".
 
+There are four possible operators that the functions can use: 'equal_to', 'at_least', 'one_of', and 'not'. 
+The function parameters will be in the format of 'key operator value'. 
+For example: 'location equal_to Kowloon', 'rating at_least 8', 'type one_of (Tours, Shopping)', and 'cuisine not Mexican'.
+
+An example of a function call is below
+ApiCall(method=hotels_search, parameters={{rating at_least four|stars equal_to don't care|location equal_to don't care|price_level equal_to expensive}})
+
+Multiple parameters are seperated by | and you must follow the parameters format provided above. 
 {services_info}
 
 # Remember
@@ -31,6 +39,7 @@ SERVICE_TEMPLATE = """# Service: {service_name}
 ## Functions
 
 {functions_info}
+
 """
 
 
@@ -112,9 +121,9 @@ class AutoTodPrompt:
     def make_one_function_schema(self, service_schema, intent_name):
         intent_dict = {intent.name: intent for intent in service_schema.intents}
         intent = intent_dict[intent_name]
-
+        intent_without_lang = self._replace_language_info(intent_name)
         func_schema = {
-            "name": f"{intent_name}",
+            "name": f"{intent_without_lang}",
             "description": None,
             "parameters": {
                 "type": "object",
@@ -131,14 +140,24 @@ class AutoTodPrompt:
         func_schema["description"] = desc
 
         slot_dict = {slot.name: slot for slot in service_schema.slots}
-        for slot_name in intent.required_slots + list(intent.optional_slots.keys()):
-            slot = slot_dict[slot_name]
 
-            # Schema
-            property_schema = {
-                "description": slot.description,
-            }
+        if type(intent.optional_slots) == list:
+            func_schema["parameters"]["optional"] = intent.optional_slots
+        else:
+            optional_slots = list(intent.optional_slots.keys())
 
-            func_schema["parameters"]["properties"][slot_name] = property_schema
+            all_slots = intent.required_slots + optional_slots
+            for slot_name in all_slots:
+                slot = slot_dict[slot_name]
+
+                # Schema
+                property_schema = {
+                    "description": slot.description,
+                }
+
+                func_schema["parameters"]["properties"][slot_name] = property_schema
 
         return func_schema
+
+    def _replace_language_info(self, name: str) -> str:
+        return name.replace("_en_US", "")
