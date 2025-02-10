@@ -148,6 +148,8 @@ class NlgApiCallMetricManager:
             current_user_utterances,
             search_results,
         ):
+            pred = self.process_pred(pred)
+            label = self.process_label(label)
             row = ApiCallInferenceLogData(
                 input_text=input_text,
                 pred=pred,
@@ -307,3 +309,10 @@ class NlgApiCallMetricManager:
             )
         )
         cbs.run()
+
+    def process_label(self, label):
+        label = label.replace("<|endoftext|>", "")
+        return label
+
+    def process_pred(self, pred):
+        return pred
