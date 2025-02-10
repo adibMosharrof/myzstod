@@ -4,6 +4,9 @@ import re
 from tod.nlg.bitod_api_call import BitodApiCallParams
 import utils
 import numpy as np
+from word2number import w2n
+import inflect
+from fuzzywuzzy import fuzz
 
 
 class BitodApiCallParametersMetric(TodMetricsBase):
@@ -78,6 +81,8 @@ class BitodApiCallParametersMetric(TodMetricsBase):
         param_accs, relation_accs, value_accs = [], [], []
         for ref in ref_params:
             pred = ref.get_by_slot_name(pred_params)
+            pred = self.convert_to_number(pred)
+            ref = self.convert_to_number(ref)
             if pred:
                 param_accs.append(1.0)
                 relation_accs.append(float(ref.relation == pred.relation))
@@ -92,6 +97,33 @@ class BitodApiCallParametersMetric(TodMetricsBase):
         relation_acc = np.mean(relation_accs)
         value_acc = np.mean(value_accs)
         return round(param_acc, 4), round(relation_acc, 4), round(value_acc, 4)
+
+    def convert_to_number(self, text, threshold=90):
+        try:
+            # Initialize inflect engine
+            inflect_engine = inflect.engine()
+            # Step 1: Convert words to digits
+            number = w2n.word_to_num(text)
+
+            # Step 2: Convert digits back to words
+            words_back = inflect_engine.number_to_words(number)
+
+            # Step 3: Normalize and clean both strings
+            normalized_original = " ".join(text.lower().replace(" and ", " ").split())
+            normalized_converted = " ".join(
+                words_back.lower().replace(" and ", " ").split()
+            )
+
+            # Step 4: Fuzzy match the original input with the converted words
+            similarity = fuzz.ratio(normalized_original, normalized_converted)
+
+            if similarity < threshold:
+                return text
+
+            print(f"Converted {text} to {number}", end=" ")
+            return number
+        except Exception as e:
+            return text
 
     def __str__(self) -> str:
         params, relations, values = self._compute()
