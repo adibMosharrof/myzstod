@@ -59,6 +59,9 @@ from my_enums import SpecialTokens, ZsTodConstants
 from hurry.filesize import size
 from accelerate import Accelerator
 
+from word2number import w2n
+import inflect
+
 
 def is_t5_model(model_name: str):
     config = AutoConfig.from_pretrained(model_name)
@@ -478,6 +481,34 @@ def get_model_class(model_name: str):
 
 def create_tensor(value, dtype=torch.int):
     return torch.tensor(value, device="cuda", dtype=dtype)
+
+
+def convert_to_number(text, threshold=90):
+    try:
+        # Initialize inflect engine
+        inflect_engine = inflect.engine()
+        # Step 1: Convert words to digits
+        number = w2n.word_to_num(text)
+
+        # Step 2: Convert digits back to words
+        words_back = inflect_engine.number_to_words(number)
+
+        # Step 3: Normalize and clean both strings
+        normalized_original = " ".join(text.lower().replace(" and ", " ").split())
+        normalized_converted = " ".join(
+            words_back.lower().replace(" and ", " ").split()
+        )
+
+        # Step 4: Fuzzy match the original input with the converted words
+        similarity = fuzz.ratio(normalized_original, normalized_converted)
+
+        if similarity < threshold:
+            return text
+
+        print(f"Converted {text} to {number}", end=" ")
+        return number
+    except Exception as e:
+        return text
 
 
 class PeftSavingCallback(TrainerCallback):
