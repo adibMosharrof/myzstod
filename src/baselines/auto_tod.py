@@ -55,7 +55,10 @@ class AutoTod:
             if isinstance(handler, logging.StreamHandler):
                 handler.setFormatter(formatter)
         self.logger = root_logger
-        self.metric_manager = NlgApiCallMetricManager(self.logger)
+        # self.metric_manager = NlgApiCallMetricManager(self.logger)
+        self.metric_manager = MetricManagerFactory.get_metric_manager(
+            self.cfg.model_type.context_type, None, self.logger, self.cfg
+        )
 
     def get_prompts(self, schemas):
         schema_loader = SchemaLoader(DstcSchema)
