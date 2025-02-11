@@ -385,6 +385,7 @@ class ResultsLogger:
     def run(self):
         chat_gpt_csv = self.get_csv(self.cfg.chatgpt_results_path)
         results_csv = self.get_csv(self.cfg.results_path)
+        results_csv.pred = results_csv.pred.fillna("")
         results_with_dom_category = self.get_data_by_settings(results_csv)
         self.get_regular_setting_results(results_with_dom_category)
         turn_row_results = self.get_results(results_with_dom_category)
