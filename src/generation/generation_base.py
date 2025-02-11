@@ -7,6 +7,7 @@ from my_enums import SpecialTokens
 from transformers import AutoModel, AutoTokenizer
 from simple_tod_dataclasses import NlgTestDataBatch, TodTestDataBatch
 from torch import Tensor
+from utilities import text_utilities
 
 
 class GenerationBase(ABC):
@@ -55,7 +56,7 @@ class GenerationBase(ABC):
             return self.tokenizer.batch_decode(
                 text, skip_special_tokens=skip_special_tokens
             )
-        txt_no_pad = self.remove_padding(text)
+        txt_no_pad = text_utilities.remove_pad(text, self.tokenizer.pad_token_id)
         return self.tokenizer.batch_decode(txt_no_pad, skip_special_tokens=False)
 
     def get_generation(
@@ -159,9 +160,6 @@ class GenerationBase(ABC):
             out_text = "".join(["".join(text_to_add), item])
             out.append(out_text)
         return out
-
-    def remove_padding(self, gen):
-        return [row[row != self.tokenizer.pad_token_id] for row in gen]
 
     def pad_gen_to_max_len(self, gen, max_len: int):
         pad_amount = max_len - gen.shape[1]

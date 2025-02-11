@@ -23,6 +23,11 @@ from accelerate import Accelerator
 from my_enums import TurnRowType
 from utilities.context_manager import ContextManager
 import utils
+from transformers import AutoTokenizer
+from utilities import text_utilities
+from dstc import dstc_utils
+
+from my_enums import SpecialTokens
 
 # accelerator = Accelerator()
 
@@ -30,17 +35,7 @@ import utils
 class NlgApiCallMetricManager:
     def __init__(self, logger, tokenizer=None, cfg=None):
         self.cfg = cfg
-        self.tokenizer = tokenizer
-        self.special_tokens = (
-            False
-            if any(
-                [
-                    ContextManager.is_sgd_baseline(context_type),
-                    ContextManager.is_ketod_baseline(context_type),
-                ]
-            )
-            else True
-        )
+        self.tokenizer: AutoTokenizer = tokenizer
         self.google_bleu = evaluate.load("google_bleu", experiment_id=str(uuid.uuid4()))
         self.bert_score_metric = evaluate.load(
             "bertscore", experiment_id=str(uuid.uuid4())
@@ -110,17 +105,9 @@ class NlgApiCallMetricManager:
         current_user_utterances,
         search_results,
     ):
-        if self.tokenizer:
-            input_texts, labels, preds = [
-                self.tokenizer.batch_decode(
-                    tokens,
-                    skip_special_tokens=self.special_tokens,
-                    clean_up_tokenization_spaces=True,
-                )
-                for tokens in [input_tokens, label_tokens, pred_tokens]
-            ]
-        else:
-            input_texts, labels, preds = input_tokens, label_tokens, pred_tokens
+        input_texts, labels, preds = self.get_input_label_pred(
+            input_tokens, label_tokens, pred_tokens
+        )
 
         (
             response_preds,
@@ -194,6 +181,46 @@ class NlgApiCallMetricManager:
         self.multi_domain_api_call_metrics.update(
             references=multi_api_labels, predictions=multi_api_preds
         )
+
+    def get_input_label_pred(self, input_tokens, label_tokens, pred_tokens):
+        if not self.tokenizer:
+            return input_tokens, label_tokens, pred_tokens
+        context_type = self.cfg.model_type.context_type
+
+        if any(
+            [
+                ContextManager.is_sgd_baseline(context_type),
+                ContextManager.is_ketod_baseline(context_type),
+                ContextManager.is_bitod_baseline(context_type),
+            ]
+        ):
+            input_tokens_wo_pad = text_utilities.remove_pad(
+                input_tokens, self.tokenizer.pad_token_id
+            )
+            input_texts = self.tokenizer.batch_decode(
+                input_tokens_wo_pad,
+                skip_special_tokens=False,
+                clean_up_tokenization_spaces=True,
+            )
+            label_tokens_wo_pad, pred_tokens_wo_pad = [
+                text_utilities.remove_pad(tokens, self.tokenizer.pad_token_id)
+                for tokens in [label_tokens, pred_tokens]
+            ]
+            labels, preds = [
+                self.tokenizer.batch_decode(
+                    tokens, skip_special_tokens=False, clean_up_tokenization_spaces=True
+                )
+                for tokens in [label_tokens_wo_pad, pred_tokens_wo_pad]
+            ]
+            preds = self.postprocess_generation(preds)
+        else:
+            input_texts, labels, preds = [
+                self.tokenizer.batch_decode(
+                    tokens, skip_special_tokens=True, clean_up_tokenization_spaces=True
+                )
+                for tokens in [input_tokens, label_tokens, pred_tokens]
+            ]
+        return input_texts, labels, preds
 
     def write_csv(self, csv_path):
         if not len(self.data):
@@ -328,3 +355,12 @@ class NlgApiCallMetricManager:
 
     def process_pred(self, pred):
         return pred
+
+    def postprocess_generation(self, batch: list[str]) -> list[str]:
+        target_responses = [
+            dstc_utils.get_text_in_between(
+                row, SpecialTokens.begin_response, SpecialTokens.end_response, ""
+            )
+            for row in batch
+        ]
+        return target_responses

@@ -1,5 +1,6 @@
 import re
 import humps
+from torch import Tensor
 
 
 def get_nlg_service_name(service_name: str) -> str:
@@ -27,3 +28,7 @@ def get_apicall_method_from_text(text: str, reg_exp=r"method='([^']+)'") -> str:
             match = ""
         # match = ""
     return match
+
+
+def remove_pad(tokens: list[Tensor], pad_token_id: int):
+    return [row[row != pad_token_id] for row in tokens]
