@@ -18,9 +18,9 @@ class ApiCallParametersMetric(TodMetricsBase):
             ref_params = self._get_parameters_from_text(ref)
             pred_params = self._get_parameters_from_text(pred)
             for k, v in ref_params.items():
-                self.only_value_preds.append(
-                    utils.create_tensor(self.get_only_value_score(pred_params, v))
-                )
+                # self.only_value_preds.append(
+                #     utils.create_tensor(self.get_only_value_score(pred_params, v))
+                # )
                 if k in pred_params.keys():
                     fuzz_score = utils.fuzzy_string_match(pred_params[k], v)
                     self.param_preds.append(utils.create_tensor(1))
