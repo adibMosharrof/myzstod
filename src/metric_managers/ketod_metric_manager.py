@@ -66,7 +66,7 @@ class KeTodMetricManager(NlgApiCallMetricManager):
         current_user_utterances,
         search_results,
     ):
-        input_texts, labels, preds = self.get_input_label_pred(
+        input_texts, labels, preds, raw_pred_txts = self.get_input_label_pred(
             input_tokens, label_tokens, pred_tokens
         )
 
@@ -79,11 +79,13 @@ class KeTodMetricManager(NlgApiCallMetricManager):
             multi_api_labels,
             ke_preds,
             ke_labels,
-        ) = ([], [], [], [], [], [], [], [])
+            raw_preds,
+        ) = ([], [], [], [], [], [], [], [], [])
         for (
             input_text,
             pred,
             label,
+            raw_pred,
             turn_row_type,
             is_retrieval,
             is_slot_fill,
@@ -98,6 +100,7 @@ class KeTodMetricManager(NlgApiCallMetricManager):
             input_texts,
             preds,
             labels,
+            raw_pred_txts,
             turn_row_types,
             is_retrievals,
             is_slot_fills,
@@ -123,6 +126,7 @@ class KeTodMetricManager(NlgApiCallMetricManager):
                 is_single_domain=int(is_single_domain),
                 current_user_utterance=current_user_utterance,
                 search_results=search_result,
+                raw_pred=raw_pred,
             )
             self.data.append(row)
             if turn_row_type == TurnRowType.RESPONSE.value:

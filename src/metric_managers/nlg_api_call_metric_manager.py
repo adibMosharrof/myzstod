@@ -105,7 +105,7 @@ class NlgApiCallMetricManager:
         current_user_utterances,
         search_results,
     ):
-        input_texts, labels, preds = self.get_input_label_pred(
+        input_texts, labels, preds, raw_pred_txts = self.get_input_label_pred(
             input_tokens, label_tokens, pred_tokens
         )
 
@@ -116,12 +116,14 @@ class NlgApiCallMetricManager:
             api_labels,
             multi_api_preds,
             multi_api_labels,
-        ) = ([], [], [], [], [], [])
+            raw_preds,
+        ) = ([], [], [], [], [], [], [])
 
         for (
             input_text,
             pred,
             label,
+            raw_pred,
             turn_row_type,
             is_retrieval,
             is_slot_fill,
@@ -136,6 +138,7 @@ class NlgApiCallMetricManager:
             input_texts,
             preds,
             labels,
+            raw_pred_txts,
             turn_row_types,
             is_retrievals,
             is_slot_fills,
@@ -152,6 +155,7 @@ class NlgApiCallMetricManager:
             row = ApiCallInferenceLogData(
                 input_text=input_text,
                 pred=pred,
+                raw_pred=raw_pred,
                 label=label,
                 turn_row_type=int(turn_row_type),
                 is_retrieval=int(is_retrieval),
@@ -184,7 +188,7 @@ class NlgApiCallMetricManager:
 
     def get_input_label_pred(self, input_tokens, label_tokens, pred_tokens):
         if not self.tokenizer:
-            return input_tokens, label_tokens, pred_tokens
+            return input_tokens, label_tokens, pred_tokens, pred_tokens
         context_type = self.cfg.model_type.context_type
 
         if any(
@@ -212,6 +216,7 @@ class NlgApiCallMetricManager:
                 )
                 for tokens in [label_tokens_wo_pad, pred_tokens_wo_pad]
             ]
+            raw_preds = preds
             preds = self.postprocess_generation(preds)
         else:
             input_texts, labels, preds = [
@@ -220,7 +225,8 @@ class NlgApiCallMetricManager:
                 )
                 for tokens in [input_tokens, label_tokens, pred_tokens]
             ]
-        return input_texts, labels, preds
+            raw_preds = preds
+        return input_texts, labels, preds, raw_preds
 
     def write_csv(self, csv_path):
         if not len(self.data):
