@@ -66,16 +66,10 @@ class KeTodMetricManager(NlgApiCallMetricManager):
         current_user_utterances,
         search_results,
     ):
-        input_texts, labels, preds = [
-            self.tokenizer.batch_decode(
-                tokens, skip_special_tokens=True, clean_up_tokenization_spaces=True
-            )
-            for tokens in [input_tokens, label_tokens, pred_tokens]
-        ]
+        input_texts, labels, preds = self.get_input_label_pred(
+            input_tokens, label_tokens, pred_tokens
+        )
 
-        # response_preds, response_labels = [], []
-        # sc_preds, sc_labels = [], []
-        # ke_preds, ke_labels = [], []
         (
             response_preds,
             response_labels,
