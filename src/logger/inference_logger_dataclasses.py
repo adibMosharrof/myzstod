@@ -45,6 +45,7 @@ class ApiCallInferenceLogData(InferenceLogData):
     is_single_domain: Optional[int] = 0
     current_user_utterance: Optional[str] = None
     search_results: Optional[str] = None
+    raw_pred: Optional[str] = None
 
     def update(self, updated_data: "ApiCallInferenceLogData"):
         self.turn_row_type = updated_data.turn_row_type
@@ -63,6 +64,7 @@ class ApiCallInferenceLogData(InferenceLogData):
         self.is_single_domain = updated_data.is_single_domain
         self.current_user_utterance = updated_data.current_user_utterance
         self.search_results = updated_data.search_results
+        self.raw_pred = updated_data.raw_pred
 
 
 @dataclass
