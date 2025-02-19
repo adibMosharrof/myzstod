@@ -1,0 +1,10 @@
+data_split_percent:
+  - 1
+  - 1
+  - 1
+num_dialogs:
+  - 127
+  - 20
+  - 34
+save_steps: 1
+eval_steps: 1

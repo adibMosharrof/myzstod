@@ -75,7 +75,7 @@ class BaseTrainer:
                 handler.setFormatter(formatter)
         self.logger = root_logger
         validators = [
-            ShouldAddSchemaValidator(),
+            # ShouldAddSchemaValidator(),
             ShouldTrainValidator(),
             TargetLengthValidator(),
             PostProcessGenerationValidator(),
