@@ -1,0 +1,5 @@
+bitod:
+  raw_data_root: data/bitod
+  data_prep_out_root: processed_data/bitod
+  chatgpt_results_path: data_exploration/chatgpt/chat_gpt_all.csv
+  dataset_name: bitod

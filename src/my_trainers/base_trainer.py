@@ -78,7 +78,7 @@ class BaseTrainer:
                 handler.setFormatter(formatter)
         self.logger = root_logger
         validators = [
-            ShouldAddSchemaValidator(),
+            # ShouldAddSchemaValidator(),
             ShouldTrainValidator(),
             TargetLengthValidator(),
             PostProcessGenerationValidator(),
@@ -360,11 +360,12 @@ class BaseTrainer:
                 out[key] = [i for i in ds[key].data if i.turn_row_type == 1]
         return out
 
+
 class ClearMemoryCallback(TrainerCallback):
     def __init__(self):
         super().__init__()
         self.logger = logging.getLogger()
-    
+
     def on_evaluate(self, args, state, control, **kwargs):
         """
         Clear GPU and RAM memory after evaluation.
@@ -393,6 +394,6 @@ class ClearMemoryCallback(TrainerCallback):
             gpu_memory = torch.cuda.memory_allocated() / (1024**3)
         else:
             gpu_memory = 0
-        msg =f"{stage} - RAM: {ram_usage:.2f} GB / {total_ram:.2f} GB, GPU: {gpu_memory:.2f} GB"
+        msg = f"{stage} - RAM: {ram_usage:.2f} GB / {total_ram:.2f} GB, GPU: {gpu_memory:.2f} GB"
         return msg
-        # utils.log(self.logger,msg) 
+        # utils.log(self.logger,msg)
