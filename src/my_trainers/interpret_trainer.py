@@ -6,9 +6,14 @@ import torch
 
 sys.path.insert(0, os.path.abspath("./src"))
 sys.path.insert(0, os.path.abspath("./"))
+from my_enums import Steps
+
+
 from datamodules.tod_datamodulev2 import TodDataModuleV2
 from my_trainers.base_trainer import BaseTrainer
 from torch.utils.data import random_split, Subset
+
+from datamodules.tod_dataset import TodDataSet
 
 
 class InterpretTrainer(BaseTrainer):
@@ -25,9 +30,27 @@ class InterpretTrainer(BaseTrainer):
         i_train, i_dev, i_test = random_split(
             range(dataset_size), [train_size, dev_size, test_size]
         )
-        train_dataset = Subset(train, i_train)
-        dev_dataset = Subset(train, i_dev)
-        test_dataset = Subset(train, i_test)
+        train_dataset = TodDataSet(
+            [train.data[i] for i in i_train.indices],
+            train.dataset_name,
+            train.domain_setting,
+            Steps.TRAIN.value,
+            train.raw_data_root,
+        )
+        dev_dataset = TodDataSet(
+            [train.data[i] for i in i_dev.indices],
+            train.dataset_name,
+            train.domain_setting,
+            Steps.DEV.value,
+            train.raw_data_root,
+        )
+        test_dataset = TodDataSet(
+            [train.data[i] for i in i_test.indices],
+            train.dataset_name,
+            train.domain_setting,
+            Steps.TEST.value,
+            train.raw_data_root,
+        )
         return train_dataset, dev_dataset, [test_dataset]
 
 
