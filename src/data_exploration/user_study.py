@@ -115,12 +115,49 @@ class UserStudy:
             ids=ids,
         )
 
-    def run(self):
-        model_names = ["soloist", "autotod", "gpt", "llama", "flan"]
-        data = self.read_data(model_names)
+    def test_data(self):
+        path = (
+            self.cfg.project_root
+            / self.cfg.data_path
+            / self.cfg.dataset_name
+            / "bitod_test_data.csv"
+        )
+        test_df = pd.read_csv(path)
+        return test_df
 
-        out = self.get_domains_and_ids(data.gpt)
-        out["gt"] = self.get_dialog_history(data.gpt, "label")
+    def add_missing_columns(self, data, test_df):
+        for model_name in ["soloist", "autotod"]:
+
+            data[model_name] = data[model_name].merge(
+                test_df[
+                    ["dialog_id", "turn_id", "current_user_utterance", "search_results"]
+                ],
+                on=["dialog_id", "turn_id"],
+                how="left",
+                suffixes=("", "_from_test"),
+            )
+            data[model_name].search_results = data[model_name].search_results_from_test
+            data[model_name].current_user_utterance = data[
+                model_name
+            ].current_user_utterance_from_test
+            data[model_name].drop(
+                columns=[
+                    "search_results_from_test",
+                    "current_user_utterance_from_test",
+                ],
+                inplace=True,
+            )
+        return data
+
+    def run(self):
+        # model_names = ["soloist", "autotod", "gpt", "llama", "flan"]
+        model_names = ["soloist", "autotod"]
+        data = self.read_data(model_names)
+        test_df = self.test_data()
+        data = self.add_missing_columns(data, test_df)
+
+        out = self.get_domains_and_ids(data.soloist)
+        out["gt"] = self.get_dialog_history(data.soloist, "label")
         for model_name in model_names:
             out[model_name] = self.get_dialog_history(data[model_name], "pred")
         df = pd.DataFrame(out)
@@ -169,8 +206,8 @@ if __name__ == "__main__":
             project_root=Path("/u/amo-d0/grad/adibm/data/projects/ZSToD"),
             data_path="data/user_study",
             out_root="data_exploration/user_study",
-            dataset_name="sgd",
-            # dataset_name="ketod",
+            # dataset_name="sgd",
+            dataset_name="bitod",
         )
     )
     us.run()
