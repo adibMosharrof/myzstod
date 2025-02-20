@@ -48,6 +48,8 @@ class ChatGptV2Prompt:
                 "Based on the Last User Utterance, you must find the relevant Intent from the Schema and your request should use the required slots and optional slots from that Intent.",
                 # Basic Info Schema, Slots and Intent
                 f"You will be provided with a Schema for domain: {domain}",
+                f"Today is 2019-03-01, Friday. This Saturday is 2019-03-02. This Sunday is 2019-03-03.",
+                f"When specifying a data type parameter without given full date, prefix as '2019-03-xx'."
             ]
         )
 
