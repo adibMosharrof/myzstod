@@ -68,9 +68,11 @@ class CalcBertScore:
 
     def get_score(self, df):
         self.metric.reset()
-        self.metric._update(
-            references=df.label.to_list(), predictions=df.pred.to_list()
-        )
+        labels = df.label.to_list()
+        preds = df.pred.to_list()
+        if not labels or not preds:
+            return 0
+        self.metric._update(references=labels, predictions=preds)
         res = self.metric._compute()
         return round(res.f1, 4)
 
@@ -79,15 +81,14 @@ if __name__ == "__main__":
     dd = CalcBertScore(
         DotMap(
             project_root=Path("/u/amo-d0/grad/adibm/data/projects/ZSToD"),
-            raw_data_root="data/ketod",
-            # raw_data_root="data/dstc8-schema-guided-dialogue",
+            # raw_data_root="data/ketod",
+            raw_data_root="data/dstc8-schema-guided-dialogue",
             out_root=Path("data_exploration/bert_scores"),
             pred_path=Path(
-                # "outputs/probing/05-40-30_gpt2/results/predictions/ketod_all.csv"
-                # "outputs/auto_tod/2024-12-06/19-34-42/results/chatgpt_inference.csv"
-                "/u/amo-d0/grad/adibm/data/download/ketod/simpletod_ketod_all.csv"
+                # "/u/amo-d0/grad/adibm/data/download/sgd/llama_multi_sgd_all.csv"
+                "/u/amo-d0/grad/adibm/data/download/autotod_ketod_all.csv"
             ),
-            model_name="simpletod_ketod",
+            model_name="autotod_ketod",
         )
     )
     dd.run()
