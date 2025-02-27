@@ -29,6 +29,8 @@ class ResultsLogger:
         self.bertscore_model = "microsoft/mpnet-base"
 
     def get_csv(self, path):
+        if path is None or path == "":
+            return pd.DataFrame()
         csv_path = path if Path(path).is_absolute() else self.cfg.project_root / path
         data = pd.read_csv(csv_path)
         return data
@@ -334,7 +336,8 @@ class ResultsLogger:
                 print("no slot fill data for domain ", domain)
         return out
 
-    def write_results(self, results, chat_gpt_results):
+    # def write_results(self, results, chat_gpt_results):
+    def write_results(self, results):
         col_groups = DotMap(
             response=["domain_category", "response_bleu", "response_gleu"],
             api_call=[
@@ -367,7 +370,8 @@ class ResultsLogger:
         results = sorted(results.items())
         tables = []
         for key, col_group in col_groups.items():
-            headers = ["domains"] + col_group * 2
+            # headers = ["domains"] + col_group * 2
+            headers = ["domains"] + col_group
             csv_path = Path(self.cfg.out_dir) / f"{key}.csv"
             rows = []
             for domain, item in results:
@@ -375,24 +379,25 @@ class ResultsLogger:
                 for col in col_group:
                     r_value = item.get(col, None)
                     row.append(r_value)
-                c_item = chat_gpt_results.get(domain, {})
-                for col in col_group:
-                    c_value = c_item.get(col, None)
-                    row.append(c_value)
+                # c_item = chat_gpt_results.get(domain, {})
+                # for col in col_group:
+                #     c_value = c_item.get(col, None)
+                #     row.append(c_value)
                 rows.append(row)
             utils.write_csv(headers, rows, csv_path)
 
     def run(self):
-        chat_gpt_csv = self.get_csv(self.cfg.chatgpt_results_path)
+        # chat_gpt_csv = self.get_csv(self.cfg.chatgpt_results_path)
         results_csv = self.get_csv(self.cfg.results_path)
         results_csv.pred = results_csv.pred.fillna("")
         results_with_dom_category = self.get_data_by_settings(results_csv)
         self.get_regular_setting_results(results_with_dom_category)
         turn_row_results = self.get_results(results_with_dom_category)
-        chat_gpt_with_dom_category = self.get_data_by_settings(chat_gpt_csv)
+        # chat_gpt_with_dom_category = self.get_data_by_settings(chat_gpt_csv)
         # chat_gpt_results = self.get_results(chat_gpt_csv)
-        chat_gpt_results = self.get_results(chat_gpt_with_dom_category)
-        self.write_results(turn_row_results, chat_gpt_results)
+        # chat_gpt_results = self.get_results(chat_gpt_with_dom_category)
+        # self.write_results(turn_row_results, chat_gpt_results)
+        self.write_results(turn_row_results)
         # with open(Path(os.getcwd()) / "results/combined.md", "w") as f:
         #     for table in md_tables:
         #         f.write(table)
