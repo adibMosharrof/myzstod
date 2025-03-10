@@ -1,0 +1,15 @@
+model_name: gpt2
+# model_path: ""
+# model_path: outputs/interpret/checkpoint-100
+model_path: outputs/interpret/20-40-10_sgd_only_gpt/results
+# model_path: outputs/interpret/20-00-36_gpt2_sgd_aug/results
+train_batch_size: 5
+eval_batch_size: 5
+test_batch_size: 5
+gradient_accumulation_steps: 32
+eval_accumulation_steps: 32
+quantization: false
+quantization_dtype: 4
+learning_rate: 1e-3
+model_log_name: gpt2_all_hotels_rest
+context_type: gpt_api_call
