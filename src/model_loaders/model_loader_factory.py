@@ -2,6 +2,7 @@ from model_loaders.cross_model_loader import CrossModelLoader
 from transformers import AutoTokenizer
 
 from model_loaders.base_model_loader import BaseModelLoader
+from model_loaders.interpret_model_loader import InterpretModelLoader
 from model_loaders.lora_model_loader import LoraModelLoader
 from model_loaders.qlora_4bit_model_loader import Qlora4bitModelLoader
 from model_loaders.quantized_lora_model_loader import QuantizedLoraModelLoader
@@ -24,6 +25,8 @@ class ModelLoaderFactory:
 
         if cfg.model_type.context_type in ["gpt_cross"]:
             return CrossModelLoader(**params)
+        if cfg.get("is_interpret", None):
+            return InterpretModelLoader(**params)
         if not cfg.model_type.quantization:
             return BaseModelLoader(**params)
         if cfg.model_type.quantization_dtype == 16:

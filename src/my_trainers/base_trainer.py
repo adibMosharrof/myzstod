@@ -86,6 +86,7 @@ class BaseTrainer:
     def run(self):
         accelerator = Accelerator()
         torch.manual_seed(420)
+
         tokenizer = TokenizerUtilities.get_tokenizer(
             model_name=self.cfg.model_type.model_name,
             context_type=self.cfg.model_type.context_type,
@@ -109,7 +110,6 @@ class BaseTrainer:
         train_dataset, val_dataset, test_datasets = self.get_datasets_from_data_modules(
             dms
         )
-        # self.test_dm(train_dataset, collator.tod_train_collate)
 
         if self.cfg.should_train:
             model_out_dir = self.train_model(
@@ -120,6 +120,27 @@ class BaseTrainer:
         if not self.cfg.should_test:
             utils.log(self.logger, "should test is set to false, exiting")
             return
+
+        self.inference(
+            accelerator,
+            tokenizer,
+            model_loader,
+            collator,
+            test_datasets,
+            model_out_dir,
+            train_dataset,
+        )
+
+    def inference(
+        self,
+        accelerator,
+        tokenizer,
+        model_loader,
+        collator,
+        test_datasets,
+        model_out_dir,
+        train_dataset=None,
+    ):
         utils.log(self.logger, "starting inference")
         model = model_loader.load_for_inference(model_out_dir)
 
@@ -135,14 +156,7 @@ class BaseTrainer:
                 continue
             utils.log(self.logger, f"testing {domain_names}")
 
-            test_dl = DataLoader(
-                test_dataset,
-                batch_size=self.cfg.model_type.test_batch_size,
-                collate_fn=collate_fn,
-                pin_memory=True,
-                num_workers=8,
-            )
-            test_dl = accelerator.prepare(test_dl)
+            test_dl = self.get_test_dl(accelerator, collate_fn, test_dataset)
             metric_manager = MetricManagerFactory.get_metric_manager(
                 self.cfg.model_type.context_type, tokenizer, self.logger, self.cfg
             )
@@ -173,6 +187,18 @@ class BaseTrainer:
                 self.log_results(test_dataset, out_dir_path)
         accelerator.wait_for_everyone()
 
+    def get_test_dl(self, accelerator, collate_fn, test_dataset):
+        test_dl = DataLoader(
+            test_dataset,
+            batch_size=self.cfg.model_type.test_batch_size,
+            collate_fn=collate_fn,
+            pin_memory=True,
+            num_workers=min(8, os.cpu_count()),
+            shuffle=False,
+        )
+        test_dl = accelerator.prepare(test_dl)
+        return test_dl
+
     def get_pred_csv_path(self, test_dataset: TodDataSet):
         csv_path = (
             Path(self.cfg.out_dir)
@@ -191,7 +217,8 @@ class BaseTrainer:
             DotMap(
                 project_root=self.cfg.project_root,
                 results_path=csv_path,
-                chatgpt_results_path=str(chatgpt_results),
+                # chatgpt_results_path=str(chatgpt_results),
+                chatgpt_results_path="",
                 out_dir=out_dir_path / "results_logger" / dataset.dataset_name,
                 raw_data_root=dataset.raw_data_root,
                 dataset_name=dataset.dataset_name,
