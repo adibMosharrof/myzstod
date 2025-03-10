@@ -34,18 +34,23 @@ class BaseModelLoader:
         )
 
     def load(
-        self, model_path: Union[Path, str] = None, is_inference: bool = False
+        self,
+        model_path: Union[Path, str] = None,
+        is_inference: bool = False,
+        config=None,
     ) -> Union[AutoModelForCausalLM, T5ForConditionalGeneration]:
         model_path = self._get_model_path(model_path)
 
-        model = self.model_class.from_pretrained(model_path or self.model_name)
+        model = self.model_class.from_pretrained(
+            model_path or self.model_name, config=config
+        )
         self._resize_token_embeddings(model)
         if model_path:
             model.to(self.accelerator.device)
         return model
 
-    def load_for_inference(self, model_path: Union[Path, str] = None):
-        return self.load(model_path)
+    def load_for_inference(self, model_path: Union[Path, str] = None, config=None):
+        return self.load(model_path, config=config)
 
     def _get_model_path(self, model_path: Union[Path, str] = None):
         return str(self.project_root / model_path) if model_path else None
