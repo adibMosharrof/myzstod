@@ -3,16 +3,18 @@ defaults:
   # - data_size: dstc_full
   - dataset: 
       - dstc
-  - model_type: llama
+  # - model_type: llama
+  - model_type: gpt
 hydra:
   run:
-    dir: ./outputs/interpret/${now:%Y-%m-%d}/${now:%H-%M-%S}_${model_type.model_log_name}
+    dir: ./outputs/interpret_trainer/${now:%Y-%m-%d}/${now:%H-%M-%S}_${model_type.model_log_name}
 num_workers: 8
 test_prompt_max_len: 820
 # test_prompt_max_len: 500
-max_token_len: 1024
+# max_token_len: 1024
+max_token_len: 920
 num_turns: 26
-should_add_schema: false
+should_add_schema: true
 should_add_user_actions: false
 should_add_service_results: true
 service_results_num_items: 1
@@ -24,59 +26,30 @@ resume_checkpoint: ""
 epochs: 1
 # epochs: 15
 is_scale_grad: false
+interpret_layer: 11
+is_interpret: true
+percent_mask: 0.15
 # train_domain_settings: all
 train_domain_settings:
   - Restaurants_1
-#   - Restaurants_11
-#   - Restaurants_12
-#   - Restaurants_13
-# - Restaurants_14
-# - Restaurants_15
-  # - Restaurants_1pl0
-  # - Restaurants_1pl1
-  # - Restaurants_1pl2
-  # - Restaurants_1pl3
-  # - Restaurants_1pl4
-  # - Restaurants_1pl5
+  - Hotels_1
   # - all
 # dev_domain_settings: all
 dev_domain_settings: 
   - Restaurants_1
-#   - Restaurants_21
-#   - Restaurants_22
-  # - Restaurants_23
-  # - Restaurants_24
-  # - Restaurants_25
-  # - Restaurants_2pl0
-  # - Restaurants_2pl1
-  # - Restaurants_2pl2
-  # - Restaurants_2pl3
-  # - Restaurants_2pl4
-  # - Restaurants_2pl5
 test_domain_settings:
   - - Restaurants_1
-  # - - Restaurants_21
-  # - - Restaurants_22
-  # - - Restaurants_23
-  # - [Restaurants_24]
-  # - [Restaurants_25]
-  # - - Restaurants_2pl0
-  # - - Restaurants_2pl1
-  # - - Restaurants_2pl2
-  # - - Restaurants_2pl3
-  # - - Restaurants_2pl4
-  # - - Restaurants_2pl5
-  - - all
+  # - - all
   # - [seen]
   # - [unseen]
 prompt_type: default
-overwrite:
-  - 1
-  - 1
-  - 1
+# overwrite:
+#   - 1
+#   - 1
+#   - 1
 out_dir: results
-should_train: true
-# should_train: false
+# should_train: true
+should_train: false
 # should_test: false
 should_test: true
 # data_prep_multi_process: false

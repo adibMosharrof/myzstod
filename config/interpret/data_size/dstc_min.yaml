@@ -1,5 +1,5 @@
 data_split_percent:
-  - 1
+  - .05
   - 1
   - 1
 num_dialogs:

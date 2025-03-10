@@ -3,3 +3,5 @@ sgd:
   data_prep_out_root: processed_data/simple_tod
   chatgpt_results_path: data_exploration/chatgpt/chat_gpt_all sgd.csv
   dataset_name: sgd
+  data_filters: 
+    - api_call
