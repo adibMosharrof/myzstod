@@ -1,6 +1,6 @@
 from tqdm import tqdm
 from generation.simple_generation import SimpleGeneration
-from utilities import nethook
+from utilities import nethook, tensor_utilities
 import torch
 
 
@@ -24,9 +24,19 @@ class InterpretGeneration(SimpleGeneration):
             [generated_tokens.shape[1]], device=accelerator.device
         )
         max_seq_len = accelerator.gather(all_seq_len).max().item()
-        generated_tokens = self.pad_to_len(generated_tokens, max_seq_len)
-        confidences = self.pad_to_len(confidences, max_seq_len)
-        fc_vals = self.pad_to_len(fc_vals, max_seq_len)
+        # generated_tokens = self.pad_to_len(generated_tokens, max_seq_len)
+        # confidences = self.pad_to_len(confidences, max_seq_len)
+        # fc_vals = self.pad_to_len(fc_vals, max_seq_len)
+        generated_tokens = tensor_utilities.pad_to_len(
+            generated_tokens, max_seq_len, self.tokenizer.pad_token_id
+        )
+        confidences = tensor_utilities.pad_to_len(
+            confidences, max_seq_len, self.tokenizer.pad_token_id
+        )
+        fc_vals = tensor_utilities.pad_to_len(
+            fc_vals, max_seq_len, self.tokenizer.pad_token_id
+        )
+        # accelerator.wait_for_everyone()
         g_t, c, f = accelerator.gather_for_metrics(
             (generated_tokens, confidences, fc_vals)
         )

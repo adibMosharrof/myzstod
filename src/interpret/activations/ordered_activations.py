@@ -1,10 +1,9 @@
 import numpy as np
 import torch
+from interpret.activations.base_activations import BaseActivations
 
 
-class OrderedActivations:
-    def __init__(self, cfg):
-        self.cfg = cfg
+class OrderedActivations(BaseActivations):
 
     def find_subtensor_indices(self, batch_tensor, pattern):
         batch_size, seq_len = batch_tensor.shape  # Batch size and sequence length

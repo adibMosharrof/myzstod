@@ -44,6 +44,15 @@ class ApiCallMethodMetric(TodMetricsBase):
             return ref
         return int(pred == ref)
 
+    def interpret_repr(self):
+        res = self._compute()
+        return [
+            {
+                "name": "Method Accuracy",
+                "value": res.item(),
+            }
+        ]
+
     def __str__(self):
         res = self._compute()
         return f"{self.name} Service Call Method Accuracy: {res*100:.2f}"

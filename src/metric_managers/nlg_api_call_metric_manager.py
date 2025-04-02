@@ -178,13 +178,16 @@ class NlgApiCallMetricManager:
                 if is_multi_domain_api_call:
                     multi_api_preds.append(row.pred)
                     multi_api_labels.append(row.label)
-        self.response_metrics.update(
-            references=response_labels, predictions=response_preds
-        )
-        self.api_call_metrics.update(references=api_labels, predictions=api_preds)
-        self.multi_domain_api_call_metrics.update(
-            references=multi_api_labels, predictions=multi_api_preds
-        )
+        if self.response_metrics:
+            self.response_metrics.update(
+                references=response_labels, predictions=response_preds
+            )
+        if self.api_call_metrics:
+            self.api_call_metrics.update(references=api_labels, predictions=api_preds)
+        if self.multi_domain_api_call_metrics:
+            self.multi_domain_api_call_metrics.update(
+                references=multi_api_labels, predictions=multi_api_preds
+            )
 
     def get_input_label_pred(self, input_tokens, label_tokens, pred_tokens):
         if not self.tokenizer:
@@ -264,19 +267,21 @@ class NlgApiCallMetricManager:
                 ]
                 if "api_call_param_relation" in row_dict:
                     api_params.append(row_dict.api_call_param_relation)
-                row_dict.complete_api_call = self.complete_api_call.compute_row(
-                    [row_dict.api_call_method],
-                    [api_params],
-                )
-                self.complete_api_call.update(
-                    [row_dict.api_call_method],
-                    [
-                        (
-                            row_dict.api_call_param_names,
-                            row_dict.api_call_param_values,
-                        )
-                    ],
-                )
+
+                if self.complete_api_call:
+                    row_dict.complete_api_call = self.complete_api_call.compute_row(
+                        [row_dict.api_call_method],
+                        [api_params],
+                    )
+                    self.complete_api_call.update(
+                        [row_dict.api_call_method],
+                        [
+                            (
+                                row_dict.api_call_param_names,
+                                row_dict.api_call_param_values,
+                            )
+                        ],
+                    )
                 if row.is_multi_domain_api_call:
                     for k, v in zip(
                         list(self.multi_domain_api_call_metrics.keys()),
