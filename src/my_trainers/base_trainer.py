@@ -351,8 +351,23 @@ class BaseTrainer:
             dm_cfg.raw_data_root = self.cfg.project_root / dataset_config.raw_data_root
             dm = self.init_dm_class(dm_cfg, tokenizer, collator)
             dm.setup()
+            if self.cfg.get("subset_of_domains", False):
+                rows_to_take = self.cfg.get("subset_rows_to_take", 20)
+                dm = self.get_subset_of_domains(dm, dm_cfg, rows_to_take)
             all_dms.append(dm)
         return all_dms
+
+    def get_subset_of_domains(self, dm, dm_cfg, rows_to_take):
+        data = []
+        for domain in dm_cfg.train_domain_settings:
+            domain_rows = [
+                d
+                for i, d in enumerate(dm.datasets["train"])
+                if d.domains_original == domain
+            ]
+            data.extend(domain_rows[:rows_to_take])
+        dm.datasets["train"].data = data
+        return dm
 
     def get_dm_dataset(self, dm):
         return dm.datasets

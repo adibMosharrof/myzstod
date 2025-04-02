@@ -5,10 +5,11 @@ from scipy.stats import skew, kurtosis, normaltest, shapiro, kstest, norm
 
 class ActivationStatistics:
 
-    def __init__(self, cfg):
+    def __init__(self, cfg, interpret_layer):
         self.cfg = cfg
+        self.interpret_layer = interpret_layer
 
-    def activation_statistics(self, activations, interpret_text):
+    def activation_statistics(self, activations, interpret_text, base_path):
         for activation, label in zip(activations, interpret_text):
             n_neurons = activation.shape[1]
             total_skew = 0
@@ -33,8 +34,16 @@ class ActivationStatistics:
                 )  # fisher=False for Pearson's definition
 
                 # Statistical tests
-                _, shapiro_p = shapiro(neuron_data)
-                _, normal_p = normaltest(neuron_data)  # D'Agostino and Pearson's test
+                try:
+                    _, shapiro_p = shapiro(neuron_data)
+                except ValueError:
+                    shapiro_p = -1
+                try:
+                    _, normal_p = normaltest(
+                        neuron_data
+                    )  # D'Agostino and Pearson's test
+                except ValueError:
+                    normal_p = -1
 
                 shapiro_pvals.append(shapiro_p)
                 normal_pvals.append(normal_p)
@@ -51,7 +60,9 @@ class ActivationStatistics:
             # Count how many neurons pass normality tests (p > 0.05)
             shapiro_normal = sum(p > 0.05 for p in shapiro_pvals)
             dagostino_normal = sum(p > 0.05 for p in normal_pvals)
-            file_path = Path("statistics") / f"activation_statistics_{label}.txt"
+            file_path = (
+                base_path / Path("statistics") / f"activation_statistics_{label}.txt"
+            )
             file_path.parent.mkdir(parents=True, exist_ok=True)
             with open(file_path, "w") as f:
                 f.write(f"Label: {label}\n")

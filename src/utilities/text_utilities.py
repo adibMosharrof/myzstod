@@ -1,3 +1,5 @@
+import hashlib
+import os
 import re
 import humps
 from torch import Tensor
@@ -30,5 +32,36 @@ def get_apicall_method_from_text(text: str, reg_exp=r"method='([^']+)'") -> str:
     return match
 
 
+def get_parameters_from_text(text: str):
+    reg_exp = r"(\w+)': '([^']+)'"
+    try:
+        matches = re.findall(reg_exp, text)
+        out = dict(matches)
+    except:
+        out = {}
+    return out
+
+
 def remove_pad(tokens: list[Tensor], pad_token_id: int):
     return [row[row != pad_token_id] for row in tokens]
+
+
+def hash_file_name(file_name: str, max_length: int, hash_length: int):
+    if len(file_name) <= max_length:
+        return file_name
+
+    # Split the file name into base name and extension
+    base_name, ext = os.path.splitext(file_name)
+
+    # Create a hash of the base name
+    hash_object = hashlib.md5(base_name.encode())  # You can use SHA256 if preferred
+    hash_name = hash_object.hexdigest()[:hash_length]  # Truncate to 10 characters
+
+    # Ensure the final name length is within the limit
+    shortened_name = hash_name + ext
+    if len(shortened_name) > max_length:
+        raise ValueError(
+            "Cannot shorten the file name to fit within the maximum length."
+        )
+
+    return shortened_name

@@ -1,4 +1,5 @@
 from metric_managers.bitod_metric_manager import BitodMetricManager
+from metric_managers.interpret_metric_manager import InterpretMetricManager
 from metric_managers.ketod_metric_manager import KeTodMetricManager
 from metric_managers.nlg_api_call_metric_manager import NlgApiCallMetricManager
 from metric_managers.nlg_metric_manager import NlgMetricManager
@@ -10,6 +11,8 @@ class MetricManagerFactory:
 
     @classmethod
     def get_metric_manager(self, context_type: str, tokenizer, logger, cfg):
+        if cfg.get("is_interpret", False):
+            return InterpretMetricManager(logger, tokenizer, cfg)
         if any(
             [
                 ContextManager.is_sgd_nlg_api(context_type),

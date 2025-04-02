@@ -1,9 +1,9 @@
 import torch
 
+from interpret.activations.base_activations import BaseActivations
 
-class InterpretActivation:
-    def __init__(self, cfg):
-        self.cfg = cfg
+
+class InterpretActivation(BaseActivations):
 
     def get_mask_and_indices(
         self, interpret_text, generated_tokens, tokenizer, accelerator
