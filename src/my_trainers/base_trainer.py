@@ -22,11 +22,14 @@ from transformers.trainer_seq2seq import Seq2SeqTrainer
 from transformers.trainer_utils import IntervalStrategy
 from transformers.training_args_seq2seq import Seq2SeqTrainingArguments
 from torch.utils.data import DataLoader
+import gc
+import torch
+import psutil
 
+from transformers import TrainerCallback
 from my_trainers.custom_trainer import CustomTrainer
 from validators.post_process_generation_validator import PostProcessGenerationValidator
 
-from transformers import TrainerCallback
 
 sys.path.insert(0, os.path.abspath("./src"))
 sys.path.insert(0, os.path.abspath("./"))

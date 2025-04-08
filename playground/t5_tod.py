@@ -3,11 +3,13 @@ import sys
 import uuid
 
 from omegaconf import DictConfig, OmegaConf
+from omegaconf import DictConfig, OmegaConf
 
 
 sys.path.insert(0, os.path.abspath("./src"))
 from generation.generation_handler_factory import GenerationHandlerFactory
 from simple_tod_dataclasses import TodTestDataBatch
+from metric_managers.metric_manager_factory import MetricManagerFactory
 from metric_managers.metric_manager_factory import MetricManagerFactory
 from metric_managers.ketod_metric_manager import KeTodMetricManager
 from prompts.prompt_constants import NlgPromptType
@@ -20,6 +22,7 @@ from t5_datamodule import T5DataModule
 import hydra
 from logger.inference_logger import InferenceLogger
 from metric_managers.nlg_metric_manager import NlgMetricManager
+from tod.turns.zs_tod_turn import TodTurnCsvRowFactory
 from tod.turns.zs_tod_turn import TodTurnCsvRowFactory
 from base_datamodule import SimpleTodDataSet
 from pathlib import Path
@@ -77,6 +80,12 @@ class T5Tod:
     def __init__(self, cfg):
         self.cfg = DotMap(cfg)
         self.cfg.project_root = Path(cfg.project_root)
+        self.cfg.raw_data_root = self.cfg.project_root / self.cfg.dataset.raw_data_root
+        self.cfg.context_type = self.cfg.model_type.context_type
+        self.cfg.data_prep_out_root = self.cfg.dataset.data_prep_out_root
+        self.cfg.num_dialogs = self.cfg.data_size.num_dialogs
+        self.cfg.data_split_percent = self.cfg.data_size.data_split_percent
+
         self.cfg.raw_data_root = self.cfg.project_root / self.cfg.dataset.raw_data_root
         self.cfg.context_type = self.cfg.model_type.context_type
         self.cfg.data_prep_out_root = self.cfg.dataset.data_prep_out_root
@@ -295,10 +304,8 @@ class T5Tod:
         if self.cfg.model_type.model_path and not self.cfg.should_train:
             model_out_dir = str(self.cfg.project_root / self.cfg.model_type.model_path)
         elif self.cfg.model_type.quantization:
-            # model = self.get_model(self.cfg.model_type.model_name, model_cls, tokenizer)
-            model = self.get_quantized_model(
-                self.cfg.model_type.model_name, model_cls, tokenizer
-            )
+            model = self.get_model(self.cfg.model_type.model_name, model_cls, tokenizer)
+            # model = self.get_quantized_model(self.cfg.model_type.model_name, model_cls, tokenizer)
             # deepspeed_path = self.cfg.project_root / "config/ds_zero1.json"
             deepspeed_path = str(self.cfg.project_root / "config/ds_zero_tod.json")
         else:
@@ -360,6 +367,7 @@ class T5Tod:
                 ddp_find_unused_parameters=False,
                 deepspeed=deepspeed_path,
                 ddp_backend="nccl",
+                save_safetensors=False,
                 # gradient_checkpointing_kwargs={"use_reentrant": False},
             )
             trainer = Seq2SeqTrainer(
@@ -405,58 +413,39 @@ class T5Tod:
             _ = model.eval()
         utils.log(self.logger, "starting inference")
 
-        # if (
-        #     self.cfg.model_type.quantization
-        #     and self.cfg.model_type.quantization_dtype == 16
-        # ):
-        #     config = PeftConfig.from_pretrained(model_out_dir)
-        #     device_map = {"": accelerator.device}
-        #     model = model_cls.from_pretrained(
-        #         config.base_model_name_or_path,
-        #         load_in_8bit=False,
-        #         # load_in_8bit=True,
-        #         device_map=device_map,
-        #     )
-        #     model.resize_token_embeddings(len(tokenizer))
-        #     model = PeftModel.from_pretrained(
-        #         model, model_out_dir, device_map=device_map
-        #     )
-        # elif (
-        #     self.cfg.model_type.quantization
-        #     and self.cfg.model_type.quantization_dtype == 4
-        # ):
-        #     config = BitsAndBytesConfig(
-        #         load_in_4bit=True,
-        #         bnb_4bit_quant_type="nf4",
-        #         bnb_4bit_use_double_quant=True,
-        #         bnb_4bit_compute_dtype=torch.bfloat16,
-        #     )
-
-        #     device_map = {"": accelerator.device}
-        #     model = model_cls.from_pretrained(
-        #         self.cfg.model_type.model_name,
-        #         quantization_config=config,
-        #         device_map=device_map,
-        #     )
-        #     model = PeftModel.from_pretrained(model, model_out_dir)
-        # elif (
-        #     self.cfg.model_type.quantization
-        #     and self.cfg.model_type.quantization_dtype == 8
-        # ):
-        #     config = BitsAndBytesConfig(load_in_8bit=True)
-
-        #     device_map = {"": accelerator.device}
-        #     model = model_cls.from_pretrained(
-        #         self.cfg.model_type.model_name,
-        #         quantization_config=config,
-        #         device_map=device_map,
-        #     )
-        #     model = PeftModel.from_pretrained(model, model_out_dir)
-        # else:
-        if self.cfg.model_type.quantization:
-            model = self.get_quantized_model(
-                self.cfg.model_type.model_name, model_cls, tokenizer, is_inference=True
+        if (
+            self.cfg.model_type.quantization
+            and self.cfg.model_type.quantization_dtype == 16
+        ):
+            config = PeftConfig.from_pretrained(model_out_dir)
+            device_map = {"": accelerator.device}
+            model = model_cls.from_pretrained(
+                # config.base_model_name_or_path,
+                self.cfg.model_type.model_name,
+                load_in_8bit=False,
+                # load_in_8bit=True,
+                device_map=device_map,
             )
+            model.resize_token_embeddings(len(tokenizer))
+            model = PeftModel.from_pretrained(
+                model, model_out_dir, device_map=device_map
+            )
+        elif (
+            self.cfg.model_type.quantization
+            and self.cfg.model_type.quantization_dtype == 8
+        ):
+            config = BitsAndBytesConfig(load_in_8bit=True)
+
+            device_map = {"": accelerator.device}
+            model = model_cls.from_pretrained(
+                self.cfg.model_type.model_name,
+                quantization_config=config,
+                device_map=device_map,
+            )
+            model = PeftModel.from_pretrained(model, model_out_dir)
+        # else:
+        # if self.cfg.model_type.quantization:
+        #     model = self.get_quantized_model(self.cfg.model_type.model_name, model_cls, tokenizer, is_inference=True, trained_model_path=model_out_dir)
         else:
             model = model_cls.from_pretrained(model_out_dir).cuda()
             model.resize_token_embeddings(len(tokenizer))
@@ -584,8 +573,8 @@ def old_main():
     tt.run()
 
 
-# @hydra.main(config_path="../config/t5_trainer/", config_name="t5_trainer")
-@hydra.main(config_path="../config/t5_trainer/", config_name="t5_inference")
+@hydra.main(config_path="../config/t5_trainer/", config_name="t5_trainer")
+# @hydra.main(config_path="../config/t5_trainer/", config_name="t5_inference")
 def hydra_start(cfg: DictConfig) -> None:
     t5tod = T5Tod(cfg)
     t5tod.run()
